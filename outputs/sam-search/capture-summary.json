@@ -1,0 +1,121 @@
+{
+  "baseline_leads": 321,
+  "api_requests": 10,
+  "queries": [
+    {
+      "run_id": "205653fc-3e11-45b0-a353-995bf4733e6a",
+      "kind": "opportunities",
+      "query_url": "https://api.sam.gov/opportunities/v2/search?postedFrom=09%2F17%2F2025&postedTo=09%2F16%2F2026&state=AR&ncode=561720&limit=1000&offset=0",
+      "count": 1,
+      "complete": true,
+      "recognized": true
+    },
+    {
+      "run_id": "20bc470d-bfd8-4bd7-a4e0-926cdcd3696d",
+      "kind": "opportunities",
+      "query_url": "https://api.sam.gov/opportunities/v2/search?postedFrom=09%2F17%2F2025&postedTo=09%2F16%2F2026&state=AR&title=janitorial&limit=1000&offset=0",
+      "count": 1,
+      "complete": true,
+      "recognized": true
+    },
+    {
+      "run_id": "40f1f909-b0cf-41b7-bf4d-8fc4c0d2f4fa",
+      "kind": "awards",
+      "query_url": "https://api.sam.gov/contract-awards/v1/search?dateSigned=%5B09%2F17%2F2025%2C09%2F16%2F2026%5D&placeOfPerformStateCode=AR&naicsCode=561720&limit=100&offset=0",
+      "count": 92,
+      "complete": true,
+      "recognized": true
+    },
+    {
+      "run_id": "6bea0d5b-9bbe-411b-aa0c-86e2a89afc5a",
+      "kind": "opportunities",
+      "query_url": "https://api.sam.gov/opportunities/v2/search?postedFrom=09%2F17%2F2025&postedTo=09%2F16%2F2026&state=AR&title=clean&limit=1000&offset=0",
+      "count": 2,
+      "complete": true,
+      "recognized": true
+    },
+    {
+      "run_id": "7517cb38-353d-4e8a-bf08-8e981022057b",
+      "kind": "awards",
+      "query_url": "https://api.sam.gov/contract-awards/v1/search?lastModifiedDate=%5B09%2F11%2F2026%2C09%2F16%2F2026%5D&placeOfPerformStateCode=AR&q=cleaning&limit=100&offset=0",
+      "count": 0,
+      "complete": true,
+      "recognized": true
+    },
+    {
+      "run_id": "8d91dea4-7c62-4c80-99c5-d7b2235b23b0",
+      "kind": "opportunities",
+      "query_url": "https://api.sam.gov/opportunities/v2/search?postedFrom=09%2F17%2F2025&postedTo=09%2F16%2F2026&state=AR&title=housekeeping&limit=1000&offset=0",
+      "count": 0,
+      "complete": true,
+      "recognized": true
+    },
+    {
+      "run_id": "95675705-79ab-473c-8817-754ba336dfca",
+      "kind": "opportunities",
+      "query_url": "https://api.sam.gov/opportunities/v2/search?postedFrom=09%2F17%2F2025&postedTo=09%2F16%2F2026&state=AR&title=cleaning&limit=1000&offset=0",
+      "count": 1,
+      "complete": true,
+      "recognized": true
+    },
+    {
+      "run_id": "b0098f0d-e96b-4c0b-bd66-c611634bb47e",
+      "kind": "awards",
+      "query_url": "https://api.sam.gov/contract-awards/v1/search?dateSigned=%5B09%2F17%2F2025%2C09%2F16%2F2026%5D&placeOfPerformStateCode=AR&q=cleaning&limit=100&offset=0",
+      "count": 32,
+      "complete": true,
+      "recognized": true
+    },
+    {
+      "run_id": "b50adc95-33ed-46da-b9ff-a92c59dab854",
+      "kind": "opportunities",
+      "query_url": "https://api.sam.gov/opportunities/v2/search?postedFrom=09%2F17%2F2025&postedTo=09%2F16%2F2026&state=AR&title=custodial&limit=1000&offset=0",
+      "count": 0,
+      "complete": true,
+      "recognized": true
+    },
+    {
+      "run_id": "cca820ce-2940-46b4-8e25-08d575fdbe84",
+      "kind": "opportunities",
+      "query_url": "https://api.sam.gov/opportunities/v2/search?postedFrom=09%2F17%2F2025&postedTo=09%2F16%2F2026&ncode=561720&title=Arkansas&limit=1000&offset=0",
+      "count": 2,
+      "complete": true,
+      "recognized": true
+    }
+  ],
+  "award_actions": 120,
+  "distinct_award_contracts": 74,
+  "distinct_notices": 5,
+  "forecast_candidates": 1,
+  "staged_new": 0,
+  "staged_existing": 80,
+  "proposed_new": 1,
+  "proposed_enrichments": 73,
+  "review": [
+    {
+      "identity": "12444026C0006_12C2_-NONE-_-NONE-",
+      "reason": "New award candidate staged; service/geography and cross-source match require review before a new canonical lead is inserted"
+    },
+    {
+      "identity": "W519TC26CA043_9700_-NONE-_-NONE-",
+      "reason": "New award candidate staged; service/geography and cross-source match require review before a new canonical lead is inserted"
+    },
+    {
+      "identity": "697DCK24C00028_6920_-NONE-_-NONE-",
+      "reason": "New award candidate staged; service/geography and cross-source match require review before a new canonical lead is inserted"
+    },
+    {
+      "id": "ae70956e37264b6aaa810a75668a7bad",
+      "title": "ARKANSAS MULTI SITE/CUSTODIAL ",
+      "reason": "New notice staged; multi-site geography/relationship to existing award requires review; no duplicate lead inserted"
+    }
+  ],
+  "excluded": [
+    {
+      "id": "e2b978662702480f9d8fefb1406849d2",
+      "title": "Clean and Seal Bridge Decks-Dierks, DeQueen and Gillham Lakes",
+      "reason": "Bridge-deck sealing/construction (238390), not janitorial; retained in raw capture only, not proposed as a lead"
+    }
+  ],
+  "canonical_upserts_applied": false
+}

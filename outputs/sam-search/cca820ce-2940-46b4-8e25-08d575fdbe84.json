@@ -1,0 +1,160 @@
+{
+  "run_id": "cca820ce-2940-46b4-8e25-08d575fdbe84",
+  "captured": true,
+  "status": "success",
+  "record_count": 2,
+  "collector": "sam-search",
+  "kind": "opportunities",
+  "query_url": "https://api.sam.gov/opportunities/v2/search?postedFrom=09%2F17%2F2025&postedTo=09%2F16%2F2026&ncode=561720&title=Arkansas&limit=1000&offset=0",
+  "filters": {
+    "postedFrom": "09/17/2025",
+    "postedTo": "09/16/2026",
+    "ncode": "561720",
+    "title": "Arkansas",
+    "limit": 1000,
+    "offset": 0
+  },
+  "upstream_status": 200,
+  "complete_for_query": true,
+  "state": "response_captured",
+  "response": {
+    "totalRecords": 2,
+    "limit": 1000,
+    "offset": 0,
+    "opportunitiesData": [
+      {
+        "active": "Yes",
+        "additionalInfoLink": null,
+        "archiveDate": "2027-04-28",
+        "archiveType": "autocustom",
+        "award": {
+          "date": "2026-04-28",
+          "number": "W911SA26PA127",
+          "amount": "1428735",
+          "awardee": {
+            "name": "HR CONTROL SOLUTIONS LLC",
+            "location": {
+              "streetAddress": "90 IVY CHASE LOOP",
+              "city": {
+                "code": "21324",
+                "name": "Dallas"
+              },
+              "state": {
+                "code": "GA",
+                "name": "Georgia"
+              },
+              "zip": "30157",
+              "country": {
+                "code": "USA",
+                "name": "UNITED STATES"
+              }
+            }
+          }
+        },
+        "baseType": "Combined Synopsis/Solicitation",
+        "classificationCode": "S201",
+        "description": "https://api.sam.gov/prod/opportunities/v1/noticedesc?noticeid=1a71da7afb094db3a2c8b9f5466ad6a2",
+        "fullParentPathCode": "021.2100.AMC.ACC.MICC.419TH CSB.W911SA",
+        "fullParentPathName": "DEPT OF DEFENSE.DEPT OF THE ARMY.AMC.ACC.MISSION INSTALLATION CONTRACTING COMMAND.419TH CSB.W6QM MICC FT MCCOY (RC)",
+        "links": [
+          {
+            "rel": "self",
+            "href": "https://api.sam.gov/prod/opportunities/v2/search?noticeid=1a71da7afb094db3a2c8b9f5466ad6a2&limit=1"
+          }
+        ],
+        "naicsCode": "561720",
+        "naicsCodes": [
+          "561720"
+        ],
+        "noticeId": "1a71da7afb094db3a2c8b9f5466ad6a2",
+        "officeAddress": {
+          "zipcode": "54656-5142",
+          "city": "FORT MCCOY",
+          "countryCode": "USA",
+          "state": "WI"
+        },
+        "organizationType": "OFFICE",
+        "placeOfPerformance": {
+          "streetAddress": "Multi-Site: SEE MAPS ATTACHMENT",
+          "zip": ""
+        },
+        "pointOfContact": [
+          {
+            "fax": "",
+            "type": "primary",
+            "email": "dorothy.a.doughty.civ@army.mil",
+            "phone": "5207060572",
+            "fullName": "Dorothy Doughty"
+          }
+        ],
+        "postedDate": "2026-04-28",
+        "resourceLinks": null,
+        "responseDeadLine": null,
+        "solicitationNumber": "W911SA26QA114",
+        "title": "ARKANSAS MULTI SITE/CUSTODIAL ",
+        "type": "Award Notice",
+        "typeOfSetAside": "EDWOSB",
+        "typeOfSetAsideDescription": "Economically Disadvantaged Women-Owned Small Business",
+        "uiLink": "https://sam.gov/workspace/contract/opp/1a71da7afb094db3a2c8b9f5466ad6a2/view"
+      },
+      {
+        "active": "Yes",
+        "additionalInfoLink": null,
+        "archiveDate": "2027-04-15",
+        "archiveType": "autocustom",
+        "award": null,
+        "baseType": "Combined Synopsis/Solicitation",
+        "classificationCode": "S201",
+        "description": "https://api.sam.gov/prod/opportunities/v1/noticedesc?noticeid=ae70956e37264b6aaa810a75668a7bad",
+        "fullParentPathCode": "021.2100.AMC.ACC.MICC.419TH CSB.W911SA",
+        "fullParentPathName": "DEPT OF DEFENSE.DEPT OF THE ARMY.AMC.ACC.MISSION INSTALLATION CONTRACTING COMMAND.419TH CSB.W6QM MICC FT MCCOY (RC)",
+        "links": [
+          {
+            "rel": "self",
+            "href": "https://api.sam.gov/prod/opportunities/v2/search?noticeid=ae70956e37264b6aaa810a75668a7bad&limit=1"
+          }
+        ],
+        "naicsCode": "561720",
+        "naicsCodes": [
+          "561720"
+        ],
+        "noticeId": "ae70956e37264b6aaa810a75668a7bad",
+        "officeAddress": {
+          "zipcode": "54656-5142",
+          "city": "FORT MCCOY",
+          "countryCode": "USA",
+          "state": "WI"
+        },
+        "organizationType": "OFFICE",
+        "placeOfPerformance": {
+          "streetAddress": "Multi-Site: SEE MAPS ATTACHMENT",
+          "zip": ""
+        },
+        "pointOfContact": [
+          {
+            "fax": "",
+            "type": "primary",
+            "email": "dorothy.a.doughty.civ@army.mil",
+            "phone": "5207060572",
+            "fullName": "Dorothy Doughty"
+          }
+        ],
+        "postedDate": "2026-04-15",
+        "resourceLinks": null,
+        "responseDeadLine": "2026-04-20T10:00:00-06:00",
+        "solicitationNumber": "W911SA26QA114",
+        "title": "ARKANSAS MULTI SITE/CUSTODIAL ",
+        "type": "Combined Synopsis/Solicitation",
+        "typeOfSetAside": "EDWOSB",
+        "typeOfSetAsideDescription": "Economically Disadvantaged Women-Owned Small Business",
+        "uiLink": "https://sam.gov/workspace/contract/opp/ae70956e37264b6aaa810a75668a7bad/view"
+      }
+    ],
+    "links": [
+      {
+        "rel": "self",
+        "href": "https://api.sam.gov/prod/opportunities/v2/search?postedFrom=09%2F17%2F2025&postedTo=09%2F16%2F2026&ncode=561720&title=Arkansas&limit=1000&offset=0"
+      }
+    ]
+  }
+}

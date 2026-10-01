@@ -1,0 +1,204 @@
+{
+  "verified_at": "2026-09-17T02:25:16.108Z",
+  "committed": true,
+  "lead_count_before": 321,
+  "lead_count_after": 324,
+  "new_awards": [
+    {
+      "id": "bfe6697f-4046-4bfc-95e4-b1a518ffc3c9",
+      "award_number": "12444026C0006",
+      "title": "BASE PLUS 4 OPTION YEARS JANITORIAL FOR THE POTEAU/COLD SPRINGS RANGER DISTRICT AND WORK CENTER."
+    },
+    {
+      "id": "4d90c670-8efc-4738-8f79-ee87cacc03ae",
+      "award_number": "W519TC26CA043",
+      "title": "CUSTODIAL SERVICES FOR PINE BLUFF ARSENAL (PBA)"
+    },
+    {
+      "id": "c66901ae-59f3-4e6f-b6f1-0ed4558ebf96",
+      "award_number": "697DCK24C00028",
+      "title": "QXR ARSR JANITORIAL AND GROUNDS PORTION 50/50 SPLIT WITH NDP PROGRAM FUNDING."
+    }
+  ],
+  "baseline_leads": 321,
+  "new_leads": 3,
+  "evidence_updates": 74,
+  "links_to_create": 78,
+  "status_changes": 78,
+  "processed_intakes": 78,
+  "older_intake_matches": 1,
+  "unresolved": [
+    {
+      "id": "f5115594-1763-45a2-bd51-07d0f6e27e77",
+      "external_id": "e2b978662702480f9d8fefb1406849d2",
+      "reason": "Excluded construction; retain ignored"
+    },
+    {
+      "id": "95d2337a-4e14-4a5a-8373-dcae21b84354",
+      "external_id": "ae70956e37264b6aaa810a75668a7bad",
+      "reason": "Historical solicitation relationship unresolved"
+    },
+    {
+      "id": "06cb0769-71b2-5bef-84b0-d54bf8c35fa4",
+      "external_id": "page:1d2cf5737442c2ab00ade351f5062de91db123125faf98106d1d7562b5f7d1fd",
+      "source_id": "582ab8b5-40be-5fba-a82c-4de7d4b7183b",
+      "url": "https://www.acquisition.gov/procurement-forecasts",
+      "reason": "No reviewed individual-lead identity; page-level snapshots are not equivalent to contracts"
+    },
+    {
+      "id": "14845809-9f5f-5b21-a812-66c2e2073ea4",
+      "external_id": "page:b44071d3b2bc0574eb0cd174eb4693897a46737b9598f9c694e574b78a2bcefc",
+      "source_id": "037fa4ad-d190-53d9-bb02-42c25ad3b6eb",
+      "url": "https://sas.arkansas.gov/procurement/state-contracts/",
+      "reason": "No reviewed individual-lead identity; page-level snapshots are not equivalent to contracts"
+    },
+    {
+      "id": "2611c16d-eadc-5d3d-bb0e-0120db40951b",
+      "external_id": "page:6bba808c0a3766d8f417339abdd4b51e643f8999f4f9948af29ec2cf0a034ed7",
+      "source_id": "4d317052-28ec-5329-a95d-e973ea756501",
+      "url": "https://lrhousing.org/business-with-lrha/",
+      "reason": "No reviewed individual-lead identity; page-level snapshots are not equivalent to contracts"
+    },
+    {
+      "id": "2c6bfd31-96df-553f-b5f1-21cb1d0e7904",
+      "external_id": "page:47ee2a2aa45f331d65ec92b54e7dcdd898baad8e06b737e2c31b4cb4edf5234b",
+      "source_id": "5fab7fdc-e036-53de-b6e9-39dc14712b0b",
+      "url": "https://littlerock.gov/government/city-departments/finance/divisions-2/procurement/",
+      "reason": "No reviewed individual-lead identity; page-level snapshots are not equivalent to contracts"
+    },
+    {
+      "id": "4131db7d-1178-5d11-8b4d-9b59ef08af25",
+      "external_id": "page:a86f2b107ddb1246ed567a48f4b5a8b85499cc88aa700aa1b3cb3dc4782b6831",
+      "source_id": "31664b92-c523-5cc5-a64d-13b569ab2e64",
+      "url": "https://www.gsa.gov/small-business/find-opportunities",
+      "reason": "No reviewed individual-lead identity; page-level snapshots are not equivalent to contracts"
+    },
+    {
+      "id": "4789412e-f674-5c30-86b7-5f8a3c9f4738",
+      "external_id": "page:c683c44cad2748d31cb5d3517d8ed8f8d542859ffa52f37aeb735ad7f3611c69",
+      "source_id": "8648268b-56e7-5e78-b8d8-be3fbca0eff7",
+      "url": "https://ualr.edu/procurement/bids/",
+      "reason": "No reviewed individual-lead identity; page-level snapshots are not equivalent to contracts"
+    },
+    {
+      "id": "53e46e3f-0c12-50c9-a66f-61c8c7c0b078",
+      "external_id": "page:6b5469ed17202be290f6376ea0e2526978de9434c9e2229fef95208d5e676a54",
+      "source_id": "86477bd1-cca9-5056-94cb-dd80dd29640b",
+      "url": "https://rrmetro.org/about/business/vendors/",
+      "reason": "No reviewed individual-lead identity; page-level snapshots are not equivalent to contracts"
+    },
+    {
+      "id": "554346a2-8bb3-5145-bb1f-95a8a89a5cc9",
+      "external_id": "page:7b1c179e9f8f0da2ec1b700cb0ab000d546ed2216cfa569da206fb595d6ffe6b",
+      "source_id": "2ea0a526-1ca8-59d1-bbc6-18db63737c0b",
+      "url": "https://littlerock.gov/government/city-departments/finance/reports/",
+      "reason": "No reviewed individual-lead identity; page-level snapshots are not equivalent to contracts"
+    },
+    {
+      "id": "58319e5a-3df6-5401-8b35-b21a7ebc5622",
+      "external_id": "page:2ee0ae33e2f88d0e5e8f77e6828ec1de5617c56a587eaa524dd3680ebe89ed21",
+      "source_id": "98923165-7777-5b89-b7ca-a8d25c95f526",
+      "url": "https://clintonairport.com/procurement/",
+      "reason": "No reviewed individual-lead identity; page-level snapshots are not equivalent to contracts"
+    },
+    {
+      "id": "5f55d0ef-0629-5621-b15a-d612af66019f",
+      "external_id": "page:32de825a1f78a3ad6dff344fe27a67c65f908d272c20cd5b12254f84153f3824",
+      "source_id": "aea414f2-f455-56b8-98e6-3fb1f50762c2",
+      "url": "https://ardot.gov/divisions/equipment-procurement/commodities-and-services/bids-by-fiscal-year/",
+      "reason": "No reviewed individual-lead identity; page-level snapshots are not equivalent to contracts"
+    },
+    {
+      "id": "7f5770e6-25e1-5693-8c43-d978e9b6efcd",
+      "external_id": "page:b3e339225af0ac257dff4ddadf1be9a1a3a81b03e2ee213610abaeb211852c09",
+      "source_id": "c62b42f4-c8ad-589b-89e7-f0905332b2ca",
+      "url": "https://supplychain.uams.edu/procurement/",
+      "reason": "No reviewed individual-lead identity; page-level snapshots are not equivalent to contracts"
+    },
+    {
+      "id": "8157362f-d110-5256-a99c-c69a4e366688",
+      "external_id": "page:233a55106336fdadf20ef96d6350cc7f7b67ef46d96d3ded1d3ca5577dc7bdaf",
+      "source_id": "956627fd-a361-5bf0-b18b-3b09efcfe848",
+      "url": "https://www.pulaskicounty.net/purchasing",
+      "reason": "No reviewed individual-lead identity; page-level snapshots are not equivalent to contracts"
+    },
+    {
+      "id": "9f1e29c8-bcfc-568a-9de5-4d17a610aa40",
+      "external_id": "page:fc7fe929f70d1a028a9e774f22b819f7fc4977eca754de78f108f960b1f9005b",
+      "source_id": "f9c51032-4d59-5ce3-a411-5ac235520dae",
+      "url": "https://www.ark.org/tss/procurement/bids/index.php",
+      "reason": "No reviewed individual-lead identity; page-level snapshots are not equivalent to contracts"
+    },
+    {
+      "id": "a51689e5-3ed9-5e64-96ed-0a033944f08b",
+      "external_id": "page:40b6b91e521fdbfa0317a4e06215026ae9bfb188dd7f0590ee463a8f4f8cd388",
+      "source_id": "36e49031-41e5-5664-8108-372677b1bd66",
+      "url": "https://clintonairport.com/wp-content/uploads/2026/03/Contracting-Opportunities-Forecast-public-March.pdf",
+      "reason": "No reviewed individual-lead identity; page-level snapshots are not equivalent to contracts"
+    },
+    {
+      "id": "a56b7138-2032-5210-aa58-4649d2770524",
+      "external_id": "page:4a5d7895da674dd1d51a42427f34a73daf67940cb22f8ec009624ef3e39c1787",
+      "source_id": "9544ec9e-4b05-5018-890d-aafdf815d274",
+      "url": "https://arbuy.arkansas.gov/bso/view/login/login.xhtml",
+      "reason": "No reviewed individual-lead identity; page-level snapshots are not equivalent to contracts"
+    },
+    {
+      "id": "be19348c-fd48-4e97-bdc0-d3d4a65dba0b",
+      "external_id": "FWS2025001061",
+      "source_id": "31664b92-c523-5cc5-a64d-13b569ab2e64",
+      "url": "https://acquisitiongateway.gov/forecast/resources/38155?nid=38155",
+      "reason": "Historical forecast promotion excluded from this batch"
+    },
+    {
+      "id": "c93a58ae-a927-5270-8389-25b2216ecdf9",
+      "external_id": "page:d6e1bbf54aa3452cefb95823d608a220748fd42d8ed7ef80ec52d8bb2d48b0f4",
+      "source_id": "f6c0c92e-55a5-5569-9bb2-e93d9a7ac0c9",
+      "url": "https://sas.arkansas.gov/procurement/bid-opportunities/",
+      "reason": "No reviewed individual-lead identity; page-level snapshots are not equivalent to contracts"
+    },
+    {
+      "id": "ceeba0cb-81bb-5e5c-a43c-ba1f2f5aa57b",
+      "external_id": "page:068ac251ac37fc423422fa875ed087704e2fa715b1f614dfac8576a5c9cfcf67",
+      "source_id": "0dc0e3ad-5515-501f-b5ce-8ba02b67d00a",
+      "url": "https://lrwra.com/business-center/",
+      "reason": "No reviewed individual-lead identity; page-level snapshots are not equivalent to contracts"
+    },
+    {
+      "id": "e47b70c9-e5bb-5455-afb0-6c4459f6d103",
+      "external_id": "page:2d895bf70682706483fc99b5bc97f86770d8a9107940b613a4faecf189e6265a",
+      "source_id": "7bdc36fe-30a1-5cdb-85fa-593e5a8dd7a4",
+      "url": "https://humanservices.arkansas.gov/announcements/janitorial-services-multiple-counties/",
+      "reason": "No reviewed individual-lead identity; page-level snapshots are not equivalent to contracts"
+    },
+    {
+      "id": "e7213265-8dc0-59be-9256-1fe022f971cd",
+      "external_id": "page:180835273a9f30e4cfa2afc08d0bf0f2dffb5cbab4dad5e59063ec80e4e42a03",
+      "source_id": "48d818ae-7718-5381-8045-ceae7fc8404d",
+      "url": "https://nlr.ar.gov/departments/finance/commerce/",
+      "reason": "No reviewed individual-lead identity; page-level snapshots are not equivalent to contracts"
+    },
+    {
+      "id": "edde04bd-e61c-5b55-877f-24163be06f55",
+      "external_id": "page:60175b30712d822c67ed2b8cad3e88dfc9844e7e330ba3477ff18bb96ecb3ea8",
+      "source_id": "9625c242-3602-5f36-a44f-ac1df5b7a4b4",
+      "url": "https://carkw.com/resources/procurement/",
+      "reason": "No reviewed individual-lead identity; page-level snapshots are not equivalent to contracts"
+    },
+    {
+      "id": "f7fdd618-18fa-51e6-8ffe-39db8080f94a",
+      "external_id": "page:886e227bdd72a820f0cbeefb0eb43f4cc1fbc3c23f3759d6625d33a4578382bf",
+      "source_id": "40fe04e3-f91c-5b4b-92cd-8211945eed75",
+      "url": "https://www.ark.org/tss/procurement/pro_intent.php",
+      "reason": "No reviewed individual-lead identity; page-level snapshots are not equivalent to contracts"
+    }
+  ],
+  "status_counts": {
+    "processed": 78,
+    "pending": 23,
+    "ignored": 1
+  },
+  "existing_lead_fields_preserved": true,
+  "unrelated_intake_preserved": true,
+  "history_events_added": 77
+}

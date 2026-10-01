@@ -1,0 +1,44 @@
+{
+  "source_code": "gsa-forecast",
+  "retrieved_on": "2026-09-16",
+  "retrieval_method": "Official Acquisition Gateway browser UI; not SAM API",
+  "query_url": "https://acquisitiongateway.gov/forecast?filter[field_place_of_performance_administrative_area]=AR&range=100",
+  "query": "Place of Performance = Arkansas; all 75 listing summaries displayed; local text screening for 561720, janitorial, custodial, housekeeping, cleaning, clean up, cleanup, floor care, carpet, window cleaning",
+  "summary_rows_screened": 75,
+  "matching_summary_rows": 1,
+  "limitations": "Summary screening only; full descriptions of nonmatching records not opened. Not comprehensive agency forecast coverage. The previous USACE forecast was not reimported or replaced. SAM API key was not sent to Acquisition Gateway.",
+  "records": [
+    {
+      "external_id": "FWS2025001061",
+      "payload": {
+        "title": "Janitorial Service",
+        "bid_type": "forecast",
+        "business_category": "other_public",
+        "contracting_entity_geo_level": "federal",
+        "agency": "Department of the Interior",
+        "subagency": "U.S. Fish and Wildlife Service",
+        "source_url": "https://acquisitiongateway.gov/forecast/resources/38155?nid=38155",
+        "forecast_id": "FWS2025001061",
+        "naics": "561720",
+        "work_performance_locations": [{"city_name":"Crossett","state_code":"AR","evidence":"Official forecast detail: crossett, AR, US"}],
+        "planned_advertisement_period": "2026-03-31 (estimated solicitation date; now elapsed)",
+        "planned_period_of_performance": "06/30/2026",
+        "estimated_award_fiscal_year": "2026",
+        "estimated_award_quarter": "To Be Determined",
+        "published_date": "2025-09-30",
+        "source_modified": "2025-09-30",
+        "published_value_range": "Below $150K",
+        "annual_amount_basis": "Unknown; do not annualize forecast value",
+        "requirement_type": "Exercise of Option",
+        "set_aside": "To Be Determined",
+        "forecast_status_note": "Historical planning entry for an option exercise, not a verified open solicitation. Planned dates have elapsed; current status must be checked with the agency.",
+        "contacts": [
+          {"name":"Rachel Pearson","email":"rachel_pearson@fws.gov","role":"Point of Contact"},
+          {"name":"Josh Gordon","email":"small_business_opts@fws.gov","role":"Small Business Specialist"}
+        ],
+        "additional_information": "Region 04, NWRS",
+        "verification": "official_browser_forecast_detail"
+      }
+    }
+  ]
+}

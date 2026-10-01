@@ -1,0 +1,5 @@
+project_id = "zreplhkoxswtzxlchtjf"
+verify_jwt = false
+
+[functions.sam-search]
+verify_jwt = false
