@@ -1,3 +1,7 @@
+import { AuthGate } from '../features/auth/AuthGate';
+import type { ContractCategory, ContractStatus, ContractDateType, ContractStatusFilter, ContractView, ContractBidTypeFilter, ContractDateRangePreset, ContractSortKey, ContractSortDirection, GenerateStatus, BidSource, ContractOpportunity, ContractFilters, ContractAction, ContractStageReason } from '../features/contracts/types';
+import { getDefaultContractFilters } from '../features/contracts/contract-utils';
+import { saveLeadChange } from '../features/contracts/save-lead-change';
 import {
   BriefcaseBusiness,
   Building2,
@@ -15,15 +19,15 @@ import {
   Sparkles,
   Stethoscope,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
-import { addProcurementLeadNote, bulkUpdateProcurementLeadStage, findLeadIdsByActivityDate, loadProcurementContracts, loadProcurementLeadHistory, updateProcurementLeadStage, editProcurementLeadNote, type ProcurementHistoryRow, type ProcurementKeyDate, type ProcurementBidType } from '../lib/procurement';
+import { addProcurementLeadNote, bulkUpdateProcurementLeadStage, loadProcurementContracts, loadProcurementLeadDetail, loadProcurementLeadHistory, updateProcurementLeadStage, editProcurementLeadNote, type ProcurementHistoryRow, type ProcurementBidType } from '../lib/procurement';
 import {
   closedContractStatuses as contractClosedStatuses,
-  compareContracts as compareContractRecords,
   getDateRangeBounds as getContractDateRangeBounds,
-  matchesContractFilters as contractMatchesFilters,
 } from '../features/contracts/contract-utils';
+import { ResearchContext } from '../features/contracts/ResearchContext';
+import { formatDateLabel, formatKeyDate, normalizeUrl } from '../features/contracts/contract-utils';
 import { ComingSoon, ModeSwitch } from '../features/shared/components/ModeSwitch';
 import { EmptyQueueState } from '../features/shared/components/EmptyQueueState';
 import { InfoTooltip } from '../features/shared/components/InfoTooltip';
@@ -46,26 +50,9 @@ type WorkMode = 'contracts' | 'companies';
 type Fit = 'High' | 'Medium' | 'Low';
 type ContextPanelMode = 'note' | 'history' | 'email';
 type HistoryType = 'status' | 'note' | 'note-edit' | 'system' | 'lead-identified';
-type ContractCategory = 'School' | 'Government' | 'Medical';
-type ContractStatus =
-  | 'new'
-  | 'interested'
-  | 'not-interested'
-  | 'applied'
-  | 'hold'
-  | 'won'
-  | 'lost'
-  | 'withdrew';
-type ContractDateType = 'due' | 'expiring';
-type ContractStatusFilter = 'open' | 'closed' | ContractStatus;
-type ContractView = 'generate' | ContractStatusFilter;
+
 type ClosedSubcategory = 'all' | 'won' | 'lost' | 'not-interested' | 'withdrew';
-type ContractBidTypeFilter = 'All' | ProcurementBidType;
-type ContractDateRangePreset = 'all' | 'today' | 'this-week' | 'this-month' | 'custom';
-type ContractSortKey = 'applicable-date' | 'added' | 'updated';
-type ContractSortDirection = 'asc' | 'desc';
-type SourceStatus = 'needs-review' | 'current';
-type GenerateStatus = 'idle' | 'validating' | 'done' | 'needs-review' | 'failed';
+
 type CompanyStatusCategory = 'new' | 'ready-to-email' | 'needs-call' | 'in-progress' | 'closed';
 type CompanyProgressStatus =
   | 'waiting-on-customer'
@@ -100,43 +87,6 @@ type LeadNote = {
   text: string;
 };
 
-type BidSource = {
-  id: string;
-  name: string;
-  agencyType: 'County' | 'City' | 'Municipality' | 'School district' | 'Agency';
-  location: string;
-  category: ContractCategory;
-  url: string;
-  status: SourceStatus;
-  lastChecked: string;
-};
-
-type ContractOpportunity = {
-  id: string;
-  projectName: string;
-  agencyName: string;
-  category: ContractCategory;
-  location: string;
-  contactName: string;
-  contactPhone?: string;
-  contactEmail?: string;
-  bidType?: ProcurementBidType;
-  keyDates?: ProcurementKeyDate[];
-  dateType: ContractDateType;
-  date: string;
-  dateLabel: string;
-  estimatedValue?: string;
-  status: ContractStatus;
-  sourceId: string;
-  sourceUrl?: string;
-  addedAt?: string;
-  updatedAt?: string;
-  nextAction: string;
-  notes: LeadNote[];
-  history: LeadHistoryItem[];
-  stageReason?: string;
-};
-
 type CompanyLead = {
   id: string;
   businessName: string;
@@ -157,40 +107,6 @@ type CompanyLead = {
   notes: LeadNote[];
   history: LeadHistoryItem[];
 };
-
-type ContractFilters = {
-  category: 'All' | ContractCategory;
-  bidType: ContractBidTypeFilter;
-  dateRangePreset: ContractDateRangePreset;
-  dateFrom?: string;
-  dateTo?: string;
-  query: string;
-  status: ContractStatusFilter;
-  closedSubcategory: ClosedSubcategory;
-  sortKey: ContractSortKey;
-  sortDirection: ContractSortDirection;
-  changedDateRangePreset: ContractDateRangePreset;
-  changedDateFrom?: string;
-  changedDateTo?: string;
-};
-
-function getDefaultContractFilters(): ContractFilters {
-  return {
-    category: 'All',
-    bidType: 'All',
-    dateRangePreset: 'all',
-    dateFrom: undefined,
-    dateTo: undefined,
-    query: '',
-    status: 'open',
-    closedSubcategory: 'all',
-    sortKey: 'applicable-date',
-    sortDirection: 'asc',
-    changedDateRangePreset: 'all',
-    changedDateFrom: undefined,
-    changedDateTo: undefined,
-  };
-}
 
 type CompanyFilters = {
   status: CompanyStatusCategory;
@@ -249,20 +165,6 @@ type GeneratePanelState = {
   normalizedLocation?: string;
   sources: GenerateContractsSource[];
   opportunities: GenerateContractsOpportunity[];
-};
-
-type ContractAction =
-  | 'interested'
-  | 'hold'
-  | 'not-interested'
-  | 'applied'
-  | 'won'
-  | 'lost'
-  | 'withdrew';
-
-type ContractStageReason = {
-  code: string;
-  note?: string;
 };
 
 type CompanyAction =
@@ -539,56 +441,18 @@ const mockCompanies: CompanyLead[] = [
   }),
 ];
 
-type AuthState = 'loading' | 'signed-out' | 'signed-in';
-
 function App() {
-  const [authState, setAuthState] = useState<AuthState>('loading');
-  const [session, setSession] = useState<Session | null>(null);
-  const [authError, setAuthError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!supabase) {
-      setAuthState('signed-out');
-      setAuthError('Supabase is not configured. Add the project URL and publishable key to .env.');
-      return;
-    }
-
-    let active = true;
-    void supabase.auth.getSession().then(({ data, error }) => {
-      if (!active) return;
-      setSession(data.session);
-      setAuthState(data.session ? 'signed-in' : 'signed-out');
-      if (error) setAuthError(error.message);
-    });
-
-    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      if (!active) return;
-      setSession(nextSession);
-      setAuthState(nextSession ? 'signed-in' : 'signed-out');
-      setAuthError(null);
-    });
-
-    return () => {
-      active = false;
-      data.subscription.unsubscribe();
-    };
-  }, []);
-
-  if (authState === 'loading') {
-    return <AuthMessage title="Checking sign-in" message="Restoring your staff session…" />;
-  }
-
-  if (authState === 'signed-out' || !session) {
-    return <SignInScreen error={authError} />;
-  }
-
-  return <AppShell session={session} onSignOut={() => void supabase?.auth.signOut()} />;
+  return <AuthGate>{session => <AppShell session={session} onSignOut={() => void supabase?.auth.signOut()} />}</AuthGate>;
 }
 
 function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => void }) {
   const [workMode, setWorkMode] = useState<WorkMode>('contracts');
   const [contractView, setContractView] = useState<ContractView>('open');
   const [contracts, setContracts] = useState<ContractOpportunity[]>([]);
+  const [contractPage, setContractPage] = useState(0);
+  const [contractTotal, setContractTotal] = useState(0);
+  const [queueCounts, setQueueCounts] = useState<Record<string, number>>({});
+  const [checkedContractRecords, setCheckedContractRecords] = useState<Map<string, ContractOpportunity>>(new Map());
   const [companies, setCompanies] = useState<CompanyLead[]>(mockCompanies);
   const [sources, setSources] = useState<BidSource[]>([]);
   const [selectedContractId, setSelectedContractId] = useState('');
@@ -616,9 +480,6 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
     changedDateFrom: undefined,
     changedDateTo: undefined,
   });
-  const [historicalLeadIds, setHistoricalLeadIds] = useState<Set<string> | null>(null);
-  const [activityFilterStatus, setActivityFilterStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
-  const [activityFilterRetry, setActivityFilterRetry] = useState(0);
   const [companyFilters, setCompanyFilters] = useState<CompanyFilters>({
     status: 'new',
     query: '',
@@ -652,21 +513,25 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
 
     const client = supabase;
     try {
-      const result = await loadProcurementContracts(client);
+      const bounds = getContractDateRangeBounds(contractFilters.dateRangePreset, contractFilters.dateFrom, contractFilters.dateTo);
+      const changed = getContractDateRangeBounds(contractFilters.changedDateRangePreset, contractFilters.changedDateFrom, contractFilters.changedDateTo);
+      const result = await loadProcurementContracts(client, { ...contractFilters, ...bounds,
+        changedFrom: changed.dateFrom, changedTo: changed.dateTo, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone }, contractPage);
       if (requestId !== contractRequestSequence.current) return;
       const mappedContracts = result.contracts.map((contract) =>
         makeContract({
           ...contract,
           dateLabel: formatDateLabel(contract.date, contract.dateType),
           history: contract.history,
-          notes: contract.notes.map((text, index) => ({
-            id: `${contract.id}-note-${index}`,
-            at: 'From Supabase',
-            text,
-          })),
+          notes: [],
+          researchNotes: [...contract.researchNotes, ...contract.notes],
         }),
       );
-      const availableIds = new Set(mappedContracts.map((contract) => contract.id));
+      setContractTotal(result.total);
+      setQueueCounts(result.counts);
+      if (contractPage > 0 && contractPage * 50 >= result.total) {
+        setContractPage(Math.max(0, Math.ceil(result.total / 50) - 1));
+      }
       setContracts((current) => {
         const currentById = new Map(current.map((contract) => [contract.id, contract]));
         return mappedContracts.map((contract) => {
@@ -675,7 +540,11 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
         });
       });
       setSources(result.sources);
-      setCheckedContractIds((current) => new Set([...current].filter((id) => availableIds.has(id))));
+      setCheckedContractRecords((current) => {
+        const next = new Map(current);
+        for (const row of mappedContracts) if (next.has(row.id)) next.set(row.id, row);
+        return next;
+      });
       setContractsError(null);
       setLastContractsSyncAt(new Date());
       setContractsRefreshVersion((current) => current + 1);
@@ -686,7 +555,7 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
         const message = getLoadContractsErrorMessage(error);
         setContractsError(
           /401|403|permission|row-level|not authorized|jwt/i.test(message)
-            ? 'Access denied. Your account is signed in but is not approved to view procurement contracts.'
+            ? 'Access denied. Your session could not access procurement contracts. Sign in again or retry.'
             : message,
         );
       } else setContractsRefreshError('Could not refresh contracts. Try again.');
@@ -696,23 +565,19 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
         setIsRefreshingContracts(false);
       }
     }
-  }, []);
+  }, [contractFilters, contractPage]);
 
+  const latestContractRefresh = useRef(refreshContracts);
+  useEffect(() => { latestContractRefresh.current = refreshContracts; }, [refreshContracts]);
   const queueContractRefresh = useCallback(() => {
     if (contractRefreshTimer.current !== null) return;
     contractRefreshTimer.current = window.setTimeout(() => {
       contractRefreshTimer.current = null;
-      void refreshContracts();
+      void latestContractRefresh.current();
     }, 750);
-  }, [refreshContracts]);
+  }, []);
 
-  const visibleContracts = useMemo(
-    () =>
-      contracts
-        .filter((contract) => (historicalLeadIds === null || historicalLeadIds.has(contract.id)) && contractMatchesFilters(contract, contractFilters))
-        .sort((a, b) => compareContractRecords(a, b, contractFilters)),
-    [contracts, contractFilters, historicalLeadIds],
-  );
+  const visibleContracts = contracts;
   const visibleCompanies = useMemo(
     () =>
       companies
@@ -732,49 +597,30 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
   const refreshContractHistory = useCallback(async (contractId: string) => {
     if (!supabase) return false;
     const requestId = ++historyRequestSequence.current;
-    const rows = await loadProcurementLeadHistory(supabase, contractId);
+    const [rows, detail] = await Promise.all([loadProcurementLeadHistory(supabase, contractId), loadProcurementLeadDetail(supabase, contractId)]);
     if (requestId !== historyRequestSequence.current) return false;
     const history = rows.map(mapProcurementHistory);
     const notes = rows
       .filter((row) => row.event_type === 'note_added' && row.note_text && !(row.metadata as { edit?: boolean }).edit)
       .map((row) => ({ id: row.id, at: formatHistoryTimestamp(row.occurred_at), text: row.note_text ?? '' }));
-    setContracts((current) => current.map((contract) => contract.id === contractId ? { ...contract, history, notes } : contract));
+    setContracts((current) => current.map((contract) => contract.id === contractId ? { ...contract, researchNotes: [...detail.researchNotes, ...detail.notes], history, notes } : contract));
     return true;
   }, []);
 
   const historyContractId = selectedContract?.id;
   useEffect(() => {
     if (!historyContractId) return;
-    void refreshContractHistory(historyContractId).catch(() => undefined);
+    void refreshContractHistory(historyContractId).catch(() => setContractsRefreshError('History could not refresh. Retry refresh.'));
     return () => {
       historyRequestSequence.current += 1;
     };
   }, [contractsRefreshVersion, historyContractId, refreshContractHistory]);
 
   useEffect(() => {
-    if (!supabase || contractFilters.changedDateRangePreset === 'all') {
-      setHistoricalLeadIds(null);
-      setActivityFilterStatus('idle');
-      return;
-    }
-    let active = true;
-    setActivityFilterStatus('loading');
-    const changedBounds = getContractDateRangeBounds(contractFilters.changedDateRangePreset, contractFilters.changedDateFrom, contractFilters.changedDateTo);
-    void findLeadIdsByActivityDate(
-      supabase,
-      changedBounds.dateFrom,
-      changedBounds.dateTo,
-    ).then((ids) => {
-      if (!active) return;
-      setHistoricalLeadIds(new Set(ids));
-      setActivityFilterStatus('ready');
-    }).catch(() => {
-      if (!active) return;
-      setHistoricalLeadIds(null);
-      setActivityFilterStatus('error');
-    });
-    return () => { active = false; };
-  }, [activityFilterRetry, contractFilters.changedDateRangePreset, contractFilters.changedDateFrom, contractFilters.changedDateTo]);
+    setContractPage(0);
+    setCheckedContractIds(new Set());
+    setCheckedContractRecords(new Map());
+  }, [contractFilters]);
   const visibleCheckedContractIds = visibleContracts
     .map((contract) => contract.id)
     .filter((id) => checkedContractIds.has(id));
@@ -792,10 +638,10 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
         ...item,
         count:
           item.key === 'all'
-            ? contracts.filter((contract) => contractClosedStatuses.includes(contract.status)).length
-            : contracts.filter((contract) => contract.status === item.key).length,
+            ? contractClosedStatuses.reduce((count, status) => count + (queueCounts[status] ?? 0), 0)
+            : queueCounts[item.key] ?? 0,
       })),
-    [contracts],
+    [queueCounts],
   );
   const companyClosedSubcategories = useMemo(
     () =>
@@ -817,28 +663,28 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
         key: 'open',
         label: 'Open contracts',
         shortLabel: 'Open',
-        count: contracts.filter((contract) => !contractClosedStatuses.includes(contract.status)).length,
+        count: Object.entries(queueCounts).filter(([status]) => !contractClosedStatuses.includes(status as ContractStatus)).reduce((count, [, value]) => count + value, 0),
         icon: BriefcaseBusiness,
       },
       ...contractSummaryStatusOrder.map((status) => ({
         key: status,
         label: statusLabels[status],
         shortLabel: statusLabels[status],
-        count: contracts.filter((contract) => contract.status === status).length,
+        count: queueCounts[status] ?? 0,
         icon: getContractIcon(status),
       })),
       {
         key: 'closed',
         label: 'Closed contracts',
         shortLabel: 'Closed',
-        count: contracts.filter((contract) => contractClosedStatuses.includes(contract.status)).length,
+        count: contractClosedStatuses.reduce((count, status) => count + (queueCounts[status] ?? 0), 0),
         icon: CheckCheck,
         closedSubcategories: contractClosedSubcategories,
         selectedClosedSubcategory: contractFilters.closedSubcategory,
         isClosedSubcategoryExpanded: expandedClosedMode === 'contracts',
       },
     ],
-    [contractClosedSubcategories, contractFilters.closedSubcategory, contracts, expandedClosedMode],
+    [contractClosedSubcategories, contractFilters.closedSubcategory, queueCounts, expandedClosedMode],
   );
   const companySummary = useMemo<SummaryItem<CompanyStatusCategory>[]>(
     () =>
@@ -953,20 +799,22 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
     if (!supabase) return;
     try {
       const client = supabase;
-      const updated = await Promise.all(ids.map((id) => updateProcurementLeadStage(client, id, meta.status, reason)));
-      const refreshedHistory = await Promise.all(ids.map(async (id) => [id, await loadProcurementLeadHistory(client, id)] as const));
-      const historyByContractId = new Map(refreshedHistory);
-      setContracts((current) => current.map((contract) => {
-        const row = updated.find((item) => item.id === contract.id);
-        const rows = historyByContractId.get(contract.id);
-        return row ? {
-          ...contract,
-          status: mapProcurementStage(row.stage),
-          stageReason: row.stage_reason ?? undefined,
-          nextAction: meta.nextAction,
-          history: rows ? rows.map(mapProcurementHistory) : contract.history,
-        } : contract;
-      }));
+      await saveLeadChange({
+        write: () => ids.length === 1
+          ? updateProcurementLeadStage(client, ids[0], meta.status, reason).then((row) => [row])
+          : bulkUpdateProcurementLeadStage(client, ids, meta.status, reason),
+        commit: (updated) => {
+          contractRequestSequence.current += 1;
+          setContracts((current) => current.map((contract) => {
+            const row = updated.find((item) => item.id === contract.id);
+            return row ? { ...contract, status: mapProcurementStage(row.stage), stageReason: row.stage_reason ?? undefined, nextAction: meta.nextAction } : contract;
+          }));
+          setContractsError(null);
+        },
+        refresh: () => selectedContract ? refreshContractHistory(selectedContract.id) : Promise.resolve(),
+        onRefreshError: () => setContractsRefreshError('Stage saved. History could not refresh; retry refresh.'),
+      });
+      queueContractRefresh();
     } catch (error) {
       setContractsError(`Unable to save stage: ${getLoadContractsErrorMessage(error)}`);
       return;
@@ -979,14 +827,20 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
     if (!supabase) return false;
     try {
       const client = supabase;
-      const updated = await bulkUpdateProcurementLeadStage(client, ids, stage, reason);
-      const refreshedHistory = await Promise.all(updated.map(async (row) => [row.id, await loadProcurementLeadHistory(client, row.id)] as const));
-      const historyByContractId = new Map(refreshedHistory);
-      setContracts((current) => current.map((contract) => {
-        const row = updated.find((item) => item.id === contract.id);
-        const rows = historyByContractId.get(contract.id);
-        return row ? { ...contract, status: mapProcurementStage(row.stage), stageReason: row.stage_reason ?? undefined, nextAction: getNextActionForStage(stage), history: rows ? rows.map(mapProcurementHistory) : contract.history } : contract;
-      }));
+      await saveLeadChange({
+        write: () => bulkUpdateProcurementLeadStage(client, ids, stage, reason),
+        commit: (updated) => {
+          contractRequestSequence.current += 1;
+          setContracts((current) => current.map((contract) => {
+            const row = updated.find((item) => item.id === contract.id);
+            return row ? { ...contract, status: mapProcurementStage(row.stage), stageReason: row.stage_reason ?? undefined, nextAction: getNextActionForStage(stage) } : contract;
+          }));
+          setContractsError(null);
+        },
+        refresh: () => selectedContract ? refreshContractHistory(selectedContract.id) : Promise.resolve(),
+        onRefreshError: () => setContractsRefreshError('Stages saved. History could not refresh; retry refresh.'),
+      });
+      queueContractRefresh();
       setCheckedContractIds((current) => {
         const next = new Set(current);
         ids.forEach((id) => next.delete(id));
@@ -1137,6 +991,7 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
   };
 
   const toggleVisibleContracts = () => {
+    setCheckedContractRecords((current) => new Map([...current, ...visibleContracts.map((row) => [row.id, row] as const)]));
     setCheckedContractIds((current) => {
       const next = new Set(current);
       if (allVisibleContractsSelected) {
@@ -1256,7 +1111,7 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
                 <div className="results-selection">
                   <div>
                     <p className="eyebrow">Contract monitoring</p>
-                    <h2>{visibleContracts.length} results</h2>
+                    <h2>{contractTotal} results</h2>
                     {lastContractsSyncAt ? <p className="sync-status">Updated {formatSyncTime(lastContractsSyncAt)}</p> : null}
                   </div>
                   <button
@@ -1276,21 +1131,17 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
                     onClick={toggleVisibleContracts}
                     type="button"
                   >
-                    {allVisibleContractsSelected ? 'Unselect all' : 'Select all'}
+                    {allVisibleContractsSelected ? 'Unselect page' : 'Select page'}
                   </button>
                 </div>
               </div>
+              <div className="list-header" aria-label="Contract pages">
+                <button className="secondary-button compact" disabled={contractPage === 0 || contractsLoading || isRefreshingContracts} onClick={() => setContractPage((page) => page - 1)}>Previous</button>
+                <span>Page {contractPage + 1} of {Math.max(1, Math.ceil(contractTotal / 50))}{checkedContractIds.size ? ' · ' + checkedContractIds.size + ' selected across pages' : ''}</span>
+                <button className="secondary-button compact" disabled={(contractPage + 1) * 50 >= contractTotal || contractsLoading || isRefreshingContracts} onClick={() => setContractPage((page) => page + 1)}>Next</button>
+              </div>
               {contractsLoading ? (
                 <p className="inline-status" role="status">Loading contracts from Supabase…</p>
-              ) : null}
-              {activityFilterStatus === 'loading' ? (
-                <p className="inline-status" role="status">Refreshing the lead-related date filter...</p>
-              ) : null}
-              {activityFilterStatus === 'error' ? (
-                <div className="inline-status is-error inline-status-action" role="alert">
-                  <span>Could not refresh the lead-related date filter.</span>
-                  <button className="text-button" onClick={() => setActivityFilterRetry((current) => current + 1)} type="button">Retry</button>
-                </div>
               ) : null}
               {contractsError ? (
                 <p className="inline-status is-error" role="alert">
@@ -1303,14 +1154,10 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
                   <button className="text-button" onClick={() => void refreshContracts()} type="button">Retry</button>
                 </div>
               ) : null}
-              {visibleCheckedContractIds.length > 0 ? (
+              {checkedContractIds.size > 0 ? (
                 <ContractBulkStageBar
-                  contracts={visibleContracts.filter((contract) => visibleCheckedContractIds.includes(contract.id))}
-                  onClear={() => setCheckedContractIds((current) => {
-                    const next = new Set(current);
-                    visibleContracts.forEach((contract) => next.delete(contract.id));
-                    return next;
-                  })}
+                  contracts={[...checkedContractIds].map((id) => checkedContractRecords.get(id) ?? contracts.find((row) => row.id === id)).filter((row): row is ContractOpportunity => Boolean(row))}
+                  onClear={() => { setCheckedContractIds(new Set()); setCheckedContractRecords(new Map()); }}
                   onSubmit={applyBulkContractStage}
                 />
               ) : null}
@@ -1324,7 +1171,11 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
                     setSelectedContractId(id);
                     setContextMode('note');
                   }}
-                  onToggle={(id) => setCheckedContractIds((current) => toggleId(current, id))}
+                  onToggle={(id) => {
+                    setCheckedContractIds((current) => toggleId(current, id));
+                    const row = contracts.find((contract) => contract.id === id);
+                    if (row) setCheckedContractRecords((current) => new Map(current).set(id, row));
+                  }}
                 />
               ) : (
                 <EmptyQueueState
@@ -1414,70 +1265,6 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
             onSaveNote={saveCompanyNote}
           />
         )}
-      </section>
-    </main>
-  );
-}
-
-function AuthMessage({ title, message }: { title: string; message: string }) {
-  return (
-    <main className="auth-shell">
-      <section className="auth-card">
-        <p className="eyebrow">Janitorial leads</p>
-        <h1>{title}</h1>
-        <p>{message}</p>
-      </section>
-    </main>
-  );
-}
-
-function SignInScreen({ error }: { error: string | null }) {
-  const [mode, setMode] = useState<'sign-in' | 'sign-up'>('sign-in');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<string | null>(error);
-
-  const submit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!supabase) return;
-    setBusy(true);
-    setMessage(null);
-    const result = mode === 'sign-in'
-      ? await supabase.auth.signInWithPassword({ email, password })
-      : await supabase.auth.signUp({ email, password });
-    setBusy(false);
-    if (result.error) {
-      setMessage(result.error.message);
-    } else if (mode === 'sign-up' && !result.data.session) {
-      setMessage('Account created. Check your email to confirm the account, then sign in.');
-    }
-  };
-
-  return (
-    <main className="auth-shell">
-      <section className="auth-card">
-        <p className="eyebrow">Janitorial leads</p>
-        <h1>{mode === 'sign-in' ? 'Sign in to view contracts' : 'Create an account'}</h1>
-        <p>{mode === 'sign-in' ? 'Sign in to view contracts and leads' : 'Create an account'}</p>
-        <div className="auth-mode-toggle" role="group" aria-label="Authentication mode">
-          <button className={mode === 'sign-in' ? 'is-active' : ''} onClick={() => { setMode('sign-in'); setMessage(null); }} type="button">Sign in</button>
-          <button className={mode === 'sign-up' ? 'is-active' : ''} onClick={() => { setMode('sign-up'); setMessage(null); }} type="button">Sign up</button>
-        </div>
-        <form className="auth-form" onSubmit={submit}>
-          <label>
-            <span>Email</span>
-            <input autoComplete="email" onChange={(event) => setEmail(event.target.value)} required type="email" value={email} />
-          </label>
-          <label>
-            <span>Password</span>
-            <input autoComplete="current-password" onChange={(event) => setPassword(event.target.value)} required type="password" value={password} />
-          </label>
-          {message ? <p className="auth-error" role="alert">{message}</p> : null}
-          <button className="primary-button" disabled={busy} type="submit">
-            {busy ? 'Working…' : mode === 'sign-in' ? 'Sign in' : 'Sign up'}
-          </button>
-        </form>
       </section>
     </main>
   );
@@ -2239,6 +2026,7 @@ function ContractContextPanel({
   }
   return (
     <aside className="detail-panel context-panel" aria-label="Contract details" tabIndex={0}>
+      <ResearchContext notes={contract.researchNotes ?? []} />
       <NotePanel
         notes={contract.notes}
         title={contract.projectName}
@@ -3118,7 +2906,7 @@ function mapGeneratedSource(source: GenerateContractsSource): BidSource {
 
 function mapGeneratedContract(opportunity: GenerateContractsOpportunity): ContractOpportunity {
   const dateType: ContractDateType = opportunity.expiresAt && !opportunity.dueAt ? 'expiring' : 'due';
-  const dateValue = opportunity.dueAt ?? opportunity.expiresAt ?? new Date().toISOString();
+  const dateValue = opportunity.dueAt ?? opportunity.expiresAt ?? '';
   return makeContract({
     id: opportunity.id,
     projectName: opportunity.projectName,
@@ -3152,16 +2940,6 @@ function mergeById<T extends { id: string }>(preferred: T[], fallback: T[]) {
   });
 }
 
-function formatDateLabel(value: string, dateType: ContractDateType) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return dateType === 'due' ? 'Due date pending' : 'Expiry pending';
-  return `${dateType === 'due' ? 'Due' : 'Expires'} ${date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  })}`;
-}
-
 function labelForBidType(value: ProcurementBidType) {
   if (value === 'forecast') return 'Forecast';
   if (value === 'opportunity') return 'Opportunity';
@@ -3169,26 +2947,5 @@ function labelForBidType(value: ProcurementBidType) {
   return 'Unknown';
 }
 
-function formatKeyDate(keyDate: ProcurementKeyDate) {
-  if (keyDate.kind === 'text') return keyDate.value;
-  const date = new Date(keyDate.value);
-  if (Number.isNaN(date.getTime())) return keyDate.value;
-  if (keyDate.kind === 'datetime') {
-    return date.toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      timeZoneName: 'short',
-    });
-  }
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-}
-
-function normalizeUrl(url: string) {
-  if (url.startsWith('http://') || url.startsWith('https://')) return url;
-  return `https://${url}`;
-}
 
 export default App;

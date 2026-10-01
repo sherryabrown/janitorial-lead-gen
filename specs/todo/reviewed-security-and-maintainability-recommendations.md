@@ -1,5 +1,7 @@
 # Reviewed recommendations: Supabase function exposure and maintainability
 
+> **Superseded for execution — September 30, 2026.** The prerequisite `specs/done/01-faster-development-and-validation-workflow.md` is complete; next execute `02-code-review-remediation-and-authenticated-data-access.md`. The user now defines authorized access as signed-in access: any signed-in user may view/update leads; no staff-membership gate is requested. The newer review includes `.mjs` files and did not find `spin_generate_contracts` in the deployed function list. Preserve this document as historical planning context, not as the current implementation instruction.
+
 ## User prompt
 
 > Review the supplied code-review findings and make recommendations, **ignoring all `.mjs` files altogether**.

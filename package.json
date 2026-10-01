@@ -7,8 +7,16 @@
     "dev": "vite --host 127.0.0.1",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "test": "vitest run",
-    "preview": "vite preview --host 127.0.0.1"
+    "test": "npm run test:app && npm run test:workflow && npm run test:sql",
+    "preview": "vite preview --host 127.0.0.1",
+    "test:app": "vitest run",
+    "test:workflow": "node --import ./tests/offline-only.mjs --test tests/*.test.mjs",
+    "test:sql": "node --import ./tests/offline-only.mjs tests/intake-processing-sql.mjs && node --import ./tests/offline-only.mjs tests/sam-upsert-sql.mjs",
+    "typecheck": "tsc -b",
+    "check": "npm run lint && npm test && npm run build",
+    "supabase": "supabase",
+    "test:access": "node tests/integration/local-access.mjs",
+    "test:access:supabase": "node --test tests/integration/access.test.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.115.0",
@@ -20,7 +28,9 @@
     "vite": "^7.1.0"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.5.8",
     "@eslint/js": "^9.9.0",
+    "@testing-library/react": "16.3.3",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
     "@typescript-eslint/eslint-plugin": "^8.40.0",
@@ -29,6 +39,11 @@
     "eslint-plugin-react-hooks": "^5.1.0",
     "eslint-plugin-react-refresh": "^0.4.9",
     "globals": "^15.9.0",
+    "jsdom": "26.1.0",
+    "supabase": "2.118.0",
     "vitest": "^5.0.1"
+  },
+  "engines": {
+    "node": ">=22.15.0"
   }
 }

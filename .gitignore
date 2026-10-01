@@ -15,3 +15,12 @@ outputs/sam-search/intake-after*.json
 # Reviewed workflow packages bind private baseline snapshots and approval receipts.
 outputs/procurement-batches/
 outputs/skill-drafts/
+
+# Private procurement source, account/API access evidence and alert receipts.
+outputs/procurement-access/
+
+# Local Netlify folder
+.netlify
+
+# Machine-specific Supabase CLI state, not reproducible schema.
+supabase/.temp/

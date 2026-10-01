@@ -8,6 +8,14 @@ import tsPlugin from '@typescript-eslint/eslint-plugin';
 export default [
   { ignores: ['dist'] },
   {
+    files: ['scripts/**/*.mjs', 'tests/**/*.mjs'],
+    languageOptions: { ecmaVersion: 'latest', sourceType: 'module', globals: globals.node },
+    rules: {
+      ...js.configs.recommended.rules,
+      'no-unused-vars': ['error', { caughtErrors: 'none', argsIgnorePattern: '^_', ignoreRestSiblings: true }],
+    },
+  },
+  {
     files: ['**/*.{ts,tsx}'],
     languageOptions: {
       ecmaVersion: 2022,

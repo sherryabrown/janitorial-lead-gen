@@ -2,17 +2,33 @@ import { readFileSync,writeFileSync,mkdirSync,existsSync,readdirSync } from 'nod
 import { resolve,dirname,join } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath,pathToFileURL } from 'node:url';
+import {createHash} from 'node:crypto';
 import { planReviewedBatch,hash,validateReview,collectRuns } from './lib/reviewed-batch.mjs';
 import { awardDate,awardPayload } from './lib/sam-normalize.mjs';
 import { reconciliationSql } from './lib/intake-reconcile.mjs';
 import { verifyBatch } from './lib/batch-verification.mjs';
 import { project } from './lib/supabase-admin.mjs';
 import { testBatchSql } from './lib/batch-sql-test.mjs';
+import { runSupabase } from './lib/supabase-cli.mjs';
+import {planRegistry,planManual,persistenceSql,verifyPersistence} from './lib/research-persistence.mjs';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const load=p=>JSON.parse(readFileSync(p,'utf8'));
 const save=(p,value)=>writeFileSync(p,JSON.stringify(value,null,2)+'\n',{flag:'wx'});
+function evidenceBytes(spec,dir,copy=false){
+ for(const f of spec.findings)for(const e of f.evidence??[]){
+  if(!e.local_path)throw new Error('Manual capture requires the actual saved evidence file');
+  const bytes=readFileSync(copy?e.local_path:join(dir,'evidence',e.content_sha256));
+  if(createHash('sha256').update(bytes).digest('hex')!==e.content_sha256)throw new Error('Saved evidence file hash mismatch');
+  const destination=join(dir,'evidence',e.content_sha256);
+  if(copy&&!existsSync(destination))writeFileSync(destination,bytes,{flag:'wx'});
+ }
+}
 const help=`Procurement workflow — search is not import; no implicit live writes.
+  register SPEC.json SNAPSHOT.json SCHEMA.json NEW_PACKAGE_DIR
+                                       Prepare reviewed source/request persistence (offline)
+  stage-manual SPEC.json SNAPSHOT.json SCHEMA.json NEW_PACKAGE_DIR
+                                       Prepare document/candidate intake persistence (offline)
   init NEW_REVIEW.json                  Write an unapproved review template (offline)
   inventory SNAPSHOT.json               List intake IDs/hashes for review (offline)
   stage CAPTURE_SCOPE.json CAPTURE_DIR NEW_RECEIPT.json --confirm-stage
@@ -21,7 +37,7 @@ const help=`Procurement workflow — search is not import; no implicit live writ
   schema NEW_SCHEMA.json                Read-only live schema/trigger snapshot
   prepare REVIEW.json SNAPSHOT.json CAPTURE_DIR SCHEMA.json NEW_PACKAGE_DIR
                                        Validate explicit runs/decisions and emit review-bound SQL (offline)
-  test PACKAGE_DIR PGLITE_MODULE_PATH   Test captured constraints/triggers, rollback and replay offline
+  test PACKAGE_DIR [PGLITE_MODULE_PATH] Test constraints/triggers, rollback and replay with local PGlite
   status PACKAGE_DIR                    Show planned counts and any apply/verification receipts (offline)
   verify PACKAGE_DIR AFTER_SNAPSHOT.json NEW_REPORT.json
                                        Verify saved readback against bound baseline (offline)
@@ -37,13 +53,17 @@ function snapshot(destination) {
   return load(destination);
 }
 function queryFile(path) {
-  // PowerShell literals + encoded command avoid cmd.exe quoting/injection and command-length limits for SQL.
-  const quote=s=>"'"+s.replaceAll("'","''")+"'";
-  const ps=`& npx.cmd --yes supabase db query --project-ref ${quote(project)} --file ${quote(path)}; exit $LASTEXITCODE`;
-  return execFileSync('powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(ps,'utf16le').toString('base64')],
-    {cwd:root,encoding:'utf8',stdio:['ignore','pipe','pipe'],windowsHide:true,maxBuffer:8*1024*1024});
+  return runSupabase(['db', 'query', '--linked', '--project-ref', project, '--file', path], { cwd: root });
 }
 function readPackage(dir) {
+  const metadata=load(join(dir,'bundle.json'));
+  if(metadata.kind==='persistence') {
+    const before=load(join(dir,'before.json')),spec=load(join(dir,'spec.json')),schema=load(join(dir,'schema.json'));
+    if(metadata.manifest.kind==='manual')evidenceBytes(spec,dir);
+    const m=metadata.manifest.kind==='registry'?planRegistry(spec,before):planManual(spec,before),sql=persistenceSql(m);
+    if(spec.project_ref!==project||hash(m)!==hash(metadata.manifest)||hash(sql)!==metadata.sql_sha256||hash(readFileSync(join(dir,'apply.sql'),'utf8'))!==metadata.sql_sha256||schemaHash(schema)!==metadata.schema_sha256||hash({manifest:m,sql_sha256:metadata.sql_sha256,schema_sha256:metadata.schema_sha256})!==metadata.approval_sha256)throw new Error('Persistence package changed; regenerate and retest');
+    return {bundle:metadata,before,schema};
+  }
   const bundle=load(join(dir,'bundle.json')),before=load(join(dir,'before.json')),review=load(join(dir,'review.json')),schema=load(join(dir,'schema.json'));
   const runs=review.run_ids.map(id=>load(join(dir,'captures',`${id}.json`)));
   const rebuilt=planReviewedBatch(before,review,runs),sql=reconciliationSql(rebuilt);
@@ -61,6 +81,17 @@ function inspectSchema(destination) {
 async function main() {
   const [command,...args]=process.argv.slice(2);
   if(!command||['--help','help','-h'].includes(command)){console.log(help);return;}
+  if(['register','stage-manual'].includes(command)) {
+    if(args.length!==4)throw new Error(help);
+    const [input,baseline,schemaFile,dir]=args,spec=load(input),before=load(baseline),schema=load(schemaFile);
+    if(spec.project_ref!==project||existsSync(dir))throw new Error('Wrong project or existing package directory');
+    const manifest=command==='register'?planRegistry(spec,before):planManual(spec,before),sql=persistenceSql(manifest);
+    const sql_sha256=hash(sql),schema_sha256=schemaHash(schema),approval_sha256=hash({manifest,sql_sha256,schema_sha256});
+    mkdirSync(dir,{recursive:true});save(join(dir,'spec.json'),spec);save(join(dir,'before.json'),before);save(join(dir,'schema.json'),schema);
+    if(command==='stage-manual'){mkdirSync(join(dir,'evidence'));evidenceBytes(spec,dir,true);}
+    save(join(dir,'bundle.json'),{kind:'persistence',manifest,sql_sha256,schema_sha256,approval_sha256});writeFileSync(join(dir,'apply.sql'),sql,{flag:'wx'});
+    console.log(JSON.stringify({status:'prepared_not_applied',kind:manifest.kind,rows:manifest.rows.length,mappings:manifest.mappings,approval_sha256},null,2));return;
+  }
   if(command==='init') {
     if(args.length!==1) throw new Error(help);
     save(args[0],{version:1,batch:'REPLACE_WITH_UNIQUE_BATCH',project_ref:project,request_id:'REPLACE_WITH_EXISTING_REQUEST_UUID',work_state:'AR',
@@ -124,22 +155,22 @@ async function main() {
     console.log(JSON.stringify({status:'prepared_not_applied',counts:m.summary,coverage:m.coverage,approval_sha256,next:'Review package and test against current schema before authorizing apply.'},null,2));return;
   }
   if(command==='test') {
-    if(args.length!==2) throw new Error(help);const dir=resolve(args[0]),{bundle,before,schema}=readPackage(dir);
+    if(args.length<1||args.length>2) throw new Error(help);const dir=resolve(args[0]),{bundle,before,schema}=readPackage(dir);
     if(existsSync(join(dir,'offline-test.json'))) throw new Error('Test receipt exists; preserve immutable package or prepare a new one');
-    const {PGlite}=await import(pathToFileURL(resolve(args[1])));
-    const result=await testBatchSql(PGlite,before,schema,bundle.manifest,readFileSync(join(dir,'apply.sql'),'utf8'));
+    const {PGlite}=await import(args[1] ? pathToFileURL(resolve(args[1])).href : '@electric-sql/pglite');
+    const result=await testBatchSql(PGlite,before,schema,bundle.manifest,readFileSync(join(dir,'apply.sql'),'utf8'),{verify:bundle.kind==='persistence'?verifyPersistence:verifyBatch});
     save(join(dir,'offline-test.json'),{...result,approval_sha256:bundle.approval_sha256});console.log(JSON.stringify(result,null,2));return;
   }
   if(command==='status') {
     if(args.length!==1) throw new Error(help);const dir=resolve(args[0]),{bundle}=readPackage(dir);
     const receipts=readdirSync(dir).filter(f=>/^receipt-.*\.json$/.test(f)).sort().map(f=>load(join(dir,f)));
     const verified=receipts.some(r=>r.status==='verified'&&r.approval_sha256===bundle.approval_sha256);
-    console.log(JSON.stringify({status:verified?'verified':receipts.at(-1)?.status||'prepared_not_applied',counts:bundle.manifest.summary,
+    console.log(JSON.stringify({status:verified?'verified':receipts.at(-1)?.status||'prepared_not_applied',counts:bundle.manifest.summary??{inserts:bundle.manifest.rows.filter(r=>!r.before).length,updates:bundle.manifest.rows.filter(r=>r.before).length},
       counts_are:'planned; actual results are in verification receipts',approval_sha256:bundle.approval_sha256,receipts},null,2));return;
   }
   if(command==='verify') {
     if(args.length!==3) throw new Error(help);const {bundle,before}=readPackage(resolve(args[0]));
-    const result={...verifyBatch(before,load(args[1]),bundle.manifest),approval_sha256:bundle.approval_sha256};save(args[2],result);console.log(JSON.stringify(result,null,2));
+    const result={...(bundle.kind==='persistence'?verifyPersistence:verifyBatch)(before,load(args[1]),bundle.manifest),approval_sha256:bundle.approval_sha256};save(args[2],result);console.log(JSON.stringify(result,null,2));
     if(!result.verified) process.exitCode=1;return;
   }
   if(command==='apply') {
@@ -164,7 +195,7 @@ async function main() {
       throw new Error('Application outcome unknown. Inspect receipt and live records; do not retry blindly.');
     }
     try {
-      JSON.parse(output);const after=snapshot(afterPath),result=verifyBatch(before,after,bundle.manifest);
+      JSON.parse(output);const after=snapshot(afterPath),result=(bundle.kind==='persistence'?verifyPersistence:verifyBatch)(before,after,bundle.manifest);
       save(join(dir,`receipt-${attempt}-result.json`),{...result,attempt,approval_sha256:bundle.approval_sha256});
       console.log(JSON.stringify(result,null,2));if(!result.verified) process.exitCode=1;
     } catch {

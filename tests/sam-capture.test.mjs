@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { awardIdentity, actionIdentity, awardPayload, responseSummary } from '../scripts/lib/sam-normalize.mjs';
-const load=id=>JSON.parse(readFileSync(new URL(`../outputs/sam-search/${id}.json`,import.meta.url),'utf8'));
+const load=id=>JSON.parse(readFileSync(new URL(`./fixtures/sam/${id}.json`,import.meta.url),'utf8'));
 const awards=load('40f1f909-b0cf-41b7-bf4d-8fc4c0d2f4fa');
 test('real SAM award response contains 92 actions and is fully paginated',()=>{
   assert.deepEqual(responseSummary('awards',awards.response,100,0),{count:92,complete:true,recognized:true});
@@ -29,7 +29,7 @@ test('award mapping uses performance location and does not invent an annual valu
   assert.equal(p.estimated_annual_amount,undefined);
 });
 test('prepared existing lead changes preserve every previous canonical field',()=>{
-  const {records}=JSON.parse(readFileSync(new URL('../outputs/sam-search/upsert-records.json',import.meta.url),'utf8'));
+  const {records}=JSON.parse(readFileSync(new URL('./fixtures/sam/upsert-records.json',import.meta.url),'utf8'));
   for(const row of records.filter(r=>r.expected_payload)) {
     for(const [key,value] of Object.entries(row.expected_payload)) {
       if(!['sam_api_evidence','sam_notice_evidence'].includes(key)) assert.deepEqual(row.payload[key],value,`${row.external_id}: ${key}`);

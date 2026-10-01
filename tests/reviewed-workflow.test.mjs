@@ -4,13 +4,10 @@ import { readFileSync,mkdtempSync,writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve,join } from 'node:path';
 import { execFileSync,spawnSync } from 'node:child_process';
-import { pathToFileURL } from 'node:url';
 import { planReviewedBatch,hash,collectRuns } from '../scripts/lib/reviewed-batch.mjs';
 import { verifyBatch } from '../scripts/lib/batch-verification.mjs';
 import { runIds } from '../scripts/lib/intake-reconcile.mjs';
-import { reconciliationSql } from '../scripts/lib/intake-reconcile.mjs';
-import { testBatchSql } from '../scripts/lib/batch-sql-test.mjs';
-const dir=resolve('outputs/sam-search'),load=f=>JSON.parse(readFileSync(join(dir,f),'utf8'));
+const dir=resolve('tests/fixtures/sam'),load=f=>JSON.parse(readFileSync(join(dir,f),'utf8'));
 const before={...load('intake-before.json'),project_ref:'zreplhkoxswtzxlchtjf'},old=load('008_intake_processing_reviewed.json');
 const runs=runIds.map(id=>load(`${id}.json`));
 function reviewFor(snapshot=before) {
@@ -95,12 +92,21 @@ test('CLI prepares offline; rejects wrong approval and edited packages before ac
   const altered=spawnSync(process.execPath,[cli,'status',out],{encoding:'utf8'});
   assert.equal(altered.status,1);assert.match(altered.stderr,/Package changed/);
 });
-test('reusable batch SQL passes real schema/history, rollback and replay tests offline',async()=>{
-  assert.ok(process.env.PROCUREMENT_RESEARCH_DIR,'Set PROCUREMENT_RESEARCH_DIR for the installed offline test engine');
-  const {PGlite}=await import(pathToFileURL(resolve(process.env.PROCUREMENT_RESEARCH_DIR,'work/sql-test/node_modules/@electric-sql/pglite/dist/index.js')));
-  const m=planReviewedBatch(before,reviewFor(),runs);
-  const result=await testBatchSql(PGlite,before,load('intake-schema.json'),m,reconciliationSql(m));
-  assert.equal(result.status,'offline_tests_passed');
+test('batch CLI uses local PGlite for schema/history, rollback and replay tests', () => {
+  const temp = mkdtempSync(join(tmpdir(), 'procurement-local-engine-'));
+  const reviewFile = join(temp, 'review.json');
+  const snapshotFile = join(temp, 'before.json');
+  const out = join(temp, 'package');
+  const cli = resolve('scripts/procurement-workflow.mjs');
+  writeFileSync(reviewFile, JSON.stringify(reviewFor()));
+  writeFileSync(snapshotFile, JSON.stringify(before));
+  execFileSync(process.execPath, [cli, 'prepare', reviewFile, snapshotFile, dir, join(dir, 'intake-schema.json'), out], { stdio: 'pipe' });
+  // No external module path or credentials; the inherited guard forbids network.
+  execFileSync(process.execPath, [cli, 'test', out], { stdio: 'pipe' });
+  const receipt = JSON.parse(readFileSync(join(out, 'offline-test.json'), 'utf8'));
+  const bundle = JSON.parse(readFileSync(join(out, 'bundle.json'), 'utf8'));
+  assert.equal(receipt.status, 'offline_tests_passed');
+  assert.equal(receipt.approval_sha256, bundle.approval_sha256);
 });
 
 // Export reviewed real-data fixtures for the separate offline SQL integration runner.

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { reconcile,runIds,exactAwards } from '../scripts/lib/intake-reconcile.mjs';
-const load=name=>JSON.parse(readFileSync(new URL(`../outputs/sam-search/${name}`,import.meta.url),'utf8'));
+const load=name=>JSON.parse(readFileSync(new URL(`./fixtures/sam/${name}`,import.meta.url),'utf8'));
 const before=load('intake-before.json'), runs=runIds.map(id=>load(`${id}.json`));
 test('reviewed batch has three awards, 74 enrichments, 78 links including one older intake',()=>{
   const m=reconcile(before,runs);

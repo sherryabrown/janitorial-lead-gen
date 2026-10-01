@@ -50,6 +50,8 @@ export type ProcurementSource = {
   contracting_entity_geo_level: string | null;
   business_category: string | null;
   url: string | null;
+  source_coverage_areas?: unknown;
+  config?: JsonRecord | null;
 };
 
 export type ProcurementContract = {
@@ -75,6 +77,7 @@ export type ProcurementContract = {
   contractLastUpdatedAt?: string;
   nextAction: string;
   notes: string[];
+  researchNotes: string[];
   history: string[];
 };
 
@@ -106,41 +109,42 @@ export type LeadStatusChangeRow = { id: string; lead_id: string; from_status: st
 type LeadTimestampRow = { id: string; created_at: string | null };
 export type ProcurementStageReason = { code: string; note?: string };
 
-export async function loadProcurementContracts(client: SupabaseClient) {
-  const [{ data: leadRows, error: leadsError }, { data: sourceRows, error: sourcesError }] =
-    await Promise.all([
-      client
-        .from('procurement_leads')
-        .select(
-          'id,source_id,payload,created_at,updated_at,detected_change_at,search_term_used,stage,stage_reason,next_action,follow_up_on,notes,estimated_annual_amount,bid_type,business_category,contracting_entity_geo_level,title,agency,source_url,solicitation_number,award_number,publication_date,response_deadline,planned_advertisement_period,contract_start_date,contract_current_end_date,contract_potential_end_date,work_performance_city,work_performance_state',
-        )
-        .order('created_at', { ascending: false }),
-      client
-        .from('procurement_sources')
-        .select('id,code,name,contracting_entity_geo_level,business_category,url'),
-    ]);
-
-  if (leadsError) throw leadsError;
-  if (sourcesError) throw sourcesError;
-
-  const sources = (sourceRows ?? []) as ProcurementSource[];
+export async function loadProcurementContracts(client: SupabaseClient, filters: Record<string, unknown> = {}, page = 0) {
+  const { data, error } = await client.rpc('procurement_queue_page', {
+    p_filters: filters, p_limit: 50, p_offset: Math.max(0, page) * 50,
+  });
+  if (error) throw error;
+  const result = data as { rows: ProcurementLead[]; total: number; counts: Record<string, number> };
+  const sources: ProcurementSource[] = [];
+  for (let offset = 0; ; offset += 500) {
+    const { data: rows, error: sourceError } = await client.from('procurement_sources')
+      .select('id,code,name,contracting_entity_geo_level,business_category,url,source_coverage_areas,config')
+      .order('id').range(offset, offset + 499);
+    if (sourceError) throw sourceError;
+    sources.push(...(rows ?? []) as ProcurementSource[]);
+    if (!rows || rows.length < 500) break;
+  }
   const sourceById = new Map(sources.map((source) => [source.id, source]));
-  const leads = (leadRows ?? []) as ProcurementLead[];
-
   return {
-    contracts: leads.map((lead) => mapProcurementLead(lead, sourceById.get(lead.source_id ?? ''))),
-    sources: sources.map(mapProcurementSource),
+    contracts: result.rows.map((lead) => mapProcurementLead(lead, sourceById.get(lead.source_id ?? ''))),
+    sources: sources.map(mapProcurementSource), total: result.total, counts: result.counts,
   };
 }
 
-function mapProcurementLead(lead: ProcurementLead, source?: ProcurementSource): ProcurementContract {
+export async function loadProcurementLeadDetail(client: SupabaseClient, id: string) {
+  const { data, error } = await client.from('procurement_leads').select('*').eq('id', id).single();
+  if (error) throw error;
+  return mapProcurementLead(data as ProcurementLead);
+}
+
+export function mapProcurementLead(lead: ProcurementLead, source?: ProcurementSource): ProcurementContract {
   const payload = lead.payload ?? {};
   const contacts = Array.isArray(payload.contacts) ? payload.contacts : [];
   const contact = isRecord(contacts[0]) ? contacts[0] : {};
   const bidType = normalizeBidType(lead.bid_type ?? firstString(payload.bid_type));
   const keyDates = buildKeyDates(lead, payload, bidType);
   const primaryDate = getPrimaryDate(keyDates, bidType);
-  const date = primaryDate ?? lead.updated_at ?? lead.created_at ?? '';
+  const date = primaryDate ?? '';
   const location = formatDedicatedLocation(lead) ?? formatLocation(payload.work_performance_locations);
   const title = firstString(lead.title, payload.title, payload.project_name, payload.name) ?? 'Procurement opportunity';
   const agency = firstString(lead.agency, payload.agency, payload.agency_name) ?? source?.name ?? 'Agency pending';
@@ -168,8 +172,9 @@ function mapProcurementLead(lead: ProcurementLead, source?: ProcurementSource): 
     addedAt,
     updatedAt,
     contractLastUpdatedAt: lead.detected_change_at ?? undefined,
-    nextAction: lead.next_action ?? 'Review lead',
+    nextAction: firstString(lead.next_action, payload.next_action) ?? 'Review lead',
     notes: lead.notes ? [lead.notes] : [],
+    researchNotes: [...new Set([firstString(payload.status_note), firstString(payload.verification_notes)].filter((note): note is string => Boolean(note)))],
     stageReason: lead.stage_reason ?? undefined,
     history: [],
   };
@@ -286,6 +291,7 @@ export async function editProcurementLeadNote(client: SupabaseClient, noteId: st
 
 function normalizeBidType(value: string | null | undefined): ProcurementBidType {
   const normalized = (value ?? '').toLowerCase().replace(/[_\s-]+/g, '');
+  if (normalized.includes('historical') || normalized.includes('candidate')) return 'unknown';
   if (normalized.includes('forecast')) return 'forecast';
   if (normalized.includes('opportunity') || normalized.includes('solicitation')) return 'opportunity';
   if (normalized.includes('award') || normalized === 'contract') return 'award';
@@ -345,17 +351,26 @@ function getPrimaryDate(dates: ProcurementKeyDate[], bidType: ProcurementBidType
   return preferred.map((key) => dates.find((date) => date.key === key)?.value).find(Boolean) ?? null;
 }
 
-function mapProcurementSource(source: ProcurementSource): ProcurementSourceView {
+export function mapProcurementSource(source: ProcurementSource): ProcurementSourceView {
   const name = source.name ?? source.code ?? 'Procurement source';
+  const research = isRecord(source.config?.research_persistence) ? source.config.research_persistence : {};
+  const scopes = isRecord(research.coverage_by_scope) ? Object.values(research.coverage_by_scope).filter(isRecord) : [];
+  const checked = scopes.map(scope => firstString(scope.checked_at)).filter((value): value is string => Boolean(value)).sort();
+  const coverage = scopes.flatMap(scope => isRecord(scope.coverage) ? Object.values(scope.coverage).filter(isRecord) : []);
+  const areas = Array.isArray(source.source_coverage_areas) ? source.source_coverage_areas.filter(isRecord) : [];
+  const locations = areas.map(area => {
+    const name = firstString(area.city_name, area.county_name);
+    return [name ? name + (area.area_type === 'county' ? ' County' : '') : undefined, firstString(area.state_code)].filter(Boolean).join(', ');
+  }).filter(Boolean);
   return {
     id: source.id,
     name,
     agencyType: mapAgencyType(source.contracting_entity_geo_level, name),
-    location: source.contracting_entity_geo_level === 'federal' ? 'Arkansas coverage' : 'Arkansas',
+    location: locations.length ? [...new Set(locations)].join(' • ') : source.contracting_entity_geo_level === 'federal' ? 'Arkansas coverage' : 'Arkansas',
     category: mapCategory(source.business_category),
     url: source.url ?? '',
-    status: 'current',
-    lastChecked: 'From Supabase',
+    status: scopes.length && (!coverage.length || coverage.some(item => !['complete', 'checked'].includes(String(item.status)))) ? 'needs-review' : 'current',
+    lastChecked: checked.at(-1)?.slice(0, 10) ?? 'From Supabase',
   };
 }
 

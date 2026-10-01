@@ -1,0 +1,342 @@
+{
+  "run_id": "c549fc99-dba7-40f4-b909-f5da914bdc90",
+  "captured": true,
+  "status": "success",
+  "record_count": 5,
+  "collector": "sam-search",
+  "kind": "opportunities",
+  "query_url": "https://api.sam.gov/opportunities/v2/search?postedFrom=10%2F01%2F2025&postedTo=09%2F30%2F2026&title=Camden&limit=1000&offset=0",
+  "filters": {
+    "postedFrom": "10/01/2025",
+    "postedTo": "09/30/2026",
+    "title": "Camden",
+    "limit": 1000,
+    "offset": 0
+  },
+  "upstream_status": 200,
+  "complete_for_query": true,
+  "state": "response_captured",
+  "response": {
+    "totalRecords": 5,
+    "limit": 1000,
+    "offset": 0,
+    "opportunitiesData": [
+      {
+        "active": "Yes",
+        "additionalInfoLink": null,
+        "archiveDate": "2027-09-10",
+        "archiveType": "autocustom",
+        "award": {
+          "date": "2026-09-10",
+          "number": "W912EP26CA032",
+          "amount": "22755475",
+          "awardee": {
+            "name": "MANSON CONSTRUCTION CO",
+            "location": {
+              "streetAddress": "5209 E MARGINAL WAY S",
+              "city": {
+                "name": "SEATTLE"
+              },
+              "state": {
+                "name": "WA"
+              },
+              "zip": "98134",
+              "country": {
+                "code": "USA",
+                "name": "UNITED STATES"
+              }
+            }
+          }
+        },
+        "baseType": "Solicitation",
+        "classificationCode": "Z1KF",
+        "description": "https://api.sam.gov/prod/opportunities/v1/noticedesc?noticeid=c23c57b1c95d4f6881d519c1a21b5a5c",
+        "fullParentPathCode": "021.2100.USACE.SAD.SAJ.W912EP",
+        "fullParentPathName": "DEPT OF DEFENSE.DEPT OF THE ARMY.US ARMY CORPS OF ENGINEERS.ENGINEER DIVISION SOUTH ATLANTIC.ENDIST JACKSONVILLE.W074 ENDIST JACKSNVLLE",
+        "links": [
+          {
+            "rel": "self",
+            "href": "https://api.sam.gov/prod/opportunities/v2/search?noticeid=c23c57b1c95d4f6881d519c1a21b5a5c&limit=1"
+          }
+        ],
+        "naicsCode": "237990",
+        "naicsCodes": [
+          "237990"
+        ],
+        "noticeId": "c23c57b1c95d4f6881d519c1a21b5a5c",
+        "officeAddress": {
+          "zipcode": "32207-0019",
+          "city": "JACKSONVILLE",
+          "countryCode": "USA",
+          "state": "FL"
+        },
+        "organizationType": "OFFICE",
+        "placeOfPerformance": {
+          "streetAddress": "Camden County, Georgia and Nassau County, Florida",
+          "zip": ""
+        },
+        "pointOfContact": [
+          {
+            "fax": "",
+            "type": "primary",
+            "email": "walter.d.love@usace.army.mil",
+            "phone": "",
+            "fullName": "Walter Love"
+          },
+          {
+            "fax": "",
+            "type": "secondary",
+            "email": "manuela.d.voicu@usace.army.mil",
+            "phone": "",
+            "fullName": "Manuela Voicu"
+          }
+        ],
+        "postedDate": "2026-09-10",
+        "resourceLinks": null,
+        "responseDeadLine": null,
+        "solicitationNumber": "W912EP26CA032",
+        "title": "Naval Submarine Base Kings Bay, Maintenance Dredging, Entrance Channel, Camden County, Georgia and Nassau County, Florida",
+        "type": "Award Notice",
+        "typeOfSetAside": null,
+        "typeOfSetAsideDescription": null,
+        "uiLink": "https://sam.gov/workspace/contract/opp/c23c57b1c95d4f6881d519c1a21b5a5c/view"
+      },
+      {
+        "active": "Yes",
+        "additionalInfoLink": null,
+        "archiveDate": "2027-08-03",
+        "archiveType": "autocustom",
+        "award": null,
+        "baseType": "Solicitation",
+        "classificationCode": "Z1KF",
+        "description": "https://api.sam.gov/prod/opportunities/v1/noticedesc?noticeid=42e5a6db7f594770a58bb2bf42f70f47",
+        "fullParentPathCode": "021.2100.USACE.SAD.SAJ.W912EP",
+        "fullParentPathName": "DEPT OF DEFENSE.DEPT OF THE ARMY.US ARMY CORPS OF ENGINEERS.ENGINEER DIVISION SOUTH ATLANTIC.ENDIST JACKSONVILLE.W074 ENDIST JACKSNVLLE",
+        "links": [
+          {
+            "rel": "self",
+            "href": "https://api.sam.gov/prod/opportunities/v2/search?noticeid=42e5a6db7f594770a58bb2bf42f70f47&limit=1"
+          }
+        ],
+        "naicsCode": "237990",
+        "naicsCodes": [
+          "237990"
+        ],
+        "noticeId": "42e5a6db7f594770a58bb2bf42f70f47",
+        "officeAddress": {
+          "zipcode": "32207-0019",
+          "city": "JACKSONVILLE",
+          "countryCode": "USA",
+          "state": "FL"
+        },
+        "organizationType": "OFFICE",
+        "placeOfPerformance": {
+          "streetAddress": "Camden County, Georgia and Nassau County, Florida",
+          "zip": ""
+        },
+        "pointOfContact": [
+          {
+            "fax": "",
+            "type": "primary",
+            "email": "walter.d.love@usace.army.mil",
+            "phone": "",
+            "fullName": "Walter Love"
+          },
+          {
+            "fax": "",
+            "type": "secondary",
+            "email": "manuela.d.voicu@usace.army.mil",
+            "phone": "",
+            "fullName": "Manuela Voicu"
+          }
+        ],
+        "postedDate": "2026-08-12",
+        "resourceLinks": [
+          "https://sam.gov/api/prod/opps/v3/opportunities/resources/files/cb220dee4c5e4e9b9cb0d1ffbcb005bd/download"
+        ],
+        "responseDeadLine": "2026-08-12T13:00:00-04:00",
+        "solicitationNumber": "W912EP26BA012",
+        "title": "Naval Submarine Base Kings Bay, Maintenance Dredging, Entrance Channel, Camden County, Georgia and Nassau County, Florida",
+        "type": "Solicitation",
+        "typeOfSetAside": null,
+        "typeOfSetAsideDescription": null,
+        "uiLink": "https://sam.gov/workspace/contract/opp/42e5a6db7f594770a58bb2bf42f70f47/view"
+      },
+      {
+        "active": "Yes",
+        "additionalInfoLink": null,
+        "archiveDate": "2027-06-23",
+        "archiveType": "autocustom",
+        "award": null,
+        "baseType": "Sources Sought",
+        "classificationCode": "Z1KF",
+        "description": "https://api.sam.gov/prod/opportunities/v1/noticedesc?noticeid=9102f1fe1da84c1891e677fa3da22f18",
+        "fullParentPathCode": "021.2100.USACE.SAD.SAJ.W912EP",
+        "fullParentPathName": "DEPT OF DEFENSE.DEPT OF THE ARMY.US ARMY CORPS OF ENGINEERS.ENGINEER DIVISION SOUTH ATLANTIC.ENDIST JACKSONVILLE.W074 ENDIST JACKSNVLLE",
+        "links": [
+          {
+            "rel": "self",
+            "href": "https://api.sam.gov/prod/opportunities/v2/search?noticeid=9102f1fe1da84c1891e677fa3da22f18&limit=1"
+          }
+        ],
+        "naicsCode": "237990",
+        "naicsCodes": [
+          "237990"
+        ],
+        "noticeId": "9102f1fe1da84c1891e677fa3da22f18",
+        "officeAddress": {
+          "zipcode": "32207-0019",
+          "city": "JACKSONVILLE",
+          "countryCode": "USA",
+          "state": "FL"
+        },
+        "organizationType": "OFFICE",
+        "placeOfPerformance": {
+          "streetAddress": "Camden County, Georgia and Nassau County, Florida",
+          "zip": ""
+        },
+        "pointOfContact": [
+          {
+            "fax": "",
+            "type": "primary",
+            "email": "walter.d.love@usace.army.mil",
+            "phone": "",
+            "fullName": "Walter Love"
+          },
+          {
+            "fax": "",
+            "type": "secondary",
+            "email": "manuela.d.voicu@usace.army.mil",
+            "phone": "",
+            "fullName": "Manuela Voicu"
+          }
+        ],
+        "postedDate": "2026-06-23",
+        "resourceLinks": null,
+        "responseDeadLine": "2026-08-12T14:00:00-04:00",
+        "solicitationNumber": "W912EP26BA012",
+        "title": "Naval Submarine Base Kings Bay, Maintenance Dredging, Entrance Channel, Camden County, Georgia and Nassau County, Florida",
+        "type": "Presolicitation",
+        "typeOfSetAside": null,
+        "typeOfSetAsideDescription": null,
+        "uiLink": "https://sam.gov/workspace/contract/opp/9102f1fe1da84c1891e677fa3da22f18/view"
+      },
+      {
+        "active": "Yes",
+        "additionalInfoLink": null,
+        "archiveDate": "2026-10-01",
+        "archiveType": "autocustom",
+        "award": null,
+        "baseType": "Solicitation",
+        "classificationCode": "Z1KF",
+        "description": "https://api.sam.gov/prod/opportunities/v1/noticedesc?noticeid=8b90aa9573214eeda34de8fffe135e61",
+        "fullParentPathCode": "021.2100.USACE.SAD.SAJ.W912EP",
+        "fullParentPathName": "DEPT OF DEFENSE.DEPT OF THE ARMY.US ARMY CORPS OF ENGINEERS.ENGINEER DIVISION SOUTH ATLANTIC.ENDIST JACKSONVILLE.W074 ENDIST JACKSNVLLE",
+        "links": [
+          {
+            "rel": "self",
+            "href": "https://api.sam.gov/prod/opportunities/v2/search?noticeid=8b90aa9573214eeda34de8fffe135e61&limit=1"
+          }
+        ],
+        "naicsCode": "237990",
+        "naicsCodes": [
+          "237990"
+        ],
+        "noticeId": "8b90aa9573214eeda34de8fffe135e61",
+        "officeAddress": {
+          "zipcode": "32207-0019",
+          "city": "JACKSONVILLE",
+          "countryCode": "USA",
+          "state": "FL"
+        },
+        "organizationType": "OFFICE",
+        "placeOfPerformance": {
+          "streetAddress": "CAMDEN COUNTY, GEORGIA",
+          "zip": "31522"
+        },
+        "pointOfContact": [
+          {
+            "fax": "",
+            "type": "primary",
+            "email": "Guesley.Leger@USACE.ARMY.MIL",
+            "phone": "9042323850",
+            "fullName": "Guesley Leger"
+          }
+        ],
+        "postedDate": "2026-04-29",
+        "resourceLinks": [
+          "https://sam.gov/api/prod/opps/v3/opportunities/resources/files/2cc03a9f89544f4bbd003d57b0bcf36c/download",
+          "https://sam.gov/api/prod/opps/v3/opportunities/resources/files/78692c2e695547a693711cae35e57ca7/download",
+          "https://sam.gov/api/prod/opps/v3/opportunities/resources/files/a52649b7985b4ba98eb7166f988b8845/download",
+          "https://sam.gov/api/prod/opps/v3/opportunities/resources/files/cbaf88760549486a9df1342d37dad4d0/download",
+          "https://sam.gov/api/prod/opps/v3/opportunities/resources/files/e29eb3d4fb6c49f785a3acf87bc73249/download"
+        ],
+        "responseDeadLine": "2026-05-08T14:00:00-04:00",
+        "solicitationNumber": "GROUP126RJ003",
+        "title": "NAVAL SUBMARINE BASE KINGS BAY, MAINTENANCE DREDGING, CAMDEN COUNTY, GEORGIA",
+        "type": "Solicitation",
+        "typeOfSetAside": "SBA",
+        "typeOfSetAsideDescription": "Small Business Set Aside - Total",
+        "uiLink": "https://sam.gov/workspace/contract/opp/8b90aa9573214eeda34de8fffe135e61/view"
+      },
+      {
+        "active": "Yes",
+        "additionalInfoLink": null,
+        "archiveDate": "2027-04-29",
+        "archiveType": "autocustom",
+        "award": null,
+        "baseType": "Sources Sought",
+        "classificationCode": "Z1KF",
+        "description": "https://api.sam.gov/prod/opportunities/v1/noticedesc?noticeid=5351b57b4b2040bc95327fc1175e7145",
+        "fullParentPathCode": "021.2100.USACE.SAD.SAJ.W912EP",
+        "fullParentPathName": "DEPT OF DEFENSE.DEPT OF THE ARMY.US ARMY CORPS OF ENGINEERS.ENGINEER DIVISION SOUTH ATLANTIC.ENDIST JACKSONVILLE.W074 ENDIST JACKSNVLLE",
+        "links": [
+          {
+            "rel": "self",
+            "href": "https://api.sam.gov/prod/opportunities/v2/search?noticeid=5351b57b4b2040bc95327fc1175e7145&limit=1"
+          }
+        ],
+        "naicsCode": "237990",
+        "naicsCodes": [
+          "237990"
+        ],
+        "noticeId": "5351b57b4b2040bc95327fc1175e7145",
+        "officeAddress": {
+          "zipcode": "32207-0019",
+          "city": "JACKSONVILLE",
+          "countryCode": "USA",
+          "state": "FL"
+        },
+        "organizationType": "OFFICE",
+        "placeOfPerformance": {
+          "streetAddress": "",
+          "zip": ""
+        },
+        "pointOfContact": [
+          {
+            "fax": "",
+            "type": "primary",
+            "email": "walter.d.love@usace.army.mil",
+            "phone": "904-232-2021",
+            "fullName": "Walter Love"
+          }
+        ],
+        "postedDate": "2026-04-29",
+        "resourceLinks": null,
+        "responseDeadLine": "2026-05-11T14:00:00-04:00",
+        "solicitationNumber": "W912EP26X1BM2",
+        "title": "Naval Submarine Base Kings Bay, Maintenance Dredging, Entrance Channel, Camden County, Georgia and Nassau County, Florida",
+        "type": "Sources Sought",
+        "typeOfSetAside": null,
+        "typeOfSetAsideDescription": null,
+        "uiLink": "https://sam.gov/workspace/contract/opp/5351b57b4b2040bc95327fc1175e7145/view"
+      }
+    ],
+    "links": [
+      {
+        "rel": "self",
+        "href": "https://api.sam.gov/prod/opportunities/v2/search?postedFrom=10%2F01%2F2025&postedTo=09%2F30%2F2026&title=Camden&limit=1000&offset=0"
+      }
+    ]
+  }
+}

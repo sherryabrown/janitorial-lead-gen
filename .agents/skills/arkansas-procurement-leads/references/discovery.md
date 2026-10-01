@@ -8,6 +8,8 @@ Start with the requested local government. Include schools, universities, water/
 
 For each source, keep a simple coverage ledger: agency, official entry URL, procurement portal/document URL, method, checked date, query/page range, forecasts status, opportunities status, awards status, distinct relevant findings, location uncertainties, access/cost/registration needs, evidence path, next action. Use `unchecked`, `partial`, `blocked`, `reviewed_with_results`, or `reviewed_no_results_for_stated_scope`; avoid an unsupported blanket `complete`.
 
+Start with database source coverage/request associations through [database-persistence.md](database-persistence.md), then load the supplemental `outputs/procurement-access/sources.json`. Reuse known official URLs/access, recheck freshness and discover missing agencies. Register reviewed public sources/coverage in the database for application research, including blocked/empty sources. Preserve previous scopes; source association does not verify a contract site. Finish verified-finding import and readback, or name the exact blocked step; local JSON is not the completion point.
+
 ## Collection methods that worked
 
 - **Forecasts:** inspect agency small-business/acquisition pages and the responsible district's current and next-year PDFs/spreadsheets. Use GSA Acquisition Gateway as another source, not a substitute for agency documents. Inspect all relevant pages/rows and preserve page references. A directory or homepage is not a completed forecast search. If direct retrieval fails, use an authorized browser or supported web/PDF extraction and label the method; do not bypass access controls or call extraction a working API.
@@ -24,8 +26,10 @@ Follow the target government's current official supplier/bid links. Historical L
 
 Use the agency's current platform, not whichever old portal has a familiar name. Public documents come first; register when needed and authorized. Confirm whether registration is agency-specific even when the platform shares a login. Recheck the price/access boundary before selecting alerts, exports, or upgrades. Award access and bid alerts may have different requirements.
 
+For every discovered source, inspect official developer/API documentation or an officially linked provider's API pages. Record API discovery as `not_checked`, `documented_available`, `not_found_after_review`, or `unavailable`, with URLs, checked date and limits of the review. Follow [api-access-and-tracking.md](api-access-and-tracking.md) for public no-key retrieval and authorized access applications. Browser network traffic alone does not establish an official API. Attempt authorized eligible free setup; if user action remains necessary, use [signup-alerts.md](signup-alerts.md) while continuing available public collection.
+
 ## Output discipline
 
 Every lead needs a source identifier/URL, classification, agency, work-location evidence, relevant dates, service relevance, retrieval/query provenance, and uncertainty. Preserve source figures without inventing annual value. Account for excluded and duplicate rows with reasons. If the source is blocked, state what remains unsearched and what additional access would unlock—never report “no leads” solely from failed access.
 
-No signup, email, database write, or scheduler is implied by source discovery. Route to the account or import reference only when that part of the task is authorized.
+Application geography research uses the established database-persistence workflow above. Explicit research-only/export-only requests stop at that boundary. Signup, email and schedules need their own scoped authority; route to the relevant reference and honor authority already supplied.

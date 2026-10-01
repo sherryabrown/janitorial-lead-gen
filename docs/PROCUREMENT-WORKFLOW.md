@@ -4,7 +4,7 @@ This is the current operating procedure. It supersedes batch-specific preparatio
 
 ## What must be true
 
-1. **Authority and scope are stated first.** Define service, work area, sources, dates, and whether the task is search-only, intake capture, or an approved canonical import. Explain the intended action before doing it. Never infer permission for UI changes, signups, subscriptions, notifications, migrations, deployments, or recurring work.
+1. **Authority and scope are stated first.** Define service, work area, sources and dates. Application geography research follows established source/intake persistence and verified-import authority; explicit research-only/export-only requests stop at that boundary. Explain intended changes before doing them. Honor separate scoped signup/verification and alert authority already supplied. Never infer permission for subscriptions, migrations, deployments or recurring work.
 2. **The search actually ran.** Preserve official responses, exact queries, run IDs, HTTP status, retrieval method, and coverage limits. A successful function invocation is not necessarily a successful upstream API call. Unknown/blocked responses are not zero results. One complete query is not complete market coverage.
 3. **Pagination is accounted for.** Page indexes start at zero. Finish each explicit query through a recognized terminal page, retaining every page. Missing/gapped pages fail validation unless partial coverage is expressly accepted in the reviewed batch. Duplicate query/page responses must be resolved, not silently summed. Respect quotas; never blindly retry a timeout or 429.
 4. **Same versus different is evidence-based.** Awards match PIID + awarding subtier + referenced IDV PIID + referenced IDV subtier across sources. Modifications/options are actions under that identity, not automatically new leads. Notices match source/notice ID. Forecasts match their source identifier. Similar titles, agencies, vendors, or locations do not establish identity. A forecast/solicitation/award relationship requires corroboration, not an automatic merge.
@@ -16,6 +16,12 @@ This is the current operating procedure. It supersedes batch-specific preparatio
 10. **Readback establishes success.** Verify the actual persisted leads, links, statuses, protected fields, and per-lead history. A prepared file or zero CLI exit code alone is not proof. An uncertain commit outcome stops further apply attempts until readback/review resolves it. Never restore a broad snapshot over newer user work.
 
 ## Entry points and write boundaries
+
+Application city/county research now follows the user's established source/intake persistence and verified-import intent. Explicit research-only/export-only instructions override that default. See the skill's [database persistence procedure](../.agents/skills/arkansas-procurement-leads/references/database-persistence.md). Existing scoped authorization supplies routine write authority; actual review decisions, tested package hashes and live readback remain mandatory. Do not require another generic confirmation merely because the CLI has an approval flag.
+
+`register SPEC.json BEFORE.json SCHEMA.json NEW_PACKAGE` prepares guarded source/request registration. `stage-manual SPEC.json BEFORE.json SCHEMA.json NEW_PACKAGE` prepares evidence-bound primary/candidate intake. Both are offline packages using shared `test`, `apply --approve HASH`, and `verify`. Specs require configured project and scoped authorization. Use fresh baselines between dependent operations; source config stores only public procurement metadata, preserving earlier scopes/config. Candidate intake remains pending until primary verification. Manual-only canonical reviews use `run_ids: []`.
+
+Source discovery and access setup use the repository's [Arkansas procurement skill](../.agents/skills/arkansas-procurement-leads/SKILL.md). Its [source/access ledger](../.agents/skills/arkansas-procurement-leads/references/api-access-and-tracking.md) persists under ignored `outputs/procurement-access/`; it is separate from intake/canonical data and the batch `status` command below. The [mailbox procedure](../.agents/skills/arkansas-procurement-leads/references/accounts-and-email.md) requires strictly read-only Gmail or manual verification. Authorized [signup-action alerts](../.agents/skills/arkansas-procurement-leads/references/signup-alerts.md) use Resend with independent send/delivery evidence. No local access record implies database import, working authentication or recurring monitoring.
 
 Original research CLI:
 
@@ -36,6 +42,7 @@ The Python entry point forwards the same arguments with no shell interpolation. 
 | `sam-search` | One real SAM API request; writes response audit only, not leads/intake |
 | `stage ... --confirm-stage` | One intake insert/upsert request; ignores existing identities, never overwrites them or writes leads |
 | `snapshot`, `schema` | Read-only database access; saves private local audit files |
+| `register`, `stage-manual` | Offline source/request or document intake packages; shared tested `apply` performs the write |
 | `init`, `inventory`, `prepare`, `test`, `status`, `verify` | Local files/tests only; `verify` evaluates a supplied readback snapshot |
 | `apply ... --approve HASH` | Explicit live transaction, followed by live readback; requires matching test receipt and unchanged schema |
 
@@ -47,7 +54,7 @@ Use the existing `sam-search` command with explicit dates/filters. The SAM key r
 
 Search NAICS and service words independently. Record geography and date-window blind spots, including multi-state notices. Save all page responses. The search CLI now exits nonzero on upstream errors or incomplete query results, while preserving their audit—nonzero does not mean there are no useful records.
 
-Forecasts remain a separate official-document/browser collection path; no verified SAM forecast endpoint exists in this implementation. Record source identifier, URL, publication/planned dates, raw extraction, page/row evidence, and uncertainty. Manual sources must first be normalized into real reviewed intake through their authorized collection process; this CLI does not invent a forecast scraper or automatically create accounts.
+Forecasts remain a separate official-document/browser collection path; no verified SAM forecast endpoint exists here. Use `stage-manual` with actual saved evidence files, stable record identities, mapped source/request UUIDs, confidence and field-level provenance; then test/apply/read back intake and review primary findings for canonical import. No automatic scraper or account creation is implied.
 
 ## 2. Stage API captures without changing canonical leads
 
@@ -101,19 +108,19 @@ An explicit cross-source notice-to-award link requires `target: {"source_code":"
 
 ```powershell
 node scripts/procurement-workflow.mjs prepare REVIEW.json BEFORE.json CAPTURE_DIRECTORY SCHEMA.json outputs/procurement-batches/NEW_PACKAGE
-node scripts/procurement-workflow.mjs test outputs/procurement-batches/NEW_PACKAGE PATH_TO_INSTALLED_PGLITE_MODULE
+node scripts/procurement-workflow.mjs test outputs/procurement-batches/NEW_PACKAGE
 node scripts/procurement-workflow.mjs status outputs/procurement-batches/NEW_PACKAGE
 ```
 
 The package contains the review, baseline, exact captures, current schema, manifest, and generated SQL. IDs for new rows are deterministic for the batch/source/external identity. The approval hash binds the manifest, SQL and schema. `status` reports preparation and receipts; it never claims that preparation equals application.
 
-The offline SQL test uses the installed PGlite module (the existing research environment has it under `work/sql-test/node_modules/@electric-sql/pglite/dist/index.js`). Supply its full path; no package is downloaded automatically. It loads actual captured data/constraints and lead-write triggers, injects a failure after canonical upsert to prove rollback, verifies results, then proves exact replay preserves timestamps and history. It does not emulate production authentication/RLS, network failures, or simultaneous sessions. The process requires human review of service/geography and source truth; tests cannot establish those facts.
+The offline SQL test uses the pinned local PGlite dependency installed by `npm ci`. No external research folder or module path is required. An optional explicit module path remains supported for compatibility; no package is downloaded automatically. It loads actual captured data/constraints and lead-write triggers, injects a failure after canonical upsert to prove rollback, verifies results, then proves exact replay preserves timestamps and history. It does not emulate production authentication/RLS, network failures, or simultaneous sessions. The process requires human review of service/geography and source truth; tests cannot establish those facts.
 
 Review counts and proposed changes, including evidence differences and every unresolved record. Neither an unchanged lead nor a new observation timestamp should masquerade as a new contract. Existing canonical values are retained; replacing a disputed canonical fact requires separate reviewed authority.
 
 ## 5. Apply only the exact authorized package
 
-After the user authorizes the reviewed additions/updates, explain the counts before running:
+Within established scoped user authority, review/test the actual additions and explain the counts before running. The hash binds the reviewed artifacts; it is not a fabricated user-issued approval.
 
 ```powershell
 node scripts/procurement-workflow.mjs apply outputs/procurement-batches/NEW_PACKAGE --approve EXACT_REVIEWED_SHA256
@@ -125,7 +132,7 @@ The CLI validates package integrity, requires the matching offline test receipt,
 
 - An upstream error/unknown envelope: preserve the raw audit, stop claiming completeness, fix access/query/parsing before another authorized call.
 - Incomplete pages: capture the missing pages or explicitly accept limited coverage with documented limitations; never claim the whole source was searched.
-- Changed files, schema, intake, source facts, or conflicting links: regenerate from a fresh snapshot, test, review, and obtain approval for the new hash. Do not bypass guards.
+- Changed files, schema, intake, source facts or conflicting links: regenerate from a fresh snapshot, test and review the new hash within existing scoped authority. Do not bypass guards.
 - Apply timeout/error or failed readback: status is `commit_unknown` or `verification_failed`, not success. The package blocks blind repeat applications. Take a new read-only snapshot and use `verify PACKAGE NEW_SNAPSHOT NEW_REPORT` to examine outcomes. Compare intended and actual rows before deciding whether a fresh guarded package or a separately authorized forward correction is needed.
 - A `verify` result based on saved snapshots is evidence for those snapshots, not a new live check. Preserve the original intent/result receipts. A verified recovery receipt may be saved inside the package as `receipt-recovery.json`; it binds the same approval hash. Never forge/edit a receipt to bypass a blocker.
 - Never use broad rollback/deletion or a full database snapshot restoration to undo a committed batch over later user edits.
@@ -140,4 +147,25 @@ Final reporting must distinguish: source rows returned; distinct awards/notices;
 
 The original Python CLI's help/forwarding was exercised. The existing 12 capture/identity regression tests passed, and ten reusable-workflow tests passed, including real captured-data preparation, changed approval/package rejection before credential access, partial/error/unknown responses, manual forecast review, expired-notice classification, committed-snapshot verification, and local SQL rollback/replay with captured production constraints and lead-write triggers. Syntax and whitespace checks passed.
 
-No new searches or live database writes were performed for this update. The new stage/apply orchestration commands have not been exercised as a new production write merely to test them. Their first authorized production batch still requires the documented current-schema tests, explicit approval, and readback. The previously completed import remains the live-verified reference, not evidence that every future source or network condition is covered.
+Historical validation above describes the earlier runner update. On September 30, 2026 the database persistence build additionally exercised source/request registration, evidence-bound manual staging and two canonical imports on the pinned Supabase project. Live receipts verified nine new sources, five enriched existing sources, two geographic requests, four intake records, two leads with evidence/history links, and two pending candidates. Each package passed current-schema rollback/readback/no-op replay tests. Future batches still require fresh evidence, tests and live readback.
+
+
+## Manual observations and reviewed request links
+
+Keep a finding's stable external_id when recapturing it. When the payload or provenance changes, provide amends_intake_id referencing the prior same-source manual intake. Staging creates a separate deterministic observation identity; it never overwrites the original. Replaying the same observation is a no-op. An ignored parent cannot be revived this way.
+
+Before promoting an amendment, its parent must already link to the same canonical lead. Review the original first when that link is missing. Title similarity is insufficient. Primary evidence is still required for promotion. Changed source facts add immutable provenance to the existing lead; this does not silently replace previously verified canonical fields. Retrieval/request-only observations add intake relationships without business-change events.
+
+Include a factual request_match_reason when reviewing an existing lead for an additional request. The planner can now add a missing request relationship independently of lead creation. Existing relationship classifications remain intact; new links retain needs_location_review where appropriate. Statewide evidence alone does not establish local performance.
+
+Evidence entries allow url, content_sha256, excerpt, retrieved_at, locator, optional capture_kind and the local-only local_path. field_basis is a bounded map of field names to text explanations. Validation covers the final payload, including provenance and authorization references; never place credentials or private account/email contents there.
+
+Schema/policy migrations invalidate older schema-bound import packages. Preserve the originals; prepare and test a new package with fresh schema/snapshots. The test command uses local PGlite and does not require an external module path.
+
+## Authenticated queues and deployment
+
+All signed-in accounts may read shared procurement data and use the validated single/bulk stage RPCs. Anonymous table/RPC access is revoked; private account/membership records and author-only note changes retain their restrictions. Server imports continue through their existing credentials and reviewed packages. Source configuration is shared with signed-in users, so it must never contain credentials or private mailbox contents.
+
+Queue results use 50-row pages with server-side filters and full-data counts. Checkbox selection applies only to explicitly checked records across visited pages; changing filters clears it. Sorting has a record-ID tie breaker. Each RPC is snapshot-consistent, but separate pages are not one frozen snapshot: concurrent inserts or edits can move records between pages. Refresh reconciles current results; it is not a bulk export. Detail payloads load on selection.
+
+Keep Generate disabled and `spin_generate_contracts` undeployed until it has authenticated callers, bounded costs/rates, outbound URL/redirect controls, validated typed filters and canonical reviewed-import integration. No paid generation service is activated by this remediation.

@@ -1,13 +1,11 @@
 import { readFileSync } from 'node:fs';
-import { pathToFileURL, fileURLToPath } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 import assert from 'node:assert/strict';
 
 // Offline PostgreSQL validation using captured REAL baseline, not a live database write.
-const prior=process.env.PROCUREMENT_RESEARCH_DIR;
-if(!prior) throw new Error('Set PROCUREMENT_RESEARCH_DIR to the original research workspace');
-const {PGlite}=await import(pathToFileURL(resolve(prior,'work/sql-test/node_modules/@electric-sql/pglite/dist/index.js')));
-const root=fileURLToPath(new URL('../outputs/sam-search/',import.meta.url));
+import { PGlite } from '@electric-sql/pglite';
+const root=fileURLToPath(new URL('./fixtures/sam/',import.meta.url));
 const baseline=JSON.parse(readFileSync(resolve(root,'live-baseline.json'),'utf8'));
 const delta=JSON.parse(readFileSync(resolve(root,'upsert-records.json'),'utf8')).records;
 const sql=readFileSync(resolve(root,'007_incremental_sam_capture_2026_09_16.sql'),'utf8');

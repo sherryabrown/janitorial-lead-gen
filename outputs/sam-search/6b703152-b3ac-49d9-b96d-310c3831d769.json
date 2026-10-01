@@ -1,0 +1,118 @@
+{
+  "run_id": "6b703152-b3ac-49d9-b96d-310c3831d769",
+  "captured": true,
+  "status": "success",
+  "record_count": 1,
+  "collector": "sam-search",
+  "kind": "opportunities",
+  "query_url": "https://api.sam.gov/opportunities/v2/search?postedFrom=10%2F01%2F2025&postedTo=09%2F30%2F2026&state=AR&title=cleaning&limit=1000&offset=0",
+  "filters": {
+    "postedFrom": "10/01/2025",
+    "postedTo": "09/30/2026",
+    "state": "AR",
+    "title": "cleaning",
+    "limit": 1000,
+    "offset": 0
+  },
+  "upstream_status": 200,
+  "complete_for_query": true,
+  "state": "response_captured",
+  "response": {
+    "totalRecords": 1,
+    "limit": 1000,
+    "offset": 0,
+    "opportunitiesData": [
+      {
+        "active": "Yes",
+        "additionalInfoLink": null,
+        "archiveDate": "2026-10-02",
+        "archiveType": "auto15",
+        "award": {
+          "date": "2026-09-17",
+          "number": "W9127S26PA087",
+          "amount": "245700.00",
+          "awardee": {
+            "name": "HAYS MELINDA MICHELLE",
+            "location": {
+              "city": {
+                "code": "33460",
+                "name": "Hot Springs National Park"
+              },
+              "state": {
+                "code": "AR",
+                "name": "Arkansas"
+              },
+              "zip": "71913",
+              "country": {
+                "code": "USA",
+                "name": "UNITED STATES"
+              }
+            }
+          }
+        },
+        "baseType": "Combined Synopsis/Solicitation",
+        "classificationCode": "S216",
+        "description": "https://api.sam.gov/prod/opportunities/v1/noticedesc?noticeid=8ad68d1849fd4d6f8b2008b4151ed1a8",
+        "fullParentPathCode": "021.2100.USACE.SWD.SWL.W9127S",
+        "fullParentPathName": "DEPT OF DEFENSE.DEPT OF THE ARMY.US ARMY CORPS OF ENGINEERS.ENGINEER DIVISION SOUTHWESTERN.ENDIST LITTLE ROCK.W076 ENDIST LITTLE ROCK",
+        "links": [
+          {
+            "rel": "self",
+            "href": "https://api.sam.gov/prod/opportunities/v2/search?noticeid=8ad68d1849fd4d6f8b2008b4151ed1a8&limit=1"
+          }
+        ],
+        "naicsCode": "561210",
+        "naicsCodes": [
+          "561210"
+        ],
+        "noticeId": "8ad68d1849fd4d6f8b2008b4151ed1a8",
+        "officeAddress": {
+          "zipcode": "72201-3225",
+          "city": "LITTLE ROCK",
+          "countryCode": "USA",
+          "state": "AR"
+        },
+        "organizationType": "OFFICE",
+        "placeOfPerformance": {
+          "city": {
+            "code": "55310",
+            "name": "Pine Bluff"
+          },
+          "state": {
+            "code": "AR",
+            "name": "Arkansas"
+          },
+          "zip": "71601",
+          "country": {
+            "code": "USA",
+            "name": "UNITED STATES"
+          }
+        },
+        "pointOfContact": [
+          {
+            "fax": "",
+            "type": "primary",
+            "email": "Deborah.Oswalt@usace.army.mil",
+            "phone": "5013401268",
+            "fullName": "Deborah Oswalt"
+          }
+        ],
+        "postedDate": "2026-09-17",
+        "resourceLinks": null,
+        "responseDeadLine": null,
+        "solicitationNumber": "W9127S26PA087",
+        "title": "Pool 2 Park Cleaning Services Pine Bluff Project Office/Arkansas Post Field Office",
+        "type": "Award Notice",
+        "typeOfSetAside": "SBA",
+        "typeOfSetAsideDescription": "Small Business Set Aside - Total",
+        "uiLink": "https://sam.gov/workspace/contract/opp/8ad68d1849fd4d6f8b2008b4151ed1a8/view"
+      }
+    ],
+    "links": [
+      {
+        "rel": "self",
+        "href": "https://api.sam.gov/prod/opportunities/v2/search?postedFrom=10%2F01%2F2025&postedTo=09%2F30%2F2026&state=AR&title=cleaning&limit=1000&offset=0"
+      }
+    ]
+  }
+}

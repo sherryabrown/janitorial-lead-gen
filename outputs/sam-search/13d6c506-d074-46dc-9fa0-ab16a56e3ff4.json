@@ -1,0 +1,28 @@
+{
+  "run_id": "13d6c506-d074-46dc-9fa0-ab16a56e3ff4",
+  "captured": true,
+  "status": "success",
+  "record_count": 0,
+  "collector": "sam-search",
+  "kind": "awards",
+  "query_url": "https://api.sam.gov/contract-awards/v1/search?dateSigned=%5B10%2F01%2F2021%2C09%2F30%2F2026%5D&placeOfPerformStateCode=AR&naicsCode=561720&q=CAMDEN&limit=100&offset=0",
+  "filters": {
+    "dateSigned": "[10/01/2021,09/30/2026]",
+    "placeOfPerformStateCode": "AR",
+    "naicsCode": "561720",
+    "q": "CAMDEN",
+    "limit": 100,
+    "offset": 0
+  },
+  "upstream_status": 200,
+  "complete_for_query": true,
+  "state": "response_captured",
+  "response": {
+    "awardResponse": {
+      "totalRecords": "0",
+      "limit": "100",
+      "offset": "0"
+    },
+    "message": "No Data found for requested search criteria"
+  }
+}

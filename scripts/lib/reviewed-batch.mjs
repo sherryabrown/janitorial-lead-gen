@@ -87,7 +87,7 @@ export function planReviewedBatch(snapshot,review,runs) {
   need(snapshot.project_ref===review.project_ref,'Snapshot project does not match reviewed project');
   const sources=Object.fromEntries(snapshot.procurement_sources.map(s=>[s.code,s.id]));
   need(Object.values(sources).every(id=>uuid.test(id)),'Invalid source registry UUID');
-  need(sources.sam&&sources['sam-awards']&&sources.usaspending,'Required SAM/USAspending sources missing');
+  if(review.run_ids.length)need(sources.sam&&sources['sam-awards']&&sources.usaspending,'Required SAM/USAspending sources missing');
   need(snapshot.procurement_search_requests.some(r=>r.id===review.request_id),'Reviewed request not found');
   const collection=collectRuns(runs,review.run_ids,{allow_partial:review.allow_partial===true});
   const records=new Map(),decisions=[],unresolved=[];let sameLead=0;
@@ -98,8 +98,23 @@ export function planReviewedBatch(snapshot,review,runs) {
     if(d.action==='defer') {unresolved.push({id:i.id,external_id:i.external_id,status:i.status,reason:d.reason});continue;}
     need(i.status!=='ignored','Ignored intake cannot be silently revived');
     const evidence=evidenceFor(i,collection);
+    if(i.payload.manual_capture) {
+      need(i.payload.manual_capture.confidence==='primary','Secondary candidate requires primary verification before promotion');
+      need(i.payload.manual_capture.request_ids.includes(review.request_id),'Manual capture belongs to another geographic request');
+      need(i.payload.manual_capture.evidence?.length,'Manual provenance missing');
+      if(i.payload.bid_type==='opportunity')need(i.payload.deadline&&Date.parse(i.payload.deadline)>Date.parse(snapshot.captured_at),'Expired or undated manual solicitation cannot be presented as open');
+    }
     if(evidence.kind==='notice') need(i.source_id===sources.sam,'Notice intake has wrong source');
-    let matches=leads.filter(l=>l.source_id===i.source_id&&l.external_id===i.external_id),identity=null;
+    const manual=i.payload.manual_capture;
+    const recordExternal=manual?.record_external_id??i.external_id;
+    let matches=leads.filter(l=>l.source_id===i.source_id&&l.external_id===recordExternal),identity=null;
+    if(manual?.amends_intake_id) {
+      const parent=snapshot.procurement_intake_items.find(x=>x.id===manual.amends_intake_id);
+      need(parent&&parent.source_id===i.source_id&&parent.status!=='ignored'&&
+        (parent.payload.manual_capture?.record_external_id??parent.external_id)===recordExternal,'Invalid amendment parent/record');
+      need(matches.length===1&&snapshot.procurement_intake_leads.some(l=>l.intake_id===parent.id&&l.lead_id===matches[0].id),
+        'Amendment parent must already link to one canonical lead; review the original first');
+    }
     if(evidence.kind==='award') {
       need(i.source_id===sources['sam-awards'],'Award intake has wrong source');identity=evidence.identity;
       matches=exactAwards(leads,sources,identity);
@@ -119,7 +134,7 @@ export function planReviewedBatch(snapshot,review,runs) {
         need(p&&target[0].source_id===i.source_id&&p.source_url===i.payload.url&&target[0].payload.source_url===p.source_url&&
           p.solicitation_id&&target[0].payload.solicitation_id===p.solicitation_id&&
           typeof p.exact_text==='string'&&p.exact_text.includes(p.solicitation_id)&&i.payload.text?.includes(p.exact_text),'Page backfill needs exact detail URL and explicit identifier text, not a title similarity');
-      } else need(target[0].source_id===i.source_id&&target[0].external_id===i.external_id,'Unproven cross-source merge');
+      } else need(target[0].source_id===i.source_id&&target[0].external_id===recordExternal,'Unproven cross-source merge');
       matches=target;
     }
     need(matches.length<=1,'Ambiguous existing lead identity');
@@ -151,11 +166,17 @@ export function planReviewedBatch(snapshot,review,runs) {
       }
     } else {
       const provenance={intake_id:i.id,content_hash:hash(i.payload),reason:d.reason};
-      patch=old?{intake_source_evidence:{...(old.payload.intake_source_evidence||{}),[i.id]:provenance}}:{...i.payload,intake_source_evidence:{[i.id]:provenance}};
+      const sourceFacts=p=>Object.fromEntries(Object.entries(p).filter(([k])=>!['manual_capture','intake_source_evidence'].includes(k)));
+      const parent=manual?.amends_intake_id?snapshot.procurement_intake_items.find(x=>x.id===manual.amends_intake_id):null;
+      // Retrieval/scope-only observations get intake links, without a business-change event.
+      const unchangedObservation=parent&&same(sourceFacts(parent.payload),sourceFacts(i.payload));
+      patch=old?(unchangedObservation?{}:{intake_source_evidence:{...(old.payload.intake_source_evidence||{}),[i.id]:provenance}}):{...i.payload,intake_source_evidence:{[i.id]:provenance}};
     }
     if(!old) {
       need(patch.title&&/^https:\/\//.test(patch.source_url||'')&&['award','contract','forecast','opportunity','historical_opportunity','intent_to_award'].includes(patch.bid_type),'New lead must have verified source URL, title, and valid classification');
       need(Array.isArray(patch.work_performance_locations)&&patch.work_performance_locations.length,'Work-location evidence required');
+      const knownStates=patch.work_performance_locations.map(l=>l.state_code).filter(Boolean);
+      need(!knownStates.length||knownStates.includes(review.work_state),'Explicit out-of-state work cannot be imported through location uncertainty');
       need(patch.work_performance_locations.some(l=>l.state_code===review.work_state)||d.allow_location_uncertainty===true,'Out-of-scope/unknown location needs explicit review');
       need(typeof d.request_match_reason==='string'&&d.request_match_reason.trim(),'New lead requires request-location explanation');
     }
@@ -171,7 +192,7 @@ export function planReviewedBatch(snapshot,review,runs) {
       identity:identity||prior?.identity||null,piid:identity?(evidence.payload?.award_id||evidence.record?.award?.number):prior?.piid||null});
     if(old) sameLead++;
     decisions.push({intake:i,lead_id:id,source_id:source,external_id:external,basis:d.reason,expected_links:links,
-      request_reason:!old?d.request_match_reason:null,expected_request:snapshot.procurement_request_leads.find(r=>r.lead_id===id&&r.search_request_id===review.request_id)||null});
+      request_reason:typeof d.request_match_reason==='string'&&d.request_match_reason.trim()?d.request_match_reason:null,expected_request:snapshot.procurement_request_leads.find(r=>r.lead_id===id&&r.search_request_id===review.request_id)||null});
   }
   // Never hide captured items simply because the reviewer selected a smaller processing subset.
   for(const [sourceCode,keys] of [['sam-awards',[...collection.awards.keys()]],['sam',[...collection.notices.keys()]]]) {

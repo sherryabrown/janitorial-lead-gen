@@ -1,0 +1,32 @@
+{
+  "run_id": "27ebac41-b042-439d-8376-c017e7dc381e",
+  "captured": true,
+  "status": "success",
+  "record_count": 0,
+  "collector": "sam-search",
+  "kind": "opportunities",
+  "query_url": "https://api.sam.gov/opportunities/v2/search?postedFrom=10%2F01%2F2025&postedTo=09%2F30%2F2026&state=AR&title=custodial&limit=1000&offset=0",
+  "filters": {
+    "postedFrom": "10/01/2025",
+    "postedTo": "09/30/2026",
+    "state": "AR",
+    "title": "custodial",
+    "limit": 1000,
+    "offset": 0
+  },
+  "upstream_status": 200,
+  "complete_for_query": true,
+  "state": "response_captured",
+  "response": {
+    "totalRecords": 0,
+    "limit": 1000,
+    "offset": 0,
+    "opportunitiesData": [],
+    "links": [
+      {
+        "rel": "self",
+        "href": "https://api.sam.gov/prod/opportunities/v2/search?postedFrom=10%2F01%2F2025&postedTo=09%2F30%2F2026&state=AR&title=custodial&limit=1000&offset=0"
+      }
+    ]
+  }
+}

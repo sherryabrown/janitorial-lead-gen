@@ -1,0 +1,332 @@
+{
+  "run_id": "1c226a37-3ab1-4e1a-8a10-deb31a936ad1",
+  "captured": true,
+  "status": "success",
+  "record_count": 4,
+  "collector": "sam-search",
+  "kind": "opportunities",
+  "query_url": "https://api.sam.gov/opportunities/v2/search?postedFrom=10%2F01%2F2025&postedTo=09%2F30%2F2026&title=Texarkana&limit=1000&offset=0",
+  "filters": {
+    "postedFrom": "10/01/2025",
+    "postedTo": "09/30/2026",
+    "title": "Texarkana",
+    "limit": 1000,
+    "offset": 0
+  },
+  "upstream_status": 200,
+  "complete_for_query": true,
+  "state": "response_captured",
+  "response": {
+    "totalRecords": 4,
+    "limit": 1000,
+    "offset": 0,
+    "opportunitiesData": [
+      {
+        "active": "Yes",
+        "additionalInfoLink": null,
+        "archiveDate": "2026-10-16",
+        "archiveType": "autocustom",
+        "award": null,
+        "baseType": "Sale of Surplus Property",
+        "classificationCode": "9999",
+        "description": "https://api.sam.gov/prod/opportunities/v1/noticedesc?noticeid=411051db360346339345bef4debd52b9",
+        "fullParentPathCode": "097.97AS.DLA DISPOSITION SVCS.SC4400",
+        "fullParentPathName": "DEPT OF DEFENSE.DEFENSE LOGISTICS AGENCY.DLA DISPOSITION SERVICES.DLA DISPOSITION SERVICES HQ",
+        "links": [
+          {
+            "rel": "self",
+            "href": "https://api.sam.gov/prod/opportunities/v2/search?noticeid=411051db360346339345bef4debd52b9&limit=1"
+          }
+        ],
+        "naicsCode": null,
+        "naicsCodes": [],
+        "noticeId": "411051db360346339345bef4debd52b9",
+        "officeAddress": {
+          "zipcode": "49037-3092",
+          "city": "BATTLE CREEK",
+          "countryCode": "USA",
+          "state": "MI"
+        },
+        "organizationType": "OFFICE",
+        "placeOfPerformance": {
+          "city": {
+            "code": "68810",
+            "name": "68810"
+          },
+          "state": {
+            "code": "TX",
+            "name": "Texas"
+          },
+          "country": {
+            "code": "USA",
+            "name": "UNITED STATES"
+          }
+        },
+        "pointOfContact": [
+          {
+            "fax": "",
+            "type": "primary",
+            "email": "Aldo.Romero@dla.mil",
+            "phone": "",
+            "fullName": "Aldo Romero"
+          },
+          {
+            "fax": "",
+            "type": "secondary",
+            "email": "shawn.ricketts@dla.mil",
+            "phone": "",
+            "fullName": "Shawn Ricketts"
+          }
+        ],
+        "postedDate": "2026-09-15",
+        "resourceLinks": [
+          "https://sam.gov/api/prod/opps/v3/opportunities/resources/files/49aa13e9c7c3452e80fce47dfd1f8868/download",
+          "https://sam.gov/api/prod/opps/v3/opportunities/resources/files/d0c852350aaa4ea09f8c7366608ba356/download",
+          "https://sam.gov/api/prod/opps/v3/opportunities/resources/files/f6f5548805e14707ab11e87da123eedb/download",
+          "https://sam.gov/api/prod/opps/v3/opportunities/resources/files/f9de81991cff4618ac8b3a20ece2d7f5/download"
+        ],
+        "responseDeadLine": "2026-10-15T13:00:00-04:00",
+        "solicitationNumber": " IFB-33-6046",
+        "title": "SCRAP TIRE SALE IFB 33-6046, Texarkana, TX",
+        "type": "Sale of Surplus Property",
+        "typeOfSetAside": null,
+        "typeOfSetAsideDescription": null,
+        "uiLink": "https://sam.gov/workspace/contract/opp/411051db360346339345bef4debd52b9/view"
+      },
+      {
+        "active": "Yes",
+        "additionalInfoLink": null,
+        "archiveDate": "2026-10-15",
+        "archiveType": "autocustom",
+        "award": null,
+        "baseType": "Sale of Surplus Property",
+        "classificationCode": "9999",
+        "description": "https://api.sam.gov/prod/opportunities/v1/noticedesc?noticeid=34105e8d58dd45f69717facadd1dd062",
+        "fullParentPathCode": "097.97AS.DLA DISPOSITION SVCS.SC4400",
+        "fullParentPathName": "DEPT OF DEFENSE.DEFENSE LOGISTICS AGENCY.DLA DISPOSITION SERVICES.DLA DISPOSITION SERVICES HQ",
+        "links": [
+          {
+            "rel": "self",
+            "href": "https://api.sam.gov/prod/opportunities/v2/search?noticeid=34105e8d58dd45f69717facadd1dd062&limit=1"
+          }
+        ],
+        "naicsCode": null,
+        "naicsCodes": [],
+        "noticeId": "34105e8d58dd45f69717facadd1dd062",
+        "officeAddress": {
+          "zipcode": "49037-3092",
+          "city": "BATTLE CREEK",
+          "countryCode": "USA",
+          "state": "MI"
+        },
+        "organizationType": "OFFICE",
+        "placeOfPerformance": {
+          "city": {
+            "code": "72368",
+            "name": "Texarkana"
+          },
+          "state": {
+            "code": "TX",
+            "name": "Texas"
+          },
+          "country": {
+            "code": "USA",
+            "name": "UNITED STATES"
+          }
+        },
+        "pointOfContact": [
+          {
+            "fax": "",
+            "type": "primary",
+            "email": "Aldo.Romero@dla.mil",
+            "phone": "",
+            "fullName": "Aldo Romero"
+          },
+          {
+            "fax": "",
+            "type": "secondary",
+            "email": "shawn.ricketts@dla.mil",
+            "phone": "",
+            "fullName": "Shawn Ricketts"
+          }
+        ],
+        "postedDate": "2026-09-14",
+        "resourceLinks": [
+          "https://sam.gov/api/prod/opps/v3/opportunities/resources/files/0ebdefe557dc493c9ee8e48678039248/download",
+          "https://sam.gov/api/prod/opps/v3/opportunities/resources/files/0ed2fe5b8eec44649b3b91c47b44e41b/download",
+          "https://sam.gov/api/prod/opps/v3/opportunities/resources/files/8abbab87d0d14b88b8ee07cf9215ab0e/download",
+          "https://sam.gov/api/prod/opps/v3/opportunities/resources/files/90f311bf2e0c47ba971f8c6944ced772/download"
+        ],
+        "responseDeadLine": "2026-10-14T13:00:00-04:00",
+        "solicitationNumber": "IFB-33-6053",
+        "title": "Scrap Sale: EXPENDED SMALL ARMS CARTRIDGE CASING (ESACC) SALE IFB 33-6053, Texarkana, TX",
+        "type": "Sale of Surplus Property",
+        "typeOfSetAside": null,
+        "typeOfSetAsideDescription": null,
+        "uiLink": "https://sam.gov/workspace/contract/opp/34105e8d58dd45f69717facadd1dd062/view"
+      },
+      {
+        "active": "Yes",
+        "additionalInfoLink": null,
+        "archiveDate": "2027-01-13",
+        "archiveType": "autocustom",
+        "award": null,
+        "baseType": "Sources Sought",
+        "classificationCode": "Z2FF",
+        "description": "https://api.sam.gov/prod/opportunities/v1/noticedesc?noticeid=6014af7291a44cf5ba49ee00a2e7611f",
+        "fullParentPathCode": "015.1540.15BFA0",
+        "fullParentPathName": "JUSTICE, DEPARTMENT OF.FEDERAL PRISON SYSTEM / BUREAU OF PRISONS.FAO",
+        "links": [
+          {
+            "rel": "self",
+            "href": "https://api.sam.gov/prod/opportunities/v2/search?noticeid=6014af7291a44cf5ba49ee00a2e7611f&limit=1"
+          }
+        ],
+        "naicsCode": "237110",
+        "naicsCodes": [
+          "237110"
+        ],
+        "noticeId": "6014af7291a44cf5ba49ee00a2e7611f",
+        "officeAddress": {
+          "zipcode": "75051",
+          "city": "GRAND PRAIRIE",
+          "countryCode": "USA",
+          "state": "TX"
+        },
+        "organizationType": "OFFICE",
+        "placeOfPerformance": {
+          "city": {
+            "code": "72368",
+            "name": "Texarkana"
+          },
+          "state": {
+            "code": "TX",
+            "name": "Texas"
+          },
+          "zip": "75501",
+          "country": {
+            "code": "USA",
+            "name": "UNITED STATES"
+          }
+        },
+        "pointOfContact": [
+          {
+            "fax": "",
+            "type": "primary",
+            "email": "jseratt1@bop.gov",
+            "phone": "",
+            "fullName": "Jim Seratt"
+          },
+          {
+            "fax": "",
+            "type": "secondary",
+            "email": "pford@bop.gov",
+            "phone": "",
+            "fullName": "Patrick Ford"
+          }
+        ],
+        "postedDate": "2026-09-11",
+        "resourceLinks": [
+          "https://sam.gov/api/prod/opps/v3/opportunities/resources/files/657f4b2186ab492696507ee5d72b1012/download",
+          "https://sam.gov/api/prod/opps/v3/opportunities/resources/files/669abbb92a004506b8ec88cafdb97d5e/download",
+          "https://sam.gov/api/prod/opps/v3/opportunities/resources/files/8001078850e44d0689d3bcb0dc5d21bf/download",
+          "https://sam.gov/api/prod/opps/v3/opportunities/resources/files/cb3dcdc27926459481e5676ddad8bf75/download",
+          "https://sam.gov/api/prod/opps/v3/opportunities/resources/files/f5bd52a0a62a4ef3abec2f73e972e557/download"
+        ],
+        "responseDeadLine": "2026-10-13T12:00:00-05:00",
+        "solicitationNumber": "15BBNF26Q51500001",
+        "title": "Upgrade Water Tanks - FCI Texarkana, Tx",
+        "type": "Combined Synopsis/Solicitation",
+        "typeOfSetAside": "SBA",
+        "typeOfSetAsideDescription": "Small Business Set Aside - Total",
+        "uiLink": "https://sam.gov/workspace/contract/opp/6014af7291a44cf5ba49ee00a2e7611f/view"
+      },
+      {
+        "active": "Yes",
+        "additionalInfoLink": null,
+        "archiveDate": "2026-11-13",
+        "archiveType": "auto15",
+        "award": {
+          "date": "2026-10-29",
+          "number": "47PH0526C0001",
+          "amount": "755885.00",
+          "awardee": {
+            "name": "BIG C CONSTRUCTION, L.L.C",
+            "location": {
+              "city": {
+                "code": "67850",
+                "name": "Skiatook"
+              },
+              "state": {
+                "code": "OK",
+                "name": "Oklahoma"
+              },
+              "zip": "74070",
+              "country": {
+                "code": "USA",
+                "name": "UNITED STATES"
+              }
+            }
+          }
+        },
+        "baseType": "Award Notice",
+        "classificationCode": "Z2AA",
+        "description": "https://api.sam.gov/prod/opportunities/v1/noticedesc?noticeid=4b7c236bf7a64655b6619c14693ac02c",
+        "fullParentPathCode": "047.4740.47PD53",
+        "fullParentPathName": "GENERAL SERVICES ADMINISTRATION.PUBLIC BUILDINGS SERVICE.PBS PROJECT DELIVERY WEST - BRANCH C",
+        "links": [
+          {
+            "rel": "self",
+            "href": "https://api.sam.gov/prod/opportunities/v2/search?noticeid=4b7c236bf7a64655b6619c14693ac02c&limit=1"
+          }
+        ],
+        "naicsCode": "236220",
+        "naicsCodes": [
+          "236220"
+        ],
+        "noticeId": "4b7c236bf7a64655b6619c14693ac02c",
+        "officeAddress": {
+          "zipcode": "20405",
+          "city": "Washington",
+          "countryCode": "USA",
+          "state": "DC"
+        },
+        "organizationType": "OFFICE",
+        "placeOfPerformance": {
+          "state": {
+            "code": "AR",
+            "name": "Arkansas"
+          },
+          "zip": "71854",
+          "country": {
+            "code": "USA",
+            "name": "UNITED STATES"
+          }
+        },
+        "pointOfContact": [
+          {
+            "type": "primary",
+            "email": "stephan.harris@gsa.gov",
+            "phone": "817-505-5132",
+            "fullName": "Stephan J. Harris"
+          }
+        ],
+        "postedDate": "2025-10-29",
+        "resourceLinks": null,
+        "responseDeadLine": null,
+        "solicitationNumber": "47PH0526C0001",
+        "title": "Design Build Security System Infrastructure Installation US Post Office and Courthouse Ave Texarkana, AR",
+        "type": "Award Notice",
+        "typeOfSetAside": "8AN",
+        "typeOfSetAsideDescription": "8(a) Sole Source (FAR 19.8)",
+        "uiLink": "https://sam.gov/workspace/contract/opp/4b7c236bf7a64655b6619c14693ac02c/view"
+      }
+    ],
+    "links": [
+      {
+        "rel": "self",
+        "href": "https://api.sam.gov/prod/opportunities/v2/search?postedFrom=10%2F01%2F2025&postedTo=09%2F30%2F2026&title=Texarkana&limit=1000&offset=0"
+      }
+    ]
+  }
+}

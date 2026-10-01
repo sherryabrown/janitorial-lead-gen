@@ -1,0 +1,118 @@
+{
+  "run_id": "61d1ce32-d8e4-47e2-a113-3f61ef449af6",
+  "captured": true,
+  "status": "success",
+  "record_count": 1,
+  "collector": "sam-search",
+  "kind": "opportunities",
+  "query_url": "https://api.sam.gov/opportunities/v2/search?postedFrom=10%2F01%2F2025&postedTo=09%2F30%2F2026&state=AR&title=janitorial&limit=1000&offset=0",
+  "filters": {
+    "postedFrom": "10/01/2025",
+    "postedTo": "09/30/2026",
+    "state": "AR",
+    "title": "janitorial",
+    "limit": 1000,
+    "offset": 0
+  },
+  "upstream_status": 200,
+  "complete_for_query": true,
+  "state": "response_captured",
+  "response": {
+    "totalRecords": 1,
+    "limit": 1000,
+    "offset": 0,
+    "opportunitiesData": [
+      {
+        "active": "Yes",
+        "additionalInfoLink": null,
+        "archiveDate": "2026-10-07",
+        "archiveType": "auto15",
+        "award": {
+          "date": "2026-09-22",
+          "number": "W9127S26PA089",
+          "amount": "72014.00",
+          "awardee": {
+            "name": "R&R JANITORIAL LLC",
+            "location": {
+              "city": {
+                "code": "52970",
+                "name": "Ozark"
+              },
+              "state": {
+                "code": "AR",
+                "name": "Arkansas"
+              },
+              "zip": "72949",
+              "country": {
+                "code": "USA",
+                "name": "UNITED STATES"
+              }
+            }
+          }
+        },
+        "baseType": "Combined Synopsis/Solicitation",
+        "classificationCode": "S201",
+        "description": "https://api.sam.gov/prod/opportunities/v1/noticedesc?noticeid=5665042bdeab4cf4be1b1af5291286e9",
+        "fullParentPathCode": "021.2100.USACE.SWD.SWL.W9127S",
+        "fullParentPathName": "DEPT OF DEFENSE.DEPT OF THE ARMY.US ARMY CORPS OF ENGINEERS.ENGINEER DIVISION SOUTHWESTERN.ENDIST LITTLE ROCK.W076 ENDIST LITTLE ROCK",
+        "links": [
+          {
+            "rel": "self",
+            "href": "https://api.sam.gov/prod/opportunities/v2/search?noticeid=5665042bdeab4cf4be1b1af5291286e9&limit=1"
+          }
+        ],
+        "naicsCode": "561720",
+        "naicsCodes": [
+          "561720"
+        ],
+        "noticeId": "5665042bdeab4cf4be1b1af5291286e9",
+        "officeAddress": {
+          "zipcode": "72201-3225",
+          "city": "LITTLE ROCK",
+          "countryCode": "USA",
+          "state": "AR"
+        },
+        "organizationType": "OFFICE",
+        "placeOfPerformance": {
+          "city": {
+            "code": "52970",
+            "name": "Ozark"
+          },
+          "state": {
+            "code": "AR",
+            "name": "Arkansas"
+          },
+          "zip": "72949",
+          "country": {
+            "code": "USA",
+            "name": "UNITED STATES"
+          }
+        },
+        "pointOfContact": [
+          {
+            "fax": "",
+            "type": "primary",
+            "email": "brandee.m.wright@usace.army.mil",
+            "phone": "",
+            "fullName": "Brandee M Wright"
+          }
+        ],
+        "postedDate": "2026-09-23",
+        "resourceLinks": null,
+        "responseDeadLine": null,
+        "solicitationNumber": "W9127S26PA089",
+        "title": "Janitorial Services, Ozark Powerhouse Russellville Site Office",
+        "type": "Award Notice",
+        "typeOfSetAside": "SBA",
+        "typeOfSetAsideDescription": "Small Business Set Aside - Total",
+        "uiLink": "https://sam.gov/workspace/contract/opp/5665042bdeab4cf4be1b1af5291286e9/view"
+      }
+    ],
+    "links": [
+      {
+        "rel": "self",
+        "href": "https://api.sam.gov/prod/opportunities/v2/search?postedFrom=10%2F01%2F2025&postedTo=09%2F30%2F2026&state=AR&title=janitorial&limit=1000&offset=0"
+      }
+    ]
+  }
+}
