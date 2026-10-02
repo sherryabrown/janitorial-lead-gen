@@ -11,6 +11,8 @@ pnpm-debug.log*
 # Local verification snapshots include user-managed procurement fields; do not commit them.
 outputs/sam-search/intake-before*.json
 outputs/sam-search/intake-after*.json
+# New live SAM responses stay local; tracked historical fixtures remain available to tests.
+outputs/sam-search/*.json
 outputs/known-source/
 
 # Reviewed workflow packages bind private baseline snapshots and approval receipts.
