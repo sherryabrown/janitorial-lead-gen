@@ -63,10 +63,33 @@ Deno.serve(async req => {
   const db = createClient(Deno.env.get('SUPABASE_URL')!, keys[0]);
   const { data: source, error: sourceError } = await db.from('procurement_sources').select('id').eq('code', config.source).single();
   if (sourceError || !source) return reply({ error: 'Source registry lookup failed; no SAM request sent' }, 500);
+  const execution = body.execution;
+  let context: { job_id: string; coverage_task_id: string; page_index: number; page_attempt: number } | null = null;
+  if (execution !== undefined) {
+    const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!execution || !uuid.test(execution.job_id) || !uuid.test(execution.task_id) ||
+        !Number.isInteger(execution.page_index) || execution.page_index !== offset)
+      return reply({ error: 'Invalid route execution context' }, 400);
+    const { data: job, error: jobError } = await db.from('procurement_jobs')
+      .select('id,state,lease_until,task_id,capability_id,attempts').eq('id', execution.job_id).single();
+    const { data: task, error: taskError } = await db.from('procurement_coverage_tasks')
+      .select('id,capability_id,source_id,kind').eq('id', execution.task_id).single();
+    if (jobError || taskError || !job || !task || job.state !== 'running' ||
+        !job.lease_until || Date.parse(job.lease_until) <= Date.now() ||
+        job.task_id !== task.id || task.capability_id !== job.capability_id ||
+        task.source_id !== source.id || task.kind !== (kind === 'awards' ? 'award' : 'opportunity'))
+      return reply({ error: 'Route job is not currently leased for this source' }, 409);
+    const { data: existing, error: existingError } = await db.from('procurement_runs')
+      .select('id,detail').eq('job_id', job.id).eq('page_index', offset).eq('page_attempt', job.attempts).maybeSingle();
+    if (existingError) return reply({ error: 'Cannot check route page; no SAM request sent' }, 500);
+    if (existing) return reply({ error: 'Route page already attempted; inspect its saved audit run before resuming', run_id: existing.id,
+      state: existing.detail?.state }, 409);
+    context = { job_id: job.id, coverage_task_id: task.id, page_index: offset, page_attempt: job.attempts };
+  }
   const started = new Date().toISOString();
   // Write an audit record BEFORE sending the external request. A timeout remains visible.
   const { data: run, error: runError } = await db.from('procurement_runs').insert({
-    source_id: source.id, started_at: started, status: 'partial', record_count: 0,
+    source_id: source.id, started_at: started, status: 'partial', record_count: 0, ...context,
     detail: { collector: 'sam-search', kind, query_url: safeUrl, filters, state: 'request_pending' },
   }).select('id').single();
   if (runError || !run) return reply({ error: 'Run capture failed; no SAM request sent' }, 500);

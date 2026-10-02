@@ -11,6 +11,7 @@ import { project } from './lib/supabase-admin.mjs';
 import { testBatchSql } from './lib/batch-sql-test.mjs';
 import { runSupabase } from './lib/supabase-cli.mjs';
 import {planRegistry,planManual,persistenceSql,verifyPersistence} from './lib/research-persistence.mjs';
+import { routedCapture } from './lib/known-source-execution.mjs';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const load=p=>JSON.parse(readFileSync(p,'utf8'));
@@ -33,6 +34,7 @@ const help=`Procurement workflow — search is not import; no implicit live writ
   inventory SNAPSHOT.json               List intake IDs/hashes for review (offline)
   stage CAPTURE_SCOPE.json CAPTURE_DIR NEW_RECEIPT.json --confirm-stage
                                        LIVE intake-only capture; existing intake never overwritten
+                                       Set routed:true in scope to stage only new/changed known-route observations
   snapshot NEW_SNAPSHOT.json            Read-only live data snapshot (project is pinned)
   schema NEW_SCHEMA.json                Read-only live schema/trigger snapshot
   prepare REVIEW.json SNAPSHOT.json CAPTURE_DIR SCHEMA.json NEW_PACKAGE_DIR
@@ -118,18 +120,54 @@ async function main() {
     const {adminClient}=await import('./lib/supabase-admin.mjs');const db=adminClient();
     const {data:sources,error}=await db.from('procurement_sources').select('id,code');if(error) throw new Error('Cannot read source registry');
     const source=code=>{const row=sources.find(s=>s.code===code);if(!row) throw new Error(`Missing source ${code}`);return row.id;};
+    let observationGroups=null,priorEvidence=null;
+    if(scope.routed===true){
+      const {data:observations,error:observationError}=await db.from('procurement_source_observations')
+        .select('source_id,record_group,payload_hash,change_type,first_run_id').in('first_run_id',scope.run_ids);
+      if(observationError)throw new Error('Cannot verify routed observations; no intake write sent');
+      observationGroups=new Map();
+      for(const o of observations){
+        const key=`${o.source_id}/${o.record_group}`,group=observationGroups.get(key)??[];
+        group.push(o);observationGroups.set(key,group);
+      }
+      priorEvidence=new Map();
+      for(const table of ['procurement_intake_items','procurement_leads']){
+        for(let offset=0;;offset+=1000){
+          const {data,error:priorError}=await db.from(table).select('source_id,external_id,payload')
+            .in('source_id',[source('sam'),source('sam-awards')]).range(offset,offset+999);
+          if(priorError)throw new Error('Cannot compare previous SAM evidence; no intake write sent');
+          for(const prior of data){
+            const identity=prior.payload.routed_capture?.record_identity??prior.external_id;
+            const row=prior.source_id===source('sam')?prior.payload.sam_notice_evidence?.record:
+              prior.payload.sam_api_evidence?.latest_action;
+            if(row){const key=`${prior.source_id}/${identity}`,saved=priorEvidence.get(key)??new Set();
+              saved.add(hash(row));priorEvidence.set(key,saved);}
+          }
+          if(data.length<1000)break;
+        }
+      }
+    }
+    const routeRecord=(sourceId,identity,row)=>{
+      if(!observationGroups)return {external_id:identity,metadata:{}};
+      const group=observationGroups.get(`${sourceId}/${identity}`);
+      return routedCapture(identity,group,row,priorEvidence.get(`${sourceId}/${identity}`));
+    };
     const items=[];
     for(const [identity,g] of collection.awards) {
       const row=[...g.actions.values()].sort((a,b)=>awardDate(b).localeCompare(awardDate(a))||
         (b.awardDetails?.transactionData?.lastModifiedDate||'').localeCompare(a.awardDetails?.transactionData?.lastModifiedDate||''))[0];
-      items.push({source_id:source('sam-awards'),external_id:identity,status:'pending',review_reason:'Captured SAM contract actions; service, geography, identity and promotion require review.',
+      const routed=routeRecord(source('sam-awards'),identity,row);if(!routed)continue;
+      items.push({source_id:source('sam-awards'),external_id:routed.external_id,status:'pending',review_reason:'Captured SAM contract actions; service, geography, identity and promotion require review.',
         payload:{...awardPayload(row,`https://api.sam.gov/contract-awards/v1/search?piid=${encodeURIComponent(row.contractId.piid)}`),
+          ...routed.metadata,
           sam_api_evidence:{contract_identity:identity,latest_action:row,action_ids:[...g.actions.keys()].sort(),capture_run_ids:[...g.run_ids].sort(),search_queries:[...g.queries].sort()}}});
     }
     for(const [id,g] of collection.notices) {
       const n=g.row,loc=n.placeOfPerformance||{};
-      items.push({source_id:source('sam'),external_id:id,status:'pending',review_reason:'Captured SAM notice; Active does not prove open. Review deadline, service, geography and relationships.',
+      const routed=routeRecord(source('sam'),id,n);if(!routed)continue;
+      items.push({source_id:source('sam'),external_id:routed.external_id,status:'pending',review_reason:'Captured SAM notice; Active does not prove open. Review deadline, service, geography and relationships.',
         payload:{title:n.title,source_url:`https://sam.gov/opp/${id}/view`,bid_type:n.award?'award':'opportunity',business_category:'other_public',
+          ...routed.metadata,
           contracting_entity_geo_level:'federal',agency:n.fullParentPathName,solicitation_id:n.solicitationNumber,naics:n.naicsCode,deadline:n.responseDeadLine||null,
           work_performance_locations:[{city_name:loc.city?.name||null,state_code:loc.state?.code||null,evidence:loc.streetAddress||'SAM placeOfPerformance; not contracting office'}],
           sam_notice_evidence:{record:n,capture_run_ids:[...g.run_ids].sort(),search_queries:[...g.queries].sort()}}});

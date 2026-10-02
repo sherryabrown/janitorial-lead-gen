@@ -68,7 +68,8 @@ export function collectRuns(runs,expectedIds,{allow_partial=false}={}) {
   return {awards,notices,returned,partial:incomplete.length>0};
 }
 function evidenceFor(i,collection) {
-  const award=collection.awards.get(i.external_id);
+  const captureIdentity=i.payload.routed_capture?.record_identity??i.external_id;
+  const award=collection.awards.get(captureIdentity);
   if(award&&i.payload.sam_api_evidence) {
     const rows=[...award.actions.values()].sort((a,b)=>awardDate(b).localeCompare(awardDate(a))||
       (b.awardDetails?.transactionData?.lastModifiedDate||'').localeCompare(a.awardDetails?.transactionData?.lastModifiedDate||''));
@@ -77,7 +78,7 @@ function evidenceFor(i,collection) {
     return {kind:'award',identity,payload,queries:[...award.queries].sort(),evidence:{contract_identity:identity,latest_action:row,
       action_ids:[...award.actions.keys()].sort(),reconciliation_note:'Latest signed action within the reviewed search window, not guaranteed all-time latest; canonical conflicts require separate review.'}};
   }
-  const notice=collection.notices.get(i.external_id);
+  const notice=collection.notices.get(captureIdentity);
   if(notice&&i.payload.sam_notice_evidence) return {kind:'notice',record:notice.row,queries:[...notice.queries].sort(),evidence:{record:notice.row}};
   need(!i.payload.sam_api_evidence&&!i.payload.sam_notice_evidence,'API intake lacks matching evidence in explicit batch captures');
   return {kind:'manual',queries:[],payload:i.payload};
@@ -106,7 +107,7 @@ export function planReviewedBatch(snapshot,review,runs) {
     }
     if(evidence.kind==='notice') need(i.source_id===sources.sam,'Notice intake has wrong source');
     const manual=i.payload.manual_capture;
-    const recordExternal=manual?.record_external_id??i.external_id;
+    const recordExternal=manual?.record_external_id??i.payload.routed_capture?.record_identity??i.external_id;
     let matches=leads.filter(l=>l.source_id===i.source_id&&l.external_id===recordExternal),identity=null;
     if(manual?.amends_intake_id) {
       const parent=snapshot.procurement_intake_items.find(x=>x.id===manual.amends_intake_id);
@@ -180,7 +181,7 @@ export function planReviewedBatch(snapshot,review,runs) {
       need(patch.work_performance_locations.some(l=>l.state_code===review.work_state)||d.allow_location_uncertainty===true,'Out-of-scope/unknown location needs explicit review');
       need(typeof d.request_match_reason==='string'&&d.request_match_reason.trim(),'New lead requires request-location explanation');
     }
-    const source=old?.source_id||i.source_id,external=old?.external_id||i.external_id,key=`${source}/${external}`;
+    const source=old?.source_id||i.source_id,external=old?.external_id||recordExternal,key=`${source}/${external}`;
     const prior=records.get(key),id=old?.id||prior?.id||idFor(review.batch,source,external);
     const links=snapshot.procurement_intake_leads.filter(k=>k.intake_id===i.id);
     need(links.every(k=>k.lead_id===id),'Existing multi-lead/conflicting provenance needs a separately reviewed mapping; do not overwrite it');
@@ -197,7 +198,9 @@ export function planReviewedBatch(snapshot,review,runs) {
   // Never hide captured items simply because the reviewer selected a smaller processing subset.
   for(const [sourceCode,keys] of [['sam-awards',[...collection.awards.keys()]],['sam',[...collection.notices.keys()]]]) {
     for(const external of keys) {
-      const i=snapshot.procurement_intake_items.find(i=>i.source_id===sources[sourceCode]&&i.external_id===external);
+      const selected=snapshot.procurement_intake_items.filter(i=>i.source_id===sources[sourceCode]&&
+        (i.payload.routed_capture?.record_identity??i.external_id)===external);
+      const i=selected.find(i=>review.decisions.some(d=>d.intake_id===i.id))??selected[0];
       if(!i||!review.decisions.some(d=>d.intake_id===i.id)) unresolved.push({id:i?.id||null,external_id:external,status:i?.status||'not_staged',
         reason:'Captured but not explicitly selected/reviewed in this batch; no processing performed'});
     }

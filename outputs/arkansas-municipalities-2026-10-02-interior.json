@@ -1,0 +1,5074 @@
+{
+  "dataset_version": "2026-10-02",
+  "expected_count": 501,
+  "municipalities": [
+    {
+      "id": "ARMfc4925cb811e48919e5360986da686ef",
+      "name": "Adona",
+      "classification": "Second Class",
+      "place_fips": "00250",
+      "county_ids": [
+        "05105"
+      ],
+      "dataset_hash": "7ce700975cf3b018355118c4f7c0d1dd0c73c44dac6948da79529f95266d13ea"
+    },
+    {
+      "id": "ARMa33b2d331a8244c59d49554fff673862",
+      "name": "Alexander",
+      "classification": "Second Class",
+      "place_fips": "00580",
+      "county_ids": [
+        "05119",
+        "05125"
+      ],
+      "dataset_hash": "c7aa6bcd1e497dc1eb43bf16a22d06beccb97f56533bc352b870cbfb0d69011e"
+    },
+    {
+      "id": "ARM5a755b918c014ef8b6bee085b0c62774",
+      "name": "Alicia",
+      "classification": "Incorporated",
+      "place_fips": "00700",
+      "county_ids": [
+        "05075"
+      ],
+      "dataset_hash": "17694598e3a2ee46ddb827654c7ae7e95b7dbb56d64ba0dbb5410e6da88fc233"
+    },
+    {
+      "id": "ARM98293bae3d9d49eab068f5670eb3ea42",
+      "name": "Allport",
+      "classification": "Incorporated",
+      "place_fips": "00940",
+      "county_ids": [
+        "05085"
+      ],
+      "dataset_hash": "9f8fe019a0374ccd92f9f8723b3349ba99d7a86b745be2f0323b1b722090801b"
+    },
+    {
+      "id": "ARM7dd00612cd574a728192ef490c6b6f15",
+      "name": "Alma",
+      "classification": "First Class",
+      "place_fips": "00970",
+      "county_ids": [
+        "05033"
+      ],
+      "dataset_hash": "e78cbd165c1ced6d2064395b6e48f6a2ac0cbe4de9671505fa7c0cfac089f640"
+    },
+    {
+      "id": "ARM8a6a181fc36141a988f3d7c89c94232b",
+      "name": "Almyra",
+      "classification": "Incorporated",
+      "place_fips": "01030",
+      "county_ids": [
+        "05001"
+      ],
+      "dataset_hash": "96986c1aad027f3905f184e4e1a8a72fe06e7253d88a81c2afef2723bfa8f922"
+    },
+    {
+      "id": "ARM9364abfdb4664401a500ef0de10d5deb",
+      "name": "Alpena",
+      "classification": "Incorporated",
+      "place_fips": "01060",
+      "county_ids": [
+        "05009",
+        "05015"
+      ],
+      "dataset_hash": "7332c1ae088e3f4356dabd1836de2153ab147601abe10852e66f1213874900c4"
+    },
+    {
+      "id": "ARM0d23d947988b486f9a5c91b719e80874",
+      "name": "Altheimer",
+      "classification": "Second Class",
+      "place_fips": "01150",
+      "county_ids": [
+        "05069"
+      ],
+      "dataset_hash": "82e97c439be387cb47f243dcc14be00b15bfa7c5b66e850a03245546b83695ea"
+    },
+    {
+      "id": "ARMe90c2704f3474294ae70fbe801616c6f",
+      "name": "Altus",
+      "classification": "Second Class",
+      "place_fips": "01210",
+      "county_ids": [
+        "05047"
+      ],
+      "dataset_hash": "2d685ce838d743848b06673862de0134b59cc7fba31cb31d6ccd911c21d232e8"
+    },
+    {
+      "id": "ARMeefacbea9ca0436bb4d1920a1126197c",
+      "name": "Amagon",
+      "classification": "Incorporated",
+      "place_fips": "01270",
+      "county_ids": [
+        "05067"
+      ],
+      "dataset_hash": "11a0958c650bd740aefa0242010e330bad2cbb076e8402b4b5ea4d4f3c8e4c72"
+    },
+    {
+      "id": "ARMb31cc74e61b7467694640aa0beeaf7e3",
+      "name": "Amity",
+      "classification": "Second Class",
+      "place_fips": "01360",
+      "county_ids": [
+        "05019"
+      ],
+      "dataset_hash": "eae7eda2c571dbec669c67ef62c12530885c8720f8201d4f62cfa8c81fb28575"
+    },
+    {
+      "id": "ARMf587303afbab4241a749ad69e5f4a0df",
+      "name": "Anthonyville",
+      "classification": "Incorporated",
+      "place_fips": "01457",
+      "county_ids": [
+        "05035"
+      ],
+      "dataset_hash": "596e9ad4b2de3eb4081dabb1b5460d7d260bcd72b98e7ca6fa2f83eec20ae2ad"
+    },
+    {
+      "id": "ARMb60a2445755e452384d10ad4b33e704b",
+      "name": "Antoine",
+      "classification": "Incorporated",
+      "place_fips": "01540",
+      "county_ids": [
+        "05019",
+        "05109"
+      ],
+      "dataset_hash": "0c4fe1b0151e119e3de8bd99caebcfebe08f9f55971d9bb55c9f984613e2a200"
+    },
+    {
+      "id": "ARMb5abcc7f3b8c4111bc30966a85ba87a3",
+      "name": "Arkadelphia",
+      "classification": "First Class",
+      "place_fips": "01870",
+      "county_ids": [
+        "05019"
+      ],
+      "dataset_hash": "80d96cbffc35de0c93efd2dd72cb2e397e0d8e230bcfaf8bd1bb7d14358c217f"
+    },
+    {
+      "id": "ARM1b409ef723744c179873bdda98392500",
+      "name": "Arkansas City",
+      "classification": "Incorporated",
+      "place_fips": "01990",
+      "county_ids": [
+        "05041"
+      ],
+      "dataset_hash": "895fdc294f5c6b54e42ad7b8cef531f4bcf5f1518db7cb4b2511b9db9c2078a7"
+    },
+    {
+      "id": "ARM7bad42efad5b4c54bcdf55002fc42809",
+      "name": "Ash Flat",
+      "classification": "Second Class",
+      "place_fips": "02470",
+      "county_ids": [
+        "05049",
+        "05135"
+      ],
+      "dataset_hash": "26844e2b2579c98be264909ebc6fe3f5a224e6e1fc5d9c8ad8c35916e2d18a4d"
+    },
+    {
+      "id": "ARMd765da72386444d883ef32f25af758e3",
+      "name": "Ashdown",
+      "classification": "First Class",
+      "place_fips": "02380",
+      "county_ids": [
+        "05081"
+      ],
+      "dataset_hash": "d261c91ecef3b71633031de1a6e76e610e62fa1c2322f5c3a7dfebde14f5b66e"
+    },
+    {
+      "id": "ARMf80c1ef59e894bd5a1f5c6730708cdd5",
+      "name": "Atkins",
+      "classification": "First Class",
+      "place_fips": "02590",
+      "county_ids": [
+        "05115"
+      ],
+      "dataset_hash": "176f6b1a59e614bf896e273ccdcd098dbc579b39e996bba9e2532a011b831701"
+    },
+    {
+      "id": "ARMcb9a7842bb06448f8a4cab97e040450b",
+      "name": "Aubrey",
+      "classification": "Incorporated",
+      "place_fips": "02680",
+      "county_ids": [
+        "05077"
+      ],
+      "dataset_hash": "c0a4e27a8a20b6440b40740d09217c83a56d6b9a152f1a82d77787a3318073ab"
+    },
+    {
+      "id": "ARMea9fdd1d68014d9595693d75cebb2801",
+      "name": "Augusta",
+      "classification": "First Class",
+      "place_fips": "02740",
+      "county_ids": [
+        "05147"
+      ],
+      "dataset_hash": "1811aa245a506bdb4bbef41b549ae5b50899c671b206a5676f996dd471492a21"
+    },
+    {
+      "id": "ARM75c80c750c5b43639a2140fd043ed98a",
+      "name": "Austin",
+      "classification": "First Class",
+      "place_fips": "02860",
+      "county_ids": [
+        "05085"
+      ],
+      "dataset_hash": "ce779d8a07e0322cfd3650b6551a1836bfa83d5567bb1f06aea498b440b69211"
+    },
+    {
+      "id": "ARM987691aa04df4a8a8b36a98689855bd0",
+      "name": "Avoca",
+      "classification": "Incorporated",
+      "place_fips": "03040",
+      "county_ids": [
+        "05007"
+      ],
+      "dataset_hash": "f5ed8f88ef7e5cea320df8cf538653570d45861281ef88c880e928307111d678"
+    },
+    {
+      "id": "ARM99b009a6b26b42faa2ff08e15792517e",
+      "name": "Bald Knob",
+      "classification": "First Class",
+      "place_fips": "03280",
+      "county_ids": [
+        "05145"
+      ],
+      "dataset_hash": "d7e1102c09e34098cea78f1a0f6ece761248afd11da8dcb528b04d66ada8ad0a"
+    },
+    {
+      "id": "ARMc696961a89ff4d8cb3a03a5068c4ca6c",
+      "name": "Banks",
+      "classification": "Incorporated",
+      "place_fips": "03430",
+      "county_ids": [
+        "05011"
+      ],
+      "dataset_hash": "fff0085994348432cd28a026b042711000eb5700dc17101d7ddfdf1cac2a154e"
+    },
+    {
+      "id": "ARM196a05f647da4739ae4e584fb59eb122",
+      "name": "Barling",
+      "classification": "First Class",
+      "place_fips": "03640",
+      "county_ids": [
+        "05033",
+        "05131"
+      ],
+      "dataset_hash": "a65280b19cc9b23dfa90773c4c76b532f3abe04c3cbf99822663c09d35106695"
+    },
+    {
+      "id": "ARM87a6a499f4d64ef3910f3db56cf9c860",
+      "name": "Bassett",
+      "classification": "Incorporated",
+      "place_fips": "03940",
+      "county_ids": [
+        "05093"
+      ],
+      "dataset_hash": "be3533b9571aaecf9b80a9c4261d7199f5a997478607991c6c3f959206531c03"
+    },
+    {
+      "id": "ARM77d0d6c1636442f29d8bab4154839938",
+      "name": "Batesville",
+      "classification": "First Class",
+      "place_fips": "04030",
+      "county_ids": [
+        "05063"
+      ],
+      "dataset_hash": "5c9771648451d777e2eded1f3d76d5c5d05dade689fde696795d53f908970d41"
+    },
+    {
+      "id": "ARMbb675794d2364b28987a0cb54138be8d",
+      "name": "Bauxite",
+      "classification": "Second Class",
+      "place_fips": "04090",
+      "county_ids": [
+        "05125"
+      ],
+      "dataset_hash": "b18dda21229d8036732c798525516300973cd7b840d3377c17ce1ae709196660"
+    },
+    {
+      "id": "ARMe2d35862b3624c13a37a859a71fe46d6",
+      "name": "Bay",
+      "classification": "First Class",
+      "place_fips": "04180",
+      "county_ids": [
+        "05031"
+      ],
+      "dataset_hash": "64a224f63a7f375bb959eb66399a4457716b0d9166e57564d38e9ef723d9dbd2"
+    },
+    {
+      "id": "ARM9310d18e23054ff2ac397652e5b8ebf7",
+      "name": "Bearden",
+      "classification": "Second Class",
+      "place_fips": "04420",
+      "county_ids": [
+        "05103"
+      ],
+      "dataset_hash": "a46cb97a65f9180d4ec52b0c5079fb70da039118b146d18de074e2764ecd7c6d"
+    },
+    {
+      "id": "ARMd82294fb58414c6bb2d5c077eaac33aa",
+      "name": "Beaver",
+      "classification": "Incorporated",
+      "place_fips": "04540",
+      "county_ids": [
+        "05015"
+      ],
+      "dataset_hash": "dad96df078fad9c265a96d9c284d2677888fae018f651834e0597553710de717"
+    },
+    {
+      "id": "ARMeca511cb660046d09c53152866460f9d",
+      "name": "Beebe",
+      "classification": "First Class",
+      "place_fips": "04600",
+      "county_ids": [
+        "05145"
+      ],
+      "dataset_hash": "539d7c268e977cdedd1acba2c54c8079967c6cc28ded0cd781e51639aacbae2e"
+    },
+    {
+      "id": "ARM11d6495e918545cebca11a209be6fa0a",
+      "name": "Beedeville",
+      "classification": "Incorporated",
+      "place_fips": "04720",
+      "county_ids": [
+        "05067"
+      ],
+      "dataset_hash": "00af5a17b477cba37e71d9dcaee40df7e1b8491ef9996f87d97f87aa5fde7dd7"
+    },
+    {
+      "id": "ARM8cf9dbcc8cad42e1879eafaaefcc1ff6",
+      "name": "Bella Vista",
+      "classification": "First Class",
+      "place_fips": "04840",
+      "county_ids": [
+        "05007"
+      ],
+      "dataset_hash": "d3bb8cc85ab23445550b796b320e1772309d8df7196805c02afb59e5dd524e48"
+    },
+    {
+      "id": "ARM47300f8fa6bb48e2b9782d9bab46ccce",
+      "name": "Bellefonte",
+      "classification": "Incorporated",
+      "place_fips": "04900",
+      "county_ids": [
+        "05009"
+      ],
+      "dataset_hash": "762002b5d2fe3e2a1b52f9ad488cb11a5cceb2d429a7402765bdf3a7ac38940b"
+    },
+    {
+      "id": "ARMd73011966f5b45a898eb2a848782e001",
+      "name": "Belleville",
+      "classification": "Second Class",
+      "place_fips": "04960",
+      "county_ids": [
+        "05149"
+      ],
+      "dataset_hash": "f8878f742b9965f45523e878031cb5773283d59706623a0211480b00ea798ae5"
+    },
+    {
+      "id": "ARM158a23e4529341648d900263b133f013",
+      "name": "Ben Lomond",
+      "classification": "Incorporated",
+      "place_fips": "05260",
+      "county_ids": [
+        "05133"
+      ],
+      "dataset_hash": "d7a3608cc5510260330f8d615f0a4c2a814ddc2dd03d1fa63757fad4baad8ea0"
+    },
+    {
+      "id": "ARM3cd58b005d594133b60d354d5ebfd20a",
+      "name": "Benton",
+      "classification": "First Class",
+      "place_fips": "05290",
+      "county_ids": [
+        "05125"
+      ],
+      "dataset_hash": "fa42ded2cce4c8470b4fb3914aeb5630d48153b8edb9136fda5ac13744af2499"
+    },
+    {
+      "id": "ARMb56375f8423f4799bacc7e0077e8ad59",
+      "name": "Bentonville",
+      "classification": "First Class",
+      "place_fips": "05320",
+      "county_ids": [
+        "05007"
+      ],
+      "dataset_hash": "3d55e71b5ce0eaf954a25059a7108113b732add63462492a5bc11a64fb84de09"
+    },
+    {
+      "id": "ARM6da0d82a46924e9086c83b5d7078e1f4",
+      "name": "Bergman",
+      "classification": "Incorporated",
+      "place_fips": "05440",
+      "county_ids": [
+        "05009"
+      ],
+      "dataset_hash": "a3f3c92157454236cdd340b8752349f8457e344bf79af41440d0c4d343adcf02"
+    },
+    {
+      "id": "ARM59e65e6413ea4dca9c55c5b6cba88380",
+      "name": "Berryville",
+      "classification": "First Class",
+      "place_fips": "05560",
+      "county_ids": [
+        "05015"
+      ],
+      "dataset_hash": "d065f660e3ce77229040b2494af9d0ee533227358254393322cefa74e4017e29"
+    },
+    {
+      "id": "ARMcd36a237b550431e999802439db0bcd7",
+      "name": "Big Flat",
+      "classification": "Incorporated",
+      "place_fips": "05980",
+      "county_ids": [
+        "05005",
+        "05129"
+      ],
+      "dataset_hash": "173b5cabe829d26d12d202723cb085140792506812abb68517c67ba45346ed90"
+    },
+    {
+      "id": "ARMb80ee318376d4f21905dc9593c58552b",
+      "name": "Bigelow",
+      "classification": "Incorporated",
+      "place_fips": "05920",
+      "county_ids": [
+        "05105"
+      ],
+      "dataset_hash": "95c8cedf4cd8dbae04d2dfbfb1a9d94bd01d090a7d0878e08f68f00a2c921562"
+    },
+    {
+      "id": "ARMa78979daeeaa4e5cb240956a4d13e1e4",
+      "name": "Biggers",
+      "classification": "Incorporated",
+      "place_fips": "06040",
+      "county_ids": [
+        "05121"
+      ],
+      "dataset_hash": "2cbebc3f83801beb586f1b11bae12ba4ed1b2cc78479e12dd6b048b9e391a077"
+    },
+    {
+      "id": "ARMaebf3d55dfcb4fcdb9a8fffa9ce7db19",
+      "name": "Birdsong",
+      "classification": "Incorporated",
+      "place_fips": "06340",
+      "county_ids": [
+        "05093"
+      ],
+      "dataset_hash": "ab4047231cdfd1c3c233b382e949695de8c084f3470bac2deca33596b2ea41df"
+    },
+    {
+      "id": "ARMd452581fb9c64e2baa2a7492dced2297",
+      "name": "Biscoe",
+      "classification": "Second Class",
+      "place_fips": "25060",
+      "county_ids": [
+        "05117"
+      ],
+      "dataset_hash": "4243c668a5f1c482a8cac9906dc282c018247d93908d526da2652575df831b40"
+    },
+    {
+      "id": "ARMa9def274da684514aa7cfe29066f99b6",
+      "name": "Black Oak",
+      "classification": "Incorporated",
+      "place_fips": "06610",
+      "county_ids": [
+        "05031"
+      ],
+      "dataset_hash": "238828defbfeb5cab20cd7ecbc014d3401c8958ca18133c7ec60b347d184e0e2"
+    },
+    {
+      "id": "ARM16ae8fc2586a4d03848c9c6f78bd1b5f",
+      "name": "Black Rock",
+      "classification": "Second Class",
+      "place_fips": "06700",
+      "county_ids": [
+        "05075"
+      ],
+      "dataset_hash": "c96303ea7759684fca0395a52ce81f0765d500ceb564f7ce1970057a0cd5ddb9"
+    },
+    {
+      "id": "ARM723642f705fc4885bd72b2d85d236578",
+      "name": "Black Springs",
+      "classification": "Incorporated",
+      "place_fips": "06730",
+      "county_ids": [
+        "05097"
+      ],
+      "dataset_hash": "66ff8687dcf83e0a883182f7676a1373d4476f3815f07b913dc0ec5389199928"
+    },
+    {
+      "id": "ARM5bfd4b8a11f34dcebd094108193f7419",
+      "name": "Blevins",
+      "classification": "Second Class",
+      "place_fips": "07030",
+      "county_ids": [
+        "05057"
+      ],
+      "dataset_hash": "aa244a397a61bd722eac30189aabe2cb91514b9da3fcf0685e36bd7fcf9e172b"
+    },
+    {
+      "id": "ARMb0f1d971fd3c455489d8857034542875",
+      "name": "Blue Eye",
+      "classification": "Incorporated",
+      "place_fips": "07150",
+      "county_ids": [
+        "05015"
+      ],
+      "dataset_hash": "02d2a37540c66c37341a7e017b543125a90af296d67ab9c676343ddcdccb1be8"
+    },
+    {
+      "id": "ARM68d4721096ed41a0af7cc4943e49e26b",
+      "name": "Blue Mountain",
+      "classification": "Incorporated",
+      "place_fips": "07210",
+      "county_ids": [
+        "05083"
+      ],
+      "dataset_hash": "00a71b90d64b7cff25827d5a20d6d74234e42a8b5b00912b660c34946c013120"
+    },
+    {
+      "id": "ARM5c23cef801a0411694cf85c2c445b1d0",
+      "name": "Bluff City",
+      "classification": "Incorporated",
+      "place_fips": "07270",
+      "county_ids": [
+        "05099"
+      ],
+      "dataset_hash": "1388d196aa5154f9b75ff79fee85c47cced769b8a32c9b30736c416eee88f2ef"
+    },
+    {
+      "id": "ARMa1970a5aa94a489dab7e130380723ab8",
+      "name": "Blytheville",
+      "classification": "First Class",
+      "place_fips": "07330",
+      "county_ids": [
+        "05093"
+      ],
+      "dataset_hash": "c6928c613123e3f3d93e7490f6ff25bc3c4859aec79c24f5736f1bb5154b3032"
+    },
+    {
+      "id": "ARM5b7c1d93aa44412abb9da314bbe337f6",
+      "name": "Bodcaw",
+      "classification": "Incorporated",
+      "place_fips": "07450",
+      "county_ids": [
+        "05099"
+      ],
+      "dataset_hash": "4b26b0dd1a1db9e2be066d60e03fa39d05851358a9bcd56c0a522d1f30a27993"
+    },
+    {
+      "id": "ARM3913950a0d924502b00a1832f50465ec",
+      "name": "Bonanza",
+      "classification": "Second Class",
+      "place_fips": "07540",
+      "county_ids": [
+        "05131"
+      ],
+      "dataset_hash": "f4865a9f8dcbe95ddd39a4dfabfc574ef4db6d580bcfe371b7a5c9f4c63b6266"
+    },
+    {
+      "id": "ARMe5bd2759490d4aaab289d499b2a2fc46",
+      "name": "Bono",
+      "classification": "First Class",
+      "place_fips": "07630",
+      "county_ids": [
+        "05031"
+      ],
+      "dataset_hash": "0f2ffbb31f151c0790b3b57b6af07a1b76a4588ea8560b9f8cd71997c73f1854"
+    },
+    {
+      "id": "ARM49813f6ebddd43dc894bdc80aead0ed2",
+      "name": "Booneville",
+      "classification": "First Class",
+      "place_fips": "07720",
+      "county_ids": [
+        "05083"
+      ],
+      "dataset_hash": "675830d4542b4327dccfcd9ae2321749a2d0d01d8d82d20298ab633a5b056fe8"
+    },
+    {
+      "id": "ARMb8c5e410b5fb4c9f989feef79febf811",
+      "name": "Bradford",
+      "classification": "Second Class",
+      "place_fips": "08260",
+      "county_ids": [
+        "05145"
+      ],
+      "dataset_hash": "25777c018faf81db882f6d5aed5095dcdf4704f574a77184ae70c8e51d88a1bf"
+    },
+    {
+      "id": "ARMcbbf948ae9524fd29aa618a593798cf6",
+      "name": "Bradley",
+      "classification": "Second Class",
+      "place_fips": "08290",
+      "county_ids": [
+        "05073"
+      ],
+      "dataset_hash": "b7d4b39cc479afcd2bf1ca95c51413c999db1bb95b58e70ea6130834a33d9063"
+    },
+    {
+      "id": "ARM30f6f22c95a24406a6a854931ecd4a11",
+      "name": "Branch",
+      "classification": "Second Class",
+      "place_fips": "08440",
+      "county_ids": [
+        "05047"
+      ],
+      "dataset_hash": "5a36f954221719035a2714860a8f54a8e6cf9c19f14ff6f007b67247d997b278"
+    },
+    {
+      "id": "ARMcf8c8420e3164df9928e3aa1de3cafa4",
+      "name": "Briarcliff",
+      "classification": "Second Class",
+      "place_fips": "08665",
+      "county_ids": [
+        "05005"
+      ],
+      "dataset_hash": "12f61f50fd7aa32ccc5e16ccbac407452825060edab3cc08cf8f96130a7ac404"
+    },
+    {
+      "id": "ARM2d21700778764cfdb996ad54b59ce10e",
+      "name": "Brinkley",
+      "classification": "First Class",
+      "place_fips": "08950",
+      "county_ids": [
+        "05095"
+      ],
+      "dataset_hash": "33be80a299d0fda2843482cd10151d87a674d99654697fa05887bffa3755aed9"
+    },
+    {
+      "id": "ARM961a1f708e4a4f59ac5ccb4742998810",
+      "name": "Brookland",
+      "classification": "First Class",
+      "place_fips": "09100",
+      "county_ids": [
+        "05031"
+      ],
+      "dataset_hash": "b2b6cbfc14c007216158a69c1eb2ca03488807204e5d240dc8ffd70bfcde6029"
+    },
+    {
+      "id": "ARM4aff21ceb52e4da1b6b3636b2eec87e7",
+      "name": "Bryant",
+      "classification": "First Class",
+      "place_fips": "09460",
+      "county_ids": [
+        "05125"
+      ],
+      "dataset_hash": "28416f189d4a317422399b72d8f958d0e00bab297cf01f9689a4853efa5494c8"
+    },
+    {
+      "id": "ARM3bd84f196a074c6884a5265af5ed731a",
+      "name": "Buckner",
+      "classification": "Incorporated",
+      "place_fips": "09550",
+      "county_ids": [
+        "05073"
+      ],
+      "dataset_hash": "679b69ad9355e97dc12708266a912960e4bf11d54461d1b2fcfe58645f210d76"
+    },
+    {
+      "id": "ARM1b10252ddc9c499b8786824a8042e621",
+      "name": "Bull Shoals",
+      "classification": "Second Class",
+      "place_fips": "09790",
+      "county_ids": [
+        "05005",
+        "05089"
+      ],
+      "dataset_hash": "61b519063aab9e5850dae9bd3e470f8f061adeafe743ad20e7a2165a7d8764ee"
+    },
+    {
+      "id": "ARMdbb3575c5572485dbcf6ac19b8c09e03",
+      "name": "Burdette",
+      "classification": "Incorporated",
+      "place_fips": "09880",
+      "county_ids": [
+        "05093"
+      ],
+      "dataset_hash": "69b21b2cd7512692e34b13d1b78ffa184e62eb97a4ad91d28ec9d8ff59f48765"
+    },
+    {
+      "id": "ARM498a6b1edff14ef5981d67fed32eca86",
+      "name": "Cabot",
+      "classification": "First Class",
+      "place_fips": "10300",
+      "county_ids": [
+        "05085",
+        "05119"
+      ],
+      "dataset_hash": "62dfa93f7e5fc2201ce388ecda6d272719d649b3e1b777c1ee4a854a5702544b"
+    },
+    {
+      "id": "ARMff3881fb6c174d8ba5031011c60816f6",
+      "name": "Caddo Valley",
+      "classification": "Second Class",
+      "place_fips": "10360",
+      "county_ids": [
+        "05019"
+      ],
+      "dataset_hash": "f54fba876e8f2e9188fb5524875a3eb39148ca38b16adb680972bb8e3d9b7c3d"
+    },
+    {
+      "id": "ARMb07b054c018d461487245f5c6bd198f7",
+      "name": "Caldwell",
+      "classification": "Second Class",
+      "place_fips": "10450",
+      "county_ids": [
+        "05123"
+      ],
+      "dataset_hash": "e37d87733eaddc8b5932e17ee68689a46513a2ebc03e800cf2ff24237bee3069"
+    },
+    {
+      "id": "ARM3e53fe48b66f4d7d90e3598579285d43",
+      "name": "Cale",
+      "classification": "Incorporated",
+      "place_fips": "10480",
+      "county_ids": [
+        "05099"
+      ],
+      "dataset_hash": "8d7d3933f5583bcf5ff3c2f6dbd82b8239c04213811019cc64f4a1b860cb5d80"
+    },
+    {
+      "id": "ARM95b6540abe35487aa7dfe801c1fb1671",
+      "name": "Calico Rock",
+      "classification": "Second Class",
+      "place_fips": "10570",
+      "county_ids": [
+        "05065",
+        "05137"
+      ],
+      "dataset_hash": "cb0de0b7e3785bb9c78db4867ba1e813e8977180f5a9e6208c6716d54c06d6b1"
+    },
+    {
+      "id": "ARMe9fb6e6dcd6244afa96429499d24666e",
+      "name": "Calion",
+      "classification": "Second Class",
+      "place_fips": "10600",
+      "county_ids": [
+        "05139"
+      ],
+      "dataset_hash": "fdfe5ec60254c39e76de43acad2cc896e33a1e97e70e9039e24d702a6483c446"
+    },
+    {
+      "id": "ARMd39950d4e1ea43c0b5dd3fa80b104c74",
+      "name": "Camden",
+      "classification": "First Class",
+      "place_fips": "10720",
+      "county_ids": [
+        "05103"
+      ],
+      "dataset_hash": "2ff5962d6637933db463c4f16e272260d9ef3e22cd6dcb09a462896a22e6ae2c"
+    },
+    {
+      "id": "ARM58124409f2ad422cb5759e754c141934",
+      "name": "Cammack Village",
+      "classification": "Second Class",
+      "place_fips": "10780",
+      "county_ids": [
+        "05119"
+      ],
+      "dataset_hash": "f51684e21af3bd300cbac90167208af3a7a76c76e41c0873d675969700e43ee9"
+    },
+    {
+      "id": "ARM3edf9c5b19ed4534841764a666795e59",
+      "name": "Campbell Station",
+      "classification": "Second Class",
+      "place_fips": "10900",
+      "county_ids": [
+        "05067"
+      ],
+      "dataset_hash": "a66f458e673916b30321a209e6686e344201c6ffb1d1e2df1b397e02a2943be0"
+    },
+    {
+      "id": "ARMe5823de7f5054b979797afbf95d4dad3",
+      "name": "Caraway",
+      "classification": "Second Class",
+      "place_fips": "11410",
+      "county_ids": [
+        "05031"
+      ],
+      "dataset_hash": "39c2328263e4478127960d73a0fd29f2c4aca6502b7ad32b4334e118fbb26667"
+    },
+    {
+      "id": "ARMc3ac7de90a334572ae50ce9ffd2b7eaf",
+      "name": "Carlisle",
+      "classification": "First Class",
+      "place_fips": "11500",
+      "county_ids": [
+        "05085"
+      ],
+      "dataset_hash": "2e3a4b95e1f15116b6059277aae097b5be29a4a3968101d23ca4ff1eff3ee337"
+    },
+    {
+      "id": "ARMba4f0196c7f543b7aa0fb8879881cb20",
+      "name": "Carthage",
+      "classification": "Incorporated",
+      "place_fips": "11830",
+      "county_ids": [
+        "05039"
+      ],
+      "dataset_hash": "3c8f62381aec17fe5e5a11d3407cf07d217e959c6b95639b923f3a9b4d1459b3"
+    },
+    {
+      "id": "ARM6cb97cad97e44ba8be273746504677ee",
+      "name": "Casa",
+      "classification": "Incorporated",
+      "place_fips": "11890",
+      "county_ids": [
+        "05105"
+      ],
+      "dataset_hash": "d7872f54659b1adcc98f8994578a8f1ff2dac4ef11dcee7522be92c6187d2d0f"
+    },
+    {
+      "id": "ARM677aaa050ae04525b1af324198e754f4",
+      "name": "Cash",
+      "classification": "Incorporated",
+      "place_fips": "11920",
+      "county_ids": [
+        "05031"
+      ],
+      "dataset_hash": "58fbbe69bd07e4c9dcb548e0cbbe3f26b22734f469dbf88339ca3e51dd2a3719"
+    },
+    {
+      "id": "ARMe09688b0e29647c4a429aadc004d4880",
+      "name": "Caulksville",
+      "classification": "Second Class",
+      "place_fips": "12190",
+      "county_ids": [
+        "05047",
+        "05083"
+      ],
+      "dataset_hash": "e4d3a653f860222f1fe6b6cc19d6a707073a997d4e1f4f5f7efa23b9cf8f0270"
+    },
+    {
+      "id": "ARMe84a8d21c180465e9b31d7f02a1ef081",
+      "name": "Cave City",
+      "classification": "Second Class",
+      "place_fips": "12280",
+      "county_ids": [
+        "05063",
+        "05135"
+      ],
+      "dataset_hash": "cacc2ab3b07e41e7307da9582b6cb86e9e936e0d0c52f16e83ada03b383554bf"
+    },
+    {
+      "id": "ARMe317453ac966431089765576e75a5105",
+      "name": "Cave Springs",
+      "classification": "First Class",
+      "place_fips": "12340",
+      "county_ids": [
+        "05007"
+      ],
+      "dataset_hash": "cd297ef5210a7899298771d1a42329d377e3181b3740142cd292b7bc672b97e9"
+    },
+    {
+      "id": "ARMad49f14185f64c23bddaf965e38a3d81",
+      "name": "Cedarville",
+      "classification": "Second Class",
+      "place_fips": "12520",
+      "county_ids": [
+        "05033"
+      ],
+      "dataset_hash": "99f4af8ed944dbc0f9203cb4259dcca972d4cff3e393c925a7dc22f08a1ae5a0"
+    },
+    {
+      "id": "ARMc700c796e0b340329a45174377c6410b",
+      "name": "Centerton",
+      "classification": "First Class",
+      "place_fips": "12820",
+      "county_ids": [
+        "05007"
+      ],
+      "dataset_hash": "9e6c54ea8058036f463adb72fd0dec8d1d4b0d9d19c99597e5850dfd6794e45e"
+    },
+    {
+      "id": "ARMe56e8842104041beac503a06ef9e8a12",
+      "name": "Central City",
+      "classification": "Second Class",
+      "place_fips": "13120",
+      "county_ids": [
+        "05131"
+      ],
+      "dataset_hash": "2eccbbe5ac93d1dc1087bebe54701d541d300cf027436ed8ae58d3fb3cbc126f"
+    },
+    {
+      "id": "ARM7c9bde89352b46f7ab8a284038692657",
+      "name": "Charleston",
+      "classification": "First Class",
+      "place_fips": "13300",
+      "county_ids": [
+        "05047",
+        "05131"
+      ],
+      "dataset_hash": "54e4bf45d9ce98e3f1ab2e5f015019cdc23a426fb29ee51b282a2cf75b3ae856"
+    },
+    {
+      "id": "ARMcabe48bfe724490ba97101ad33031fb3",
+      "name": "Cherokee Village",
+      "classification": "First Class",
+      "place_fips": "13450",
+      "county_ids": [
+        "05049",
+        "05135"
+      ],
+      "dataset_hash": "939b902851b9d79086c3c732707d63ef22db7e6df9b543678b91a2bbc1102b6c"
+    },
+    {
+      "id": "ARM4cc2666a2d4e4861b7859267780e83fb",
+      "name": "Cherry Valley",
+      "classification": "Second Class",
+      "place_fips": "13540",
+      "county_ids": [
+        "05037"
+      ],
+      "dataset_hash": "744bacc36788f3ad947a9676088e2b1b9782d2ede2887ccfadb98b900fa0c1e6"
+    },
+    {
+      "id": "ARMb445cd44a33e43aa9aafbd75ee9d5fd7",
+      "name": "Chester",
+      "classification": "Incorporated",
+      "place_fips": "13570",
+      "county_ids": [
+        "05033"
+      ],
+      "dataset_hash": "c59eb7ed145f9f562a6d000b187868fc5a884a8e6863110c7d14451bd235c4e2"
+    },
+    {
+      "id": "ARMee4df253938a48ed8c32c68dde72b24d",
+      "name": "Chidester",
+      "classification": "Second Class",
+      "place_fips": "13750",
+      "county_ids": [
+        "05103"
+      ],
+      "dataset_hash": "c818287f18cc1ff554fe2fa02106c9aedf8f43210bc3bf5f9d61ab0d8ff8bcf4"
+    },
+    {
+      "id": "ARMbe8b65915a904426a7c3ab02b0d244c7",
+      "name": "Clarendon",
+      "classification": "First Class",
+      "place_fips": "13990",
+      "county_ids": [
+        "05095"
+      ],
+      "dataset_hash": "fa67dcfd7d32c0512f83d3055cf96446a4f9296ce06e5bb053f0634cd4debf58"
+    },
+    {
+      "id": "ARM50374a2c1c1e477887916438c8b62272",
+      "name": "Clarkedale",
+      "classification": "Incorporated",
+      "place_fips": "14050",
+      "county_ids": [
+        "05035"
+      ],
+      "dataset_hash": "d6c0afb60a7fce7ac64f2e0e12283731f3bad3bee69ee588d914e3c74736cc1b"
+    },
+    {
+      "id": "ARM9bfd6daaeee14974b8838dd9687c516c",
+      "name": "Clarksville",
+      "classification": "First Class",
+      "place_fips": "14140",
+      "county_ids": [
+        "05071"
+      ],
+      "dataset_hash": "9df717b106fe1ad8a7469fd40bd5062126bc0f5e3ae41347f2d1819aae1600d6"
+    },
+    {
+      "id": "ARM61dc74416b5d4a5eb0292ac83d7d716c",
+      "name": "Clinton",
+      "classification": "Second Class",
+      "place_fips": "14260",
+      "county_ids": [
+        "05141"
+      ],
+      "dataset_hash": "25a9343eae23efd224abb6c8394d83329f823872ef5d29fb54237f317642f79d"
+    },
+    {
+      "id": "ARM8747dcc3ab8f42568a685c003513729d",
+      "name": "Coal Hill",
+      "classification": "Second Class",
+      "place_fips": "14500",
+      "county_ids": [
+        "05071"
+      ],
+      "dataset_hash": "133f8dfca014b31c7821f558cbbab7d7f5061ecf3aed9b01bbd3023ccbde3ecd"
+    },
+    {
+      "id": "ARM00835bb455ee42b6866dc190a890c417",
+      "name": "Colt",
+      "classification": "Second Class",
+      "place_fips": "14950",
+      "county_ids": [
+        "05123"
+      ],
+      "dataset_hash": "cf512955865bcb34bfb72462c1732a39196d619c370c11803837e5df42fd38bb"
+    },
+    {
+      "id": "ARMcb7b0dfdf9cf4602b6b67610365114d0",
+      "name": "Concord",
+      "classification": "Incorporated",
+      "place_fips": "15100",
+      "county_ids": [
+        "05023"
+      ],
+      "dataset_hash": "291ba61aab9e6b6bff0df1f6ad5da44109a13ec595f37dea240099e502718020"
+    },
+    {
+      "id": "ARMa7dd13a059974f4bb1a3d341e7afde41",
+      "name": "Conway",
+      "classification": "First Class",
+      "place_fips": "15190",
+      "county_ids": [
+        "05029",
+        "05045"
+      ],
+      "dataset_hash": "d01b0ed6826e7d0bf25c651cf32ec74dc900f38c9e89547f27fbc9f219deacb8"
+    },
+    {
+      "id": "ARM8e2a5ea9c6da43a2b4d07235c0ab510e",
+      "name": "Corinth",
+      "classification": "Incorporated",
+      "place_fips": "15310",
+      "county_ids": [
+        "05149"
+      ],
+      "dataset_hash": "68e06f9287091d8161953d976f50a0e6d21fd898e96cdf903debbd8955e2375b"
+    },
+    {
+      "id": "ARM1991292bb12d403ca9f717803aa5b4ab",
+      "name": "Corning",
+      "classification": "First Class",
+      "place_fips": "15460",
+      "county_ids": [
+        "05021"
+      ],
+      "dataset_hash": "3d7ea86374fd25efd231d6e68cb915cd669cd77c95ffa3d68cc17fbc2356725f"
+    },
+    {
+      "id": "ARMb2ec6a2d83a64f99b733791ca834ef28",
+      "name": "Cotter",
+      "classification": "Second Class",
+      "place_fips": "15490",
+      "county_ids": [
+        "05005"
+      ],
+      "dataset_hash": "a05b0e91f44eda39aca8ef942091e500d5807720c7b02d441d84249140a579ea"
+    },
+    {
+      "id": "ARMbe5a2ddc96684c5199e421645e1653bb",
+      "name": "Cotton Plant",
+      "classification": "Second Class",
+      "place_fips": "15550",
+      "county_ids": [
+        "05147"
+      ],
+      "dataset_hash": "50bd752367e9c97616852eb5d31c4f622f3e68225ffd1a8aa6f9ea144d4fffae"
+    },
+    {
+      "id": "ARM41ab231609984606a170dbbedfcc171f",
+      "name": "Cove",
+      "classification": "Incorporated",
+      "place_fips": "15700",
+      "county_ids": [
+        "05113"
+      ],
+      "dataset_hash": "9448c595725b49c9f2e0cc81aa64b629cfadf6adb2c24ec3b257dd20dc0fe82f"
+    },
+    {
+      "id": "ARM42b380019e8947afbd22550ee1c06737",
+      "name": "Coy",
+      "classification": "Incorporated",
+      "place_fips": "15790",
+      "county_ids": [
+        "05085"
+      ],
+      "dataset_hash": "7f2f687194cd01406d36f3983701b98601bb74859fbcca513c0697af716d0063"
+    },
+    {
+      "id": "ARM92c789801e61469abd007d84f720c4ec",
+      "name": "Crawfordsville",
+      "classification": "Second Class",
+      "place_fips": "15940",
+      "county_ids": [
+        "05035"
+      ],
+      "dataset_hash": "73f9b05dc55028deb88fce6c4f9ee2077d35dc9076cf9a6ba739e6480aa2e8ac"
+    },
+    {
+      "id": "ARM9dc8fc8af98540ef8aee19c292d5087f",
+      "name": "Crossett",
+      "classification": "First Class",
+      "place_fips": "16240",
+      "county_ids": [
+        "05003"
+      ],
+      "dataset_hash": "2df5b64b603268d42773283d16ede4e1c28010993ad7f524a271c00dfedba3bc"
+    },
+    {
+      "id": "ARMe7595be179ba4db88cb7f9fe4944b610",
+      "name": "Cushman",
+      "classification": "Second Class",
+      "place_fips": "16930",
+      "county_ids": [
+        "05063"
+      ],
+      "dataset_hash": "498c0472766f6480255c6325da774257b07e7242f1791b7953e19a633e0847d0"
+    },
+    {
+      "id": "ARMef19eb510a3e45159b4327f3693a290a",
+      "name": "Daisy",
+      "classification": "Incorporated",
+      "place_fips": "17140",
+      "county_ids": [
+        "05109"
+      ],
+      "dataset_hash": "c370bfed7c05b9b63ce1e9cf21f82d3ddfb25187c8625cf27c173222c9fcd483"
+    },
+    {
+      "id": "ARM1126c05a614246118a5368b9e27a5172",
+      "name": "Damascus",
+      "classification": "Incorporated",
+      "place_fips": "17290",
+      "county_ids": [
+        "05045",
+        "05141"
+      ],
+      "dataset_hash": "18dc6fa9da69637c02242cd1a30134184a8b2cd185cb313a69fe9b5d886f7c91"
+    },
+    {
+      "id": "ARM45958a23a1f942f9a8e31c0d96411c56",
+      "name": "Danville",
+      "classification": "Second Class",
+      "place_fips": "17320",
+      "county_ids": [
+        "05149"
+      ],
+      "dataset_hash": "1167e7caac5ccc94129640b2b080d778c7b145b43493d6e827d6135935048c56"
+    },
+    {
+      "id": "ARM6a1d0056526c41be8612a55eb9cc2add",
+      "name": "Dardanelle",
+      "classification": "First Class",
+      "place_fips": "17380",
+      "county_ids": [
+        "05149"
+      ],
+      "dataset_hash": "cee2c6aeed7cd98ce1cdb0005d881e15eecb34f0cd1330f07a13aab7ff82bcc4"
+    },
+    {
+      "id": "ARM8f982021a40e483c9d25bdd06f08fabe",
+      "name": "Datto",
+      "classification": "Incorporated",
+      "place_fips": "17410",
+      "county_ids": [
+        "05021"
+      ],
+      "dataset_hash": "1f4c76c4147ef3d97a3c26b702ac901563e96777d57d80d8a745f214ac9c24b2"
+    },
+    {
+      "id": "ARMeb6aa7ca50e44a5e8bc31b5de57033b4",
+      "name": "De Queen",
+      "classification": "First Class",
+      "place_fips": "18490",
+      "county_ids": [
+        "05133"
+      ],
+      "dataset_hash": "251279683d09b8b7666bc624d772569721874d7d1b1d674c8f8c2f630d3c60e5"
+    },
+    {
+      "id": "ARMb7303d377b2a49e48f26a4cafbb1ee44",
+      "name": "De Valls Bluff",
+      "classification": "Second Class",
+      "place_fips": "18640",
+      "county_ids": [
+        "05117"
+      ],
+      "dataset_hash": "c2b795e593e5c51c2deec8501dbc204fb72d3b4ac0fa3df12212be2b3e32e6fa"
+    },
+    {
+      "id": "ARM7afeae4329c04aca84fdda8e7194b7b9",
+      "name": "De Witt",
+      "classification": "First Class",
+      "place_fips": "18790",
+      "county_ids": [
+        "05001"
+      ],
+      "dataset_hash": "02ee5769351c92f2852e8da732afe297b6cb017365cf413b64ddca31912922b7"
+    },
+    {
+      "id": "ARMf3e03becf08448ba834f1a494ebfb83e",
+      "name": "Decatur",
+      "classification": "Second Class",
+      "place_fips": "17740",
+      "county_ids": [
+        "05007"
+      ],
+      "dataset_hash": "ba738d7243423d26c268a26614277520d01abd81da0380645a20a44f4d4d159d"
+    },
+    {
+      "id": "ARM762e4fbcbcc449f69eaf01b09f3490b8",
+      "name": "Delaplaine",
+      "classification": "Incorporated",
+      "place_fips": "18010",
+      "county_ids": [
+        "05055"
+      ],
+      "dataset_hash": "8458fbce15d5431d7a4ce233f29d2656c50b6c411b50f2bf5c45e3c3bf847c77"
+    },
+    {
+      "id": "ARMeecc9613b5014313bcbf0e2cae2ebcb9",
+      "name": "Delight",
+      "classification": "Incorporated",
+      "place_fips": "18100",
+      "county_ids": [
+        "05109"
+      ],
+      "dataset_hash": "79686a6c3ca3084c94cb0b802b0dc2b6c977907d5661fcb5061afec636ca3eb5"
+    },
+    {
+      "id": "ARMb70d88fdaa374197a3d9b968d2027e01",
+      "name": "Dell",
+      "classification": "Incorporated",
+      "place_fips": "18160",
+      "county_ids": [
+        "05093"
+      ],
+      "dataset_hash": "03009c1fc791aa0059a68a7eedc124e8858674576c11b58a08213eb88f959271"
+    },
+    {
+      "id": "ARMdec6053715634c15b101c962e20eaffe",
+      "name": "Denning",
+      "classification": "Incorporated",
+      "place_fips": "18370",
+      "county_ids": [
+        "05047"
+      ],
+      "dataset_hash": "fab4fac1553d5d8cb7a84a29069f76893b87bf45a603671b4133e247c2322cf9"
+    },
+    {
+      "id": "ARM05ba8e0eb98c4dd49858c413f7a712af",
+      "name": "Dermott",
+      "classification": "First Class",
+      "place_fips": "18520",
+      "county_ids": [
+        "05017"
+      ],
+      "dataset_hash": "85143a4b81d658df849d42d5656d1510ad64951c36586e125f2644313e727cc6"
+    },
+    {
+      "id": "ARMa11b13751aaa4e51a6c4be37942dd474",
+      "name": "Des Arc",
+      "classification": "Second Class",
+      "place_fips": "18550",
+      "county_ids": [
+        "05117"
+      ],
+      "dataset_hash": "6a57183a7f328cc96aac87677f128e62c180803033759633ee8dee41860d4173"
+    },
+    {
+      "id": "ARMdfdd3938bf4246ce8303dbd963f74d38",
+      "name": "Diamond City",
+      "classification": "Second Class",
+      "place_fips": "18850",
+      "county_ids": [
+        "05009"
+      ],
+      "dataset_hash": "a871fa0fea3a0a5c0b43b696f92e115579cf2df0483e9d95b3bc86eab72ea73f"
+    },
+    {
+      "id": "ARMf7ab602fa0ee4e2c8297d33c61050560",
+      "name": "Diamondhead",
+      "classification": "Incorporated",
+      "place_fips": "18880",
+      "county_ids": [
+        "05051",
+        "05059"
+      ],
+      "dataset_hash": "d9a474dc80e895e800d2209648af270a8fe8083dc1841bdf85c2c974a8610c93"
+    },
+    {
+      "id": "ARM8d045af58f9e4f1da9ec95d45b157cf3",
+      "name": "Diaz",
+      "classification": "Second Class",
+      "place_fips": "18940",
+      "county_ids": [
+        "05067"
+      ],
+      "dataset_hash": "5ba0d8bd1ca9637c6b9f65f0081555916f8dd777fe157aaad75f9f8b751dabc1"
+    },
+    {
+      "id": "ARM1ec75fc2ec124a4eb49deafd3ef97066",
+      "name": "Dierks",
+      "classification": "Second Class",
+      "place_fips": "18970",
+      "county_ids": [
+        "05061"
+      ],
+      "dataset_hash": "41cd0d7e093e83237bdbf2cdae97d39b2a5b0bc41f791d2d843498141ce90224"
+    },
+    {
+      "id": "ARM3133a58e31aa47e0836cc7dc833bb658",
+      "name": "Donaldson",
+      "classification": "Incorporated",
+      "place_fips": "19450",
+      "county_ids": [
+        "05059"
+      ],
+      "dataset_hash": "ace470d8151a6da60d86ea670af4036c997bb96b72d7787fdcf5e7c0a3355d5f"
+    },
+    {
+      "id": "ARM62d4e071725242a49133a18e9cd591fa",
+      "name": "Dover",
+      "classification": "Second Class",
+      "place_fips": "19600",
+      "county_ids": [
+        "05115"
+      ],
+      "dataset_hash": "b21696ffc38cfcb8b3dd142b9da07451ae22158a889aad53b61a1f78ef9d81b8"
+    },
+    {
+      "id": "ARMe537cb8bfb714759b4c4336f4b1de86f",
+      "name": "Dumas",
+      "classification": "First Class",
+      "place_fips": "19990",
+      "county_ids": [
+        "05041"
+      ],
+      "dataset_hash": "dff037719205c9c4202f2f1160dcb7bc81d2e046b881cdcf4c2a3a5556780f12"
+    },
+    {
+      "id": "ARM6165c85ca56546dfb8b7906ff71fcaa4",
+      "name": "Dyer",
+      "classification": "Second Class",
+      "place_fips": "20200",
+      "county_ids": [
+        "05033"
+      ],
+      "dataset_hash": "425c8d752fafd990d9c50159fdb6c89d547b3c62ea5f437ac0f6248333299020"
+    },
+    {
+      "id": "ARM4bdaad0148254174a882c1c50dcf63ea",
+      "name": "Dyess",
+      "classification": "Incorporated",
+      "place_fips": "20230",
+      "county_ids": [
+        "05093"
+      ],
+      "dataset_hash": "512fc2081cb65d4f024cf2c1a272c256c07fb59d89ce5ff2900329241fd918ea"
+    },
+    {
+      "id": "ARMccde6a67604f41e494209f2e8170ecbe",
+      "name": "Earle",
+      "classification": "First Class",
+      "place_fips": "20320",
+      "county_ids": [
+        "05035"
+      ],
+      "dataset_hash": "88b9890589910ad281c64be1e9a822ac0bc29845b6ab0ca9244b06b4ef73e7dc"
+    },
+    {
+      "id": "ARM848e5d1d94974163be57fd1831e875c7",
+      "name": "East Camden",
+      "classification": "Second Class",
+      "place_fips": "20440",
+      "county_ids": [
+        "05103"
+      ],
+      "dataset_hash": "3f5c8f5014b1d2119e1614f11c22e63d1e56586e039441a51593e06cd60bec3d"
+    },
+    {
+      "id": "ARM8b31211fda4942ec8fe7312841ce4d20",
+      "name": "Edmondson",
+      "classification": "Incorporated",
+      "place_fips": "20830",
+      "county_ids": [
+        "05035"
+      ],
+      "dataset_hash": "0ca09fb91e00ba54d0c6593e8778424a6b8647866a392d5a37f3120536711583"
+    },
+    {
+      "id": "ARM208cec5e2f8a448a90c2fdbde7ec2d1e",
+      "name": "Egypt",
+      "classification": "Incorporated",
+      "place_fips": "20920",
+      "county_ids": [
+        "05031"
+      ],
+      "dataset_hash": "1ea2b63db4feea66a7d1a7be784e0a0e8e71583a99c0481d31d0d3b8c99b068e"
+    },
+    {
+      "id": "ARM0f7cc6a367be47848c4f7877aa597e15",
+      "name": "El Dorado",
+      "classification": "First Class",
+      "place_fips": "21070",
+      "county_ids": [
+        "05139"
+      ],
+      "dataset_hash": "a38ae224f97ab0690bdf97233b9d68ca3e197b75da746752c05f0714caf61922"
+    },
+    {
+      "id": "ARM5864f3a1ad9f4e9f8afb13cf54de0784",
+      "name": "Elaine",
+      "classification": "Second Class",
+      "place_fips": "20950",
+      "county_ids": [
+        "05107"
+      ],
+      "dataset_hash": "39a07b0616965358907dfaba809666b035567fb49f1c776a23783d7ad98875e3"
+    },
+    {
+      "id": "ARMacd52a0b352b4be3a158cf414450c23a",
+      "name": "Elkins",
+      "classification": "First Class",
+      "place_fips": "21190",
+      "county_ids": [
+        "05143"
+      ],
+      "dataset_hash": "3bc10034c12e6f14a6b2b2072fb9e5d1110cb24522856d3b280c76adb6e82b33"
+    },
+    {
+      "id": "ARM80df8ab719d84ab0b14eaf75e3e057dc",
+      "name": "Elm Springs",
+      "classification": "First Class",
+      "place_fips": "21430",
+      "county_ids": [
+        "05007",
+        "05143"
+      ],
+      "dataset_hash": "1b768a81391f7646c878a7ad14e2fd1efc2439b50176903e077dff5689d6b9c4"
+    },
+    {
+      "id": "ARMcf065fae3ca9404a80d37fb56da328b1",
+      "name": "Emerson",
+      "classification": "Incorporated",
+      "place_fips": "21580",
+      "county_ids": [
+        "05027"
+      ],
+      "dataset_hash": "d31db3fe09c9ac8af0588eb6028fcbb1fd9273e0c387a1cf022e661cd67e6326"
+    },
+    {
+      "id": "ARM4b417fd130914b7eaafa982dda0652c4",
+      "name": "Emmet",
+      "classification": "Second Class",
+      "place_fips": "21610",
+      "county_ids": [
+        "05057",
+        "05099"
+      ],
+      "dataset_hash": "844756a1821d0a2837d12f56f5cf0f9306f4cfad900a607efcd87f59475936ed"
+    },
+    {
+      "id": "ARMee3c61832fea4ca29bc2c265649ac843",
+      "name": "England",
+      "classification": "First Class",
+      "place_fips": "21730",
+      "county_ids": [
+        "05085"
+      ],
+      "dataset_hash": "efe4fccd28a97af4ccdb0b3aabcf62838c0133fe6923f6c715e2228f2d62f715"
+    },
+    {
+      "id": "ARM8a3c3b9574a146ee9dfab106310da430",
+      "name": "Enola",
+      "classification": "Incorporated",
+      "place_fips": "21820",
+      "county_ids": [
+        "05045"
+      ],
+      "dataset_hash": "332fc2f13259bb9f08215005adb084a3e54de43b1f02c548393885619a805e8d"
+    },
+    {
+      "id": "ARMe659fdb8a6524f0398f2e34a92e7c343",
+      "name": "Etowah",
+      "classification": "Incorporated",
+      "place_fips": "22120",
+      "county_ids": [
+        "05093"
+      ],
+      "dataset_hash": "0c2b71ead55f6caffb07ee8f539c3f07ef37c8f347b9d4d7c86ea07d998b3d47"
+    },
+    {
+      "id": "ARMe4ae8fc0ff20432b8a26b86c239870f1",
+      "name": "Eudora",
+      "classification": "First Class",
+      "place_fips": "22180",
+      "county_ids": [
+        "05017"
+      ],
+      "dataset_hash": "6466672fe886ae902dd1d64417b677a012aa0eb0b632a0431d7f1f25d0cbc6ce"
+    },
+    {
+      "id": "ARM507cab813f0547a5b87851c50cf503b5",
+      "name": "Eureka Springs",
+      "classification": "First Class",
+      "place_fips": "22240",
+      "county_ids": [
+        "05015"
+      ],
+      "dataset_hash": "415d92f9e1069025e01d765be2e1310624b77271c56e86471f5ace70b807ce17"
+    },
+    {
+      "id": "ARMa77d4cb299c54ceba74d1af4752d1443",
+      "name": "Evening Shade",
+      "classification": "Second Class",
+      "place_fips": "22360",
+      "county_ids": [
+        "05135"
+      ],
+      "dataset_hash": "0482d5b3efa064cfcf0f77d6492a69a7e00591bac979cf7f72a690ec973dfc22"
+    },
+    {
+      "id": "ARM116c68678f3d4da99f10a524f25c0c6e",
+      "name": "Everton",
+      "classification": "Incorporated",
+      "place_fips": "22450",
+      "county_ids": [
+        "05009"
+      ],
+      "dataset_hash": "a06ac3ba4af7280b03522a7345e0fcf485c38a0cf90c1e3750128da7db294178"
+    },
+    {
+      "id": "ARMb168a819d27047d8bb513ecef2926689",
+      "name": "Fairfield Bay",
+      "classification": "Second Class",
+      "place_fips": "22660",
+      "county_ids": [
+        "05023",
+        "05141"
+      ],
+      "dataset_hash": "fad7e056d6d947ae9a4393764d7f1dfca7579e7a46df1ee345072ac4d32d8715"
+    },
+    {
+      "id": "ARM2b04d7a334244c898ce8a8f607925a56",
+      "name": "Fargo",
+      "classification": "Incorporated",
+      "place_fips": "23140",
+      "county_ids": [
+        "05095"
+      ],
+      "dataset_hash": "3745ebb3235008bb710e8d7b3336d01cfb879691678c7f5b7a1c7636d9211f5c"
+    },
+    {
+      "id": "ARM5dffa87a85874852bd2c64212ca6c416",
+      "name": "Farmington",
+      "classification": "First Class",
+      "place_fips": "23170",
+      "county_ids": [
+        "05143"
+      ],
+      "dataset_hash": "16c728da75f7999af90bfa181763734efdeaaa22e909f368de583a7e22212dac"
+    },
+    {
+      "id": "ARM93d947c533b54e81a2fceb404077419e",
+      "name": "Fayetteville",
+      "classification": "First Class",
+      "place_fips": "23290",
+      "county_ids": [
+        "05143"
+      ],
+      "dataset_hash": "69d56c0bfa6f11ac36799f7b7e3aa11f993252e673c6960e9786ea60c85cb21b"
+    },
+    {
+      "id": "ARM2b76a1e5fd54443885723fff5ff2bdc8",
+      "name": "Felsenthal",
+      "classification": "Incorporated",
+      "place_fips": "23320",
+      "county_ids": [
+        "05139"
+      ],
+      "dataset_hash": "457d23ebcad740e9433e57339da2502a29cd83e36e62fde89ec0fb1603b4df0f"
+    },
+    {
+      "id": "ARM85ceb17d3de14155a57ac9d23bacc730",
+      "name": "Fifty-Six",
+      "classification": "Incorporated",
+      "place_fips": "23680",
+      "county_ids": [
+        "05137"
+      ],
+      "dataset_hash": "cb14fc24b99277ee1db7e24211466edf24fcec6abe3a1151ad81375883f81e7d"
+    },
+    {
+      "id": "ARM1744f43e6862430eaa42dbbe6399bf57",
+      "name": "Fisher",
+      "classification": "Incorporated",
+      "place_fips": "23800",
+      "county_ids": [
+        "05111"
+      ],
+      "dataset_hash": "7fccf25fa3d813db01692bf447e8b7336312e883b3e4f28e10034e9ad09da6a3"
+    },
+    {
+      "id": "ARM5f376f18112448c8bfc5ca4910f67c04",
+      "name": "Flippin",
+      "classification": "Second Class",
+      "place_fips": "24010",
+      "county_ids": [
+        "05089"
+      ],
+      "dataset_hash": "022a089823a079b7001018628434277764b1fc47c67c60a3b825cca97ed45018"
+    },
+    {
+      "id": "ARM88df227629064a0680de61f6410d4ec6",
+      "name": "Fordyce",
+      "classification": "First Class",
+      "place_fips": "24220",
+      "county_ids": [
+        "05013",
+        "05039"
+      ],
+      "dataset_hash": "1ad37990af0d31ccfa47b0837c45d5ef3367369e374590b2357da2517a336c8a"
+    },
+    {
+      "id": "ARMae15bae3ce5044eaa6e51d181a1ebf4d",
+      "name": "Foreman",
+      "classification": "Second Class",
+      "place_fips": "24250",
+      "county_ids": [
+        "05081"
+      ],
+      "dataset_hash": "a6eeea518a8b618099fe18a028b11a6128a59447d67d762b02af69b77d8e66ac"
+    },
+    {
+      "id": "ARM74d05a2a5fc2418c92624d0197ca51b1",
+      "name": "Forrest City",
+      "classification": "First Class",
+      "place_fips": "24430",
+      "county_ids": [
+        "05123"
+      ],
+      "dataset_hash": "8c73ba6486ee96c393d9883971312d5281be8d33acbebd4f6b4bef62004f01b3"
+    },
+    {
+      "id": "ARM579d17dd7e744dfe8f88ceaf0e049673",
+      "name": "Fort Smith",
+      "classification": "First Class",
+      "place_fips": "24550",
+      "county_ids": [
+        "05033",
+        "05131"
+      ],
+      "dataset_hash": "6e7ab274417f4709191bf29996caeddb7e74c4fcc53c357bf75310a0d4d09f5f"
+    },
+    {
+      "id": "ARM4f3af828a77b425fa6e412d860293218",
+      "name": "Fouke",
+      "classification": "Second Class",
+      "place_fips": "24640",
+      "county_ids": [
+        "05091"
+      ],
+      "dataset_hash": "bc354c8e82947886beab009f3c51496aa4195d3ab16d4d4d0a39db7713416f06"
+    },
+    {
+      "id": "ARM4d91d8a8a93a41048acb28f42350ea42",
+      "name": "Fountain Hill",
+      "classification": "Incorporated",
+      "place_fips": "24670",
+      "county_ids": [
+        "05003"
+      ],
+      "dataset_hash": "b43788a0eb0b5ba4c015bfc2aa003f7f2356fd6dbeaad67a0b8aeabc083de40a"
+    },
+    {
+      "id": "ARM910538322e6141df82b9815825167f94",
+      "name": "Fountain Lake",
+      "classification": "Second Class",
+      "place_fips": "24700",
+      "county_ids": [
+        "05051"
+      ],
+      "dataset_hash": "6ce531ff95016c581d11c41c7ba6aadd7b7b6fddeb288b583340539f4643d4d4"
+    },
+    {
+      "id": "ARM9d3bf42449f7496fa2dafa60fb9d2166",
+      "name": "Fourche",
+      "classification": "Incorporated",
+      "place_fips": "24760",
+      "county_ids": [
+        "05105"
+      ],
+      "dataset_hash": "d1659700d941b4df58dbe4852106476103a3a613ed738bb13ea30eeff0b9eff7"
+    },
+    {
+      "id": "ARM9449ae2b873c47da80a6ed0dedffce13",
+      "name": "Franklin",
+      "classification": "Incorporated",
+      "place_fips": "25030",
+      "county_ids": [
+        "05065"
+      ],
+      "dataset_hash": "4ce39b5a1bbeb11ecbfa25e85b37dc182f1750b04dd1ca9cc18b68e373dda5d8"
+    },
+    {
+      "id": "ARMc80fdb4cc5894a98961afe817a08b12d",
+      "name": "Friendship",
+      "classification": "Incorporated",
+      "place_fips": "25180",
+      "county_ids": [
+        "05059"
+      ],
+      "dataset_hash": "be7d6f881e7a55d28817b51cf6e7fd13e2eff0c0c6fc42b2d432339fb223fd0c"
+    },
+    {
+      "id": "ARM8fc27f6490f948059ea35d6e70994c1a",
+      "name": "Fulton",
+      "classification": "Incorporated",
+      "place_fips": "25360",
+      "county_ids": [
+        "05057",
+        "05091"
+      ],
+      "dataset_hash": "853f3dae036386bb1f3b14b5cd75fbb173a05b6a7ba8b2a38cc27a480946d58a"
+    },
+    {
+      "id": "ARMc1bf3beabff540379aa53db9dbc8922d",
+      "name": "Garfield",
+      "classification": "Second Class",
+      "place_fips": "25750",
+      "county_ids": [
+        "05007"
+      ],
+      "dataset_hash": "77c8189fb940f91204b25f329e7becd3b56050138fc952a5b76481d8e9592866"
+    },
+    {
+      "id": "ARMcca893816bc14257b1766dcb42708f91",
+      "name": "Garland",
+      "classification": "Second Class",
+      "place_fips": "25780",
+      "county_ids": [
+        "05091"
+      ],
+      "dataset_hash": "0687bbef8425f11ae10019cdcdaed243f5d1ebbb74a6ce48b8c09db677671aa2"
+    },
+    {
+      "id": "ARMb4c8543d96eb4534a95b92d87f36d5e6",
+      "name": "Garner",
+      "classification": "Incorporated",
+      "place_fips": "25900",
+      "county_ids": [
+        "05145"
+      ],
+      "dataset_hash": "09d9212001f08e53db4b8c9c810a493811fbb1302b1cb7d1aeb0160f7064037e"
+    },
+    {
+      "id": "ARM85304e27132949da8890f47d4ff84604",
+      "name": "Gassville",
+      "classification": "Second Class",
+      "place_fips": "26050",
+      "county_ids": [
+        "05005"
+      ],
+      "dataset_hash": "dbd451594d22cc0508811e54d01d4ee9c6c5faa9359acc2332a8dfec35a45ff4"
+    },
+    {
+      "id": "ARM63b504cd6c054fa88182d8c8372a7ae2",
+      "name": "Gateway",
+      "classification": "Incorporated",
+      "place_fips": "26110",
+      "county_ids": [
+        "05007"
+      ],
+      "dataset_hash": "cd9480caee8c7edbb985fa1b0a2ed761cb7077c5fbabe17794accdd7e999427d"
+    },
+    {
+      "id": "ARM25c4d50f4bf24e1cae8e218acd581596",
+      "name": "Gentry",
+      "classification": "First Class",
+      "place_fips": "26290",
+      "county_ids": [
+        "05007"
+      ],
+      "dataset_hash": "271f8be410774af45646956e5827261d41f1e41ae586aa89ee857212f6a0a110"
+    },
+    {
+      "id": "ARM24c4c8d456544f2c8f9f62208ee078a1",
+      "name": "Georgetown",
+      "classification": "Incorporated",
+      "place_fips": "26440",
+      "county_ids": [
+        "05145"
+      ],
+      "dataset_hash": "ac7a8aac894a0911e6c9c78124a7bd5fe21bd090683aef35f6b3cd164f8f3985"
+    },
+    {
+      "id": "ARM44355473551f42dea658b7aa91375a70",
+      "name": "Gilbert",
+      "classification": "Incorporated",
+      "place_fips": "26800",
+      "county_ids": [
+        "05129"
+      ],
+      "dataset_hash": "b910a3ec30a3b41db4077afb25dd86fb452522bc537d4d46f7f2a094dfe574fa"
+    },
+    {
+      "id": "ARM731ce883f6ba44108ccccae121277017",
+      "name": "Gillett",
+      "classification": "Second Class",
+      "place_fips": "26980",
+      "county_ids": [
+        "05001"
+      ],
+      "dataset_hash": "6ef2ed65d997d9b4299f91b1fc36b9f3093db7de5efb1044186f87c67702b05c"
+    },
+    {
+      "id": "ARM15a59ec14c124ada9fd5aeb545e7bf06",
+      "name": "Gillham",
+      "classification": "Incorporated",
+      "place_fips": "27010",
+      "county_ids": [
+        "05133"
+      ],
+      "dataset_hash": "89d20aa8461f3ef4661a91824ff669d456a8b7c2c48767efd68c3deb2c404254"
+    },
+    {
+      "id": "ARMdb7b8dfbd60849c2b7b844a852080ddb",
+      "name": "Gilmore",
+      "classification": "Incorporated",
+      "place_fips": "27040",
+      "county_ids": [
+        "05035",
+        "05093",
+        "05111"
+      ],
+      "dataset_hash": "98922496f8d6d59634e4f64f5c3c6f45683993f1f480606faa8906cfed52e154"
+    },
+    {
+      "id": "ARM385ed04eeceb4be889807e7bc11e7e8d",
+      "name": "Glenwood",
+      "classification": "Second Class",
+      "place_fips": "27310",
+      "county_ids": [
+        "05019",
+        "05097",
+        "05109"
+      ],
+      "dataset_hash": "418f28e12ec2ccf12e896ee0053b8776883ad1d4662c8d28dd70264fdfe14c0a"
+    },
+    {
+      "id": "ARM65ff7550b8df4ea88c32dc7e44487cdb",
+      "name": "Goshen",
+      "classification": "Second Class",
+      "place_fips": "27670",
+      "county_ids": [
+        "05143"
+      ],
+      "dataset_hash": "31a6db1fb8efa22f5a572f1b02b7aaf08634853a20ebc1c9d2da583da4bfd80f"
+    },
+    {
+      "id": "ARM7b48eb1707a44890a92d4429204190a0",
+      "name": "Gosnell",
+      "classification": "First Class",
+      "place_fips": "27700",
+      "county_ids": [
+        "05093"
+      ],
+      "dataset_hash": "37bbbf46cb97cba76df98aad0e9d1d8c9bed21bd1f6751414b6c7d53986efb2f"
+    },
+    {
+      "id": "ARM554b7b904fe544fb9bcc1c3c62f9a637",
+      "name": "Gould",
+      "classification": "Second Class",
+      "place_fips": "27730",
+      "county_ids": [
+        "05079"
+      ],
+      "dataset_hash": "9de5441c59a793bc0c0144adf2e2738688c0e8081e91f9504f646cde0dbdcb14"
+    },
+    {
+      "id": "ARMde0549bd8c23435ebf3890592dbd4b9f",
+      "name": "Grady",
+      "classification": "Second Class",
+      "place_fips": "27790",
+      "county_ids": [
+        "05079"
+      ],
+      "dataset_hash": "18a0c9711a3aac02741f12d8f41b8d8a8f2c7b928f5896ac61ea3f7a9146803e"
+    },
+    {
+      "id": "ARMccadfbb61c894eca8187c3866e0aeec3",
+      "name": "Grannis",
+      "classification": "Incorporated",
+      "place_fips": "27970",
+      "county_ids": [
+        "05113"
+      ],
+      "dataset_hash": "da6c901f9dfe97312816dde2a8ddf47b949eb4512d91f53d3ce1d802ed246ec7"
+    },
+    {
+      "id": "ARMacb1030f2a6f44bdb78717a5d1bac7f9",
+      "name": "Gravette",
+      "classification": "First Class",
+      "place_fips": "28360",
+      "county_ids": [
+        "05007"
+      ],
+      "dataset_hash": "989e5732dcdce4b6f075e1bf15e74fc6cde6c06ac601ffd4713543829dde8d0a"
+    },
+    {
+      "id": "ARMffe2455e829846bda144d65fcb653f9f",
+      "name": "Green Forest",
+      "classification": "First Class",
+      "place_fips": "28600",
+      "county_ids": [
+        "05015"
+      ],
+      "dataset_hash": "9e8a75b61c1919df46240f655213f804503f5dea7d1161bb35d6475ae8afd95d"
+    },
+    {
+      "id": "ARMd2861c4a1cfd44589379ae68c4bca819",
+      "name": "Greenbrier",
+      "classification": "First Class",
+      "place_fips": "28510",
+      "county_ids": [
+        "05045"
+      ],
+      "dataset_hash": "cf38427e603affbf1672f2a0eab0ece7fe441a06f4b1f9e3e13e29b772abd97a"
+    },
+    {
+      "id": "ARM78e0c1daf5404cd69cd9c3c23a85620e",
+      "name": "Greenland",
+      "classification": "Second Class",
+      "place_fips": "28660",
+      "county_ids": [
+        "05143"
+      ],
+      "dataset_hash": "b9209a9b8daadff6b8aeceeafe2f1acfa5c64dddf195b938e85ded40018d5246"
+    },
+    {
+      "id": "ARM34cfab1f3fd041ff8a4b327738be6052",
+      "name": "Greenway",
+      "classification": "Second Class",
+      "place_fips": "28720",
+      "county_ids": [
+        "05021"
+      ],
+      "dataset_hash": "444fb1f203d88093aaadf8318821136530a1228d518423b128a72c55b62c490d"
+    },
+    {
+      "id": "ARM7e0ec301da854bcbaecfc102d46aa13d",
+      "name": "Greenwood",
+      "classification": "First Class",
+      "place_fips": "28780",
+      "county_ids": [
+        "05131"
+      ],
+      "dataset_hash": "14663b48b27e4803828d91ff49f46048db634ede2a415f738881a09510486228"
+    },
+    {
+      "id": "ARMecb9022d756f4f8189bca88bd3995775",
+      "name": "Greers Ferry",
+      "classification": "Second Class",
+      "place_fips": "28810",
+      "county_ids": [
+        "05023"
+      ],
+      "dataset_hash": "8805ba39abce8f9478bbdfb68fe7b0b3c3c36851b7190d26fd3bd4f8d007e2fa"
+    },
+    {
+      "id": "ARM4c90b080554b421d93b3fb17a36b931c",
+      "name": "Griffithville",
+      "classification": "Incorporated",
+      "place_fips": "28990",
+      "county_ids": [
+        "05145"
+      ],
+      "dataset_hash": "88beb43d3fa9cac90538e5552742a7f93a79326e26a12a1186639e222179c6d7"
+    },
+    {
+      "id": "ARM01e00449d2e94266a7704978de492110",
+      "name": "Grubbs",
+      "classification": "Incorporated",
+      "place_fips": "29020",
+      "county_ids": [
+        "05067"
+      ],
+      "dataset_hash": "37141b7b30b82e589fe5ea224c2e9b6ea2316e9368ffc013e73c0a5eb68c98bf"
+    },
+    {
+      "id": "ARM8aa20830619041d3a875fcefd7a21ca6",
+      "name": "Guion",
+      "classification": "Incorporated",
+      "place_fips": "29080",
+      "county_ids": [
+        "05065"
+      ],
+      "dataset_hash": "0f5a28b112d7ef982debde283ea57f4c7c2951b78316b0947bfc45354e7c6807"
+    },
+    {
+      "id": "ARM348e6327a9b247f4aa9acc5f79327f99",
+      "name": "Gum Springs",
+      "classification": "Incorporated",
+      "place_fips": "29140",
+      "county_ids": [
+        "05019"
+      ],
+      "dataset_hash": "1c7fc756f9af5d04f6eb3f17f76c22d071f0d39f574440223607f8d7347f66b8"
+    },
+    {
+      "id": "ARM765a5595f3db4205aa8c574ff410ffd1",
+      "name": "Gurdon",
+      "classification": "Second Class",
+      "place_fips": "29200",
+      "county_ids": [
+        "05019"
+      ],
+      "dataset_hash": "9179495771ab9fb8add501ba9d5a5b288d2e279de75acef26e54c75fb71f417f"
+    },
+    {
+      "id": "ARMf8af8433337e40bd8b224c3ccd1eafd7",
+      "name": "Guy",
+      "classification": "Second Class",
+      "place_fips": "29230",
+      "county_ids": [
+        "05045"
+      ],
+      "dataset_hash": "5d8b351a551c03f7a86d1ff2d878a888fdd20a4d11a2d5725bdabd987b110601"
+    },
+    {
+      "id": "ARM063f643cb793428595ad1a554729dff9",
+      "name": "Hackett",
+      "classification": "Second Class",
+      "place_fips": "29290",
+      "county_ids": [
+        "05131"
+      ],
+      "dataset_hash": "6a07d3f5e36630252dd2e286c3ec92b63bc6425a0a6bc1afea1e4e45fd80e309"
+    },
+    {
+      "id": "ARM6fd3b16255574c10a851092f3b5eab2c",
+      "name": "Hamburg",
+      "classification": "First Class",
+      "place_fips": "29500",
+      "county_ids": [
+        "05003"
+      ],
+      "dataset_hash": "2f1cf9a50691ca66e43456c2bb7360f5234b98881164485e282a3e599662e2d0"
+    },
+    {
+      "id": "ARM37424a017fdc405d8665e0d95db44a57",
+      "name": "Hampton",
+      "classification": "Second Class",
+      "place_fips": "29650",
+      "county_ids": [
+        "05013"
+      ],
+      "dataset_hash": "fdf67b722fb70393ddb1edca407fc3e12d28cf93d8136add79e775eb4c022dd1"
+    },
+    {
+      "id": "ARMa0ff7f3338064f17be97292ae7c6601f",
+      "name": "Hardy",
+      "classification": "Second Class",
+      "place_fips": "29920",
+      "county_ids": [
+        "05049",
+        "05135"
+      ],
+      "dataset_hash": "6670a06f3840f8ab362d2604b262d256afc83d014585dae936bcbbb2e6b6bb57"
+    },
+    {
+      "id": "ARMf55d0a901f744c0584b583235943cbb1",
+      "name": "Harrell",
+      "classification": "Incorporated",
+      "place_fips": "30310",
+      "county_ids": [
+        "05013"
+      ],
+      "dataset_hash": "d4b8aa23fcb3c2d82220a1edcf18534224099166d917b99ff6684ec10c837620"
+    },
+    {
+      "id": "ARMa11f5b87605b4e5a8ccb51d04f0cc4c9",
+      "name": "Harrisburg",
+      "classification": "First Class",
+      "place_fips": "30400",
+      "county_ids": [
+        "05111"
+      ],
+      "dataset_hash": "5e59ec93b8a2d133dc513d542d6b344b98a487f105e01b4f367c1b8880bde077"
+    },
+    {
+      "id": "ARMeb2b6721d4e54746b0d50c1f93eb42e3",
+      "name": "Harrison",
+      "classification": "First Class",
+      "place_fips": "30460",
+      "county_ids": [
+        "05009"
+      ],
+      "dataset_hash": "8bd910e707eccc8a9b44e4dd4efd44b0b40936ebf727e68c091789691f89f40f"
+    },
+    {
+      "id": "ARM7c24ca5a99ed47339618f15b039e95c2",
+      "name": "Hartford",
+      "classification": "Second Class",
+      "place_fips": "30490",
+      "county_ids": [
+        "05131"
+      ],
+      "dataset_hash": "0d7a3943bb7c96358e181ad31240114cb9362867c901084fcfced24087add459"
+    },
+    {
+      "id": "ARM2689fb3afab44c2ea0b0e86ee7fa51ec",
+      "name": "Hartman",
+      "classification": "Second Class",
+      "place_fips": "30520",
+      "county_ids": [
+        "05071"
+      ],
+      "dataset_hash": "18bdc42485884173b084161caba89c3466082a4d5ca27ac6b90c4cd296b92737"
+    },
+    {
+      "id": "ARM76579d40e70f4ec09b50b5c7f8c42330",
+      "name": "Haskell",
+      "classification": "Second Class",
+      "place_fips": "30640",
+      "county_ids": [
+        "05125"
+      ],
+      "dataset_hash": "f8dcea81841b0c43a2fc26bf791f7a0e287882605d1b39226e4a4d8af48c5fbd"
+    },
+    {
+      "id": "ARMb6a61a574d744b3599bc04e13a333c45",
+      "name": "Hatfield",
+      "classification": "Incorporated",
+      "place_fips": "30700",
+      "county_ids": [
+        "05113"
+      ],
+      "dataset_hash": "087ccd0323f4f094ac594823a5ab4227b9aab5886699b256d2967fad79d544b0"
+    },
+    {
+      "id": "ARM0e40880ef6024fffb0ceb8c115d24d29",
+      "name": "Havana",
+      "classification": "Second Class",
+      "place_fips": "30790",
+      "county_ids": [
+        "05149"
+      ],
+      "dataset_hash": "f36ac37a3cdbdcc11a5c315031364e980f5b21f5af08696923298ab70ec16d54"
+    },
+    {
+      "id": "ARM1e3621bb44aa419c9afef4249f2491c5",
+      "name": "Haynes",
+      "classification": "Incorporated",
+      "place_fips": "30880",
+      "county_ids": [
+        "05077"
+      ],
+      "dataset_hash": "98c4ced20d10adcf5d5cbcc093714e11c784dcadb3ff5a1ab40e6b930c80f78b"
+    },
+    {
+      "id": "ARMa49411ab33d349e6bd1f983484063fa2",
+      "name": "Hazen",
+      "classification": "Second Class",
+      "place_fips": "30940",
+      "county_ids": [
+        "05117"
+      ],
+      "dataset_hash": "b1aeef1c3ffedd4954f89deffe46774a00bca688ab25c3ee37b36f941ac03da3"
+    },
+    {
+      "id": "ARMcb750f852da949919de507c990be8437",
+      "name": "Heber Springs",
+      "classification": "First Class",
+      "place_fips": "31090",
+      "county_ids": [
+        "05023"
+      ],
+      "dataset_hash": "e44aaf53c64c3f3cf5d7e48210d1272c9efec26c36d50f92ce493c2078328365"
+    },
+    {
+      "id": "ARM5ac0cf03c8a647b5a6fcdd7e128528aa",
+      "name": "Hector",
+      "classification": "Incorporated",
+      "place_fips": "31150",
+      "county_ids": [
+        "05115"
+      ],
+      "dataset_hash": "294a2cdc617c754a77af8b82188fd1f8109a2c81159b8fb5c8f2e6eb33c28097"
+    },
+    {
+      "id": "ARM2c0c0f80adf746c4b50b403dda04b0ae",
+      "name": "Helena-West Helena",
+      "classification": "First Class",
+      "place_fips": "31190",
+      "county_ids": [
+        "05107"
+      ],
+      "dataset_hash": "3b8e58a184b605a77bbfbe558c06913b93252705123e885a4f02cdd05bd8bf5a"
+    },
+    {
+      "id": "ARM25d0c3a4835a44c395e54e96bd1906c0",
+      "name": "Hermitage",
+      "classification": "Second Class",
+      "place_fips": "31540",
+      "county_ids": [
+        "05011"
+      ],
+      "dataset_hash": "a7c60592524000c8c862922b1e09822404ff8b3492c6bc00fc3c362406cded18"
+    },
+    {
+      "id": "ARMd32cf4d4fd6d4d6499d09f7c92e4dd24",
+      "name": "Hickory Ridge",
+      "classification": "Second Class",
+      "place_fips": "31900",
+      "county_ids": [
+        "05037"
+      ],
+      "dataset_hash": "652fdf91106b2d5d8e48b8787d71dcf8c4878c8047f35bbd6060cbddf163218e"
+    },
+    {
+      "id": "ARM3cbcbe6fb23d4f2f80a897339f0b7619",
+      "name": "Higden",
+      "classification": "Incorporated",
+      "place_fips": "32080",
+      "county_ids": [
+        "05023"
+      ],
+      "dataset_hash": "51d3f251ad2ad47032ce5ac01ab98e37c9489cc05b55d791f61661588760592e"
+    },
+    {
+      "id": "ARM59571bbc831040309b75823b63eca21c",
+      "name": "Higginson",
+      "classification": "Second Class",
+      "place_fips": "32140",
+      "county_ids": [
+        "05145"
+      ],
+      "dataset_hash": "21ca635b3062b7ebf3f9d2a5f9f8832cf72945df87e9284d92297b2aa64a991f"
+    },
+    {
+      "id": "ARM5d2734ee03754c479f477e959136a201",
+      "name": "Highfill",
+      "classification": "Second Class",
+      "place_fips": "32200",
+      "county_ids": [
+        "05007"
+      ],
+      "dataset_hash": "5218b40e4a6e93ef51577fb77c27d186042deb64511ee8f7d1dfb5254fd5ce06"
+    },
+    {
+      "id": "ARMb5a31e809788493788065e38c6828d51",
+      "name": "Highland",
+      "classification": "Second Class",
+      "place_fips": "32257",
+      "county_ids": [
+        "05135"
+      ],
+      "dataset_hash": "9c70cf04de91159012744d4a01d98184026e68699df173f96e035191e3030f72"
+    },
+    {
+      "id": "ARMf748720b787144048eb1fa5133413a86",
+      "name": "Hindsville",
+      "classification": "Incorporated",
+      "place_fips": "32470",
+      "county_ids": [
+        "05087"
+      ],
+      "dataset_hash": "2b68c599b07e29e0d8abf17995de5412bc146c6453e17002089abbc323796599"
+    },
+    {
+      "id": "ARM37e764d6e01f4916b41da8bb2f395f89",
+      "name": "Holiday Island",
+      "classification": "Second Class",
+      "place_fips": "32650",
+      "county_ids": [
+        "05015"
+      ],
+      "dataset_hash": "dd6a749e16b9bcdca3a830bab91a25e08f31c95a3d991a542972fdc44f19e6fd"
+    },
+    {
+      "id": "ARM2abaeb2dbc164b69af93955d02469af8",
+      "name": "Holland",
+      "classification": "Second Class",
+      "place_fips": "32710",
+      "county_ids": [
+        "05045"
+      ],
+      "dataset_hash": "68a04413271f83f325162f8bf0284caa98bdc1bb73a576f21dc5730e3c8ea16f"
+    },
+    {
+      "id": "ARMa6130537b3444cee92c15e55788a680e",
+      "name": "Holly Grove",
+      "classification": "Second Class",
+      "place_fips": "32800",
+      "county_ids": [
+        "05095"
+      ],
+      "dataset_hash": "6c6efce39217474e0f2b23ebdbf6a8c7ead9ae75601cdbed91d91ab184955c11"
+    },
+    {
+      "id": "ARM9ff24b7971164ae497f07951474c77d4",
+      "name": "Hope",
+      "classification": "First Class",
+      "place_fips": "33190",
+      "county_ids": [
+        "05057"
+      ],
+      "dataset_hash": "12d1d9019bbdfd6a52786a92f9b89159abec0d1981388fc937838817aa2ba762"
+    },
+    {
+      "id": "ARM66f52accab1f428ca44221e2446b86bc",
+      "name": "Horatio",
+      "classification": "Second Class",
+      "place_fips": "33310",
+      "county_ids": [
+        "05133"
+      ],
+      "dataset_hash": "a119bb42288e100826d1d0ccbdb736238e533c113590b7ea70d30434214be5fe"
+    },
+    {
+      "id": "ARM80f3b39b1833408d8235743478b86b3a",
+      "name": "Horseshoe Bend",
+      "classification": "Second Class",
+      "place_fips": "33370",
+      "county_ids": [
+        "05049",
+        "05065",
+        "05135"
+      ],
+      "dataset_hash": "14b6faf7c4922d81d0512818b207978972828806b91383d75eaa39474bdab40d"
+    },
+    {
+      "id": "ARM94f982f8082f44f390d46cf084c3c764",
+      "name": "Horseshoe Lake",
+      "classification": "Incorporated",
+      "place_fips": "33375",
+      "county_ids": [
+        "05035"
+      ],
+      "dataset_hash": "ac0b4750466139929dfa7b571b4cccf9e8da0a1af58fd2a995b268200379a0c9"
+    },
+    {
+      "id": "ARM685fb0123edf45c39c300594e9252271",
+      "name": "Hot Springs",
+      "classification": "First Class",
+      "place_fips": "33400",
+      "county_ids": [
+        "05051"
+      ],
+      "dataset_hash": "cc5789725a6f16e60b22e600e43067b97d2996b89abe41757a1387f970365859"
+    },
+    {
+      "id": "ARM4669e78a4fb1441d8f2a8b826931e6eb",
+      "name": "Houston",
+      "classification": "Incorporated",
+      "place_fips": "33490",
+      "county_ids": [
+        "05105"
+      ],
+      "dataset_hash": "530983940cffd348cbabdfa6a924d71b9d83b8bba797626adee0a7baf2a18a25"
+    },
+    {
+      "id": "ARMed8bdea6873646d984e48218bf37d929",
+      "name": "Hoxie",
+      "classification": "First Class",
+      "place_fips": "33580",
+      "county_ids": [
+        "05075"
+      ],
+      "dataset_hash": "4b2b898286bc79280057ff7163064bd60385f59f528f226390f91efea5516c3b"
+    },
+    {
+      "id": "ARMfb310bd7e6224a3cae098ef7fa419220",
+      "name": "Hughes",
+      "classification": "Second Class",
+      "place_fips": "33760",
+      "county_ids": [
+        "05123"
+      ],
+      "dataset_hash": "8259b3f9b305de075c31fa5347ec27adb402ed15d00ea39840a5d81c4c5b2430"
+    },
+    {
+      "id": "ARM29327dc8144a4d148aed7378f2fd26b8",
+      "name": "Humnoke",
+      "classification": "Second Class",
+      "place_fips": "33820",
+      "county_ids": [
+        "05085"
+      ],
+      "dataset_hash": "7982ce22b52266f7b690cc8abef208f13ae3acc5b881cf9c7abebf396c2dd2b3"
+    },
+    {
+      "id": "ARM24c32cf5ec5d45ef9b2be571583642ee",
+      "name": "Humphrey",
+      "classification": "Second Class",
+      "place_fips": "33850",
+      "county_ids": [
+        "05001",
+        "05069"
+      ],
+      "dataset_hash": "c78aa7ed0229ab0bcd953378c6e011929b2fd1639bd83c18a5c2caa0085f9b1f"
+    },
+    {
+      "id": "ARM457bd7c812854f8e86396ef32d19706f",
+      "name": "Hunter",
+      "classification": "Incorporated",
+      "place_fips": "33910",
+      "county_ids": [
+        "05147"
+      ],
+      "dataset_hash": "cdaf262f96dfc89c5067a534460ae7dae9a2842ad4334a09bfdb2de22f06bebb"
+    },
+    {
+      "id": "ARM298c71d59641493dacecb3d925bcaadb",
+      "name": "Huntington",
+      "classification": "Second Class",
+      "place_fips": "33940",
+      "county_ids": [
+        "05131"
+      ],
+      "dataset_hash": "038137f07cd454e8b3cd8e0e3e82cbd29023ae793c406f6c0072d8f2ecb1ecbb"
+    },
+    {
+      "id": "ARM1371a31b12dd406c8386d1d649f5178c",
+      "name": "Huntsville",
+      "classification": "First Class",
+      "place_fips": "33970",
+      "county_ids": [
+        "05087"
+      ],
+      "dataset_hash": "d9e34c9ec8a20a11e78812115c01b2c8aa4e8c8cbdaffd3e78179227b226a766"
+    },
+    {
+      "id": "ARM53f275ba190d4e6181f124938e3c9a70",
+      "name": "Huttig",
+      "classification": "Second Class",
+      "place_fips": "34090",
+      "county_ids": [
+        "05139"
+      ],
+      "dataset_hash": "80f1884664d581382e08f5a7c858ae2c88a164dfae4b134b3d9793cb39b99810"
+    },
+    {
+      "id": "ARMc16641006a434a8a9fab1918f69a754d",
+      "name": "Imboden",
+      "classification": "Incorporated",
+      "place_fips": "34150",
+      "county_ids": [
+        "05075"
+      ],
+      "dataset_hash": "ef81d6ec8584a11d0d2bcb7f5d0de19089b0f0a851d1b9925ea7932d1df1c690"
+    },
+    {
+      "id": "ARMeec81bdb5371411e9d42497feca9d40d",
+      "name": "Jacksonport",
+      "classification": "Incorporated",
+      "place_fips": "34720",
+      "county_ids": [
+        "05067"
+      ],
+      "dataset_hash": "dc931cab19c38a5ef7c315712e101c011559f4457e762e790c02da43783fe1dd"
+    },
+    {
+      "id": "ARM354bc35190dc462ea5d09ce8793d9d7a",
+      "name": "Jacksonville",
+      "classification": "First Class",
+      "place_fips": "34750",
+      "county_ids": [
+        "05085",
+        "05119"
+      ],
+      "dataset_hash": "1f8c41e7544df4ca2efea8683e3368220931ba929d6b1b111021fa30187197ad"
+    },
+    {
+      "id": "ARMfdc35b88f779413cb637906a3d218ca6",
+      "name": "Jasper",
+      "classification": "Second Class",
+      "place_fips": "34900",
+      "county_ids": [
+        "05101"
+      ],
+      "dataset_hash": "6d1a011ad4c2b7a43d10cc0fe5bd79e6c5590c637b3735a6aee394a6b34bbc16"
+    },
+    {
+      "id": "ARM14e7c54741c44cbf8862f96b9110c93b",
+      "name": "Jennette",
+      "classification": "Incorporated",
+      "place_fips": "35040",
+      "county_ids": [
+        "05035",
+        "05123"
+      ],
+      "dataset_hash": "8b45f76e650c456468336091ed3562444829705f23db77828e820a05fee85352"
+    },
+    {
+      "id": "ARM23b535f361de4303b6922f9c31d3c30d",
+      "name": "Jericho",
+      "classification": "Incorporated",
+      "place_fips": "35140",
+      "county_ids": [
+        "05035"
+      ],
+      "dataset_hash": "751e7fc05723aaaf3ce1e4092f40ef225897dd0623b0bc7df80f4416f7878def"
+    },
+    {
+      "id": "ARM6298a72791c549e98e7c58865d788c0d",
+      "name": "Johnson",
+      "classification": "First Class",
+      "place_fips": "35500",
+      "county_ids": [
+        "05143"
+      ],
+      "dataset_hash": "48b7c0976ba766d3f5a8ed5171988a948b3c071456bca41911d391d1682042f1"
+    },
+    {
+      "id": "ARM283085f9c6214c38b0661c9962b8cf11",
+      "name": "Joiner",
+      "classification": "Second Class",
+      "place_fips": "35650",
+      "county_ids": [
+        "05093"
+      ],
+      "dataset_hash": "47e3eebd50f5507279e6d3e789233d0f914bdd9aa71ecc2c86e1bb5ce3eebdc8"
+    },
+    {
+      "id": "ARM564223fbf485459986a96fe654fbb1ab",
+      "name": "Jonesboro",
+      "classification": "First Class",
+      "place_fips": "35710",
+      "county_ids": [
+        "05031"
+      ],
+      "dataset_hash": "b553dcbb2dd2a4517cff1e093f658f5f37bcebef1baf7bb58fe88fff123fc632"
+    },
+    {
+      "id": "ARM03fb3456e42b436984ddb64d80bd8f70",
+      "name": "Judsonia",
+      "classification": "Second Class",
+      "place_fips": "36040",
+      "county_ids": [
+        "05145"
+      ],
+      "dataset_hash": "c9f09559610d6b9d339856797cda9a5ef6b623f229f736b9ab77459bf6d0ad79"
+    },
+    {
+      "id": "ARM987a9cc8fa5d4404b72e9c24bf8f3af6",
+      "name": "Junction City",
+      "classification": "Second Class",
+      "place_fips": "36130",
+      "county_ids": [
+        "05139"
+      ],
+      "dataset_hash": "11ea4544d04df4d08e1047cd921c822b9532ce5bcdd70949fdc2d43f36d372a5"
+    },
+    {
+      "id": "ARMc470258927f04057864166fd704b42b6",
+      "name": "Keiser",
+      "classification": "Second Class",
+      "place_fips": "36310",
+      "county_ids": [
+        "05093"
+      ],
+      "dataset_hash": "f1ca91361c4475e1e969b9ac272eb991002a42e7f9b04ae05891536391cd4e12"
+    },
+    {
+      "id": "ARM4051e2f1f63e49d5a4aa93c800ab8b8c",
+      "name": "Kensett",
+      "classification": "Second Class",
+      "place_fips": "36430",
+      "county_ids": [
+        "05145"
+      ],
+      "dataset_hash": "d2bcb6ea7c02f2c4f345cdad80e26b3ef8ec33f136bf40734b98d7468cb806cd"
+    },
+    {
+      "id": "ARMa11ea5d126a645a1941f2ae70afd405c",
+      "name": "Keo",
+      "classification": "Incorporated",
+      "place_fips": "36550",
+      "county_ids": [
+        "05085",
+        "05119"
+      ],
+      "dataset_hash": "a4e60492003ddbc09c4a7db66fabfb37fc080fe692b070202b5183b19b186760"
+    },
+    {
+      "id": "ARM1989783b122c490a859abd9c95b0875d",
+      "name": "Kibler",
+      "classification": "Second Class",
+      "place_fips": "36670",
+      "county_ids": [
+        "05033"
+      ],
+      "dataset_hash": "151c2b5407f45238d0be8cb09b7efa85c0f4c31109dbe8faefbc7c4aea77773b"
+    },
+    {
+      "id": "ARM44f7c35969a34ab4a880f1b44d99a2de",
+      "name": "Kingsland",
+      "classification": "Second Class",
+      "place_fips": "36880",
+      "county_ids": [
+        "05025"
+      ],
+      "dataset_hash": "2edfbe4f53b4b165459bab2962052fdb87eb211812467b8b9750bd37d11ac18d"
+    },
+    {
+      "id": "ARMa0edbdbbd94d435b8f80b003b06a88e5",
+      "name": "Knobel",
+      "classification": "Second Class",
+      "place_fips": "37240",
+      "county_ids": [
+        "05021"
+      ],
+      "dataset_hash": "b7b8af15a05fff22126ba6ac4d4b48536cafd9bd8a9cf46a3909b67c4aa72c11"
+    },
+    {
+      "id": "ARM0f014af0d57c4c19b16bd61d1d99953d",
+      "name": "Knoxville",
+      "classification": "Second Class",
+      "place_fips": "37300",
+      "county_ids": [
+        "05071"
+      ],
+      "dataset_hash": "75c74633688b03b174b4e8250cc3025f258a505e7b27d0ea3015da31f4aafb1b"
+    },
+    {
+      "id": "ARM788c39f2c6cd40ce9926751a4843c07d",
+      "name": "La Grange",
+      "classification": "Incorporated",
+      "place_fips": "37720",
+      "county_ids": [
+        "05077"
+      ],
+      "dataset_hash": "7286b490d6ba10762ad646559db33359eb970aec5d8b413bbfdc00a7917a667e"
+    },
+    {
+      "id": "ARMeaa393eecd1047bb85f63ae8ce590fa8",
+      "name": "Lafe",
+      "classification": "Incorporated",
+      "place_fips": "37660",
+      "county_ids": [
+        "05055"
+      ],
+      "dataset_hash": "30da166115434360435b3f0a39a5cb9330441b5117e8058d5a5d70f843a6fe39"
+    },
+    {
+      "id": "ARM54d6871b661f412696461f9c8200baa3",
+      "name": "Lake City",
+      "classification": "First Class",
+      "place_fips": "37780",
+      "county_ids": [
+        "05031"
+      ],
+      "dataset_hash": "8b287844445aed4337394eb5611abe608e133d7d2a956e2d46735bf9007791be"
+    },
+    {
+      "id": "ARMff8220c344264f499189a6ec7f377c16",
+      "name": "Lake View",
+      "classification": "Second Class",
+      "place_fips": "38110",
+      "county_ids": [
+        "05107"
+      ],
+      "dataset_hash": "97ea75a77034d2e127a03959442cfb73de18989b72f1b2356b69cd44629e4625"
+    },
+    {
+      "id": "ARM632890ff7de1418bb90761a30304c8ea",
+      "name": "Lake Village",
+      "classification": "First Class",
+      "place_fips": "38170",
+      "county_ids": [
+        "05017"
+      ],
+      "dataset_hash": "23412ecf3499eb606aa180d234a5b7abea2063b519fd2edf019b64f425dcedc3"
+    },
+    {
+      "id": "ARM5402d19fa4f345a5a56df6c7ca50683d",
+      "name": "Lakeview",
+      "classification": "Second Class",
+      "place_fips": "38050",
+      "county_ids": [
+        "05005"
+      ],
+      "dataset_hash": "26c7933f2be41bd62f270b8d0c057831173dd31adb704d8f39dc0c0d226fec7c"
+    },
+    {
+      "id": "ARM1dc36ef9da20441d80d1cd858cbd326c",
+      "name": "Lamar",
+      "classification": "Second Class",
+      "place_fips": "38290",
+      "county_ids": [
+        "05071"
+      ],
+      "dataset_hash": "b88d4df10f34847afcb9c5d5e9adcb1b9958516841a7ec6b5f80504bbe552318"
+    },
+    {
+      "id": "ARM38bd9c05d3474e66b8dd19137783ea41",
+      "name": "Lavaca",
+      "classification": "Second Class",
+      "place_fips": "38890",
+      "county_ids": [
+        "05131"
+      ],
+      "dataset_hash": "4686b56dfb60ce499de0a1b6bc001e531cc4fe4f4282cb79a7e483982da5ba30"
+    },
+    {
+      "id": "ARM171b4ad104f742bb83a8d41dc8838da2",
+      "name": "Leachville",
+      "classification": "First Class",
+      "place_fips": "39010",
+      "county_ids": [
+        "05031",
+        "05093"
+      ],
+      "dataset_hash": "175fb5d4baf37137f109b76b87bcff35263847e7095881785d0bc0a3061352b8"
+    },
+    {
+      "id": "ARM3b5e1d833e8149deae0a3285b2cff4a2",
+      "name": "Lead Hill",
+      "classification": "Incorporated",
+      "place_fips": "39040",
+      "county_ids": [
+        "05009"
+      ],
+      "dataset_hash": "145b0d1016d0a83dd70bdb43013dcff5ad1e0a424dc47f0c1fd6481fb5ceb711"
+    },
+    {
+      "id": "ARM3d5789b931e043419a03f17d4d815bf3",
+      "name": "Leola",
+      "classification": "Incorporated",
+      "place_fips": "39310",
+      "county_ids": [
+        "05053"
+      ],
+      "dataset_hash": "3702539efc054af696c54ffb58e1257614676df5ef8500367b006812ebbb05f5"
+    },
+    {
+      "id": "ARM6439b49c8b7543ce9a8c71e4760fbe01",
+      "name": "Lepanto",
+      "classification": "First Class",
+      "place_fips": "39370",
+      "county_ids": [
+        "05111"
+      ],
+      "dataset_hash": "eafaa0f3ecb69b59365c4fdc80a4affb7fe8e5201448e21e87402f0e4c461000"
+    },
+    {
+      "id": "ARM27c13545cb954c8d89b767ae3e34e64c",
+      "name": "Leslie",
+      "classification": "Second Class",
+      "place_fips": "39460",
+      "county_ids": [
+        "05129"
+      ],
+      "dataset_hash": "7de41a50b4c9309417b006f97c683694dcd03416716cc52140177da02a857df4"
+    },
+    {
+      "id": "ARMf085f31983af4deb8854e21a4f8d8d4a",
+      "name": "Letona",
+      "classification": "Incorporated",
+      "place_fips": "39520",
+      "county_ids": [
+        "05145"
+      ],
+      "dataset_hash": "90f12b2c80a6ff9f78f801d1d6a9b48b4906efa804ecd690c86c91d3ca4a63ea"
+    },
+    {
+      "id": "ARMff3fa1725d22406dac80ff657dbc6555",
+      "name": "Lewisville",
+      "classification": "Second Class",
+      "place_fips": "39640",
+      "county_ids": [
+        "05073"
+      ],
+      "dataset_hash": "78c8b1a763e04ac7d1f3a6d496f3d1f2898550ed47468d2a69f7981e53f8bd7f"
+    },
+    {
+      "id": "ARMb1817f584f3c47d78b80151828ca1524",
+      "name": "Lexa",
+      "classification": "Incorporated",
+      "place_fips": "39670",
+      "county_ids": [
+        "05107"
+      ],
+      "dataset_hash": "fd93b83b855cf3519b72aac459097ffb3cc3276f3760075fd7d3e684ddb1f4d1"
+    },
+    {
+      "id": "ARMccb0d9873157484aa78d666a311c9b7a",
+      "name": "Lincoln",
+      "classification": "First Class",
+      "place_fips": "39970",
+      "county_ids": [
+        "05143"
+      ],
+      "dataset_hash": "c47473fef6272b26f2e3e06984065f90b05c011fa20d01d3b0e3b10572ff7700"
+    },
+    {
+      "id": "ARM0cd6d1dea70946d0bd6b88d533229f88",
+      "name": "Little Flock",
+      "classification": "Second Class",
+      "place_fips": "40120",
+      "county_ids": [
+        "05007"
+      ],
+      "dataset_hash": "7bde1b597c79a1a18c98c5f7e164990f6f36261e92fbbac0aaf89338fd6dd128"
+    },
+    {
+      "id": "ARM695d5907e8c7476abb3071251a7983f0",
+      "name": "Little Rock",
+      "classification": "First Class",
+      "place_fips": "41000",
+      "county_ids": [
+        "05119",
+        "05125"
+      ],
+      "dataset_hash": "e8b4b837c526cd3f126ff35cb6365c15d1d302226afd02ed7d28c57257dfb5ff"
+    },
+    {
+      "id": "ARM3b865902b4a64b889def66a633581c57",
+      "name": "Lockesburg",
+      "classification": "Second Class",
+      "place_fips": "41090",
+      "county_ids": [
+        "05133"
+      ],
+      "dataset_hash": "b3a6fdceb29f0c13d4308fdb7b08581f607f1a097cc70faa8b66879605c081a6"
+    },
+    {
+      "id": "ARM114c4a6ca2f84e22bf6ac81c2dd22ce4",
+      "name": "London",
+      "classification": "Second Class",
+      "place_fips": "41270",
+      "county_ids": [
+        "05115"
+      ],
+      "dataset_hash": "4d2202dcc50c18574e50399a4f1a9f733968156424f754024af16b513dd7fc3d"
+    },
+    {
+      "id": "ARMbd9a269858384e01b640e9d65eb81871",
+      "name": "Lonoke",
+      "classification": "First Class",
+      "place_fips": "41420",
+      "county_ids": [
+        "05085"
+      ],
+      "dataset_hash": "31fe145df6850265d8b51b90b9663fb2021859b287bd3d4bc75409d0f7c0c664"
+    },
+    {
+      "id": "ARM50c3f9b03ce7403eafbefd1351fbaed6",
+      "name": "Lonsdale",
+      "classification": "Incorporated",
+      "place_fips": "41450",
+      "county_ids": [
+        "05051"
+      ],
+      "dataset_hash": "80a1a5a5754f0bb09f6634d96fc760ba7579693f8779d98ddc2a96e615200eee"
+    },
+    {
+      "id": "ARMba575273f61e45b986f5c54e3273df0b",
+      "name": "Louann",
+      "classification": "Incorporated",
+      "place_fips": "41630",
+      "county_ids": [
+        "05103"
+      ],
+      "dataset_hash": "365c2ab43cb8bf17e8f425628eee70281350bdc04568c9869f47d3039cbf997d"
+    },
+    {
+      "id": "ARM95c6bdec3eb6432bbaefdb62505abaec",
+      "name": "Lowell",
+      "classification": "First Class",
+      "place_fips": "41720",
+      "county_ids": [
+        "05007"
+      ],
+      "dataset_hash": "039b339c095aa9357a25e35445e0690c8143c83a8838a059e972ad382683fd73"
+    },
+    {
+      "id": "ARM523b5803027b4fdca6ea70a8997f9af1",
+      "name": "Luxora",
+      "classification": "Second Class",
+      "place_fips": "42170",
+      "county_ids": [
+        "05093"
+      ],
+      "dataset_hash": "483118c21b19f06deb112d53734ec75d17398af37c5015dea2479a6d7517bdfd"
+    },
+    {
+      "id": "ARMb6a163cf806f41a1894b23e0d9c1b372",
+      "name": "Lynn",
+      "classification": "Incorporated",
+      "place_fips": "42260",
+      "county_ids": [
+        "05075"
+      ],
+      "dataset_hash": "31803f748c39954cbe43791ade4af91e5a2679555cfd0c1bde2de33668cb0c6c"
+    },
+    {
+      "id": "ARM97ddf35d2326407fa5d2095ec7cdaff3",
+      "name": "Madison",
+      "classification": "Second Class",
+      "place_fips": "43280",
+      "county_ids": [
+        "05123"
+      ],
+      "dataset_hash": "08ff569a363a7be1cdd1d16e8f86e0539d78a9f9cc23524429df1716d2ee4ae2"
+    },
+    {
+      "id": "ARM59b73c64800e49f09075fef5cb7b9d3d",
+      "name": "Magazine",
+      "classification": "Second Class",
+      "place_fips": "43310",
+      "county_ids": [
+        "05083"
+      ],
+      "dataset_hash": "1c7c8dfe364d800979c2950a8584b8cd5a8bf0ac9d5740fbe433d0e4e67d3102"
+    },
+    {
+      "id": "ARM08ac18e13d6e4637b94ad4e0822a74bd",
+      "name": "Magness",
+      "classification": "Incorporated",
+      "place_fips": "43370",
+      "county_ids": [
+        "05063"
+      ],
+      "dataset_hash": "9194d31c066b68a7d1d8a8daeabc6f0efda3cd84eb276140a3f3d46b473c145d"
+    },
+    {
+      "id": "ARMa09073892782456d8ce3efe16a707966",
+      "name": "Magnolia",
+      "classification": "First Class",
+      "place_fips": "43460",
+      "county_ids": [
+        "05027"
+      ],
+      "dataset_hash": "d38835e47bdb27c1e2d3b8097ba011b39338fd14988fdf45f351b11db994559c"
+    },
+    {
+      "id": "ARMc92fb15fd90a4c8e97f3d80aa7bbe9ec",
+      "name": "Malvern",
+      "classification": "First Class",
+      "place_fips": "43610",
+      "county_ids": [
+        "05059"
+      ],
+      "dataset_hash": "c2edacbd57f59603b2c6527b29f79bd1c103df09b7c55b8f8b619f042e74ab2b"
+    },
+    {
+      "id": "ARM57501de106c44f2e929e34ffe0e5a739",
+      "name": "Mammoth Spring",
+      "classification": "Second Class",
+      "place_fips": "43670",
+      "county_ids": [
+        "05049"
+      ],
+      "dataset_hash": "f0bcf76b8b11902f13759eaad1c62c31b207cab8255c6739a76f37af909d3aa2"
+    },
+    {
+      "id": "ARM77d68fdca46046a3a1eb5de80a2a51c7",
+      "name": "Manila",
+      "classification": "First Class",
+      "place_fips": "43820",
+      "county_ids": [
+        "05093"
+      ],
+      "dataset_hash": "251fd44f7d243090f11b8ce932fdc73bfe757693bd2b4128e5cd96a5d196c2d8"
+    },
+    {
+      "id": "ARMf578bc75afbe430ca833d81f0a25a7d2",
+      "name": "Mansfield",
+      "classification": "Second Class",
+      "place_fips": "43880",
+      "county_ids": [
+        "05127",
+        "05131"
+      ],
+      "dataset_hash": "8be1f983a8e308e1e4d78a404282812fcfc1972984b2fb3fa4ece2a67166741e"
+    },
+    {
+      "id": "ARM9ffa42196cd24c588dcdfe79b7744097",
+      "name": "Marianna",
+      "classification": "First Class",
+      "place_fips": "44120",
+      "county_ids": [
+        "05077"
+      ],
+      "dataset_hash": "63b37dd3f30e50c92d523b2c76862779929075e0abea8051f87cff3d14e0b07d"
+    },
+    {
+      "id": "ARM8a9be69a14bd4010b68254476d3673dd",
+      "name": "Marie",
+      "classification": "Incorporated",
+      "place_fips": "44150",
+      "county_ids": [
+        "05093"
+      ],
+      "dataset_hash": "e1ec73ffa266bbcbe5f9510d593ca63f4112f5d84241f5e4a460a2b59e69dea0"
+    },
+    {
+      "id": "ARMaa7538a8010540859453586297b1468f",
+      "name": "Marion",
+      "classification": "First Class",
+      "place_fips": "44180",
+      "county_ids": [
+        "05035"
+      ],
+      "dataset_hash": "935e1bb67419f917410cd7ac06c625e697057f60aabfec20f37c04a8b64ea669"
+    },
+    {
+      "id": "ARM47cb097e842a4a21baea66e55aeae984",
+      "name": "Marked Tree",
+      "classification": "First Class",
+      "place_fips": "44210",
+      "county_ids": [
+        "05111"
+      ],
+      "dataset_hash": "31b108b5d0ae96397a241055ee82ea31f0f6e043b48c06bf95e426272b23faec"
+    },
+    {
+      "id": "ARM1e3987ddc047496baf36bffd246a5401",
+      "name": "Marmaduke",
+      "classification": "Second Class",
+      "place_fips": "44240",
+      "county_ids": [
+        "05055"
+      ],
+      "dataset_hash": "9487bc7b2e58d9080bf2afb3ba49cf7ca7ddd2885cdb6a006e4e761069913c03"
+    },
+    {
+      "id": "ARMddc7c7ed442547cf807b8a11c1beb4ca",
+      "name": "Marshall",
+      "classification": "Second Class",
+      "place_fips": "44300",
+      "county_ids": [
+        "05129"
+      ],
+      "dataset_hash": "d4580f143654823015e06513a4229db389f1c50de248f91aa5dd183fde5c5717"
+    },
+    {
+      "id": "ARMde0bf48d5b9e461dbffbe4a2c25c73f4",
+      "name": "Marvell",
+      "classification": "Second Class",
+      "place_fips": "44420",
+      "county_ids": [
+        "05107"
+      ],
+      "dataset_hash": "77a63a447158b3d967c42c5f1ebca0a2009bc519cc734b34d594277b4170bf63"
+    },
+    {
+      "id": "ARMa52737be9dcc4cf98a500245d43f2822",
+      "name": "Maumelle",
+      "classification": "First Class",
+      "place_fips": "44600",
+      "county_ids": [
+        "05045",
+        "05119"
+      ],
+      "dataset_hash": "f7b69148741d3cb9953f15fc1b66475b95ee055db935e5a8896d5b96bd01a4ea"
+    },
+    {
+      "id": "ARM5e8d74c11eba4c28a158b39669d41a24",
+      "name": "Mayflower",
+      "classification": "Second Class",
+      "place_fips": "44750",
+      "county_ids": [
+        "05045"
+      ],
+      "dataset_hash": "09ee66377a8bc555fa65663b44a529afd7361c357cfa4292b9ade8f54edf777b"
+    },
+    {
+      "id": "ARM94aedf21c1514aa38b42003e8e162a2c",
+      "name": "Maynard",
+      "classification": "Incorporated",
+      "place_fips": "44780",
+      "county_ids": [
+        "05121"
+      ],
+      "dataset_hash": "6a7f421800eb12ab46e513cca161543681bfc36776efc7b2e9cbe304395db71d"
+    },
+    {
+      "id": "ARM56b4092c463e45c1828998c5af815385",
+      "name": "McCaskill",
+      "classification": "Incorporated",
+      "place_fips": "42410",
+      "county_ids": [
+        "05057"
+      ],
+      "dataset_hash": "f189f39355bcf229d2a66351003a226434adf807f6d7b0fbb5ffbe21c013b741"
+    },
+    {
+      "id": "ARMbe4784e958724094abd7abedbc4b5fbf",
+      "name": "McCrory",
+      "classification": "First Class",
+      "place_fips": "42500",
+      "county_ids": [
+        "05147"
+      ],
+      "dataset_hash": "f1ebfaa09816152e0bc2cad670ceebef29ddc9f7bb7af94a9abfa1f3f44b9b3c"
+    },
+    {
+      "id": "ARMba048c06d85e49329a5d4769c5e67e86",
+      "name": "McDougal",
+      "classification": "Second Class",
+      "place_fips": "42560",
+      "county_ids": [
+        "05021"
+      ],
+      "dataset_hash": "62b03b3621f0d5b1ebe0930e85752c095f2e221a9c9db362aec2bb41de227e8b"
+    },
+    {
+      "id": "ARM6fb3d106dc674ad1bdb5ea100894cbc3",
+      "name": "McGehee",
+      "classification": "First Class",
+      "place_fips": "42770",
+      "county_ids": [
+        "05041"
+      ],
+      "dataset_hash": "1fd6737e9c05327cd3e973bfd9cc4db9a9aa39d27091212d21a2816fdadafb6d"
+    },
+    {
+      "id": "ARM5d6de666150d4d69a1dea00c954632f6",
+      "name": "McNab",
+      "classification": "Incorporated",
+      "place_fips": "43070",
+      "county_ids": [
+        "05057"
+      ],
+      "dataset_hash": "74a18073b6a138be3a43c8b061dc91cdd6a42fc5324fdaa53410e315d2505d25"
+    },
+    {
+      "id": "ARMfa328dc10e85497a8c8fbf9eb4a87bf7",
+      "name": "McNeil",
+      "classification": "Second Class",
+      "place_fips": "43100",
+      "county_ids": [
+        "05027"
+      ],
+      "dataset_hash": "2e926441fc451c239a71c3879b83003ce2bee9967cacf237b114c2de04146230"
+    },
+    {
+      "id": "ARMaa36d9201756404289bc0df3e9a4592b",
+      "name": "McRae",
+      "classification": "Second Class",
+      "place_fips": "43220",
+      "county_ids": [
+        "05145"
+      ],
+      "dataset_hash": "5be0bf27358522ef5fab573f39b5895f7ec8edc7ed6978d89fe81dd3169df4b0"
+    },
+    {
+      "id": "ARMb1f57560c9d047068b5d8deaef793055",
+      "name": "Melbourne",
+      "classification": "Second Class",
+      "place_fips": "45080",
+      "county_ids": [
+        "05065"
+      ],
+      "dataset_hash": "7e935b7fa0563f3bc73c38953dec0eda5bd321b4af5a291a2f11f10acb09bdf4"
+    },
+    {
+      "id": "ARM76213f9fa1b544b4bace300603646f8a",
+      "name": "Mena",
+      "classification": "First Class",
+      "place_fips": "45170",
+      "county_ids": [
+        "05113"
+      ],
+      "dataset_hash": "95e30e14e33d7844c49e0661601099fd380b09cd592103a54afb2af22d8365bb"
+    },
+    {
+      "id": "ARM9eac01810e7747f1948b6aff5991e406",
+      "name": "Menifee",
+      "classification": "Incorporated",
+      "place_fips": "45200",
+      "county_ids": [
+        "05029"
+      ],
+      "dataset_hash": "226f9d96dad3ea52376e1498125dc6fa2003da7ef73f1813cc4a5a20156d0ae3"
+    },
+    {
+      "id": "ARMad8f1494ecfa410b941b65fa8ae3801b",
+      "name": "Midland",
+      "classification": "Incorporated",
+      "place_fips": "45500",
+      "county_ids": [
+        "05131"
+      ],
+      "dataset_hash": "d904bd40f12ce38afc7eda88ef32816dc96516ba3189a57d7d4dfd2ad35766fc"
+    },
+    {
+      "id": "ARMb768b8d1f5074077a42c060ea9bbbe28",
+      "name": "Midway",
+      "classification": "Incorporated",
+      "place_fips": "45560",
+      "county_ids": [
+        "05059"
+      ],
+      "dataset_hash": "700a514f98a8dc396127bc7b9560bc3ca2422fc6a313599c187dc241b0066cad"
+    },
+    {
+      "id": "ARM634887a57d46457db6b7ea4398cff9c5",
+      "name": "Mineral Springs",
+      "classification": "Second Class",
+      "place_fips": "46040",
+      "county_ids": [
+        "05061"
+      ],
+      "dataset_hash": "283c8772894fb56028a640bb40f8f9f410d994ed6be9233c2fbf11f10ae38041"
+    },
+    {
+      "id": "ARM955212c716a1466699d002100adcd9e0",
+      "name": "Minturn",
+      "classification": "Incorporated",
+      "place_fips": "46100",
+      "county_ids": [
+        "05075"
+      ],
+      "dataset_hash": "755122c0a5317ef4c5646f8b62ce703764eb0d6a1b80c237045936543090013e"
+    },
+    {
+      "id": "ARM670c3bce0ce44471a5ad1acda0a647b2",
+      "name": "Mitchellville",
+      "classification": "Second Class",
+      "place_fips": "46190",
+      "county_ids": [
+        "05041"
+      ],
+      "dataset_hash": "1092b27e3f123d90af7467de56cc34c6e5b348304aec3fff04e48c94927aa9ce"
+    },
+    {
+      "id": "ARM8f4b6d999b4647c6a490c941a26b9fa9",
+      "name": "Monette",
+      "classification": "Second Class",
+      "place_fips": "46400",
+      "county_ids": [
+        "05031"
+      ],
+      "dataset_hash": "84ac44ed55afeb262777e408c57d69e1641383bde1eed9b44e4a0260ee1c3119"
+    },
+    {
+      "id": "ARMe32ac40883c54b6aa1b9dfc018612ec7",
+      "name": "Monticello",
+      "classification": "First Class",
+      "place_fips": "46580",
+      "county_ids": [
+        "05043"
+      ],
+      "dataset_hash": "bf5f98d5e2e2c32a274fd7ce7de45cf8a30fd88f66b1bafcacd78f6ce9e24caa"
+    },
+    {
+      "id": "ARM452c62d71cd0421e97eba2a1a020dcff",
+      "name": "Montrose",
+      "classification": "Incorporated",
+      "place_fips": "46670",
+      "county_ids": [
+        "05003"
+      ],
+      "dataset_hash": "ef1e453a6e4ab8b3280035009523b00abab0eecfa075f1d4ac61c592cb558f3c"
+    },
+    {
+      "id": "ARMe7844248316f4989b8556a1c042cab58",
+      "name": "Moorefield",
+      "classification": "Incorporated",
+      "place_fips": "46730",
+      "county_ids": [
+        "05063"
+      ],
+      "dataset_hash": "7407f77e657a65ceff83e18dbc010fe95c71e4b4907960c5fdee18f020eeea94"
+    },
+    {
+      "id": "ARMe46fe285a9174547b2acf108a721bda6",
+      "name": "Moro",
+      "classification": "Incorporated",
+      "place_fips": "46910",
+      "county_ids": [
+        "05077"
+      ],
+      "dataset_hash": "db2f16b3ccfca0f85822bfca0fda235b1fe9790ba80f87d51b03760e1d9bd6a7"
+    },
+    {
+      "id": "ARM85178f8fdaa344c486d48a4082296df0",
+      "name": "Morrilton",
+      "classification": "First Class",
+      "place_fips": "46970",
+      "county_ids": [
+        "05029"
+      ],
+      "dataset_hash": "35c01d475a2ea0ed0a4c802d2b83c4c6bba21a3ce991050d2e18b1f68906ce8d"
+    },
+    {
+      "id": "ARM2b558e7b42074b1585b9bf8ccf452330",
+      "name": "Morrison Bluff",
+      "classification": "Incorporated",
+      "place_fips": "47030",
+      "county_ids": [
+        "05083"
+      ],
+      "dataset_hash": "e6d888c736466c45053e5e2f050009811a1ebf24bab25de457690e0d987f6aad"
+    },
+    {
+      "id": "ARM9ad9625b44da4dfcad1b531ff3ee4f55",
+      "name": "Mount Ida",
+      "classification": "Second Class",
+      "place_fips": "47690",
+      "county_ids": [
+        "05097"
+      ],
+      "dataset_hash": "29ab79a51cf9968820960568807a50255401fef3c7d9fa287f629e5411a3dbe9"
+    },
+    {
+      "id": "ARM21219958584944a1b091038d2d9927a3",
+      "name": "Mount Pleasant",
+      "classification": "Incorporated",
+      "place_fips": "47900",
+      "county_ids": [
+        "05065"
+      ],
+      "dataset_hash": "a2cbaf47cc1e88e34dd6c8039bb90bcc829dd4967e86a8b4960f5e7aab6c23de"
+    },
+    {
+      "id": "ARM748955f91410466190b54f44e2d7b6a5",
+      "name": "Mount Vernon",
+      "classification": "Incorporated",
+      "place_fips": "48020",
+      "county_ids": [
+        "05045",
+        "05145"
+      ],
+      "dataset_hash": "3e9fd74c3a1df3098261699d7fc765e42323726a1035b19343e3fe7e6dcee96c"
+    },
+    {
+      "id": "ARM0c74d80259d94452bc89cd1cae4f8bcd",
+      "name": "Mountain Home",
+      "classification": "First Class",
+      "place_fips": "47390",
+      "county_ids": [
+        "05005"
+      ],
+      "dataset_hash": "bae20b7ead18bfa0ba5592a59fe6dd0e4ca39225da094423471d23abb053a8e8"
+    },
+    {
+      "id": "ARM09407026b9f143688e82e2d500ce9a93",
+      "name": "Mountain Pine",
+      "classification": "Second Class",
+      "place_fips": "47450",
+      "county_ids": [
+        "05051"
+      ],
+      "dataset_hash": "343dfcc36c16b167101f8c2d252c6707de2a75e47ce760a54e87211f413d6f5f"
+    },
+    {
+      "id": "ARMa485f17259874dd0a30b7d725183d1e3",
+      "name": "Mountain View",
+      "classification": "First Class",
+      "place_fips": "47540",
+      "county_ids": [
+        "05137"
+      ],
+      "dataset_hash": "40cc0de8aa91aec55e9408ef5df793a3f710333e0815699164e7c3fdba81754f"
+    },
+    {
+      "id": "ARM63b4615ea6ed427685ae248c7cbaacda",
+      "name": "Mountainburg",
+      "classification": "Second Class",
+      "place_fips": "47300",
+      "county_ids": [
+        "05033"
+      ],
+      "dataset_hash": "91842ca21bf2d84e5133bc37ca25f648320ea05e574efd0289bf4e08ce4f9967"
+    },
+    {
+      "id": "ARMb40f1f8435e74286930481e6974c01fb",
+      "name": "Mulberry",
+      "classification": "Second Class",
+      "place_fips": "48200",
+      "county_ids": [
+        "05033",
+        "05047"
+      ],
+      "dataset_hash": "297b0ab2cbb6bec41a56a5ad85bdb2eb4f088e792bc1b00624ad5963df277ce2"
+    },
+    {
+      "id": "ARM5259868bf4984cf89ec1b73ad3de0c7b",
+      "name": "Murfreesboro",
+      "classification": "Second Class",
+      "place_fips": "48290",
+      "county_ids": [
+        "05109"
+      ],
+      "dataset_hash": "16ecbd9ea86d0d4edef069f3871759533e7e882c5d50a998885bb2c76e023990"
+    },
+    {
+      "id": "ARM406cd6ea3e734499aa5ff5d84448d339",
+      "name": "Nashville",
+      "classification": "First Class",
+      "place_fips": "48560",
+      "county_ids": [
+        "05057",
+        "05061"
+      ],
+      "dataset_hash": "4fe81b573a3497f605ce7071561b72312e42e99d83dc9e37266074b61fa41520"
+    },
+    {
+      "id": "ARM999b95b823594615bb269dc614027ae7",
+      "name": "Newark",
+      "classification": "Second Class",
+      "place_fips": "49010",
+      "county_ids": [
+        "05063"
+      ],
+      "dataset_hash": "3874854d25760c2dcc14f3800eea693ce9c90d4261b5f2621edda2a47ac3f0bb"
+    },
+    {
+      "id": "ARM2433f4fd4f264a25b58e5850bb5d6410",
+      "name": "Newport",
+      "classification": "First Class",
+      "place_fips": "49580",
+      "county_ids": [
+        "05067"
+      ],
+      "dataset_hash": "b4c2aec8b4d46281aac5d8e66cf305ff357ce4736d9e224078b2fd965a6542be"
+    },
+    {
+      "id": "ARM038df4db6d02495d88e9eeeb5c2e1eaa",
+      "name": "Nimmons",
+      "classification": "Incorporated",
+      "place_fips": "49820",
+      "county_ids": [
+        "05021"
+      ],
+      "dataset_hash": "94154f152fb2da603f9e37772e2e7868359634f5d6dcce036a4f697b15efc1fc"
+    },
+    {
+      "id": "ARM298428e5093441009639607136ced6c8",
+      "name": "Norfork",
+      "classification": "Second Class",
+      "place_fips": "50000",
+      "county_ids": [
+        "05005"
+      ],
+      "dataset_hash": "33d06c32f26b66bb8c489c36bc070f3b6fe1f09c6a413f1859f8aaac1ec20a03"
+    },
+    {
+      "id": "ARM9f9c344dd3454f8f9dd21afb09f41f71",
+      "name": "Norman",
+      "classification": "Incorporated",
+      "place_fips": "50030",
+      "county_ids": [
+        "05097"
+      ],
+      "dataset_hash": "cc94846d476e593bc107e9698cf317808447979bcac3e677466b70b1b622b9c9"
+    },
+    {
+      "id": "ARM0db8136032fe48b586819d55aed07e18",
+      "name": "Norphlet",
+      "classification": "Second Class",
+      "place_fips": "50060",
+      "county_ids": [
+        "05139"
+      ],
+      "dataset_hash": "c50e8504cbce4b78def30f44baeb6a1f780c6eaf31bd4b134f093bb33d543569"
+    },
+    {
+      "id": "ARMb160c9be05624eae896e2729da1263ab",
+      "name": "North Little Rock",
+      "classification": "First Class",
+      "place_fips": "50450",
+      "county_ids": [
+        "05119"
+      ],
+      "dataset_hash": "f8cd3ebde9e1cc31a0664e1bc08befce8e7d7fa6feebff10870157e8caf6fe6f"
+    },
+    {
+      "id": "ARM5fef363e5fad4d328d566e5b879c334b",
+      "name": "O'Kean",
+      "classification": "Incorporated",
+      "place_fips": "51500",
+      "county_ids": [
+        "05055",
+        "05121"
+      ],
+      "dataset_hash": "1b1e4c276020ab73094f02b8218a5d6ec6b7187f1e874bc63b02e8e97e524638"
+    },
+    {
+      "id": "ARMdee512958b47468cbb5fe349a10c0307",
+      "name": "Oak Grove",
+      "classification": "Incorporated",
+      "place_fips": "50810",
+      "county_ids": [
+        "05015"
+      ],
+      "dataset_hash": "d26d9147ea506ce7e16f4c1300dea1e127de9d4760613ed4805114ef89c8afb6"
+    },
+    {
+      "id": "ARM2aa09b47164c406cb89a427b7967395a",
+      "name": "Oak Grove Heights",
+      "classification": "Second Class",
+      "place_fips": "51060",
+      "county_ids": [
+        "05055"
+      ],
+      "dataset_hash": "16ed0d3070d02d6482f68aeff3ace97e0d82357c740d6865f0551f3448be658c"
+    },
+    {
+      "id": "ARM597b7303d24640e39db46be465c6b1a7",
+      "name": "Oakhaven",
+      "classification": "Incorporated",
+      "place_fips": "51080",
+      "county_ids": [
+        "05057"
+      ],
+      "dataset_hash": "e0479796137c44f44311041dccdb71b4fd9f43dd971fc00c2d34d8389a97f027"
+    },
+    {
+      "id": "ARM43c3672808ee431484b9db7133026674",
+      "name": "Oden",
+      "classification": "Incorporated",
+      "place_fips": "51290",
+      "county_ids": [
+        "05097"
+      ],
+      "dataset_hash": "fd5e1175c35ffa5943352880734e92649a45f4aa551cf2b6c1313d1a2922701f"
+    },
+    {
+      "id": "ARM379306b589b14d6cba167975569ee70e",
+      "name": "Ogden",
+      "classification": "Incorporated",
+      "place_fips": "51350",
+      "county_ids": [
+        "05081"
+      ],
+      "dataset_hash": "1914c0c0a98b656d0ce7fef7d021e2daa9836e036e97db03c9d503836a51ea93"
+    },
+    {
+      "id": "ARM468c0d129bfc4dc48a7b61eff8f6ae64",
+      "name": "Oil Trough",
+      "classification": "Incorporated",
+      "place_fips": "51410",
+      "county_ids": [
+        "05063"
+      ],
+      "dataset_hash": "2cb58364f087090ec192614c75af4e925a3c4326a6dbf708a7353822f859b38b"
+    },
+    {
+      "id": "ARMea9188d441da4d3696ee8649a93cf764",
+      "name": "Okolona",
+      "classification": "Incorporated",
+      "place_fips": "51530",
+      "county_ids": [
+        "05019"
+      ],
+      "dataset_hash": "da6c2bce5f4ef8891fd86bed3e9f6f0a5853449da5ca6620f2fbdc218f1cb98b"
+    },
+    {
+      "id": "ARM99b647a5d99845df8e78d45aa2b90b26",
+      "name": "Ola",
+      "classification": "Second Class",
+      "place_fips": "51560",
+      "county_ids": [
+        "05149"
+      ],
+      "dataset_hash": "e56a52327a7f16556f409c14f7bd63e3d9d392a7dbe61f68fd13327e5063e663"
+    },
+    {
+      "id": "ARM8cad7a81a03b4e959ac2425b0f1ac83a",
+      "name": "Omaha",
+      "classification": "Incorporated",
+      "place_fips": "52160",
+      "county_ids": [
+        "05009"
+      ],
+      "dataset_hash": "458642c9811c9a806e7be268581eb201837eff767946bbb407be14e985f72ba6"
+    },
+    {
+      "id": "ARMf13414e18c24499783fb76eda6a866de",
+      "name": "Oppelo",
+      "classification": "Second Class",
+      "place_fips": "52430",
+      "county_ids": [
+        "05029"
+      ],
+      "dataset_hash": "8d203ef3670962bfa383513ea2d6c1fe27fbe133985bea8d0b6956bb7c457127"
+    },
+    {
+      "id": "ARMab8e8798e15f4c30b1636c5ee0d4b878",
+      "name": "Osceola",
+      "classification": "First Class",
+      "place_fips": "52580",
+      "county_ids": [
+        "05093"
+      ],
+      "dataset_hash": "c981211de9b64f719c712c54a0c1ae9b8434ae4b872b47e6d1edbb6305137e9e"
+    },
+    {
+      "id": "ARMcdcf4b3ac48b4f4a9fb389ea9ff8f6e2",
+      "name": "Oxford",
+      "classification": "Second Class",
+      "place_fips": "52880",
+      "county_ids": [
+        "05049",
+        "05065"
+      ],
+      "dataset_hash": "38b34dac48e1194c3c12bc0abcd07ec166f6a3de853e32a353e9400de6e91724"
+    },
+    {
+      "id": "ARM953368dca3c1405fb566d075fb537dbc",
+      "name": "Ozan",
+      "classification": "Incorporated",
+      "place_fips": "52940",
+      "county_ids": [
+        "05057"
+      ],
+      "dataset_hash": "54b9ae9519ae2d5009fbc2d1baaa651e655c4e7d251e5f9aab966eb7fc9b26cf"
+    },
+    {
+      "id": "ARM48534d4ef7da4423b2ba24a691faf749",
+      "name": "Ozark",
+      "classification": "First Class",
+      "place_fips": "52970",
+      "county_ids": [
+        "05047"
+      ],
+      "dataset_hash": "9e30df1342e6f2af9126f7a298cbad0a1b263e9684ca9489036a97a354de5177"
+    },
+    {
+      "id": "ARM0c087d0aab5c4805b6f7e410bc315da8",
+      "name": "Palestine",
+      "classification": "Second Class",
+      "place_fips": "53150",
+      "county_ids": [
+        "05123"
+      ],
+      "dataset_hash": "40edb9569d5cebdb77a24ad3d7153999a466a43070bb55e66b94389609eebe35"
+    },
+    {
+      "id": "ARMd314cba0050c41f8865b5c9a839e8ce0",
+      "name": "Pangburn",
+      "classification": "Second Class",
+      "place_fips": "53240",
+      "county_ids": [
+        "05145"
+      ],
+      "dataset_hash": "bfa57757ecdc64531c519d9311abac1a6cd21d10b87cf04b918b9c7109724aff"
+    },
+    {
+      "id": "ARM5366bf3cb417462ab26b28535d5ee4d7",
+      "name": "Paragould",
+      "classification": "First Class",
+      "place_fips": "53390",
+      "county_ids": [
+        "05055"
+      ],
+      "dataset_hash": "004c38072de2c39fc54e15d427a54a824adee705f397f2558c6398011ff3786c"
+    },
+    {
+      "id": "ARM5a54039e35f946bc8786a9127d47533a",
+      "name": "Paris",
+      "classification": "First Class",
+      "place_fips": "53480",
+      "county_ids": [
+        "05083"
+      ],
+      "dataset_hash": "0c2595b2b537aa481802ea68459016fa954d56f1b551c69ee20ea0688f50d203"
+    },
+    {
+      "id": "ARM296a2b383b2049078cf9d702f356a1e1",
+      "name": "Parkdale",
+      "classification": "Second Class",
+      "place_fips": "53510",
+      "county_ids": [
+        "05003"
+      ],
+      "dataset_hash": "501758670754c399e2f20b553b2ea1e89441d571f5969bcee356d49cabbe9dc6"
+    },
+    {
+      "id": "ARM8bc564be6b4a4b3ea205a326a4873338",
+      "name": "Parkin",
+      "classification": "First Class",
+      "place_fips": "53600",
+      "county_ids": [
+        "05037"
+      ],
+      "dataset_hash": "cdc71affca1bcae8acbe02f1acfaaac495c9419f23f258c3e9fc8d338c14fd12"
+    },
+    {
+      "id": "ARM11535c1de83e4992a5e7d0b089097a3c",
+      "name": "Patmos",
+      "classification": "Incorporated",
+      "place_fips": "53900",
+      "county_ids": [
+        "05057"
+      ],
+      "dataset_hash": "b7dab1f297eb1d6fa2fe2c1fb8ef1251c2bd38708b96768efe58acedb53b6e5c"
+    },
+    {
+      "id": "ARMd500be08b5724f30bf044dfec75ec6ee",
+      "name": "Patterson",
+      "classification": "Second Class",
+      "place_fips": "53990",
+      "county_ids": [
+        "05147"
+      ],
+      "dataset_hash": "47eb343d4ecb90335935d1222381d2565d6633f9c23b44ebb6d6792fb90be1ef"
+    },
+    {
+      "id": "ARMe335833d362448d5848212a2f2bcec2c",
+      "name": "Pea Ridge",
+      "classification": "First Class",
+      "place_fips": "54200",
+      "county_ids": [
+        "05007"
+      ],
+      "dataset_hash": "2b9a99c58b73ce303aac94d3539834ec536773b986139c91c3d212320888020f"
+    },
+    {
+      "id": "ARM4112ff44c0854f9dbe94c46e2e89bb4b",
+      "name": "Peach Orchard",
+      "classification": "Second Class",
+      "place_fips": "54140",
+      "county_ids": [
+        "05021"
+      ],
+      "dataset_hash": "cba00cccf7dd27e9d29186f1f5d06a23cfd3f0923e2ad9172f6b2aa86d866f99"
+    },
+    {
+      "id": "ARMfb9f3fc4170a47ecb001b5102ebb89c2",
+      "name": "Perla",
+      "classification": "Incorporated",
+      "place_fips": "54620",
+      "county_ids": [
+        "05059"
+      ],
+      "dataset_hash": "81e838ced87055a055ebd22e6072c55f741ce3bfb8849019bdb7e50ac7e554b7"
+    },
+    {
+      "id": "ARMb09147bd0b3f4b3eb8bb89384b2b95d8",
+      "name": "Perry",
+      "classification": "Incorporated",
+      "place_fips": "54650",
+      "county_ids": [
+        "05105"
+      ],
+      "dataset_hash": "6103c61981c1f3a47a15037bbb122478118b07df888fb3ce097b4b3b64dde7df"
+    },
+    {
+      "id": "ARM1e745c127e264c82aba7e2b401ba39ca",
+      "name": "Perrytown",
+      "classification": "Incorporated",
+      "place_fips": "54680",
+      "county_ids": [
+        "05057"
+      ],
+      "dataset_hash": "ecf2a9dc9163da004c18976e6b58205f9f86382b2f8b9a258b9cbe6aea7e0d0e"
+    },
+    {
+      "id": "ARM37e9c851b4c64973a224be16badc62b4",
+      "name": "Perryville",
+      "classification": "Second Class",
+      "place_fips": "54710",
+      "county_ids": [
+        "05105"
+      ],
+      "dataset_hash": "11a6eea222cfa82893f8a814917a500497e2a0e680ae840e572b15e848a309b9"
+    },
+    {
+      "id": "ARM2015e13c5b6a4ac8ac292df44dd6a1d2",
+      "name": "Piggott",
+      "classification": "First Class",
+      "place_fips": "55130",
+      "county_ids": [
+        "05021"
+      ],
+      "dataset_hash": "6d00ba366da67c2f94a9389b52708ef3d4066b305c5115df94e90137dbbfe5f7"
+    },
+    {
+      "id": "ARMd29f0a25aa404c4a89f0bb9b83dbbbd2",
+      "name": "Pindall",
+      "classification": "Incorporated",
+      "place_fips": "55280",
+      "county_ids": [
+        "05129"
+      ],
+      "dataset_hash": "e2f3985695a228fc21acdc34a5458f88df29ec7535e262b4fd1a3a0c4704842d"
+    },
+    {
+      "id": "ARM66e3a590954c463aa94f164d4ce503f0",
+      "name": "Pine Bluff",
+      "classification": "First Class",
+      "place_fips": "55310",
+      "county_ids": [
+        "05069"
+      ],
+      "dataset_hash": "cabb63529c85f258a013205f9d721ff7960b440213c283fb7c7fc29fa4fd49ef"
+    },
+    {
+      "id": "ARM74aa569f5d644e18852fbd44cb747048",
+      "name": "Pineville",
+      "classification": "Incorporated",
+      "place_fips": "55580",
+      "county_ids": [
+        "05065"
+      ],
+      "dataset_hash": "228eb84b5eaa71c508a299bf1a2bd0562988b85c04b7265f02b1319b2a26caea"
+    },
+    {
+      "id": "ARMee15ec00ca7845648bff0ca780796966",
+      "name": "Plainview",
+      "classification": "Second Class",
+      "place_fips": "55970",
+      "county_ids": [
+        "05149"
+      ],
+      "dataset_hash": "2cbdff04d2d8a5a782fb0fb712e32f5f0ecd2e6e38fc356499c8efef8b0ffd5e"
+    },
+    {
+      "id": "ARM15a5c0b6159c420da98e3e7861800f7c",
+      "name": "Pleasant Plains",
+      "classification": "Incorporated",
+      "place_fips": "56270",
+      "county_ids": [
+        "05063"
+      ],
+      "dataset_hash": "06f51defde5687fa6ad6c88fcf66e18a1b388cf7f9633c15e017a93ae7134ed4"
+    },
+    {
+      "id": "ARM733c312c04b84ec1963bd14849357454",
+      "name": "Plumerville",
+      "classification": "Second Class",
+      "place_fips": "56480",
+      "county_ids": [
+        "05029"
+      ],
+      "dataset_hash": "5ae8d71cec34c1009faa53e4bdb62a24c92f111bd037e49549f3aa4f2f3580f7"
+    },
+    {
+      "id": "ARM15ee29397209456fbbd90ad7162f971d",
+      "name": "Pocahontas",
+      "classification": "First Class",
+      "place_fips": "56540",
+      "county_ids": [
+        "05121"
+      ],
+      "dataset_hash": "2a926d0b0346a34a985e9e14c09d83ee153b35b3f940ea4997c6b4dc98f43507"
+    },
+    {
+      "id": "ARM67ab15f6c3a643ae8cfffdd82a924ca2",
+      "name": "Pollard",
+      "classification": "Second Class",
+      "place_fips": "56600",
+      "county_ids": [
+        "05021"
+      ],
+      "dataset_hash": "41a212347da746f3203d610326b2e36801d14a49d3cf6619373ff9c51878803a"
+    },
+    {
+      "id": "ARM4eb812ba632e4806bee0583a1bcbc3ab",
+      "name": "Portia",
+      "classification": "Incorporated",
+      "place_fips": "56720",
+      "county_ids": [
+        "05075"
+      ],
+      "dataset_hash": "b96b437058e3986885eff035b6ef5bef1e4fe90e793f17bf1c04effa35330e42"
+    },
+    {
+      "id": "ARM8bc701c3f68549dda337d3a5d4b1c398",
+      "name": "Portland",
+      "classification": "Second Class",
+      "place_fips": "56750",
+      "county_ids": [
+        "05003"
+      ],
+      "dataset_hash": "5664adbe9153f496d9f51828781b3b6634df4e75c55e77e0a9409529906690af"
+    },
+    {
+      "id": "ARM89f679c060f349ce819b70645065dccc",
+      "name": "Pottsville",
+      "classification": "First Class",
+      "place_fips": "56990",
+      "county_ids": [
+        "05115"
+      ],
+      "dataset_hash": "ea8fe51f2d82673ac89e3e9a74d52b72c1452896cfdefb294ffd95ff799b8bb8"
+    },
+    {
+      "id": "ARM71e561efeac0408b99d755ec259f90de",
+      "name": "Powhatan",
+      "classification": "Incorporated",
+      "place_fips": "57050",
+      "county_ids": [
+        "05075"
+      ],
+      "dataset_hash": "9d982ac182408e345959eeeb1d1c1c27c98869d9ea70b6ccc138445ec8b1e616"
+    },
+    {
+      "id": "ARMf7b761edc33d492d82ccdc5c605ad69c",
+      "name": "Poyen",
+      "classification": "Incorporated",
+      "place_fips": "57080",
+      "county_ids": [
+        "05053"
+      ],
+      "dataset_hash": "9f7584f6b2eea5713ddd1f1ec78eff4c0b4720c0dd0751e889b6f41d133ca967"
+    },
+    {
+      "id": "ARMf079fe378dd5458aa19858f674c64379",
+      "name": "Prairie Grove",
+      "classification": "First Class",
+      "place_fips": "57170",
+      "county_ids": [
+        "05143"
+      ],
+      "dataset_hash": "d69acffe3f397cdda88984473cbab30586fb37aa00a5a4ca6cae554b8f6ae21d"
+    },
+    {
+      "id": "ARM3f0706debbab4d66945a7ec5c43f9b62",
+      "name": "Prattsville",
+      "classification": "Incorporated",
+      "place_fips": "57230",
+      "county_ids": [
+        "05053"
+      ],
+      "dataset_hash": "7c04a1188228adee89134f39623ee0041fcd62d0eb96ea2c755a1e50ab78d003"
+    },
+    {
+      "id": "ARMaf92fc80d1714cee9d5abafd0a6d8dec",
+      "name": "Prescott",
+      "classification": "First Class",
+      "place_fips": "57260",
+      "county_ids": [
+        "05099"
+      ],
+      "dataset_hash": "ad7f844dc8078a737335771179dc11ff506ea6741c439350e59ff24fb7698384"
+    },
+    {
+      "id": "ARM4f68c709fe014bcdb7f8f8060201437c",
+      "name": "Pyatt",
+      "classification": "Incorporated",
+      "place_fips": "57890",
+      "county_ids": [
+        "05089"
+      ],
+      "dataset_hash": "2dcd98206782bf0a325b36cd305755862229e3d7131f88e52651a337040017e4"
+    },
+    {
+      "id": "ARMbc0483fc3cfc4d6b971d74581a71c4c2",
+      "name": "Quitman",
+      "classification": "Second Class",
+      "place_fips": "57950",
+      "county_ids": [
+        "05023",
+        "05045"
+      ],
+      "dataset_hash": "426fca19a15c6329858bcfb86536c8e00f367efef1a21816f8851bd823380d6b"
+    },
+    {
+      "id": "ARM191fadc3386a4398921a17cd3c81ccf2",
+      "name": "Ratcliff",
+      "classification": "Second Class",
+      "place_fips": "58160",
+      "county_ids": [
+        "05047",
+        "05083"
+      ],
+      "dataset_hash": "9beb4692d780b9aad427ced2d733cb5bffd928ff92409e637fef0890e7d60fae"
+    },
+    {
+      "id": "ARM3199b0e2dd64467a8b6ac4b5cd118474",
+      "name": "Ravenden",
+      "classification": "Incorporated",
+      "place_fips": "58250",
+      "county_ids": [
+        "05075",
+        "05121",
+        "05135"
+      ],
+      "dataset_hash": "86bb6a18e66dbc6c7fe1b3c677f2d0bef6925eaa104fe6fb38b09c77a08999dd"
+    },
+    {
+      "id": "ARM53a3d65c93074ccda725f47ac02afdff",
+      "name": "Ravenden Springs",
+      "classification": "Incorporated",
+      "place_fips": "58280",
+      "county_ids": [
+        "05121"
+      ],
+      "dataset_hash": "70fca71cdd64d984d075611ccb36c65362bac7e939cbaa1ae29bade1c0b83004"
+    },
+    {
+      "id": "ARM0829fde6ce414fb0a54564de5802f43f",
+      "name": "Rector",
+      "classification": "Second Class",
+      "place_fips": "58490",
+      "county_ids": [
+        "05021"
+      ],
+      "dataset_hash": "ef812527139104335d67f71f999bc635d2d4a0e14ca9380e77ddaae82d8b6337"
+    },
+    {
+      "id": "ARMe711c7c9bcb949c887464ffb99c311e2",
+      "name": "Redfield",
+      "classification": "Second Class",
+      "place_fips": "58580",
+      "county_ids": [
+        "05069"
+      ],
+      "dataset_hash": "2e9999f0556fe905ab35825c9602783fdd450db675a4da961f5ad96c6a2d754e"
+    },
+    {
+      "id": "ARMbe502a0359ba40a08e54ed38360555ec",
+      "name": "Reed",
+      "classification": "Incorporated",
+      "place_fips": "58880",
+      "county_ids": [
+        "05041"
+      ],
+      "dataset_hash": "d34fe38425a21336c25f1c90e9799d0c7f2dc1206536dff647a990120ddff40e"
+    },
+    {
+      "id": "ARMdca82c4608864ee2be662c1d77241895",
+      "name": "Reyno",
+      "classification": "Second Class",
+      "place_fips": "59180",
+      "county_ids": [
+        "05021",
+        "05121"
+      ],
+      "dataset_hash": "1f942a56c3a184523cf531956b2fb673a6d2fef9cf01575ea1132f67976acf20"
+    },
+    {
+      "id": "ARMe5722e0bf1ab4150b6645270e72de3ec",
+      "name": "Rison",
+      "classification": "Second Class",
+      "place_fips": "59480",
+      "county_ids": [
+        "05025"
+      ],
+      "dataset_hash": "8f9f8584737a12553dd39fc973005fa5075101fca1778a3f29e82a25c9949cc3"
+    },
+    {
+      "id": "ARM189f96e0f0e14167b8412a2448b197a4",
+      "name": "Rockport",
+      "classification": "Second Class",
+      "place_fips": "60020",
+      "county_ids": [
+        "05059"
+      ],
+      "dataset_hash": "0db99bbb8d56c7add9c05664c608e726143e53e80a121a8ad8088d544333318b"
+    },
+    {
+      "id": "ARMbe0deee78c1c4a4cb3781ac660a046ee",
+      "name": "Roe",
+      "classification": "Incorporated",
+      "place_fips": "60380",
+      "county_ids": [
+        "05095"
+      ],
+      "dataset_hash": "80516a55c3549669067a4f20a7b8d0aeff4a7a79eea4c78775af5e9d1a6bc121"
+    },
+    {
+      "id": "ARMedb0547acc754a4f844260c7cdffb60a",
+      "name": "Rogers",
+      "classification": "First Class",
+      "place_fips": "60410",
+      "county_ids": [
+        "05007"
+      ],
+      "dataset_hash": "b04c1860aa16f7540cb79819943aeb185a2b5aac3ed4e1b23a59fec1955b2bfc"
+    },
+    {
+      "id": "ARMc15042c5903148319ee27abb264e5e7e",
+      "name": "Rondo",
+      "classification": "Incorporated",
+      "place_fips": "60590",
+      "county_ids": [
+        "05077"
+      ],
+      "dataset_hash": "980af9eeeceb153f813a8f85112429eb054fc438cbcd021e6c06f567b4ad80c6"
+    },
+    {
+      "id": "ARM3c600cb13b374f8199942aaf1e5ec14e",
+      "name": "Rose Bud",
+      "classification": "Incorporated",
+      "place_fips": "60770",
+      "county_ids": [
+        "05145"
+      ],
+      "dataset_hash": "20f5404d40ce19c4674364f8d265066a9f46c5e0005c7e65de8b6f6401e2cf59"
+    },
+    {
+      "id": "ARMbef077ce8bf34fcdb483ba059a64fc6c",
+      "name": "Rosston",
+      "classification": "Incorporated",
+      "place_fips": "61040",
+      "county_ids": [
+        "05099"
+      ],
+      "dataset_hash": "37a5f182746f726f44b8b5630f960c4d64238d41e6c331d2b69f62fc29075ed5"
+    },
+    {
+      "id": "ARM255776124aad49659c861be4628d4fc8",
+      "name": "Rudy",
+      "classification": "Incorporated",
+      "place_fips": "61460",
+      "county_ids": [
+        "05033"
+      ],
+      "dataset_hash": "e7ca530e7791b5f2274b95dca3e85c7636ae9209549da95e7c45648ac092981e"
+    },
+    {
+      "id": "ARMfd387e7f45044e9eb1c31ba39b2c8db6",
+      "name": "Russell",
+      "classification": "Incorporated",
+      "place_fips": "61640",
+      "county_ids": [
+        "05145"
+      ],
+      "dataset_hash": "31be845097d900f2968da95503deeb1dc21ebc8cad51cdcf3f9ba76d1d05635a"
+    },
+    {
+      "id": "ARMfa1776d2e30645618de1294b1c629fd5",
+      "name": "Russellville",
+      "classification": "First Class",
+      "place_fips": "61670",
+      "county_ids": [
+        "05115"
+      ],
+      "dataset_hash": "c5ed52f23bf16c2aab972d4d9e958e8a5ed69a8f94d2fd7a307d6c769f6d6c10"
+    },
+    {
+      "id": "ARMeaedd237498f4009874eb344b873be42",
+      "name": "Saint Charles",
+      "classification": "Incorporated",
+      "place_fips": "61940",
+      "county_ids": [
+        "05001"
+      ],
+      "dataset_hash": "466922255c46a040a83c0833b0c95c0cf156832748c0cf4ef39a140b878e2bd1"
+    },
+    {
+      "id": "ARM94cde09d1f3a443eab932d0e3896f97f",
+      "name": "Saint Francis",
+      "classification": "Second Class",
+      "place_fips": "61970",
+      "county_ids": [
+        "05021"
+      ],
+      "dataset_hash": "3d91b430c25170a91fb8c36d06409f13f209615687fef4f5433f6af255cf0aec"
+    },
+    {
+      "id": "ARMbd59ebc783e6402e9ce1b451d0fd4c98",
+      "name": "Saint Joe",
+      "classification": "Incorporated",
+      "place_fips": "62030",
+      "county_ids": [
+        "05129"
+      ],
+      "dataset_hash": "8776a0c1bb20dcabfa871cf10eafd5de672f7cbe832f04041576b0b32362d238"
+    },
+    {
+      "id": "ARMc5f06bd256384180a7141ea6e1e62ed4",
+      "name": "Saint Paul",
+      "classification": "Incorporated",
+      "place_fips": "62060",
+      "county_ids": [
+        "05087"
+      ],
+      "dataset_hash": "c8345b68a07190c3d6421e270a3457e0910a21ed7049eed0d5bfcf237df58cdc"
+    },
+    {
+      "id": "ARMe46950e0bfd443e3b2799d8c207f6f54",
+      "name": "Salem",
+      "classification": "First Class",
+      "place_fips": "62150",
+      "county_ids": [
+        "05049"
+      ],
+      "dataset_hash": "b979ba0eda2e02b0fb2b58cf19f4704adf9e06652c38d985f104846ed9e0398b"
+    },
+    {
+      "id": "ARMc813999460f345a3b3f53c068d8df417",
+      "name": "Salesville",
+      "classification": "Second Class",
+      "place_fips": "62240",
+      "county_ids": [
+        "05005"
+      ],
+      "dataset_hash": "f7b661e9b54f1b33de5c43b89247a64753fd1cb25ce0627b7e25e3e50af70fe3"
+    },
+    {
+      "id": "ARMefca0ca10cb345c6997919983bde8d6d",
+      "name": "Scranton",
+      "classification": "Second Class",
+      "place_fips": "62960",
+      "county_ids": [
+        "05083"
+      ],
+      "dataset_hash": "ce9c599c4a59491641c05251002c02bfb44db967c494cd5e9bf65c33b96e91ff"
+    },
+    {
+      "id": "ARM5699c04aa0ed4c2dbf6ab56877a638dc",
+      "name": "Searcy",
+      "classification": "First Class",
+      "place_fips": "63020",
+      "county_ids": [
+        "05145"
+      ],
+      "dataset_hash": "f3e541b48c636b0f15c7aecfbb72ff1852500d220ed12a009b1f459411c59f5e"
+    },
+    {
+      "id": "ARM9f4e7def905343e09a16d7bb579e98d3",
+      "name": "Sedgwick",
+      "classification": "Incorporated",
+      "place_fips": "63110",
+      "county_ids": [
+        "05031",
+        "05055",
+        "05075"
+      ],
+      "dataset_hash": "f48456550b5f499125de2cee379b5fadfe523902ce03cd1961e84bf8b4c01e96"
+    },
+    {
+      "id": "ARM8b8af364c5de4ece900cdbf2f7d88ede",
+      "name": "Shannon Hills",
+      "classification": "Second Class",
+      "place_fips": "63470",
+      "county_ids": [
+        "05119",
+        "05125"
+      ],
+      "dataset_hash": "a37c82d744adb34f222f6b60113fce71f406ef31a5b1134a4164a77f0a3d9c2f"
+    },
+    {
+      "id": "ARMce2c94a75ace42e69977dd9b54d25ee1",
+      "name": "Sheridan",
+      "classification": "First Class",
+      "place_fips": "63710",
+      "county_ids": [
+        "05053"
+      ],
+      "dataset_hash": "8f4c8d76d1d0175ba0e7c2e819056fe2278a99df73f1a12db4fd7cb6fd8a396a"
+    },
+    {
+      "id": "ARM9de40262c6c54f53addf661b43dc47e3",
+      "name": "Sherrill",
+      "classification": "Incorporated",
+      "place_fips": "63740",
+      "county_ids": [
+        "05069"
+      ],
+      "dataset_hash": "578b9a4163d4734a1260031a50bdd95ed843b8f0cd47f9c31b77968015a32e1a"
+    },
+    {
+      "id": "ARM793f5738f8824854823cc8ad6ccd3e46",
+      "name": "Sherwood",
+      "classification": "First Class",
+      "place_fips": "63800",
+      "county_ids": [
+        "05119"
+      ],
+      "dataset_hash": "3ed6b7cc926d8709e389473b6f5aaaa176beaddb13468cfc0ad23b4b5e701839"
+    },
+    {
+      "id": "ARM5634ac7aa4ba41418e7f395b5c05d0ff",
+      "name": "Shirley",
+      "classification": "Incorporated",
+      "place_fips": "63980",
+      "county_ids": [
+        "05141"
+      ],
+      "dataset_hash": "c0b2417489ec719b6643c5af9bfc3891d515c3c914c87a9dbda33d8facb9d5fb"
+    },
+    {
+      "id": "ARM9fd72e2cd2b8446797661db3b3bfc88a",
+      "name": "Sidney",
+      "classification": "Incorporated",
+      "place_fips": "64280",
+      "county_ids": [
+        "05135"
+      ],
+      "dataset_hash": "21cc935ee3cb378dcf88a4dbd5eca770e4b740e2795188e12385cee962974a6e"
+    },
+    {
+      "id": "ARM42a8f393f9f3407a96b80a615a59c9ac",
+      "name": "Siloam Springs",
+      "classification": "First Class",
+      "place_fips": "64370",
+      "county_ids": [
+        "05007"
+      ],
+      "dataset_hash": "a339d85dbc4dfe3d43281c47e9e4c9a7a5e97189ccd78cfb6003257996164fb9"
+    },
+    {
+      "id": "ARM23a5b62652884bd0a4586a2d92575000",
+      "name": "Smackover",
+      "classification": "Second Class",
+      "place_fips": "64730",
+      "county_ids": [
+        "05103",
+        "05139"
+      ],
+      "dataset_hash": "b3963985768238d76b3ef3a8a41985035a3d97dd10ee8f85d275c67b5bbf3667"
+    },
+    {
+      "id": "ARMed768a9de6dd47739ac4e01afb836334",
+      "name": "Smithville",
+      "classification": "Incorporated",
+      "place_fips": "64910",
+      "county_ids": [
+        "05075"
+      ],
+      "dataset_hash": "34bd56b51e18e43ce97a13c1d0faea57360dab594230c045dc0e9c690bafcfb3"
+    },
+    {
+      "id": "ARM4c7a0aab6d6c4c138c42f7fb54b860a1",
+      "name": "South Lead Hill",
+      "classification": "Incorporated",
+      "place_fips": "65480",
+      "county_ids": [
+        "05009"
+      ],
+      "dataset_hash": "ddae54cd64925c9ad621715c7632e7cc53bcc60ed930bee3bf0123e6b3c4e170"
+    },
+    {
+      "id": "ARMe9f3df4faa0848db90e029679d98c88a",
+      "name": "Southside",
+      "classification": "Second Class",
+      "place_fips": "65630",
+      "county_ids": [
+        "05063"
+      ],
+      "dataset_hash": "cd64019c55526d4be81d8d15f487dfce83124cd87813a7b9ff6557f84b792b3a"
+    },
+    {
+      "id": "ARM9c2218781d8b42c8b2a859952a5b6fff",
+      "name": "Sparkman",
+      "classification": "Second Class",
+      "place_fips": "65900",
+      "county_ids": [
+        "05039"
+      ],
+      "dataset_hash": "bcfaee98ea84634e39d439710e86e064ecc23abe22f8a402e7893cc0a75cd672"
+    },
+    {
+      "id": "ARM18defa0254114c588a83d025f6dfc9a1",
+      "name": "Springdale",
+      "classification": "First Class",
+      "place_fips": "66080",
+      "county_ids": [
+        "05007",
+        "05143"
+      ],
+      "dataset_hash": "d2392283dfe08fbccc4df2f466394d54369a4c1e0242b2c6d2aaf5eab9780bff"
+    },
+    {
+      "id": "ARM8024808a622e43e49c25156d6f0b44d4",
+      "name": "Springtown",
+      "classification": "Incorporated",
+      "place_fips": "66200",
+      "county_ids": [
+        "05007"
+      ],
+      "dataset_hash": "dd32c5d367c23c253797d65974ec546a5db6823c23affbf98108707cccfc98ca"
+    },
+    {
+      "id": "ARM573190091a0d4597aabe34964aede856",
+      "name": "Stamps",
+      "classification": "Second Class",
+      "place_fips": "66320",
+      "county_ids": [
+        "05073"
+      ],
+      "dataset_hash": "70d858ff9c0b3ba6f17bd8c0f74d5dcf0a893f176ea7b645ae9cdf11aa2d982f"
+    },
+    {
+      "id": "ARM44ae3d99715c4e22818945b4bcc80588",
+      "name": "Star City",
+      "classification": "Second Class",
+      "place_fips": "66440",
+      "county_ids": [
+        "05079"
+      ],
+      "dataset_hash": "c018816b9f296e2fbddfada5a70db4c66c1b7661f8182ba897bbfb737e54c99e"
+    },
+    {
+      "id": "ARM65a306cd3f3047a4b9ceb7fa80bd2bb8",
+      "name": "Stephens",
+      "classification": "Second Class",
+      "place_fips": "66860",
+      "county_ids": [
+        "05103"
+      ],
+      "dataset_hash": "971e8fcbf5265e730e0e4969f5ecb7ae4e264a2ecee33fe01e0299e3e99713fc"
+    },
+    {
+      "id": "ARM90befd69fa39412fb75adf9d77de0d20",
+      "name": "Strawberry",
+      "classification": "Incorporated",
+      "place_fips": "67250",
+      "county_ids": [
+        "05075"
+      ],
+      "dataset_hash": "c714a29f1e8d78c7e485a32bd0988c5c0b6493de58dc630a18da858f33bb02a6"
+    },
+    {
+      "id": "ARMae9422a27da34587b3f4b52f84a0221e",
+      "name": "Strong",
+      "classification": "Second Class",
+      "place_fips": "67370",
+      "county_ids": [
+        "05139"
+      ],
+      "dataset_hash": "9c48c4adad16cabc1b3a18b41e867b552bd80a256d0c0c3783135b21a73be511"
+    },
+    {
+      "id": "ARMd5308430ad0a4c9fb06f7233009ed592",
+      "name": "Stuttgart",
+      "classification": "First Class",
+      "place_fips": "67490",
+      "county_ids": [
+        "05001"
+      ],
+      "dataset_hash": "8a76fef4b0e7c5db8e06b7ca57bb452074508635f08a9ec5b4e18eb2ca38e763"
+    },
+    {
+      "id": "ARM3fad384030454b98a7ce56b6257ca982",
+      "name": "Subiaco",
+      "classification": "Incorporated",
+      "place_fips": "67520",
+      "county_ids": [
+        "05083"
+      ],
+      "dataset_hash": "c76334bb08275a232e7ef87ae6272f609ebc5a8df43fbf1e93581d2870d83fc6"
+    },
+    {
+      "id": "ARM95623b034e1d424485a1f7d0d9a305d2",
+      "name": "Success",
+      "classification": "Incorporated",
+      "place_fips": "67550",
+      "county_ids": [
+        "05021"
+      ],
+      "dataset_hash": "d5005ee4eadb4228f51ac885e6dd386c7b389d2ab4d50ce2477c1ed7333fa152"
+    },
+    {
+      "id": "ARMa980ae52d7ee41919d8b1a7f8c18e029",
+      "name": "Sulphur Rock",
+      "classification": "Second Class",
+      "place_fips": "67730",
+      "county_ids": [
+        "05063"
+      ],
+      "dataset_hash": "9985def56fc1828821be83054f0f532282d26de245b684fe51dbc230007bbd05"
+    },
+    {
+      "id": "ARM0f7138c305af40918619052921aa37cc",
+      "name": "Sulphur Springs",
+      "classification": "Second Class",
+      "place_fips": "67760",
+      "county_ids": [
+        "05007"
+      ],
+      "dataset_hash": "b490d606114336492244900012b7ff339377ffda78befc19d8e8366da9a480ce"
+    },
+    {
+      "id": "ARM233b31eb06fc42deb27720046fb55567",
+      "name": "Summit",
+      "classification": "Second Class",
+      "place_fips": "67940",
+      "county_ids": [
+        "05089"
+      ],
+      "dataset_hash": "dcdae957fc9aa2c1bc8134c74f9d71dce4c67b191bfb5b141726c79dbafab549"
+    },
+    {
+      "id": "ARMd1e177fec1744b0f87a0d61c1ddb4d4f",
+      "name": "Sunset",
+      "classification": "Incorporated",
+      "place_fips": "68060",
+      "county_ids": [
+        "05035"
+      ],
+      "dataset_hash": "c18eacc278db04bb853bb4e3188cc88018725c1bafb7bccd625ed0fbe3b9a933"
+    },
+    {
+      "id": "ARM02b16947387f4bde911cd9c203bd0c9b",
+      "name": "Swifton",
+      "classification": "Second Class",
+      "place_fips": "68360",
+      "county_ids": [
+        "05067"
+      ],
+      "dataset_hash": "63863fc1b4c00f9ce2fb851d9943640e2de68f941c6d8548b31f9f01f92badba"
+    },
+    {
+      "id": "ARM5de8aed0937847a0a00454519c65b50d",
+      "name": "Taylor",
+      "classification": "Second Class",
+      "place_fips": "68660",
+      "county_ids": [
+        "05027"
+      ],
+      "dataset_hash": "1bffa3c23be449c284cfb47e4226a20126c908c4cb52c9921c4c7856919cbd6e"
+    },
+    {
+      "id": "ARMc356855dbb7f44b0a2166b30318bb5eb",
+      "name": "Texarkana",
+      "classification": "First Class",
+      "place_fips": "68810",
+      "county_ids": [
+        "05091"
+      ],
+      "dataset_hash": "9aee0c457b328b8dd04c72e5dd03477bc729b7fc93c33253b53d1425f8c984d9"
+    },
+    {
+      "id": "ARM7956e39fa4d9450f9376e769111959b3",
+      "name": "Thornton",
+      "classification": "Second Class",
+      "place_fips": "69050",
+      "county_ids": [
+        "05013"
+      ],
+      "dataset_hash": "5976453ee9aa15ce588b0b467115e4c5d9c0cd54bfd8eeeaff07b464074c9167"
+    },
+    {
+      "id": "ARM37cea50151c64158ae9785af5b71a19c",
+      "name": "Tillar",
+      "classification": "Incorporated",
+      "place_fips": "69230",
+      "county_ids": [
+        "05041",
+        "05043"
+      ],
+      "dataset_hash": "ece0b6b3c0395c59b7c6581b2ce1f94a2de0eeeb2d90c149fe64d4bf09402eba"
+    },
+    {
+      "id": "ARM1265aad50f7843d2860d61f22ebbe152",
+      "name": "Tinsman",
+      "classification": "Incorporated",
+      "place_fips": "69350",
+      "county_ids": [
+        "05013"
+      ],
+      "dataset_hash": "9d56070d8b148b90344007ca04b5bc81450933b9e10ce5f849d1b02f06fabaaa"
+    },
+    {
+      "id": "ARM9fb2e9758dd944aebf55d8ac9332015a",
+      "name": "Tollette",
+      "classification": "Incorporated",
+      "place_fips": "69500",
+      "county_ids": [
+        "05061"
+      ],
+      "dataset_hash": "bf679c2cca76f9f80f0a1344c95e5b2f11276d0726a4a6dbf60571e393538d39"
+    },
+    {
+      "id": "ARM30eaf4eff592401b8b3f4e1c2e74710e",
+      "name": "Tontitown",
+      "classification": "First Class",
+      "place_fips": "69740",
+      "county_ids": [
+        "05143"
+      ],
+      "dataset_hash": "5a1df8bfe89ee01ed5cd78352ab330899c56198ba1ec712795733d4d9abbc55b"
+    },
+    {
+      "id": "ARM080bb685958a4c5abff2acc4a5b6d01a",
+      "name": "Traskwood",
+      "classification": "Second Class",
+      "place_fips": "69830",
+      "county_ids": [
+        "05059",
+        "05125"
+      ],
+      "dataset_hash": "03ba9e7963638f7b85a96120b07e0059032db643264327125ecb3194845ca7b3"
+    },
+    {
+      "id": "ARMf03691c6fb9a450eb2399665a5880778",
+      "name": "Trumann",
+      "classification": "First Class",
+      "place_fips": "70010",
+      "county_ids": [
+        "05111"
+      ],
+      "dataset_hash": "7914e4d7ea35a81460219276ce60118baffa6892d3ee7f68ab6f692cc6a85b61"
+    },
+    {
+      "id": "ARM68674b266c3e4f1da24254c4dcc2160f",
+      "name": "Tuckerman",
+      "classification": "First Class",
+      "place_fips": "70100",
+      "county_ids": [
+        "05067"
+      ],
+      "dataset_hash": "78d4d88eef4e3a14b9e0b98c9510a3804fbdf7d784ea7468bf71ae9ec06f97fd"
+    },
+    {
+      "id": "ARM6c6cf37d473a4915b67e173633f9c929",
+      "name": "Tull",
+      "classification": "Incorporated",
+      "place_fips": "70220",
+      "county_ids": [
+        "05053",
+        "05125"
+      ],
+      "dataset_hash": "8e225b3c7955b4cac99db0968468aa558ee469932b1f15d9c93f8c0b68d8fc0c"
+    },
+    {
+      "id": "ARMfca419ea9e15401e856a172a82918b0b",
+      "name": "Tupelo",
+      "classification": "Incorporated",
+      "place_fips": "70340",
+      "county_ids": [
+        "05067"
+      ],
+      "dataset_hash": "513348c65f80b1522c21b9c5e5b703bc12e44e1fc2606495de5dc55d5d1c1e86"
+    },
+    {
+      "id": "ARM46e281087ab24b73847797577d9dd7b9",
+      "name": "Turrell",
+      "classification": "Second Class",
+      "place_fips": "70430",
+      "county_ids": [
+        "05035"
+      ],
+      "dataset_hash": "56a32ffc43a8a7adfabdb65e8f76539ce3b62b483b0b9053a84295596c02a476"
+    },
+    {
+      "id": "ARM10f8836fa694402d911403559480faea",
+      "name": "Twin Groves",
+      "classification": "Incorporated",
+      "place_fips": "70540",
+      "county_ids": [
+        "05045"
+      ],
+      "dataset_hash": "518c4ac152a7b5dfb1afd77140505cd10f28cb0b4e24865e00ef26288aed3ad8"
+    },
+    {
+      "id": "ARMbab5e6ee7c614b25a14bfc738f074588",
+      "name": "Tyronza",
+      "classification": "Second Class",
+      "place_fips": "70700",
+      "county_ids": [
+        "05111"
+      ],
+      "dataset_hash": "5dc8764b038c1566a99e078cd9882f7c7564ecf69b7ff2c1f1af81adf91f7442"
+    },
+    {
+      "id": "ARM48cacdcc2603465e83631e1fc6750aa7",
+      "name": "Ulm",
+      "classification": "Incorporated",
+      "place_fips": "70760",
+      "county_ids": [
+        "05117"
+      ],
+      "dataset_hash": "537d9cea46f54e96b392e53a17cba95e869350ffa60d4aef177fd6569aea7dfc"
+    },
+    {
+      "id": "ARM60fc3e28ffa64dfab5f649d926ad1979",
+      "name": "Valley Springs",
+      "classification": "Incorporated",
+      "place_fips": "71390",
+      "county_ids": [
+        "05009"
+      ],
+      "dataset_hash": "0d882f9e2f1eb3ad2a14a242bfd8339ec150e32babf9726ded295d9207082d88"
+    },
+    {
+      "id": "ARM7b4bc4e171f9429283d71f2c7d5b25bf",
+      "name": "Van Buren",
+      "classification": "First Class",
+      "place_fips": "71480",
+      "county_ids": [
+        "05033",
+        "05131"
+      ],
+      "dataset_hash": "15fea15c0a48282bca1740dac7b5970d9c039a631c0f3c901a6939eb73cdace5"
+    },
+    {
+      "id": "ARMac29f42e13874007933734821ba52727",
+      "name": "Vandervoort",
+      "classification": "Incorporated",
+      "place_fips": "71510",
+      "county_ids": [
+        "05113"
+      ],
+      "dataset_hash": "1cd278f8ee9499727263d6209591264b6b94ce2f43c25b6a33c76e55b847c7d5"
+    },
+    {
+      "id": "ARM86593bdd04f04f88bd3e5ee3e46e1f94",
+      "name": "Victoria",
+      "classification": "Incorporated",
+      "place_fips": "71900",
+      "county_ids": [
+        "05093"
+      ],
+      "dataset_hash": "6891857ee0de7088ef4a933d01dc3eb961a5609c876cee528516ab1f21f302df"
+    },
+    {
+      "id": "ARM330fa29dbec4456f833ee7b6c14c2588",
+      "name": "Vilonia",
+      "classification": "Second Class",
+      "place_fips": "71960",
+      "county_ids": [
+        "05045"
+      ],
+      "dataset_hash": "2a6ce2da4372b091c8073a7e1cbb4149cdfedad0db33da296182661e94892ed9"
+    },
+    {
+      "id": "ARMb92acd5ba6124d0ea64d46e0a84f4cf4",
+      "name": "Viola",
+      "classification": "Incorporated",
+      "place_fips": "72140",
+      "county_ids": [
+        "05049"
+      ],
+      "dataset_hash": "5f2388810014fb6c1e2effb8d9e1299363899c67723e8b71d7b1d740e65bc0de"
+    },
+    {
+      "id": "ARMec275f10a27d4be4aee14e1b73ad1fe4",
+      "name": "Wabbaseka",
+      "classification": "Incorporated",
+      "place_fips": "72230",
+      "county_ids": [
+        "05069"
+      ],
+      "dataset_hash": "a9640c36393086c8961e5c66dde52ac14c70cacf757f4ada9c50a6dc420f4c27"
+    },
+    {
+      "id": "ARM0838fb60d009478682675dedd2f13705",
+      "name": "Waldenburg",
+      "classification": "Incorporated",
+      "place_fips": "72320",
+      "county_ids": [
+        "05111"
+      ],
+      "dataset_hash": "883840a89c70bd3f05ca402d09a5c69701692d3e893803554b0d9db4860532ca"
+    },
+    {
+      "id": "ARM47574295e8d04fde8a0eaf2ed2ada494",
+      "name": "Waldo",
+      "classification": "Second Class",
+      "place_fips": "72350",
+      "county_ids": [
+        "05027"
+      ],
+      "dataset_hash": "97b1d57ea5319e434091b6546daca80ab9e3a275fc1cdf33f8069af50d592b3a"
+    },
+    {
+      "id": "ARM8138e7f3140943e7862e4f4347c45e23",
+      "name": "Waldron",
+      "classification": "First Class",
+      "place_fips": "72380",
+      "county_ids": [
+        "05127"
+      ],
+      "dataset_hash": "5ff80d42514f027b1b273b19098ade68ed2333c36947261540e7eaf639928612"
+    },
+    {
+      "id": "ARMeac661ec7d374321bfc366ecb927d165",
+      "name": "Walnut Ridge",
+      "classification": "First Class",
+      "place_fips": "72890",
+      "county_ids": [
+        "05075"
+      ],
+      "dataset_hash": "118707aaa568fa2df0f384d1fc2555e540700b179918c7ecf5de4e1eb562b853"
+    },
+    {
+      "id": "ARM822d29ba3dd44c8abff21dd5f016d29d",
+      "name": "Ward",
+      "classification": "First Class",
+      "place_fips": "73130",
+      "county_ids": [
+        "05085"
+      ],
+      "dataset_hash": "21948fe020b8022cda86a7a50ffa15ca385c6f24df3786a9cc7c7f30d58baf67"
+    },
+    {
+      "id": "ARMf0d03d8e59ab4847894e27a995ce54df",
+      "name": "Warren",
+      "classification": "First Class",
+      "place_fips": "73310",
+      "county_ids": [
+        "05011"
+      ],
+      "dataset_hash": "5e313c99702769a496cdcb4e781893c0dc4a4f57264bd031eafbf14f84b23673"
+    },
+    {
+      "id": "ARM70e2acab406b431fb62df99340e97b2a",
+      "name": "Washington",
+      "classification": "Second Class",
+      "place_fips": "73370",
+      "county_ids": [
+        "05057"
+      ],
+      "dataset_hash": "a50aaa19b581926f4c822cfcfc257ce3ead48ba74c29cdd9357c242ea15869f7"
+    },
+    {
+      "id": "ARM1d88bb9458d04ec4829a6ac905471115",
+      "name": "Watson",
+      "classification": "Second Class",
+      "place_fips": "73550",
+      "county_ids": [
+        "05041"
+      ],
+      "dataset_hash": "ea5b49797628e2954d5dc40ad9dc36faeb6d67e594ab42bf9f721b61b005d2a4"
+    },
+    {
+      "id": "ARM8b71a0eef52d40b2801731d0536b0621",
+      "name": "Weiner",
+      "classification": "Second Class",
+      "place_fips": "73940",
+      "county_ids": [
+        "05111"
+      ],
+      "dataset_hash": "f99da6f90a4fa7c965f2748cfd8a2d4683dd8afb8b2d0db7abc04ed6520c6088"
+    },
+    {
+      "id": "ARM8619ee3777ac48ed9078838616893be0",
+      "name": "Weldon",
+      "classification": "Incorporated",
+      "place_fips": "74000",
+      "county_ids": [
+        "05067"
+      ],
+      "dataset_hash": "a9e5579d6e542291dd90e71314cf314184d260c6fb3a9f9278983eee36adb163"
+    },
+    {
+      "id": "ARMac6eb364ea4e455d89f947e6aaf445e1",
+      "name": "West Fork",
+      "classification": "First Class",
+      "place_fips": "74360",
+      "county_ids": [
+        "05143"
+      ],
+      "dataset_hash": "133267f85dbb99fc2598c73965ad13ad365e9386661a853512d979d493a0e6c2"
+    },
+    {
+      "id": "ARM671a2108c1b649cc8ea904bafd327cf6",
+      "name": "West Memphis",
+      "classification": "First Class",
+      "place_fips": "74540",
+      "county_ids": [
+        "05035"
+      ],
+      "dataset_hash": "0e2007933c26f9bba68fd65b3bf2ac23ba43a1cc8ab00aa3317776c4943a129c"
+    },
+    {
+      "id": "ARMb7ce2898d77d446287f36ba09cc8f089",
+      "name": "West Point",
+      "classification": "Incorporated",
+      "place_fips": "74660",
+      "county_ids": [
+        "05145"
+      ],
+      "dataset_hash": "1375a333f0d8e07ee54373cdb2b211f0f40f81189b111cdac369fffd9ad44ec1"
+    },
+    {
+      "id": "ARMafd918b9e898403cab74dfe25c89aab8",
+      "name": "Western Grove",
+      "classification": "Incorporated",
+      "place_fips": "74330",
+      "county_ids": [
+        "05101"
+      ],
+      "dataset_hash": "8810dd6e17d0abf2e0c52c9ceec263d5d95d49735f7017622f2f932aec93ff5c"
+    },
+    {
+      "id": "ARMd5e54fe447df4464b1f4e93f72c18690",
+      "name": "Wheatley",
+      "classification": "Incorporated",
+      "place_fips": "74840",
+      "county_ids": [
+        "05077",
+        "05095",
+        "05123"
+      ],
+      "dataset_hash": "4b9480d453a9b582363c8901b1388d0f95363bda9896cb9ed54c36e33dab6565"
+    },
+    {
+      "id": "ARM6722f9dfa026428a960d17e74274ff91",
+      "name": "Whelen Springs",
+      "classification": "Incorporated",
+      "place_fips": "74930",
+      "county_ids": [
+        "05019"
+      ],
+      "dataset_hash": "e63fea8884cffcc1acda2fc95204523645b825d5043a6a95eabc555a12fbb0db"
+    },
+    {
+      "id": "ARMc890dd45e1c04406b0060c3ac78d2ddf",
+      "name": "White Hall",
+      "classification": "First Class",
+      "place_fips": "75170",
+      "county_ids": [
+        "05069"
+      ],
+      "dataset_hash": "aea8ed2cbb54ae9a5c21548b73555d3c0f2c94f8bcac78ce7f734a020d089aa4"
+    },
+    {
+      "id": "ARM4de0b96e4b774a2d8e79eeb0e8e38954",
+      "name": "Wickes",
+      "classification": "Incorporated",
+      "place_fips": "75500",
+      "county_ids": [
+        "05113"
+      ],
+      "dataset_hash": "e62ab0e019724e71f7052a35e90f18aab6ed7c55f9fe1c91827d014f2045208b"
+    },
+    {
+      "id": "ARM902478df75ea4002b802a97e748d65b9",
+      "name": "Widener",
+      "classification": "Incorporated",
+      "place_fips": "75560",
+      "county_ids": [
+        "05123"
+      ],
+      "dataset_hash": "47c16fe8239684f1c41780d4a00026f98abd184279730f1c38bcb68bf0073ae5"
+    },
+    {
+      "id": "ARMac61340f3293467f93a19b7c11f9f051",
+      "name": "Wiederkehr Village",
+      "classification": "Second Class",
+      "place_fips": "75570",
+      "county_ids": [
+        "05047"
+      ],
+      "dataset_hash": "24223808cfda5499003e9b0957640ee392d20ef5c3f8cae49704688f34ada0eb"
+    },
+    {
+      "id": "ARMb29a1166dcde4a3eace13ce9dff00beb",
+      "name": "Williford",
+      "classification": "Incorporated",
+      "place_fips": "75740",
+      "county_ids": [
+        "05135"
+      ],
+      "dataset_hash": "5a24e632ef874e4bb22ddf3d44005cbe5d3974366da918946769e1bd2b88d0d8"
+    },
+    {
+      "id": "ARM16797b349e064d33b34a82e53d74c099",
+      "name": "Willisville",
+      "classification": "Incorporated",
+      "place_fips": "75770",
+      "county_ids": [
+        "05099"
+      ],
+      "dataset_hash": "7b2000dad69fc13381a406f804fc8ea6534d8d770f91b20080a08a66558fdfa5"
+    },
+    {
+      "id": "ARMb74cd25c6be54d3186c15c70a5b70d88",
+      "name": "Wilmar",
+      "classification": "Second Class",
+      "place_fips": "75860",
+      "county_ids": [
+        "05043"
+      ],
+      "dataset_hash": "be5b77e7a8aa5ea20e2ca93de6d76918471d1c78afd6079a2ca827791512d244"
+    },
+    {
+      "id": "ARM07895fe433fc461c96b286291b523682",
+      "name": "Wilmot",
+      "classification": "Second Class",
+      "place_fips": "75890",
+      "county_ids": [
+        "05003"
+      ],
+      "dataset_hash": "1d93d62a8eea5984f49f8e595d7f2fba06bfbdf8a68bd2933f87ffb4a3f8b364"
+    },
+    {
+      "id": "ARMf7c666dfcf5f4f58bf2472d2e66e6e61",
+      "name": "Wilson",
+      "classification": "Second Class",
+      "place_fips": "75920",
+      "county_ids": [
+        "05093"
+      ],
+      "dataset_hash": "1ee6d103c172a98cf8910e9feea53983e3d8047b7691884e8c1a7b1a920c9c24"
+    },
+    {
+      "id": "ARM154b39629e0149daaa0dabbf731feb95",
+      "name": "Wilton",
+      "classification": "Second Class",
+      "place_fips": "75980",
+      "county_ids": [
+        "05081"
+      ],
+      "dataset_hash": "463565798d86f13ab444ed47752b28f9d13f2826bafb0ff7f41e4fe81540274d"
+    },
+    {
+      "id": "ARM82428d6732ef4b2d858575be923fb47a",
+      "name": "Winchester",
+      "classification": "Incorporated",
+      "place_fips": "76010",
+      "county_ids": [
+        "05043"
+      ],
+      "dataset_hash": "ea69c9c9515cfcd4c549d786f677c430254210cb22765c4cf171bb39528331e4"
+    },
+    {
+      "id": "ARM6b0b1f49028e403eaf6e173fad7e6bcc",
+      "name": "Winslow",
+      "classification": "Second Class",
+      "place_fips": "76190",
+      "county_ids": [
+        "05143"
+      ],
+      "dataset_hash": "290e0bf7b15f02e63c3e76ba978062be55417b20d276d1e27c9a64a21de0629b"
+    },
+    {
+      "id": "ARM83518db08b874e8f94548fc4ed1480c1",
+      "name": "Winthrop",
+      "classification": "Incorporated",
+      "place_fips": "76250",
+      "county_ids": [
+        "05081"
+      ],
+      "dataset_hash": "104eaddd8f4090cfb9a0192134ea23b268695afd64499a016312f066fbcdf0f8"
+    },
+    {
+      "id": "ARM243a3f58dab34a04981f3c226fce49f8",
+      "name": "Wooster",
+      "classification": "Second Class",
+      "place_fips": "76820",
+      "county_ids": [
+        "05045"
+      ],
+      "dataset_hash": "118bd8e2876ee074e5357d66b1a03b2c0a6ba9b3f05ecf1dc144d6cc3ed2e26b"
+    },
+    {
+      "id": "ARMda8212e71004417da35b0d30388e5ec9",
+      "name": "Wrightsville",
+      "classification": "Second Class",
+      "place_fips": "76970",
+      "county_ids": [
+        "05119"
+      ],
+      "dataset_hash": "8b33a2d5779f6124e45a84af8b7003a8ec582ba5261ed510d26350f2c93ae522"
+    },
+    {
+      "id": "ARM383bcd8a00484ade85cdece533313228",
+      "name": "Wynne",
+      "classification": "First Class",
+      "place_fips": "77090",
+      "county_ids": [
+        "05037"
+      ],
+      "dataset_hash": "17fa7903f72904189e3481359e41ff9a81c640e30ab93fec07c0d7a17c8758f4"
+    },
+    {
+      "id": "ARM5c5f6cf9085c4ed78200c5ac0266ecc2",
+      "name": "Yellville",
+      "classification": "Second Class",
+      "place_fips": "77330",
+      "county_ids": [
+        "05089"
+      ],
+      "dataset_hash": "ca172c4d1cd0f11c96ce0adfc66483413c2fd8b7b0fe4cc8afab89f4df9b0434"
+    },
+    {
+      "id": "ARMa3587c93b51f4f96b227b38a428c8614",
+      "name": "Zinc",
+      "classification": "Incorporated",
+      "place_fips": "77600",
+      "county_ids": [
+        "05009"
+      ],
+      "dataset_hash": "624cb8b7ec040f252ca465b2e94bdbf09e1a05964d7643c8247cf20d9ee544ac"
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "run_id": "eebaef77-5574-4aae-acfd-e056c9de050a",
+  "captured": true,
+  "status": "success",
+  "record_count": 0,
+  "collector": "sam-search",
+  "kind": "opportunities",
+  "query_url": "https://api.sam.gov/opportunities/v2/search?postedFrom=10%2F01%2F2026&postedTo=10%2F01%2F2026&state=AR&ncode=561720&limit=100&offset=0",
+  "filters": {
+    "postedFrom": "10/01/2026",
+    "postedTo": "10/01/2026",
+    "state": "AR",
+    "ncode": "561720",
+    "limit": 100,
+    "offset": 0
+  },
+  "upstream_status": 200,
+  "complete_for_query": true,
+  "state": "response_captured",
+  "response": {
+    "totalRecords": 0,
+    "limit": 100,
+    "offset": 0,
+    "opportunitiesData": [],
+    "links": [
+      {
+        "rel": "self",
+        "href": "https://api.sam.gov/prod/opportunities/v2/search?postedFrom=10%2F01%2F2026&postedTo=10%2F01%2F2026&state=AR&ncode=561720&limit=100&offset=0"
+      }
+    ]
+  }
+}

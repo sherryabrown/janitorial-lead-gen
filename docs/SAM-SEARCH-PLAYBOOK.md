@@ -62,8 +62,11 @@ The real SAM Opportunities and Contract Awards APIs were tested successfully wit
 From this repository, with Node and an authenticated Supabase CLI:
 
 ```powershell
-node scripts/sam-search.mjs opportunities '{"postedFrom":"09/17/2025","postedTo":"09/16/2026","state":"AR","ncode":"561720","limit":1000,"offset":0}'
-node scripts/sam-search.mjs awards '{"dateSigned":"[09/17/2025,09/16/2026]","placeOfPerformStateCode":"AR","naicsCode":"561720","limit":100,"offset":0}'
+$filters = @{ postedFrom='09/17/2025'; postedTo='09/16/2026'; state='AR'; ncode='561720'; limit=1000; offset=0 } | ConvertTo-Json -Compress
+$filters | node scripts/sam-search.mjs opportunities -
+
+$filters = @{ dateSigned='[09/17/2025,09/16/2026]'; placeOfPerformStateCode='AR'; naicsCode='561720'; limit=100; offset=0 } | ConvertTo-Json -Compress
+$filters | node scripts/sam-search.mjs awards -
 ```
 
 Use current, explicit dates on future runs. The examples reproduce the tested scope, not an automatically moving window.

@@ -1,0 +1,4579 @@
+{
+  "dataset_version": "2026-10-02",
+  "expected_count": 501,
+  "municipalities": [
+    {
+      "id": "ARMfc4925cb811e48919e5360986da686ef",
+      "name": "Adona",
+      "classification": "Second Class",
+      "county_ids": [
+        "05105"
+      ],
+      "dataset_hash": "5fda190308374282d15d38ae86e45f79c088cec90cc0e51c8eaa4c26786c71d5"
+    },
+    {
+      "id": "ARMa33b2d331a8244c59d49554fff673862",
+      "name": "Alexander",
+      "classification": "Second Class",
+      "county_ids": [
+        "05119",
+        "05125"
+      ],
+      "dataset_hash": "9bb44113bceb5fd258c27d362426016c8943ba5c81a6c1f4735f15d06e7a5bb8"
+    },
+    {
+      "id": "ARM5a755b918c014ef8b6bee085b0c62774",
+      "name": "Alicia",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05067",
+        "05075"
+      ],
+      "dataset_hash": "c515c40f064d0633c13dfe7f32d8ee7c940f0c94f9e09da9672217881bccde42"
+    },
+    {
+      "id": "ARM98293bae3d9d49eab068f5670eb3ea42",
+      "name": "Allport",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05085"
+      ],
+      "dataset_hash": "a24a03394e982d13fd1ee646600f3212ceba54eb94ad31ae0b941c555da1b59c"
+    },
+    {
+      "id": "ARM7dd00612cd574a728192ef490c6b6f15",
+      "name": "Alma",
+      "classification": "First Class",
+      "county_ids": [
+        "05033"
+      ],
+      "dataset_hash": "3681c0b356e37d33a564108d176088f8b0f05e7d48c2002f0e560e682ba0660d"
+    },
+    {
+      "id": "ARM8a6a181fc36141a988f3d7c89c94232b",
+      "name": "Almyra",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05001"
+      ],
+      "dataset_hash": "3bde4d09f8a9d144bc6cf8de0eaf0d83879e1a45f0d58e616396e69aa6874809"
+    },
+    {
+      "id": "ARM9364abfdb4664401a500ef0de10d5deb",
+      "name": "Alpena",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05009",
+        "05015"
+      ],
+      "dataset_hash": "a575e4f7a8fa742942c30315ff5f3cbbb42f3318d139f79492ac4e6d2ef4a7fd"
+    },
+    {
+      "id": "ARM0d23d947988b486f9a5c91b719e80874",
+      "name": "Altheimer",
+      "classification": "Second Class",
+      "county_ids": [
+        "05069"
+      ],
+      "dataset_hash": "ed152b1d1ad84265dc412dc1494dde9c24b67ae5b05eb7b308e737a6f9a4ae7a"
+    },
+    {
+      "id": "ARMe90c2704f3474294ae70fbe801616c6f",
+      "name": "Altus",
+      "classification": "Second Class",
+      "county_ids": [
+        "05047"
+      ],
+      "dataset_hash": "a6cd69c41e9d209d7167eb2d2096d409920098dadfcde3e38ef12bb52a2fffc0"
+    },
+    {
+      "id": "ARMeefacbea9ca0436bb4d1920a1126197c",
+      "name": "Amagon",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05067"
+      ],
+      "dataset_hash": "6e2c19b918e1e027d4ac64a33ec09b61cdd99350342a8c0ad163b5ee84bdf993"
+    },
+    {
+      "id": "ARMb31cc74e61b7467694640aa0beeaf7e3",
+      "name": "Amity",
+      "classification": "Second Class",
+      "county_ids": [
+        "05019",
+        "05109"
+      ],
+      "dataset_hash": "5ce2506ff7f72d14254bf93337f6ff88e9f54547d430fcbfb659270b164f86c7"
+    },
+    {
+      "id": "ARMf587303afbab4241a749ad69e5f4a0df",
+      "name": "Anthonyville",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05035"
+      ],
+      "dataset_hash": "989d30975a24b8816d93ee29f6f4c7d3fdba83571a60f723a2a19f038360f4a4"
+    },
+    {
+      "id": "ARMb60a2445755e452384d10ad4b33e704b",
+      "name": "Antoine",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05019",
+        "05109"
+      ],
+      "dataset_hash": "1a9cdcfc9f1cc9c7402a8ebc53084aec8b94ce96620c2278f8cee19c41d9420f"
+    },
+    {
+      "id": "ARMb5abcc7f3b8c4111bc30966a85ba87a3",
+      "name": "Arkadelphia",
+      "classification": "First Class",
+      "county_ids": [
+        "05019"
+      ],
+      "dataset_hash": "bcb7d217ca04ef94ea3dffce85e5adcdd2b486b61b14062e00c0b0fa16fae811"
+    },
+    {
+      "id": "ARM1b409ef723744c179873bdda98392500",
+      "name": "Arkansas City",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05041"
+      ],
+      "dataset_hash": "9964f1777771e66bed9c04cdb1168d2f1320d0678c803b5beb198614ac1c1453"
+    },
+    {
+      "id": "ARM7bad42efad5b4c54bcdf55002fc42809",
+      "name": "Ash Flat",
+      "classification": "Second Class",
+      "county_ids": [
+        "05049",
+        "05135"
+      ],
+      "dataset_hash": "da8b0eebd17d81d4b746ab337c2c27807fdaa2c3b1b910ff4f415dceec748731"
+    },
+    {
+      "id": "ARMd765da72386444d883ef32f25af758e3",
+      "name": "Ashdown",
+      "classification": "First Class",
+      "county_ids": [
+        "05081"
+      ],
+      "dataset_hash": "33b39bf8888f7d7c6978f8187c993941cddfc998a4f2273064e1103ab0961ac8"
+    },
+    {
+      "id": "ARMf80c1ef59e894bd5a1f5c6730708cdd5",
+      "name": "Atkins",
+      "classification": "First Class",
+      "county_ids": [
+        "05115"
+      ],
+      "dataset_hash": "b96264421ff4b440ceaf2f11cfcac2127266aad28793cda712045d3029efd1e6"
+    },
+    {
+      "id": "ARMcb9a7842bb06448f8a4cab97e040450b",
+      "name": "Aubrey",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05077"
+      ],
+      "dataset_hash": "e7f317d3199fff24f25ae0006deb91643b23e697e8f46edff49768e1f999fee4"
+    },
+    {
+      "id": "ARMea9fdd1d68014d9595693d75cebb2801",
+      "name": "Augusta",
+      "classification": "First Class",
+      "county_ids": [
+        "05147"
+      ],
+      "dataset_hash": "2f0b14f89efd4902d6904f63e33c9607fae7ada015e3214f75837124f238e566"
+    },
+    {
+      "id": "ARM75c80c750c5b43639a2140fd043ed98a",
+      "name": "Austin",
+      "classification": "First Class",
+      "county_ids": [
+        "05085"
+      ],
+      "dataset_hash": "0917bcb281d2248d123376d7216c37a4eaaa6389f2b5c9a9c615b15fb5a7f0b2"
+    },
+    {
+      "id": "ARM987691aa04df4a8a8b36a98689855bd0",
+      "name": "Avoca",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05007"
+      ],
+      "dataset_hash": "c2160ce93e551fe0ea9c7e61a02ddb44216a85ac7bd713f9e0d50b75b6a88567"
+    },
+    {
+      "id": "ARM99b009a6b26b42faa2ff08e15792517e",
+      "name": "Bald Knob",
+      "classification": "First Class",
+      "county_ids": [
+        "05145"
+      ],
+      "dataset_hash": "923e0fc8486236af6e0dd542afe37ea625a3fe665dc37eb0c105ba57906ce380"
+    },
+    {
+      "id": "ARMc696961a89ff4d8cb3a03a5068c4ca6c",
+      "name": "Banks",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05011"
+      ],
+      "dataset_hash": "34c997bf05b7a2e43cc986a0d2ba248fb7e4a2834ea27f4cb8c03c9054ed27ac"
+    },
+    {
+      "id": "ARM196a05f647da4739ae4e584fb59eb122",
+      "name": "Barling",
+      "classification": "First Class",
+      "county_ids": [
+        "05033",
+        "05131"
+      ],
+      "dataset_hash": "465266d445bbccea02af4d497a83dc3ddf798a47707e79efdc1df7c49ebf7d14"
+    },
+    {
+      "id": "ARM87a6a499f4d64ef3910f3db56cf9c860",
+      "name": "Bassett",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05093"
+      ],
+      "dataset_hash": "b902659aeda9c709c14b35415e23bc2da3e17fd8dfbde8bac0403a4d49d0d185"
+    },
+    {
+      "id": "ARM77d0d6c1636442f29d8bab4154839938",
+      "name": "Batesville",
+      "classification": "First Class",
+      "county_ids": [
+        "05063"
+      ],
+      "dataset_hash": "347cb617d697e356147dbfa95326082d92cad0d86e7aaaaeb7e53614d1a1fd56"
+    },
+    {
+      "id": "ARMbb675794d2364b28987a0cb54138be8d",
+      "name": "Bauxite",
+      "classification": "Second Class",
+      "county_ids": [
+        "05125"
+      ],
+      "dataset_hash": "f6a78fdeb8a60da2afa00d95052266c7a04740f68c38e172db45c4781a54bf55"
+    },
+    {
+      "id": "ARMe2d35862b3624c13a37a859a71fe46d6",
+      "name": "Bay",
+      "classification": "First Class",
+      "county_ids": [
+        "05031"
+      ],
+      "dataset_hash": "d86d29c5bc1b075dff730718484644bafc9daf828146778af780fe00e4502f13"
+    },
+    {
+      "id": "ARM9310d18e23054ff2ac397652e5b8ebf7",
+      "name": "Bearden",
+      "classification": "Second Class",
+      "county_ids": [
+        "05103"
+      ],
+      "dataset_hash": "3292eb01190ec0ebdea64720af080a7427618fd64a6f4fa71c75abed6cec91ff"
+    },
+    {
+      "id": "ARMd82294fb58414c6bb2d5c077eaac33aa",
+      "name": "Beaver",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05015"
+      ],
+      "dataset_hash": "e212a5207192c19a56618d51fb6a0222a6ffa0e1fd37b3cfec560fec3b7fc832"
+    },
+    {
+      "id": "ARMeca511cb660046d09c53152866460f9d",
+      "name": "Beebe",
+      "classification": "First Class",
+      "county_ids": [
+        "05145"
+      ],
+      "dataset_hash": "28387278bce91382c86be9bf766965f90970fb41470cd31e50e9bd9edf1ea2e2"
+    },
+    {
+      "id": "ARM11d6495e918545cebca11a209be6fa0a",
+      "name": "Beedeville",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05067"
+      ],
+      "dataset_hash": "f4b6cc01d7805efcb5727926894a7941016d31dd7848ebd2406e195d58ed5995"
+    },
+    {
+      "id": "ARM8cf9dbcc8cad42e1879eafaaefcc1ff6",
+      "name": "Bella Vista",
+      "classification": "First Class",
+      "county_ids": [
+        "05007"
+      ],
+      "dataset_hash": "61e93cabfba419dc67d65f056b26c42a6cb574927075252242954b1e15829f3a"
+    },
+    {
+      "id": "ARM47300f8fa6bb48e2b9782d9bab46ccce",
+      "name": "Bellefonte",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05009"
+      ],
+      "dataset_hash": "55041396413bca8d0fd589e3794e2cd5ee0a2532848b27a085d29142ba89cc54"
+    },
+    {
+      "id": "ARMd73011966f5b45a898eb2a848782e001",
+      "name": "Belleville",
+      "classification": "Second Class",
+      "county_ids": [
+        "05149"
+      ],
+      "dataset_hash": "7a6436f37f1518c0bdd591544d26095bff3089e68601dea447ae84aceba13ce4"
+    },
+    {
+      "id": "ARM158a23e4529341648d900263b133f013",
+      "name": "Ben Lomond",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05133"
+      ],
+      "dataset_hash": "2047876ebbb1c7a7d028fbf186d75a0eb805b43b251e6052767defbdcf9e962b"
+    },
+    {
+      "id": "ARM3cd58b005d594133b60d354d5ebfd20a",
+      "name": "Benton",
+      "classification": "First Class",
+      "county_ids": [
+        "05125"
+      ],
+      "dataset_hash": "09fd06c88b73d2baf6016522ad3485a9a0290a02d74c86e3cb37b5862b8a0563"
+    },
+    {
+      "id": "ARMb56375f8423f4799bacc7e0077e8ad59",
+      "name": "Bentonville",
+      "classification": "First Class",
+      "county_ids": [
+        "05007"
+      ],
+      "dataset_hash": "0d27a0d3242503208be393d0dfc615d141e9c4f74441ee25ca2afd2f84a3a800"
+    },
+    {
+      "id": "ARM6da0d82a46924e9086c83b5d7078e1f4",
+      "name": "Bergman",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05009"
+      ],
+      "dataset_hash": "58010284473b6bbc5165f2c5ee20e9009c01b1c1b64a9532187383f656e2d87f"
+    },
+    {
+      "id": "ARM59e65e6413ea4dca9c55c5b6cba88380",
+      "name": "Berryville",
+      "classification": "First Class",
+      "county_ids": [
+        "05015"
+      ],
+      "dataset_hash": "820e1eff0051853dc84d09891d1e1cceba3aa26515a7111766b970da9e16619e"
+    },
+    {
+      "id": "ARMcd36a237b550431e999802439db0bcd7",
+      "name": "Big Flat",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05005",
+        "05129"
+      ],
+      "dataset_hash": "2ab696e81b176a8d7ef44a6d33d58ea32e2fa781ec2a470ed4449befe905b760"
+    },
+    {
+      "id": "ARMb80ee318376d4f21905dc9593c58552b",
+      "name": "Bigelow",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05105"
+      ],
+      "dataset_hash": "3be19332aad6e188a81830d73c37d001cd1797c5a2ace1443b15b527878cb683"
+    },
+    {
+      "id": "ARMa78979daeeaa4e5cb240956a4d13e1e4",
+      "name": "Biggers",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05121"
+      ],
+      "dataset_hash": "a83367b64bc608ec33dae5af4946ec6af55729fe3f90a7177b3b7eb3b18e23f0"
+    },
+    {
+      "id": "ARMaebf3d55dfcb4fcdb9a8fffa9ce7db19",
+      "name": "Birdsong",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05093"
+      ],
+      "dataset_hash": "06a0872ee643ffc66f7d3b2a7d7a3046914f1b8276d1b2285dd1b89927b84c82"
+    },
+    {
+      "id": "ARMd452581fb9c64e2baa2a7492dced2297",
+      "name": "Biscoe",
+      "classification": "Second Class",
+      "county_ids": [
+        "05117"
+      ],
+      "dataset_hash": "7c98862b7c9c835371e6b67589504e0447aedb78c3a84b78e2b4f635063a2d9d"
+    },
+    {
+      "id": "ARMa9def274da684514aa7cfe29066f99b6",
+      "name": "Black Oak",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05031"
+      ],
+      "dataset_hash": "d4e92fb027fcc354e53663d740e032ba9181ce622ada8408c5fc0be9565b3224"
+    },
+    {
+      "id": "ARM16ae8fc2586a4d03848c9c6f78bd1b5f",
+      "name": "Black Rock",
+      "classification": "Second Class",
+      "county_ids": [
+        "05075"
+      ],
+      "dataset_hash": "8edfcc4ab92afe9aa33814259078bb930605c7f7de9900dbbf29cde78ad17da1"
+    },
+    {
+      "id": "ARM723642f705fc4885bd72b2d85d236578",
+      "name": "Black Springs",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05097"
+      ],
+      "dataset_hash": "5ad375799c0fa45050594cc84ab23c0c8477f502cee54d34b29870df26ff20ca"
+    },
+    {
+      "id": "ARM5bfd4b8a11f34dcebd094108193f7419",
+      "name": "Blevins",
+      "classification": "Second Class",
+      "county_ids": [
+        "05057"
+      ],
+      "dataset_hash": "ae35b41b2aabc5a638779948be7086e314e4f71ea9810d271c79b39df0f21038"
+    },
+    {
+      "id": "ARMb0f1d971fd3c455489d8857034542875",
+      "name": "Blue Eye",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05015"
+      ],
+      "dataset_hash": "0089c5101017a68f5a168ce70cc69ddf5e8b6b0ebe51baeab03f10aca9a68ab9"
+    },
+    {
+      "id": "ARM68d4721096ed41a0af7cc4943e49e26b",
+      "name": "Blue Mountain",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05083",
+        "05149"
+      ],
+      "dataset_hash": "329e324accb764f9612e7038e438cba702bba96dccf76679c9a72d02fe02a48d"
+    },
+    {
+      "id": "ARM5c23cef801a0411694cf85c2c445b1d0",
+      "name": "Bluff City",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05099"
+      ],
+      "dataset_hash": "ef269f9a930e8ceddb0a1cd0d41f16d096beaa4586609348349292ff0db16ac6"
+    },
+    {
+      "id": "ARMa1970a5aa94a489dab7e130380723ab8",
+      "name": "Blytheville",
+      "classification": "First Class",
+      "county_ids": [
+        "05093"
+      ],
+      "dataset_hash": "7810465bcccf438bd516de8caa803c9ff273e224019a0b6f09f74f2a5719109b"
+    },
+    {
+      "id": "ARM5b7c1d93aa44412abb9da314bbe337f6",
+      "name": "Bodcaw",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05099"
+      ],
+      "dataset_hash": "4cdf866683e4cf84a301c1db994fd90c9ebfcb7a96556b1b8f47afb532cc18b0"
+    },
+    {
+      "id": "ARM3913950a0d924502b00a1832f50465ec",
+      "name": "Bonanza",
+      "classification": "Second Class",
+      "county_ids": [
+        "05131"
+      ],
+      "dataset_hash": "14e9381e5989db507d80bd63908da29d9e13fb4cb4b642aaa03ba4d37d1808c0"
+    },
+    {
+      "id": "ARMe5bd2759490d4aaab289d499b2a2fc46",
+      "name": "Bono",
+      "classification": "First Class",
+      "county_ids": [
+        "05031"
+      ],
+      "dataset_hash": "e42b5d62632187f64b37289e94b446d34fc32976d22b2f3d43e6ee6671f28d34"
+    },
+    {
+      "id": "ARM49813f6ebddd43dc894bdc80aead0ed2",
+      "name": "Booneville",
+      "classification": "First Class",
+      "county_ids": [
+        "05083"
+      ],
+      "dataset_hash": "b73b9b218aeca457e25a3c2c932f17c015bc6a8ef342dcf4aca15abf72fa77eb"
+    },
+    {
+      "id": "ARMb8c5e410b5fb4c9f989feef79febf811",
+      "name": "Bradford",
+      "classification": "Second Class",
+      "county_ids": [
+        "05145"
+      ],
+      "dataset_hash": "a8816a45609c53cc7c1cb7cef67ac25e040d4b52ff2a9b988a3b4ff535255e7b"
+    },
+    {
+      "id": "ARMcbbf948ae9524fd29aa618a593798cf6",
+      "name": "Bradley",
+      "classification": "Second Class",
+      "county_ids": [
+        "05073"
+      ],
+      "dataset_hash": "ce2b286e19094a1d0609eee769953d5ec68cbee9413dcc3588b0ba698516ded3"
+    },
+    {
+      "id": "ARM30f6f22c95a24406a6a854931ecd4a11",
+      "name": "Branch",
+      "classification": "Second Class",
+      "county_ids": [
+        "05047"
+      ],
+      "dataset_hash": "16a2a0d651bb4cc075788a2c7320de41aa46bacbb4c430c1a41c874899109f24"
+    },
+    {
+      "id": "ARMcf8c8420e3164df9928e3aa1de3cafa4",
+      "name": "Briarcliff",
+      "classification": "Second Class",
+      "county_ids": [
+        "05005"
+      ],
+      "dataset_hash": "28d98efa9c255b8b2ec77484f26e1a76c0a25155df55056c0ecd60e632ba1445"
+    },
+    {
+      "id": "ARM2d21700778764cfdb996ad54b59ce10e",
+      "name": "Brinkley",
+      "classification": "First Class",
+      "county_ids": [
+        "05095"
+      ],
+      "dataset_hash": "ba844d85170136e91ad02c45bfb0795541fa79056b4f2fa79969477d2eb1d285"
+    },
+    {
+      "id": "ARM961a1f708e4a4f59ac5ccb4742998810",
+      "name": "Brookland",
+      "classification": "First Class",
+      "county_ids": [
+        "05031"
+      ],
+      "dataset_hash": "0a400e363ec06c71587dc75ecf84c82867cefb2c0d9959b712af4e439c9cba38"
+    },
+    {
+      "id": "ARM4aff21ceb52e4da1b6b3636b2eec87e7",
+      "name": "Bryant",
+      "classification": "First Class",
+      "county_ids": [
+        "05125"
+      ],
+      "dataset_hash": "15cfcff31c4dea2f0c6aecf115758f8d2bbeaa9ad1b7136b510221af40cb0565"
+    },
+    {
+      "id": "ARM3bd84f196a074c6884a5265af5ed731a",
+      "name": "Buckner",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05073"
+      ],
+      "dataset_hash": "32b44b864802e1951ebdf6f8528568a3daf6e2f2603f44bed31927b787502a63"
+    },
+    {
+      "id": "ARM1b10252ddc9c499b8786824a8042e621",
+      "name": "Bull Shoals",
+      "classification": "Second Class",
+      "county_ids": [
+        "05005",
+        "05089"
+      ],
+      "dataset_hash": "a222572951d81c29e460a6ccac323f0491438e01a06814d89f6459f97d71c3bf"
+    },
+    {
+      "id": "ARMdbb3575c5572485dbcf6ac19b8c09e03",
+      "name": "Burdette",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05093"
+      ],
+      "dataset_hash": "894038d327675179145df2f0b09668a8479403617c7592a79dbfbcac631b7be9"
+    },
+    {
+      "id": "ARM498a6b1edff14ef5981d67fed32eca86",
+      "name": "Cabot",
+      "classification": "First Class",
+      "county_ids": [
+        "05085",
+        "05119"
+      ],
+      "dataset_hash": "940e51738271d2a9ec526fc886fcde5a0bf27e7092e68490515b309736cd810a"
+    },
+    {
+      "id": "ARMff3881fb6c174d8ba5031011c60816f6",
+      "name": "Caddo Valley",
+      "classification": "Second Class",
+      "county_ids": [
+        "05019"
+      ],
+      "dataset_hash": "626164bcaba8442f950f1dd88f1dd1c6b23f488c7e8cc8414bbaa6456214218c"
+    },
+    {
+      "id": "ARMb07b054c018d461487245f5c6bd198f7",
+      "name": "Caldwell",
+      "classification": "Second Class",
+      "county_ids": [
+        "05123"
+      ],
+      "dataset_hash": "e1549e66f53f5ffe0a68d0ef4214ce7d7c5d5435149523ca49e813b8684e7939"
+    },
+    {
+      "id": "ARM3e53fe48b66f4d7d90e3598579285d43",
+      "name": "Cale",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05099"
+      ],
+      "dataset_hash": "f558e72972d5bd399a5cba840556822c16a75d58cc60012b77741a1755577cb5"
+    },
+    {
+      "id": "ARM95b6540abe35487aa7dfe801c1fb1671",
+      "name": "Calico Rock",
+      "classification": "Second Class",
+      "county_ids": [
+        "05065",
+        "05137"
+      ],
+      "dataset_hash": "7d0c7720974a29a51a029489034fc681d5cb33a163b8d81e675034a07334bc20"
+    },
+    {
+      "id": "ARMe9fb6e6dcd6244afa96429499d24666e",
+      "name": "Calion",
+      "classification": "Second Class",
+      "county_ids": [
+        "05139"
+      ],
+      "dataset_hash": "d020c5bfdd2865835e5065e7d5221b2ef52e9f9f82d8d1622baa92a249cc3979"
+    },
+    {
+      "id": "ARMd39950d4e1ea43c0b5dd3fa80b104c74",
+      "name": "Camden",
+      "classification": "First Class",
+      "county_ids": [
+        "05103"
+      ],
+      "dataset_hash": "1d4c50d7ce3726e627c96d0c74d232eb832de02bd2a44f3f7c68e2a880073f5a"
+    },
+    {
+      "id": "ARM58124409f2ad422cb5759e754c141934",
+      "name": "Cammack Village",
+      "classification": "Second Class",
+      "county_ids": [
+        "05119"
+      ],
+      "dataset_hash": "ee0355131782dac59f1c26ffd9e0edafdc7e873f72bc6c858df07a9d87ea32d4"
+    },
+    {
+      "id": "ARM3edf9c5b19ed4534841764a666795e59",
+      "name": "Campbell Station",
+      "classification": "Second Class",
+      "county_ids": [
+        "05067"
+      ],
+      "dataset_hash": "da87cc1a449034e5fdf11959e06b5da10be9e0e57da6c7b9b623defbf0d1186c"
+    },
+    {
+      "id": "ARMe5823de7f5054b979797afbf95d4dad3",
+      "name": "Caraway",
+      "classification": "Second Class",
+      "county_ids": [
+        "05031"
+      ],
+      "dataset_hash": "c18ad01ae2614134378cde3ebdb36318dafed88098bf1fba0d4de97a54b62adc"
+    },
+    {
+      "id": "ARMc3ac7de90a334572ae50ce9ffd2b7eaf",
+      "name": "Carlisle",
+      "classification": "First Class",
+      "county_ids": [
+        "05085"
+      ],
+      "dataset_hash": "f753c592bf37566d760a6f41e218d691c7be7651732e1af8c4f98a247a96890b"
+    },
+    {
+      "id": "ARMba4f0196c7f543b7aa0fb8879881cb20",
+      "name": "Carthage",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05039"
+      ],
+      "dataset_hash": "14cbe62b851a395033d3c2703640161ff7d9e65ef7202f3c5641b0ba5e1010fa"
+    },
+    {
+      "id": "ARM6cb97cad97e44ba8be273746504677ee",
+      "name": "Casa",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05105"
+      ],
+      "dataset_hash": "1c8472a8ea5539e59befb152f6dd13ab47830d5ea1280c6ae383ab0efb756a3e"
+    },
+    {
+      "id": "ARM677aaa050ae04525b1af324198e754f4",
+      "name": "Cash",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05031"
+      ],
+      "dataset_hash": "bd060cf01c8352d8821f036ca04f7b5c37e68a7978b09e81782a988784b992be"
+    },
+    {
+      "id": "ARMe09688b0e29647c4a429aadc004d4880",
+      "name": "Caulksville",
+      "classification": "Second Class",
+      "county_ids": [
+        "05047",
+        "05083"
+      ],
+      "dataset_hash": "cdfd0852f2bd415c1f93a92acbf6a3b3016836e386b571f47de466c640dd449e"
+    },
+    {
+      "id": "ARMe84a8d21c180465e9b31d7f02a1ef081",
+      "name": "Cave City",
+      "classification": "Second Class",
+      "county_ids": [
+        "05063",
+        "05135"
+      ],
+      "dataset_hash": "0eb3f25c8c83087807ac620e72cc8b9b80528666b47b4df2e2011b1a23aa7627"
+    },
+    {
+      "id": "ARMe317453ac966431089765576e75a5105",
+      "name": "Cave Springs",
+      "classification": "First Class",
+      "county_ids": [
+        "05007"
+      ],
+      "dataset_hash": "c456e47ccc65ea4e7f1bcdb615c5ca643ff98bad2bdb4b71e3bac556b02e13e8"
+    },
+    {
+      "id": "ARMad49f14185f64c23bddaf965e38a3d81",
+      "name": "Cedarville",
+      "classification": "Second Class",
+      "county_ids": [
+        "05033"
+      ],
+      "dataset_hash": "902661d66a51b9bb6e87d00c338bf560a8fa7259a803f982e514fa0c39aab1a6"
+    },
+    {
+      "id": "ARMc700c796e0b340329a45174377c6410b",
+      "name": "Centerton",
+      "classification": "First Class",
+      "county_ids": [
+        "05007"
+      ],
+      "dataset_hash": "709077a058651f94b30116c28c48df8fe0c02d049740956d8438e75f34a49e6c"
+    },
+    {
+      "id": "ARMe56e8842104041beac503a06ef9e8a12",
+      "name": "Central City",
+      "classification": "Second Class",
+      "county_ids": [
+        "05131"
+      ],
+      "dataset_hash": "9a9952f3263b04d646ce57b6fe58fa10b049ede5de9d052b152a37d4f9de1c76"
+    },
+    {
+      "id": "ARM7c9bde89352b46f7ab8a284038692657",
+      "name": "Charleston",
+      "classification": "First Class",
+      "county_ids": [
+        "05047",
+        "05131"
+      ],
+      "dataset_hash": "685a8871d6936f641fd65a76707bc3d7deb10f0428c7248ea3508bd678990702"
+    },
+    {
+      "id": "ARMcabe48bfe724490ba97101ad33031fb3",
+      "name": "Cherokee Village",
+      "classification": "First Class",
+      "county_ids": [
+        "05049",
+        "05135"
+      ],
+      "dataset_hash": "36b66e97d4ef7bff1f85459712bbcdddc67947dc4ed1277374dbcfdb1fe1047a"
+    },
+    {
+      "id": "ARM4cc2666a2d4e4861b7859267780e83fb",
+      "name": "Cherry Valley",
+      "classification": "Second Class",
+      "county_ids": [
+        "05037"
+      ],
+      "dataset_hash": "ab412b09ae369e0ee1805a3d34cf3e6bbd1b95954356f1cc178c02d17879a361"
+    },
+    {
+      "id": "ARMb445cd44a33e43aa9aafbd75ee9d5fd7",
+      "name": "Chester",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05033"
+      ],
+      "dataset_hash": "024ff123d1dd56961267f9aec4b9b9d43c2be8d8c4292358b6a9346b584fa200"
+    },
+    {
+      "id": "ARMee4df253938a48ed8c32c68dde72b24d",
+      "name": "Chidester",
+      "classification": "Second Class",
+      "county_ids": [
+        "05103"
+      ],
+      "dataset_hash": "b5d58f0819376093bac9a752eff3f793a3b1c4a0cbf0c0688db3b5cfc08705bf"
+    },
+    {
+      "id": "ARMbe8b65915a904426a7c3ab02b0d244c7",
+      "name": "Clarendon",
+      "classification": "First Class",
+      "county_ids": [
+        "05095"
+      ],
+      "dataset_hash": "f5aa2a9b3b11a75724814cf67db8f3b6fb4fc5216f141384a21380319785f5b8"
+    },
+    {
+      "id": "ARM50374a2c1c1e477887916438c8b62272",
+      "name": "Clarkedale",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05035"
+      ],
+      "dataset_hash": "10d325b7f3d9ff98a1c46cb16719c35d2b91ca0c16e2683e28c781755162ee1b"
+    },
+    {
+      "id": "ARM9bfd6daaeee14974b8838dd9687c516c",
+      "name": "Clarksville",
+      "classification": "First Class",
+      "county_ids": [
+        "05071"
+      ],
+      "dataset_hash": "be21d96723b251ed6d93dc25bbb8f6458fbabdd060ffd0076405d18a285050b5"
+    },
+    {
+      "id": "ARM61dc74416b5d4a5eb0292ac83d7d716c",
+      "name": "Clinton",
+      "classification": "Second Class",
+      "county_ids": [
+        "05141"
+      ],
+      "dataset_hash": "9eb1842354fc64acf5e97fdc39b0b914e43bb9070b9bc03a6295947d8e506848"
+    },
+    {
+      "id": "ARM8747dcc3ab8f42568a685c003513729d",
+      "name": "Coal Hill",
+      "classification": "Second Class",
+      "county_ids": [
+        "05071"
+      ],
+      "dataset_hash": "5a5751ba2a1f5fe00cca5d990465fa33409bdf5d4e8bfc37c734f41d96c75eb1"
+    },
+    {
+      "id": "ARM00835bb455ee42b6866dc190a890c417",
+      "name": "Colt",
+      "classification": "Second Class",
+      "county_ids": [
+        "05123"
+      ],
+      "dataset_hash": "8809137951476bc10d56fd341d8e10b39bfaf1d5c0bdcf25fadfe0b9782ee6fc"
+    },
+    {
+      "id": "ARMcb7b0dfdf9cf4602b6b67610365114d0",
+      "name": "Concord",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05023"
+      ],
+      "dataset_hash": "663690f05bf3fa58d409c327d59318c60b18d539e199f351c19ad49b748632f2"
+    },
+    {
+      "id": "ARMa7dd13a059974f4bb1a3d341e7afde41",
+      "name": "Conway",
+      "classification": "First Class",
+      "county_ids": [
+        "05029",
+        "05045"
+      ],
+      "dataset_hash": "b90a0949f118b5cddb4ddac29393c58009d4c83670a4bfab8b9561067f5c91ff"
+    },
+    {
+      "id": "ARM8e2a5ea9c6da43a2b4d07235c0ab510e",
+      "name": "Corinth",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05149"
+      ],
+      "dataset_hash": "4b1ec14fc3ac662587d59ecf7ff5d536ad30cc5f9f97226ce651327075690f11"
+    },
+    {
+      "id": "ARM1991292bb12d403ca9f717803aa5b4ab",
+      "name": "Corning",
+      "classification": "First Class",
+      "county_ids": [
+        "05021"
+      ],
+      "dataset_hash": "37bfa4555b1c67d1abec3db240478f35537cfba33244b817f74942bd5a5705ed"
+    },
+    {
+      "id": "ARMb2ec6a2d83a64f99b733791ca834ef28",
+      "name": "Cotter",
+      "classification": "Second Class",
+      "county_ids": [
+        "05005"
+      ],
+      "dataset_hash": "05a0b29a6509ea4d822957ea2d059578892e5623419205915322061fe1c28492"
+    },
+    {
+      "id": "ARMbe5a2ddc96684c5199e421645e1653bb",
+      "name": "Cotton Plant",
+      "classification": "Second Class",
+      "county_ids": [
+        "05147"
+      ],
+      "dataset_hash": "bbfb16eed9a6663ca88e7985f0d425cb2846bce15e5fa41da4698bd64036d7a9"
+    },
+    {
+      "id": "ARM41ab231609984606a170dbbedfcc171f",
+      "name": "Cove",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05113"
+      ],
+      "dataset_hash": "4290b4e718bc788c7b11a708da789ffad3d56ad139dcd68f650a84dce6dd2923"
+    },
+    {
+      "id": "ARM42b380019e8947afbd22550ee1c06737",
+      "name": "Coy",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05085"
+      ],
+      "dataset_hash": "778226612f3d42abd58bf598eec2200cf0736dc9d1125c96456ad7abcfd2e4a5"
+    },
+    {
+      "id": "ARM92c789801e61469abd007d84f720c4ec",
+      "name": "Crawfordsville",
+      "classification": "Second Class",
+      "county_ids": [
+        "05035"
+      ],
+      "dataset_hash": "27b2c2633562e1b013fa36a2cfbc476a165852518e71d7155a80862cae7f7b3d"
+    },
+    {
+      "id": "ARM9dc8fc8af98540ef8aee19c292d5087f",
+      "name": "Crossett",
+      "classification": "First Class",
+      "county_ids": [
+        "05003"
+      ],
+      "dataset_hash": "ec75e65200db4a2d2412c337a3000da2d928d701a04aa529c0889d09d37bcf8d"
+    },
+    {
+      "id": "ARMe7595be179ba4db88cb7f9fe4944b610",
+      "name": "Cushman",
+      "classification": "Second Class",
+      "county_ids": [
+        "05063"
+      ],
+      "dataset_hash": "64a3010e5df9edb02ca1dcd9e2fbf30052bedf27cc6409fc4cbaaa6a2193b095"
+    },
+    {
+      "id": "ARMef19eb510a3e45159b4327f3693a290a",
+      "name": "Daisy",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05109"
+      ],
+      "dataset_hash": "434ffd15cf7810b1980879b66ea4585b8640774144f56094411f283882ccb586"
+    },
+    {
+      "id": "ARM1126c05a614246118a5368b9e27a5172",
+      "name": "Damascus",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05045",
+        "05141"
+      ],
+      "dataset_hash": "a3e3192f8cb02f18825562b89c65eb5f7ce96006c6deb5184dcbf5dcf0563dc1"
+    },
+    {
+      "id": "ARM45958a23a1f942f9a8e31c0d96411c56",
+      "name": "Danville",
+      "classification": "Second Class",
+      "county_ids": [
+        "05149"
+      ],
+      "dataset_hash": "51b6049ea67a2c9d6ce1f2ec9d2496fb840577feb80b1adbf35533b8fab9278b"
+    },
+    {
+      "id": "ARM6a1d0056526c41be8612a55eb9cc2add",
+      "name": "Dardanelle",
+      "classification": "First Class",
+      "county_ids": [
+        "05149"
+      ],
+      "dataset_hash": "2b8a0b41a4e861fc738f93c2480dfa081435604c135e05b1f7412e2c33445d00"
+    },
+    {
+      "id": "ARM8f982021a40e483c9d25bdd06f08fabe",
+      "name": "Datto",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05021"
+      ],
+      "dataset_hash": "8fe25e4cc92e0382b06142c637b5f3ecef726b8862645ae3f1d1acee641a4162"
+    },
+    {
+      "id": "ARMeb6aa7ca50e44a5e8bc31b5de57033b4",
+      "name": "De Queen",
+      "classification": "First Class",
+      "county_ids": [
+        "05133"
+      ],
+      "dataset_hash": "96986b6ff50f66b83a0f1db3a89382589169556fcde07bd29c02291537c1352a"
+    },
+    {
+      "id": "ARMb7303d377b2a49e48f26a4cafbb1ee44",
+      "name": "De Valls Bluff",
+      "classification": "Second Class",
+      "county_ids": [
+        "05117"
+      ],
+      "dataset_hash": "2a738844756f5e58497bd3ca9f356e78a9230ac7dade04a4f65deef4f4bd5f62"
+    },
+    {
+      "id": "ARM7afeae4329c04aca84fdda8e7194b7b9",
+      "name": "De Witt",
+      "classification": "First Class",
+      "county_ids": [
+        "05001"
+      ],
+      "dataset_hash": "693d068dfd3d137508ccd89d0b7b457543b21767c1ba802b95abbd6850a77b11"
+    },
+    {
+      "id": "ARMf3e03becf08448ba834f1a494ebfb83e",
+      "name": "Decatur",
+      "classification": "Second Class",
+      "county_ids": [
+        "05007"
+      ],
+      "dataset_hash": "13a1fbd75f815ba1804872668dc2e5f18197f183fa2f7f2a942f98538d740488"
+    },
+    {
+      "id": "ARM762e4fbcbcc449f69eaf01b09f3490b8",
+      "name": "Delaplaine",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05055"
+      ],
+      "dataset_hash": "aa2bd1eae8fcc56c06e1ee394f071e4e0d76406eec419d764c1a5c45634e24c7"
+    },
+    {
+      "id": "ARMeecc9613b5014313bcbf0e2cae2ebcb9",
+      "name": "Delight",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05109"
+      ],
+      "dataset_hash": "9377aef47a715a30036e0f653136c97ac155c989e53a4878eae51dfb75dcb305"
+    },
+    {
+      "id": "ARMb70d88fdaa374197a3d9b968d2027e01",
+      "name": "Dell",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05093"
+      ],
+      "dataset_hash": "09e2c4e2272eebfb8c5d3f5f4c2660fadf06729b34e472d20f0ca3d8b62f034b"
+    },
+    {
+      "id": "ARMdec6053715634c15b101c962e20eaffe",
+      "name": "Denning",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05047"
+      ],
+      "dataset_hash": "b76943970a11e32c654312dc492b943ca1df70f3684c88107183ce81afd31d4d"
+    },
+    {
+      "id": "ARM05ba8e0eb98c4dd49858c413f7a712af",
+      "name": "Dermott",
+      "classification": "First Class",
+      "county_ids": [
+        "05017"
+      ],
+      "dataset_hash": "d137bf0886439b3aaff4f8b3254bd20289a4cac23ace12674c23ac6b4a33f427"
+    },
+    {
+      "id": "ARMa11b13751aaa4e51a6c4be37942dd474",
+      "name": "Des Arc",
+      "classification": "Second Class",
+      "county_ids": [
+        "05117"
+      ],
+      "dataset_hash": "2414225a8ecdc2917412bdc628bfc82f0cab92c088d71fe7a9c638bc2a3bc037"
+    },
+    {
+      "id": "ARMdfdd3938bf4246ce8303dbd963f74d38",
+      "name": "Diamond City",
+      "classification": "Second Class",
+      "county_ids": [
+        "05009"
+      ],
+      "dataset_hash": "7b2344895435e1a38a4808ef50d16b4767b5d901426bbce1a095b7e4c5d57beb"
+    },
+    {
+      "id": "ARMf7ab602fa0ee4e2c8297d33c61050560",
+      "name": "Diamondhead",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05051",
+        "05059"
+      ],
+      "dataset_hash": "beed62f01e00fe84641bc8922821ef334897b6a90652fc08f8b4bdd24d8bb0f7"
+    },
+    {
+      "id": "ARM8d045af58f9e4f1da9ec95d45b157cf3",
+      "name": "Diaz",
+      "classification": "Second Class",
+      "county_ids": [
+        "05067"
+      ],
+      "dataset_hash": "89486bd777a926bc8c01719d474130aedf68f685408c242c4f7de53fd879f4e5"
+    },
+    {
+      "id": "ARM1ec75fc2ec124a4eb49deafd3ef97066",
+      "name": "Dierks",
+      "classification": "Second Class",
+      "county_ids": [
+        "05061"
+      ],
+      "dataset_hash": "2205f73c3841ae88b846dc10e50459c4fc81402d91e29f2b08dcc98f8e325789"
+    },
+    {
+      "id": "ARM3133a58e31aa47e0836cc7dc833bb658",
+      "name": "Donaldson",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05059"
+      ],
+      "dataset_hash": "0cabc25bb453ba3e0f43b617c7e63ff3ea55cc754a42146de2b119a28844820c"
+    },
+    {
+      "id": "ARM62d4e071725242a49133a18e9cd591fa",
+      "name": "Dover",
+      "classification": "Second Class",
+      "county_ids": [
+        "05115"
+      ],
+      "dataset_hash": "29871d28320e414cce9b7c3466296477d452c6c9103c2b2991da0a5962c7379b"
+    },
+    {
+      "id": "ARMe537cb8bfb714759b4c4336f4b1de86f",
+      "name": "Dumas",
+      "classification": "First Class",
+      "county_ids": [
+        "05041"
+      ],
+      "dataset_hash": "647cfe75dc019e44db20b5eb317b9d56326a098509e275645186ac655e29b569"
+    },
+    {
+      "id": "ARM6165c85ca56546dfb8b7906ff71fcaa4",
+      "name": "Dyer",
+      "classification": "Second Class",
+      "county_ids": [
+        "05033"
+      ],
+      "dataset_hash": "721325ebd692bb02b94fe1da6d89bc2fd71c93dacdb4ed160619b3e8d7c5794c"
+    },
+    {
+      "id": "ARM4bdaad0148254174a882c1c50dcf63ea",
+      "name": "Dyess",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05093"
+      ],
+      "dataset_hash": "54ebaa1b73ce699e57ee923a306143561a30922edbba21ea9d7669357598705b"
+    },
+    {
+      "id": "ARMccde6a67604f41e494209f2e8170ecbe",
+      "name": "Earle",
+      "classification": "First Class",
+      "county_ids": [
+        "05035"
+      ],
+      "dataset_hash": "755485f5986d0489085777024b075a7f1a97b32201c8c1f625aaf22c77f972f5"
+    },
+    {
+      "id": "ARM848e5d1d94974163be57fd1831e875c7",
+      "name": "East Camden",
+      "classification": "Second Class",
+      "county_ids": [
+        "05103"
+      ],
+      "dataset_hash": "e2b8cd7af17b9810033d543d4dd75e8cbd42238d9c3c104bfe030899d57528f2"
+    },
+    {
+      "id": "ARM8b31211fda4942ec8fe7312841ce4d20",
+      "name": "Edmondson",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05035"
+      ],
+      "dataset_hash": "ea076e8d05e044900fecdab58278a18a04a97f44c421fb37ab886843d3de6b77"
+    },
+    {
+      "id": "ARM208cec5e2f8a448a90c2fdbde7ec2d1e",
+      "name": "Egypt",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05031"
+      ],
+      "dataset_hash": "a8a0160b6495f21c7c73b095ec5d1c184df99ed967a6dccb6443ebb1782242e0"
+    },
+    {
+      "id": "ARM0f7cc6a367be47848c4f7877aa597e15",
+      "name": "El Dorado",
+      "classification": "First Class",
+      "county_ids": [
+        "05139"
+      ],
+      "dataset_hash": "1b5a16c1cebcc391f36af839b66516a0370e53a2a41f42c386adb9f2d334494c"
+    },
+    {
+      "id": "ARM5864f3a1ad9f4e9f8afb13cf54de0784",
+      "name": "Elaine",
+      "classification": "Second Class",
+      "county_ids": [
+        "05107"
+      ],
+      "dataset_hash": "9031c9f3f3efc4bbd6aa1d4ebda0f5e6d5ed5a4cf9f72c30acf86cc3852d9a07"
+    },
+    {
+      "id": "ARMacd52a0b352b4be3a158cf414450c23a",
+      "name": "Elkins",
+      "classification": "First Class",
+      "county_ids": [
+        "05143"
+      ],
+      "dataset_hash": "7611dab1e1e6a335c8b96784acfc28c41d4705d53e9c7140a64f5a0cdfc898a1"
+    },
+    {
+      "id": "ARM80df8ab719d84ab0b14eaf75e3e057dc",
+      "name": "Elm Springs",
+      "classification": "First Class",
+      "county_ids": [
+        "05007",
+        "05143"
+      ],
+      "dataset_hash": "8f80b1adf8dad7a383a4be9b805083db97811762d1e26bc9468786fdae49162c"
+    },
+    {
+      "id": "ARMcf065fae3ca9404a80d37fb56da328b1",
+      "name": "Emerson",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05027"
+      ],
+      "dataset_hash": "d8cd0c28dbeb1d4edd44dd07cfcc3ad137ecd511850bfd494c0a2f2a08aa2dc0"
+    },
+    {
+      "id": "ARM4b417fd130914b7eaafa982dda0652c4",
+      "name": "Emmet",
+      "classification": "Second Class",
+      "county_ids": [
+        "05057",
+        "05099"
+      ],
+      "dataset_hash": "6e1699d9d84a5a901021a4716188e1b10f3a7a5978db36f559083c81b29c001d"
+    },
+    {
+      "id": "ARMee3c61832fea4ca29bc2c265649ac843",
+      "name": "England",
+      "classification": "First Class",
+      "county_ids": [
+        "05085"
+      ],
+      "dataset_hash": "08fa59f5421a902bc9a06aff93992d97db9c25e4a67ddc03b87b6aeda779adec"
+    },
+    {
+      "id": "ARM8a3c3b9574a146ee9dfab106310da430",
+      "name": "Enola",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05045"
+      ],
+      "dataset_hash": "f8f0d672ce9c5cde7e2630e3fbd0dcddd2ae0c640f56f3d3378352e527bac8de"
+    },
+    {
+      "id": "ARMe659fdb8a6524f0398f2e34a92e7c343",
+      "name": "Etowah",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05093"
+      ],
+      "dataset_hash": "5988a362b1c6417bdd03025a0b53424fc73bcfd26379e1a5cad4ddb3e12a92fe"
+    },
+    {
+      "id": "ARMe4ae8fc0ff20432b8a26b86c239870f1",
+      "name": "Eudora",
+      "classification": "First Class",
+      "county_ids": [
+        "05017"
+      ],
+      "dataset_hash": "b1e6081246d0c6560c641c52d7ed4fb65c47d9323ca7857595b5f357199e380a"
+    },
+    {
+      "id": "ARM507cab813f0547a5b87851c50cf503b5",
+      "name": "Eureka Springs",
+      "classification": "First Class",
+      "county_ids": [
+        "05015"
+      ],
+      "dataset_hash": "1034a0015faf921a44424c0ab3b104bb903cd521fb55895fdf463639d0487f23"
+    },
+    {
+      "id": "ARMa77d4cb299c54ceba74d1af4752d1443",
+      "name": "Evening Shade",
+      "classification": "Second Class",
+      "county_ids": [
+        "05135"
+      ],
+      "dataset_hash": "cf11d8097d0782138284b699f368f38ee9c2c786ef0bb0d30973785b2f118358"
+    },
+    {
+      "id": "ARM116c68678f3d4da99f10a524f25c0c6e",
+      "name": "Everton",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05009"
+      ],
+      "dataset_hash": "bb92de7affb1f4aec48e71f207caa579fba455767625f720b2d588d8672a5708"
+    },
+    {
+      "id": "ARMb168a819d27047d8bb513ecef2926689",
+      "name": "Fairfield Bay",
+      "classification": "Second Class",
+      "county_ids": [
+        "05023",
+        "05141"
+      ],
+      "dataset_hash": "9d1caa134740901a13bc1b7f186282bc46967ee3582bd21d568fb947c9bfd96e"
+    },
+    {
+      "id": "ARM2b04d7a334244c898ce8a8f607925a56",
+      "name": "Fargo",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05095"
+      ],
+      "dataset_hash": "b3abbb3cf2692d87d8607078773d1e88c1cb439838d5e4ef24dc4e07dfabafc6"
+    },
+    {
+      "id": "ARM5dffa87a85874852bd2c64212ca6c416",
+      "name": "Farmington",
+      "classification": "First Class",
+      "county_ids": [
+        "05143"
+      ],
+      "dataset_hash": "26a14c68f06216e13dfcadec2ee19dc256d5e0ff29d43d032513601120a369b4"
+    },
+    {
+      "id": "ARM93d947c533b54e81a2fceb404077419e",
+      "name": "Fayetteville",
+      "classification": "First Class",
+      "county_ids": [
+        "05143"
+      ],
+      "dataset_hash": "cb34314684ec86287fd72b3d3b060de39bcaa0cdd73831f287590b1d7e1eed2d"
+    },
+    {
+      "id": "ARM2b76a1e5fd54443885723fff5ff2bdc8",
+      "name": "Felsenthal",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05139"
+      ],
+      "dataset_hash": "dfc04cbbafce3c8a6de1f7647c0c4f1e8e70643dea6184a428fe6c0d18705d8a"
+    },
+    {
+      "id": "ARM85ceb17d3de14155a57ac9d23bacc730",
+      "name": "Fifty-Six",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05137"
+      ],
+      "dataset_hash": "c917f70d1601720226d9397fda86d33b85d18dd872b0460ec35faeb64ed6c5a2"
+    },
+    {
+      "id": "ARM1744f43e6862430eaa42dbbe6399bf57",
+      "name": "Fisher",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05111"
+      ],
+      "dataset_hash": "93698e771d7a0b8357b60b7812c9ac32a441a6cf7a7ef30e59f0ab1545683fb3"
+    },
+    {
+      "id": "ARM5f376f18112448c8bfc5ca4910f67c04",
+      "name": "Flippin",
+      "classification": "Second Class",
+      "county_ids": [
+        "05089"
+      ],
+      "dataset_hash": "142afa75a5356f96460d78ab73eab0fdcd1e4f82ee7a3e7c3450bab9c843124a"
+    },
+    {
+      "id": "ARM88df227629064a0680de61f6410d4ec6",
+      "name": "Fordyce",
+      "classification": "First Class",
+      "county_ids": [
+        "05013",
+        "05039"
+      ],
+      "dataset_hash": "95a947d61c3837cc8c3f7c02c4995dbec4659cddb2051252592967eeaa3c0a81"
+    },
+    {
+      "id": "ARMae15bae3ce5044eaa6e51d181a1ebf4d",
+      "name": "Foreman",
+      "classification": "Second Class",
+      "county_ids": [
+        "05081"
+      ],
+      "dataset_hash": "3ff490348a33db764da6edef1b16de74e4d7499e6531aed4ee2cfdf88d02e939"
+    },
+    {
+      "id": "ARM74d05a2a5fc2418c92624d0197ca51b1",
+      "name": "Forrest City",
+      "classification": "First Class",
+      "county_ids": [
+        "05123"
+      ],
+      "dataset_hash": "ffd080169d1647517181b51dfbba02c920249c0790ca404e22ba8b1009ff7726"
+    },
+    {
+      "id": "ARM579d17dd7e744dfe8f88ceaf0e049673",
+      "name": "Fort Smith",
+      "classification": "First Class",
+      "county_ids": [
+        "05033",
+        "05131"
+      ],
+      "dataset_hash": "068f7fd74c2a981c8746bc134a3d9e7ade0c3f80664cf6a5d34a07c7823ed872"
+    },
+    {
+      "id": "ARM4f3af828a77b425fa6e412d860293218",
+      "name": "Fouke",
+      "classification": "Second Class",
+      "county_ids": [
+        "05091"
+      ],
+      "dataset_hash": "8e263373cd5d44ef9c067535f298ba85291cfe512a955fcdad15699365494877"
+    },
+    {
+      "id": "ARM4d91d8a8a93a41048acb28f42350ea42",
+      "name": "Fountain Hill",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05003"
+      ],
+      "dataset_hash": "75137c5039057bfc1bcc9586ad052b32de8f7fe1060f6686a97cdcc1e8418321"
+    },
+    {
+      "id": "ARM910538322e6141df82b9815825167f94",
+      "name": "Fountain Lake",
+      "classification": "Second Class",
+      "county_ids": [
+        "05051"
+      ],
+      "dataset_hash": "1103bfd8dd90f172287be8941aa0cb7d2f6522b38ab7f04ef7db7ce6ec3aa321"
+    },
+    {
+      "id": "ARM9d3bf42449f7496fa2dafa60fb9d2166",
+      "name": "Fourche",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05105"
+      ],
+      "dataset_hash": "938df9d0b7f280e4b9eabb8a891cef95f8533aa5d676da1a910a36d17545df15"
+    },
+    {
+      "id": "ARM9449ae2b873c47da80a6ed0dedffce13",
+      "name": "Franklin",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05065"
+      ],
+      "dataset_hash": "34aec1b8202911c0fd545a589dc9b6ccf1d13794135c5d36c15d15ddb7c57c90"
+    },
+    {
+      "id": "ARMc80fdb4cc5894a98961afe817a08b12d",
+      "name": "Friendship",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05059"
+      ],
+      "dataset_hash": "27349355d1b093401f1cf7a335775d3f73ab00f6fcc74205963701d5267f83ff"
+    },
+    {
+      "id": "ARM8fc27f6490f948059ea35d6e70994c1a",
+      "name": "Fulton",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05057",
+        "05091"
+      ],
+      "dataset_hash": "fd586899803a7970e8c78becb694dd891eb15747052eee49a64528b451a2e8c5"
+    },
+    {
+      "id": "ARMc1bf3beabff540379aa53db9dbc8922d",
+      "name": "Garfield",
+      "classification": "Second Class",
+      "county_ids": [
+        "05007"
+      ],
+      "dataset_hash": "784caae9dd26e3fd39761e00b681e2f9b34f56f83cea0e20d8ae1b5958ec8a2b"
+    },
+    {
+      "id": "ARMcca893816bc14257b1766dcb42708f91",
+      "name": "Garland",
+      "classification": "Second Class",
+      "county_ids": [
+        "05091"
+      ],
+      "dataset_hash": "6cf058cde23c9eecc36ae260d2309dcaf7165dc415935629bb40508c86d8c36b"
+    },
+    {
+      "id": "ARMb4c8543d96eb4534a95b92d87f36d5e6",
+      "name": "Garner",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05145"
+      ],
+      "dataset_hash": "590a0508d4c5cc806b7632fd2ad8f2418dd08bf3ff719f44d23372a1df831744"
+    },
+    {
+      "id": "ARM85304e27132949da8890f47d4ff84604",
+      "name": "Gassville",
+      "classification": "Second Class",
+      "county_ids": [
+        "05005"
+      ],
+      "dataset_hash": "1462ae300a08ca8c5432a17f24eebad0ee2003ae7368f447d8525662cf5f8c05"
+    },
+    {
+      "id": "ARM63b504cd6c054fa88182d8c8372a7ae2",
+      "name": "Gateway",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05007"
+      ],
+      "dataset_hash": "4c4866821e42f2e5c4a39e9d2b614329d56116ab0855014f411467216af7f9cf"
+    },
+    {
+      "id": "ARM25c4d50f4bf24e1cae8e218acd581596",
+      "name": "Gentry",
+      "classification": "First Class",
+      "county_ids": [
+        "05007"
+      ],
+      "dataset_hash": "4fd409bce301be41b3333f761fcb7bd86ff8efdb6e0210c74987e8ab4f867bd3"
+    },
+    {
+      "id": "ARM24c4c8d456544f2c8f9f62208ee078a1",
+      "name": "Georgetown",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05145"
+      ],
+      "dataset_hash": "c08d1a1f0a36b49767a606c34a7dac5cdaca33bd8411f146221b0832ae14f34e"
+    },
+    {
+      "id": "ARM44355473551f42dea658b7aa91375a70",
+      "name": "Gilbert",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05129"
+      ],
+      "dataset_hash": "80dbd782e73aadd9e815c27edf3f9ef3ece3878c3e93b316173e26f0057f71ac"
+    },
+    {
+      "id": "ARM731ce883f6ba44108ccccae121277017",
+      "name": "Gillett",
+      "classification": "Second Class",
+      "county_ids": [
+        "05001"
+      ],
+      "dataset_hash": "0dc53578276650d70e7cdc8edd02264630c9ed07d54a1eff14593f76d88cf435"
+    },
+    {
+      "id": "ARM15a59ec14c124ada9fd5aeb545e7bf06",
+      "name": "Gillham",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05133"
+      ],
+      "dataset_hash": "9e82f1fee0889aa062b2a51822e410f374b644e8f8974f5379c2162a63afd815"
+    },
+    {
+      "id": "ARMdb7b8dfbd60849c2b7b844a852080ddb",
+      "name": "Gilmore",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05035",
+        "05093",
+        "05111"
+      ],
+      "dataset_hash": "283c3b78555d419c989bb4f6621488da18be09acf4a4ea9c00f958c480eeddbb"
+    },
+    {
+      "id": "ARM385ed04eeceb4be889807e7bc11e7e8d",
+      "name": "Glenwood",
+      "classification": "Second Class",
+      "county_ids": [
+        "05019",
+        "05097",
+        "05109"
+      ],
+      "dataset_hash": "4a49c196822fde93f5d9af6532248a535fdc56512615920d25b642a1d4d59daa"
+    },
+    {
+      "id": "ARM65ff7550b8df4ea88c32dc7e44487cdb",
+      "name": "Goshen",
+      "classification": "Second Class",
+      "county_ids": [
+        "05143"
+      ],
+      "dataset_hash": "fbfee8266c459ecd6de633aafbe52d04a6faa9b185b30f46fdc683f3a8e314f0"
+    },
+    {
+      "id": "ARM7b48eb1707a44890a92d4429204190a0",
+      "name": "Gosnell",
+      "classification": "First Class",
+      "county_ids": [
+        "05093"
+      ],
+      "dataset_hash": "cf15068ec6452de84fd0569b5b326a174f89a252182fdeffc3dc64c72ec39cd4"
+    },
+    {
+      "id": "ARM554b7b904fe544fb9bcc1c3c62f9a637",
+      "name": "Gould",
+      "classification": "Second Class",
+      "county_ids": [
+        "05079"
+      ],
+      "dataset_hash": "751af0da9b5e6c033cd3cd1122a1ee3192c25096cbd3829e7eda01de8bd5c43e"
+    },
+    {
+      "id": "ARMde0549bd8c23435ebf3890592dbd4b9f",
+      "name": "Grady",
+      "classification": "Second Class",
+      "county_ids": [
+        "05079"
+      ],
+      "dataset_hash": "ff6abea49153936ddf2abcac7e0ac8e994a3916ea5b5c7e9f9fd7103ef1635d3"
+    },
+    {
+      "id": "ARMccadfbb61c894eca8187c3866e0aeec3",
+      "name": "Grannis",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05113"
+      ],
+      "dataset_hash": "91a31991984e8e1dd6500a95a2476a199bc68408ef8504aafe4aec8ab50218cd"
+    },
+    {
+      "id": "ARMacb1030f2a6f44bdb78717a5d1bac7f9",
+      "name": "Gravette",
+      "classification": "First Class",
+      "county_ids": [
+        "05007"
+      ],
+      "dataset_hash": "ce7d2d5c4ccdbea8733f9a78544cfa472d87599ac6afaa442038ce38139ae937"
+    },
+    {
+      "id": "ARMffe2455e829846bda144d65fcb653f9f",
+      "name": "Green Forest",
+      "classification": "First Class",
+      "county_ids": [
+        "05015"
+      ],
+      "dataset_hash": "12672d472c0c11d577ade9adbd52367817146c93ccf5f538b2a0188207d77ccf"
+    },
+    {
+      "id": "ARMd2861c4a1cfd44589379ae68c4bca819",
+      "name": "Greenbrier",
+      "classification": "First Class",
+      "county_ids": [
+        "05045"
+      ],
+      "dataset_hash": "cd2ebcec7ba773a5253035722980ad04dcf86700ebfcd64340142335c7e9f603"
+    },
+    {
+      "id": "ARM78e0c1daf5404cd69cd9c3c23a85620e",
+      "name": "Greenland",
+      "classification": "Second Class",
+      "county_ids": [
+        "05143"
+      ],
+      "dataset_hash": "f1fe6396d0d0c568dba1f9cc27b506041201783f03208aff06fb0fd28c6f0ef1"
+    },
+    {
+      "id": "ARM34cfab1f3fd041ff8a4b327738be6052",
+      "name": "Greenway",
+      "classification": "Second Class",
+      "county_ids": [
+        "05021"
+      ],
+      "dataset_hash": "92a1229c7b5af14d9e8bc79e05a9e2e032790f56b9e94e030c2306ad36e8fa27"
+    },
+    {
+      "id": "ARM7e0ec301da854bcbaecfc102d46aa13d",
+      "name": "Greenwood",
+      "classification": "First Class",
+      "county_ids": [
+        "05131"
+      ],
+      "dataset_hash": "170e0c241f94b799592858d32b23bd56fd79ea6a7de7ab21863e709e58d45f93"
+    },
+    {
+      "id": "ARMecb9022d756f4f8189bca88bd3995775",
+      "name": "Greers Ferry",
+      "classification": "Second Class",
+      "county_ids": [
+        "05023"
+      ],
+      "dataset_hash": "ca743a0f39a9e28eafd4f01a0b325747dce9b386cf42a0c90ccd27213f6bc4e5"
+    },
+    {
+      "id": "ARM4c90b080554b421d93b3fb17a36b931c",
+      "name": "Griffithville",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05145"
+      ],
+      "dataset_hash": "1de204cd9a089343c2ab6c7b1415d0221c19b7bfb7849bbe147b9681f34ce043"
+    },
+    {
+      "id": "ARM01e00449d2e94266a7704978de492110",
+      "name": "Grubbs",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05067"
+      ],
+      "dataset_hash": "2f18692599482408afc6405945d3a0e4cd2fdf0ceeac7e2fc851326725b02eab"
+    },
+    {
+      "id": "ARM8aa20830619041d3a875fcefd7a21ca6",
+      "name": "Guion",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05065"
+      ],
+      "dataset_hash": "4bf3df26324a73ab276fccf5d8eb9f0354ec729c288d740a7cc5f56abd9654da"
+    },
+    {
+      "id": "ARM348e6327a9b247f4aa9acc5f79327f99",
+      "name": "Gum Springs",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05019"
+      ],
+      "dataset_hash": "4d810deaeaa3ead1527513392d1bca6c8d4ba1d9054809a26686693e190d49df"
+    },
+    {
+      "id": "ARM765a5595f3db4205aa8c574ff410ffd1",
+      "name": "Gurdon",
+      "classification": "Second Class",
+      "county_ids": [
+        "05019"
+      ],
+      "dataset_hash": "fa4ba0d4eda6dde833f07bd6607bb28089d91dc56fc632f104e3169a11c8e557"
+    },
+    {
+      "id": "ARMf8af8433337e40bd8b224c3ccd1eafd7",
+      "name": "Guy",
+      "classification": "Second Class",
+      "county_ids": [
+        "05045"
+      ],
+      "dataset_hash": "e09130136251d6b4cd6935a5c23aa8b9051ff58a04d88dd6ba8b902369cd2ee2"
+    },
+    {
+      "id": "ARM063f643cb793428595ad1a554729dff9",
+      "name": "Hackett",
+      "classification": "Second Class",
+      "county_ids": [
+        "05131"
+      ],
+      "dataset_hash": "bddd20ecde56879c84b4071e1eed5e79730a641539fa62aee9b77f07dd14ef8b"
+    },
+    {
+      "id": "ARM6fd3b16255574c10a851092f3b5eab2c",
+      "name": "Hamburg",
+      "classification": "First Class",
+      "county_ids": [
+        "05003"
+      ],
+      "dataset_hash": "8747911d7c0e9d1e8c0fd0fee0f5bf2576307421d76da59fb963dbd4d6b49ac7"
+    },
+    {
+      "id": "ARM37424a017fdc405d8665e0d95db44a57",
+      "name": "Hampton",
+      "classification": "Second Class",
+      "county_ids": [
+        "05013"
+      ],
+      "dataset_hash": "1ec6dfa403c2ea4da3c891c0354158ceb9644a414acbbc0cab3fd36043829a91"
+    },
+    {
+      "id": "ARMa0ff7f3338064f17be97292ae7c6601f",
+      "name": "Hardy",
+      "classification": "Second Class",
+      "county_ids": [
+        "05049",
+        "05135"
+      ],
+      "dataset_hash": "b03391ed980d045a0b90dae28dec25567bb10bdeb399aa1eb8d8cc11c7edf499"
+    },
+    {
+      "id": "ARMf55d0a901f744c0584b583235943cbb1",
+      "name": "Harrell",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05013"
+      ],
+      "dataset_hash": "370bf67b6dba9fb34b9ddd311a8d2f212ae04b471f94ca71dd0ef829fff4aaec"
+    },
+    {
+      "id": "ARMa11f5b87605b4e5a8ccb51d04f0cc4c9",
+      "name": "Harrisburg",
+      "classification": "First Class",
+      "county_ids": [
+        "05111"
+      ],
+      "dataset_hash": "e35e189440bd8319d4546f1e6e080a785ef2c54301bed9e2e923fb8d3e6f81e7"
+    },
+    {
+      "id": "ARMeb2b6721d4e54746b0d50c1f93eb42e3",
+      "name": "Harrison",
+      "classification": "First Class",
+      "county_ids": [
+        "05009"
+      ],
+      "dataset_hash": "dce917f5c4dbdb5d6d5254e807d9ee7a6c94ed93ffbd6bfae53727ee3f962a88"
+    },
+    {
+      "id": "ARM7c24ca5a99ed47339618f15b039e95c2",
+      "name": "Hartford",
+      "classification": "Second Class",
+      "county_ids": [
+        "05131"
+      ],
+      "dataset_hash": "3a0eff2cf3763cc8e04ef520b83f0b62f6ae26b1780e14e345d6f218968d186d"
+    },
+    {
+      "id": "ARM2689fb3afab44c2ea0b0e86ee7fa51ec",
+      "name": "Hartman",
+      "classification": "Second Class",
+      "county_ids": [
+        "05071"
+      ],
+      "dataset_hash": "4fa6e06e49285ad83e82ca562d45a6a789547634d6c9c93d6ace4515d4dda80e"
+    },
+    {
+      "id": "ARM76579d40e70f4ec09b50b5c7f8c42330",
+      "name": "Haskell",
+      "classification": "Second Class",
+      "county_ids": [
+        "05125"
+      ],
+      "dataset_hash": "f6fb0a0013a448ebd75f1620e32f38e141b92a02ec96e578bdbe6752614a54e2"
+    },
+    {
+      "id": "ARMb6a61a574d744b3599bc04e13a333c45",
+      "name": "Hatfield",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05113"
+      ],
+      "dataset_hash": "7c919ad022b174e957f3e2dd4f6a30192d29cc4db9b1cab16a899aa1f5675fed"
+    },
+    {
+      "id": "ARM0e40880ef6024fffb0ceb8c115d24d29",
+      "name": "Havana",
+      "classification": "Second Class",
+      "county_ids": [
+        "05149"
+      ],
+      "dataset_hash": "65d9db20111f49e5f6fb359ff27d483d87a814f9c265c9bb9d81608ba395806e"
+    },
+    {
+      "id": "ARM1e3621bb44aa419c9afef4249f2491c5",
+      "name": "Haynes",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05077"
+      ],
+      "dataset_hash": "953c0681be02d753acf1c4d53763af5eb2db5f2274833e3975a277927fa6433f"
+    },
+    {
+      "id": "ARMa49411ab33d349e6bd1f983484063fa2",
+      "name": "Hazen",
+      "classification": "Second Class",
+      "county_ids": [
+        "05117"
+      ],
+      "dataset_hash": "d1f37052a1565c59cfaf02913ab6c161a9c25a494a6f7989a8294cb2460da72a"
+    },
+    {
+      "id": "ARMcb750f852da949919de507c990be8437",
+      "name": "Heber Springs",
+      "classification": "First Class",
+      "county_ids": [
+        "05023"
+      ],
+      "dataset_hash": "0a4e5b801c119a6c266bb86b69622e01a3e30f2f1971f4a45db647e602e3614d"
+    },
+    {
+      "id": "ARM5ac0cf03c8a647b5a6fcdd7e128528aa",
+      "name": "Hector",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05115"
+      ],
+      "dataset_hash": "3681b235c1c9307a9555fa6be66dc299069228c4a2771dabf4daf3ab42209d66"
+    },
+    {
+      "id": "ARM2c0c0f80adf746c4b50b403dda04b0ae",
+      "name": "Helena-West Helena",
+      "classification": "First Class",
+      "county_ids": [
+        "05107"
+      ],
+      "dataset_hash": "d3902f3badf03a0192ebf7835fd793599b2c012cf1ce8a5a8932c418a2291d5d"
+    },
+    {
+      "id": "ARM25d0c3a4835a44c395e54e96bd1906c0",
+      "name": "Hermitage",
+      "classification": "Second Class",
+      "county_ids": [
+        "05011"
+      ],
+      "dataset_hash": "b9d2fb1d099f15e4509502f896b16d7a92e74a7aa61197048b0a3db7ef529d5f"
+    },
+    {
+      "id": "ARMd32cf4d4fd6d4d6499d09f7c92e4dd24",
+      "name": "Hickory Ridge",
+      "classification": "Second Class",
+      "county_ids": [
+        "05037"
+      ],
+      "dataset_hash": "a6646b8768259b54efadbcc5b97c35a7e98ebf26dc448be37b85068c3dc87c18"
+    },
+    {
+      "id": "ARM3cbcbe6fb23d4f2f80a897339f0b7619",
+      "name": "Higden",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05023"
+      ],
+      "dataset_hash": "6ba4e5e88e04d5380719a460d12acf9784f313af01619d01f3b47fd02bad65d8"
+    },
+    {
+      "id": "ARM59571bbc831040309b75823b63eca21c",
+      "name": "Higginson",
+      "classification": "Second Class",
+      "county_ids": [
+        "05145"
+      ],
+      "dataset_hash": "716bb1fc13f39637045c0fcf675a56450d51ae9193b5c8416194bcd09570eac1"
+    },
+    {
+      "id": "ARM5d2734ee03754c479f477e959136a201",
+      "name": "Highfill",
+      "classification": "Second Class",
+      "county_ids": [
+        "05007"
+      ],
+      "dataset_hash": "b8f7f332789a3e2d9e0ccb6d78d6ead5856cbb5640b58cb4b4db06f72bef190d"
+    },
+    {
+      "id": "ARMb5a31e809788493788065e38c6828d51",
+      "name": "Highland",
+      "classification": "Second Class",
+      "county_ids": [
+        "05049",
+        "05135"
+      ],
+      "dataset_hash": "7e17d0e0c3a37e6b9c4946585b759a98b31bb7fc508b93db3334f3bcd6591569"
+    },
+    {
+      "id": "ARMf748720b787144048eb1fa5133413a86",
+      "name": "Hindsville",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05087"
+      ],
+      "dataset_hash": "62f07ae98c8d05ffdcf002449b167a104538f028400e6478e76e18b4acafbab3"
+    },
+    {
+      "id": "ARM37e764d6e01f4916b41da8bb2f395f89",
+      "name": "Holiday Island",
+      "classification": "Second Class",
+      "county_ids": [
+        "05015"
+      ],
+      "dataset_hash": "0231496a96cf2c131138c7f1e04dd624fcf5ba48b95794c6f3a76c8cd11911c2"
+    },
+    {
+      "id": "ARM2abaeb2dbc164b69af93955d02469af8",
+      "name": "Holland",
+      "classification": "Second Class",
+      "county_ids": [
+        "05045"
+      ],
+      "dataset_hash": "9fd36c2e645b1259975cbad60b725c2ab7ee8831453ceed66ce24f510f2513f2"
+    },
+    {
+      "id": "ARMa6130537b3444cee92c15e55788a680e",
+      "name": "Holly Grove",
+      "classification": "Second Class",
+      "county_ids": [
+        "05095"
+      ],
+      "dataset_hash": "0187fd5b845b2af07be4c96378411c717960b3d86be5b46f3478a4704b3df668"
+    },
+    {
+      "id": "ARM9ff24b7971164ae497f07951474c77d4",
+      "name": "Hope",
+      "classification": "First Class",
+      "county_ids": [
+        "05057"
+      ],
+      "dataset_hash": "9db0a370c5c0b8d5df7e0e121d2edd7c7f922f087bc564a5ad930cda7575d43e"
+    },
+    {
+      "id": "ARM66f52accab1f428ca44221e2446b86bc",
+      "name": "Horatio",
+      "classification": "Second Class",
+      "county_ids": [
+        "05133"
+      ],
+      "dataset_hash": "a8e9fad886695c9d9360af03ad8e26e311c7f0e3ad87c00be395706cf916f259"
+    },
+    {
+      "id": "ARM80f3b39b1833408d8235743478b86b3a",
+      "name": "Horseshoe Bend",
+      "classification": "Second Class",
+      "county_ids": [
+        "05049",
+        "05065",
+        "05135"
+      ],
+      "dataset_hash": "846326ec1aa0a12257398c60b47394a1e16d3d851f319e0910563876b31783b0"
+    },
+    {
+      "id": "ARM94f982f8082f44f390d46cf084c3c764",
+      "name": "Horseshoe Lake",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05035"
+      ],
+      "dataset_hash": "b8f4e215c3accec342d159e2479c245edd9d3e62cd46db4c3cf230e572916906"
+    },
+    {
+      "id": "ARM685fb0123edf45c39c300594e9252271",
+      "name": "Hot Springs",
+      "classification": "First Class",
+      "county_ids": [
+        "05051"
+      ],
+      "dataset_hash": "d6ace2dbbe831011ef397db14ecb23de51b8f94bbfa135ad974063e7e1afea49"
+    },
+    {
+      "id": "ARM4669e78a4fb1441d8f2a8b826931e6eb",
+      "name": "Houston",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05105"
+      ],
+      "dataset_hash": "b3e54155dc29b9613c6267e18daaf74c445c5cb87727a3a43ac5c7d7f0dfccb6"
+    },
+    {
+      "id": "ARMed8bdea6873646d984e48218bf37d929",
+      "name": "Hoxie",
+      "classification": "First Class",
+      "county_ids": [
+        "05075"
+      ],
+      "dataset_hash": "ed0eaf705c7775078411b817b2c92678488dd912a7e722b2222583a8427364ef"
+    },
+    {
+      "id": "ARMfb310bd7e6224a3cae098ef7fa419220",
+      "name": "Hughes",
+      "classification": "Second Class",
+      "county_ids": [
+        "05123"
+      ],
+      "dataset_hash": "d2e68ad6db3f105bc54fa167ac4383cdf3b4ae636ab3e650e3dae917d0f602b7"
+    },
+    {
+      "id": "ARM29327dc8144a4d148aed7378f2fd26b8",
+      "name": "Humnoke",
+      "classification": "Second Class",
+      "county_ids": [
+        "05085"
+      ],
+      "dataset_hash": "d477da2cf115e1f8f4737e898d55d32667fa417c2c94db5779974d18e069e822"
+    },
+    {
+      "id": "ARM24c32cf5ec5d45ef9b2be571583642ee",
+      "name": "Humphrey",
+      "classification": "Second Class",
+      "county_ids": [
+        "05001",
+        "05069"
+      ],
+      "dataset_hash": "cfbf83db73528e3a285733cce1a45d2aa6c5c855e42ad613d6614274bd560e9b"
+    },
+    {
+      "id": "ARM457bd7c812854f8e86396ef32d19706f",
+      "name": "Hunter",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05147"
+      ],
+      "dataset_hash": "096506f8475e9f33e6c12deb8d879eee42ed5e53931733b69530a9e0708e4613"
+    },
+    {
+      "id": "ARM298c71d59641493dacecb3d925bcaadb",
+      "name": "Huntington",
+      "classification": "Second Class",
+      "county_ids": [
+        "05131"
+      ],
+      "dataset_hash": "6932ec92a1e8ec38347b44c4b72604b378268c143690af165a688816cb16ac40"
+    },
+    {
+      "id": "ARM1371a31b12dd406c8386d1d649f5178c",
+      "name": "Huntsville",
+      "classification": "First Class",
+      "county_ids": [
+        "05087"
+      ],
+      "dataset_hash": "9d34c92f4751089d481b08fc5d1acbae04021b9b217e4ba73a7cb845aa8b0db8"
+    },
+    {
+      "id": "ARM53f275ba190d4e6181f124938e3c9a70",
+      "name": "Huttig",
+      "classification": "Second Class",
+      "county_ids": [
+        "05139"
+      ],
+      "dataset_hash": "47bd8e8491840433074c0d912873e5ec3b89f622e5802a9b6d0420f1b8466adb"
+    },
+    {
+      "id": "ARMc16641006a434a8a9fab1918f69a754d",
+      "name": "Imboden",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05075"
+      ],
+      "dataset_hash": "b7d084cc7e0009e8c58f5fe3afd69be2501ffae8d89c02db07cd99306ed4e8a7"
+    },
+    {
+      "id": "ARMeec81bdb5371411e9d42497feca9d40d",
+      "name": "Jacksonport",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05067"
+      ],
+      "dataset_hash": "96401a7c2c0f3e1ab27b20b97bdb8ba524057ce2c9a2f52627f214dcb0ea9834"
+    },
+    {
+      "id": "ARM354bc35190dc462ea5d09ce8793d9d7a",
+      "name": "Jacksonville",
+      "classification": "First Class",
+      "county_ids": [
+        "05085",
+        "05119"
+      ],
+      "dataset_hash": "b0b676f918ede0f7bcf55a6231b8b526a9529a7fad30d034a319378d93269ecd"
+    },
+    {
+      "id": "ARMfdc35b88f779413cb637906a3d218ca6",
+      "name": "Jasper",
+      "classification": "Second Class",
+      "county_ids": [
+        "05101"
+      ],
+      "dataset_hash": "8a6a40e080d52a1e0d2f9619d63d725dabf3d8fd885bf6992bf3f20bf4397ef6"
+    },
+    {
+      "id": "ARM14e7c54741c44cbf8862f96b9110c93b",
+      "name": "Jennette",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05035",
+        "05123"
+      ],
+      "dataset_hash": "e30cbfa349f120fbe90d6408f0cae44e4371968686fed93defbcf79f71fb73e8"
+    },
+    {
+      "id": "ARM23b535f361de4303b6922f9c31d3c30d",
+      "name": "Jericho",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05035"
+      ],
+      "dataset_hash": "3399980b58891822169e9cc77e9dc72a0a2334937c51da6d9558bf10b3abd116"
+    },
+    {
+      "id": "ARM6298a72791c549e98e7c58865d788c0d",
+      "name": "Johnson",
+      "classification": "First Class",
+      "county_ids": [
+        "05143"
+      ],
+      "dataset_hash": "7a1196d4a41ace517bad58c83e3136cdb91b51ec75ed3cc422eccdadf7c6ffb2"
+    },
+    {
+      "id": "ARM283085f9c6214c38b0661c9962b8cf11",
+      "name": "Joiner",
+      "classification": "Second Class",
+      "county_ids": [
+        "05093"
+      ],
+      "dataset_hash": "fd34ce5d6c85049e5fb5fb19040bd496aa391b806321979ae974e4d66e47b0be"
+    },
+    {
+      "id": "ARM564223fbf485459986a96fe654fbb1ab",
+      "name": "Jonesboro",
+      "classification": "First Class",
+      "county_ids": [
+        "05031"
+      ],
+      "dataset_hash": "798c61290ee8804f8d4d3e7430b1c7077fa964ae64c8f334b528f95a36f2e2cd"
+    },
+    {
+      "id": "ARM03fb3456e42b436984ddb64d80bd8f70",
+      "name": "Judsonia",
+      "classification": "Second Class",
+      "county_ids": [
+        "05145"
+      ],
+      "dataset_hash": "4b0146bac84b47465c5f7e33280579d2e233ea7a6d2a317c3eb6308590e18828"
+    },
+    {
+      "id": "ARM987a9cc8fa5d4404b72e9c24bf8f3af6",
+      "name": "Junction City",
+      "classification": "Second Class",
+      "county_ids": [
+        "05139"
+      ],
+      "dataset_hash": "0799ede6b365b2bb9596be85892931d3ceba7a9b03c8620dc3c1b99d6d937107"
+    },
+    {
+      "id": "ARMc470258927f04057864166fd704b42b6",
+      "name": "Keiser",
+      "classification": "Second Class",
+      "county_ids": [
+        "05093"
+      ],
+      "dataset_hash": "f00446e00957ebcd643f7d5c111c645837897bc4ede9e7d37fe8cf76d4a8ca01"
+    },
+    {
+      "id": "ARM4051e2f1f63e49d5a4aa93c800ab8b8c",
+      "name": "Kensett",
+      "classification": "Second Class",
+      "county_ids": [
+        "05145"
+      ],
+      "dataset_hash": "1648afe61d6bf559c76f1a9b366f355d83e93422f68222d44dbf0179ac1e593a"
+    },
+    {
+      "id": "ARMa11ea5d126a645a1941f2ae70afd405c",
+      "name": "Keo",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05085",
+        "05119"
+      ],
+      "dataset_hash": "054c7afa15af0a1bce04e9dd819536697d812c693e63f3e8a9d162baafca5df0"
+    },
+    {
+      "id": "ARM1989783b122c490a859abd9c95b0875d",
+      "name": "Kibler",
+      "classification": "Second Class",
+      "county_ids": [
+        "05033"
+      ],
+      "dataset_hash": "95c0bfdb4b40bff5deca08f2c9fa4b216d695ea58a454b9fcb140b3eb4197561"
+    },
+    {
+      "id": "ARM44f7c35969a34ab4a880f1b44d99a2de",
+      "name": "Kingsland",
+      "classification": "Second Class",
+      "county_ids": [
+        "05025"
+      ],
+      "dataset_hash": "6c890daed8a25b2277c080afbc3a427bf8f6ecb509613e4aa0c3a2ca2c0bdd0e"
+    },
+    {
+      "id": "ARMa0edbdbbd94d435b8f80b003b06a88e5",
+      "name": "Knobel",
+      "classification": "Second Class",
+      "county_ids": [
+        "05021"
+      ],
+      "dataset_hash": "44e64c7be3ad12bdd4b410f810518966f1e960c871ca0c6f7c322c15d2660ef5"
+    },
+    {
+      "id": "ARM0f014af0d57c4c19b16bd61d1d99953d",
+      "name": "Knoxville",
+      "classification": "Second Class",
+      "county_ids": [
+        "05071"
+      ],
+      "dataset_hash": "b0b9bb70726d36ea481925bb8e4f87b53aa890fab120837fddcf3f24f4fbd307"
+    },
+    {
+      "id": "ARM788c39f2c6cd40ce9926751a4843c07d",
+      "name": "La Grange",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05077"
+      ],
+      "dataset_hash": "b5c6f99c0ebb2e34f1a5e8fd54520271b080b1e479df203ed09f20873d8693cf"
+    },
+    {
+      "id": "ARMeaa393eecd1047bb85f63ae8ce590fa8",
+      "name": "Lafe",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05055"
+      ],
+      "dataset_hash": "e477e74b8e7399016afcf35fdab9585ccd28525a700025e891f8bda94ada2104"
+    },
+    {
+      "id": "ARM54d6871b661f412696461f9c8200baa3",
+      "name": "Lake City",
+      "classification": "First Class",
+      "county_ids": [
+        "05031"
+      ],
+      "dataset_hash": "601c4a9df3b49a9567298de1781cc29ebe28bd84ca6b8a48e34bc6d7eed3e1bd"
+    },
+    {
+      "id": "ARMff8220c344264f499189a6ec7f377c16",
+      "name": "Lake View",
+      "classification": "Second Class",
+      "county_ids": [
+        "05107"
+      ],
+      "dataset_hash": "de788c74923599da5f97f6f17082d424711ce752eb05217aed72288929df6cb9"
+    },
+    {
+      "id": "ARM632890ff7de1418bb90761a30304c8ea",
+      "name": "Lake Village",
+      "classification": "First Class",
+      "county_ids": [
+        "05017"
+      ],
+      "dataset_hash": "9e6383fafe167af8f3cab04dd8e11b2d317ef528db12b625024997450f5a9037"
+    },
+    {
+      "id": "ARM5402d19fa4f345a5a56df6c7ca50683d",
+      "name": "Lakeview",
+      "classification": "Second Class",
+      "county_ids": [
+        "05005"
+      ],
+      "dataset_hash": "b2a7a7f1ab9cc16d888b6808a696a9c16bd955298d10d4c713f49ae0f4c50afe"
+    },
+    {
+      "id": "ARM1dc36ef9da20441d80d1cd858cbd326c",
+      "name": "Lamar",
+      "classification": "Second Class",
+      "county_ids": [
+        "05071"
+      ],
+      "dataset_hash": "44a9fe10ce9de458c32fc08816f699611f9ca5e315d965fd20cccb7f4299c0e7"
+    },
+    {
+      "id": "ARM38bd9c05d3474e66b8dd19137783ea41",
+      "name": "Lavaca",
+      "classification": "Second Class",
+      "county_ids": [
+        "05131"
+      ],
+      "dataset_hash": "77a6771056626dfe38dfb75f7073978cfe81fedbf4b999554b4f015aa32e1bc2"
+    },
+    {
+      "id": "ARM171b4ad104f742bb83a8d41dc8838da2",
+      "name": "Leachville",
+      "classification": "First Class",
+      "county_ids": [
+        "05031",
+        "05093"
+      ],
+      "dataset_hash": "366cee58ad0d403a4119a7b307937dbd9dbe71dcacb6a6f3b0e0833eb9c7c52e"
+    },
+    {
+      "id": "ARM3b5e1d833e8149deae0a3285b2cff4a2",
+      "name": "Lead Hill",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05009"
+      ],
+      "dataset_hash": "b1b15de674e19e54fbbc8ed27ad83a09efaf762c54db7f619ddbff97bf7c74a5"
+    },
+    {
+      "id": "ARM3d5789b931e043419a03f17d4d815bf3",
+      "name": "Leola",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05053"
+      ],
+      "dataset_hash": "46444c7b70a5c5fb15ef117ad6d2a0476926df52a5e38f6b21225ffd0df5826e"
+    },
+    {
+      "id": "ARM6439b49c8b7543ce9a8c71e4760fbe01",
+      "name": "Lepanto",
+      "classification": "First Class",
+      "county_ids": [
+        "05111"
+      ],
+      "dataset_hash": "769a5228a7f06478bcaf4df3c4bc7a61f59546f08290f9b4c7b147eeca9f454b"
+    },
+    {
+      "id": "ARM27c13545cb954c8d89b767ae3e34e64c",
+      "name": "Leslie",
+      "classification": "Second Class",
+      "county_ids": [
+        "05129"
+      ],
+      "dataset_hash": "7a80821b3a7e89836e00edf7d886afa480a0ca3629006e76e9cf3357c60afe3b"
+    },
+    {
+      "id": "ARMf085f31983af4deb8854e21a4f8d8d4a",
+      "name": "Letona",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05145"
+      ],
+      "dataset_hash": "cde87178c1bf1c265625b9911acc22a5682d71444128be0363d9a8b6e18aa423"
+    },
+    {
+      "id": "ARMff3fa1725d22406dac80ff657dbc6555",
+      "name": "Lewisville",
+      "classification": "Second Class",
+      "county_ids": [
+        "05073"
+      ],
+      "dataset_hash": "027eab52a9c40c5454d20949abd3ac498938ba76ad4e9768205306412c57e411"
+    },
+    {
+      "id": "ARMb1817f584f3c47d78b80151828ca1524",
+      "name": "Lexa",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05107"
+      ],
+      "dataset_hash": "db13339668ebc0cfea2bb0ad291a816e83967ce0ce7c052c3b62e9ed9eab1815"
+    },
+    {
+      "id": "ARMccb0d9873157484aa78d666a311c9b7a",
+      "name": "Lincoln",
+      "classification": "First Class",
+      "county_ids": [
+        "05143"
+      ],
+      "dataset_hash": "e9bc7212cc236464516b6bb308c042a96029de96dcfda7672b8090fd98f042a3"
+    },
+    {
+      "id": "ARM0cd6d1dea70946d0bd6b88d533229f88",
+      "name": "Little Flock",
+      "classification": "Second Class",
+      "county_ids": [
+        "05007"
+      ],
+      "dataset_hash": "712b8d2bd2cd6d1fef7d9e512384700cec4df89969b35fec1cf9cb7d6c4034e5"
+    },
+    {
+      "id": "ARM695d5907e8c7476abb3071251a7983f0",
+      "name": "Little Rock",
+      "classification": "First Class",
+      "county_ids": [
+        "05119",
+        "05125"
+      ],
+      "dataset_hash": "c95f720d70b8ab555f181cf71137cd5a87f6a39ca6eccf41f7857d71224b1a78"
+    },
+    {
+      "id": "ARM3b865902b4a64b889def66a633581c57",
+      "name": "Lockesburg",
+      "classification": "Second Class",
+      "county_ids": [
+        "05133"
+      ],
+      "dataset_hash": "c8387f341eaab84b86ebda1542aaeede3a4463093d9c16b3fa3930585c696d22"
+    },
+    {
+      "id": "ARM114c4a6ca2f84e22bf6ac81c2dd22ce4",
+      "name": "London",
+      "classification": "Second Class",
+      "county_ids": [
+        "05115"
+      ],
+      "dataset_hash": "5c714221c4d7ded0843cc12b684e113f7155ab5dddbc12c33798b8ff0ec32ecf"
+    },
+    {
+      "id": "ARMbd9a269858384e01b640e9d65eb81871",
+      "name": "Lonoke",
+      "classification": "First Class",
+      "county_ids": [
+        "05085"
+      ],
+      "dataset_hash": "05fa57bc0652d8e9032d3f3ae713490066b67241b7c6bcb0f424aa36e98cbce5"
+    },
+    {
+      "id": "ARM50c3f9b03ce7403eafbefd1351fbaed6",
+      "name": "Lonsdale",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05051"
+      ],
+      "dataset_hash": "fcd8a7459f9c2a1af3fa8cccf2d5287df1237f4993a34cbeff43cc42405224f7"
+    },
+    {
+      "id": "ARMba575273f61e45b986f5c54e3273df0b",
+      "name": "Louann",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05103"
+      ],
+      "dataset_hash": "6a3cfebae845653fb50d42ff1c54ed49e042458e0d61b37780be705865ac7ade"
+    },
+    {
+      "id": "ARM95c6bdec3eb6432bbaefdb62505abaec",
+      "name": "Lowell",
+      "classification": "First Class",
+      "county_ids": [
+        "05007"
+      ],
+      "dataset_hash": "41d857dde1bce006968f2971786e3f64359473bbdda4c8621205c6532a0c1650"
+    },
+    {
+      "id": "ARM523b5803027b4fdca6ea70a8997f9af1",
+      "name": "Luxora",
+      "classification": "Second Class",
+      "county_ids": [
+        "05093"
+      ],
+      "dataset_hash": "a4468d533eb26613f84b92618da354434bfd3f1a43721ee7f11091f5c04b1ca1"
+    },
+    {
+      "id": "ARMb6a163cf806f41a1894b23e0d9c1b372",
+      "name": "Lynn",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05075"
+      ],
+      "dataset_hash": "f83b013f88d0436d39e828c54ad0f49aaebfa88eafc4fefa18d81dc6d40a332f"
+    },
+    {
+      "id": "ARM97ddf35d2326407fa5d2095ec7cdaff3",
+      "name": "Madison",
+      "classification": "Second Class",
+      "county_ids": [
+        "05123"
+      ],
+      "dataset_hash": "2258ebdeed43f79d0229a892864582e72192c8f80dd2d97934707406d0069f57"
+    },
+    {
+      "id": "ARM59b73c64800e49f09075fef5cb7b9d3d",
+      "name": "Magazine",
+      "classification": "Second Class",
+      "county_ids": [
+        "05083"
+      ],
+      "dataset_hash": "4e74cd06688eb129ac534d78b8362763fd4e11915f665d642adbc7dfb7f24100"
+    },
+    {
+      "id": "ARM08ac18e13d6e4637b94ad4e0822a74bd",
+      "name": "Magness",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05063"
+      ],
+      "dataset_hash": "e784fab90d52c56ce0be1c166cec77f541cfcaadd798349f1def718794c3127d"
+    },
+    {
+      "id": "ARMa09073892782456d8ce3efe16a707966",
+      "name": "Magnolia",
+      "classification": "First Class",
+      "county_ids": [
+        "05027"
+      ],
+      "dataset_hash": "5fba8094d7fe464216e8d7184a5ea43eb4df693515b1f2de632a26fdd7487f9d"
+    },
+    {
+      "id": "ARMc92fb15fd90a4c8e97f3d80aa7bbe9ec",
+      "name": "Malvern",
+      "classification": "First Class",
+      "county_ids": [
+        "05059"
+      ],
+      "dataset_hash": "2da497091ac64889fa6c5ff92ad9145edc3259e01f8eed2dffbfc837356b29c0"
+    },
+    {
+      "id": "ARM57501de106c44f2e929e34ffe0e5a739",
+      "name": "Mammoth Spring",
+      "classification": "Second Class",
+      "county_ids": [
+        "05049"
+      ],
+      "dataset_hash": "b8e65751a1471f0a0e5f4173f1820ca1ae12d2d41e8e78200308d7aca2e0018f"
+    },
+    {
+      "id": "ARM77d68fdca46046a3a1eb5de80a2a51c7",
+      "name": "Manila",
+      "classification": "First Class",
+      "county_ids": [
+        "05093"
+      ],
+      "dataset_hash": "7993d694c68666a61e8c2901110a433394c3937d0c0d7f6022a63534149f129e"
+    },
+    {
+      "id": "ARMf578bc75afbe430ca833d81f0a25a7d2",
+      "name": "Mansfield",
+      "classification": "Second Class",
+      "county_ids": [
+        "05127",
+        "05131"
+      ],
+      "dataset_hash": "0788cf1b1e14f231c526efd29ea3b41dd588b5becbf7b74daabf9f1e55401e24"
+    },
+    {
+      "id": "ARM9ffa42196cd24c588dcdfe79b7744097",
+      "name": "Marianna",
+      "classification": "First Class",
+      "county_ids": [
+        "05077"
+      ],
+      "dataset_hash": "3750caf5578a8d4a8ba656837a522bae97fc6750329bfb42622bedbd7b6a9d95"
+    },
+    {
+      "id": "ARM8a9be69a14bd4010b68254476d3673dd",
+      "name": "Marie",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05093"
+      ],
+      "dataset_hash": "6521353dd44c1d928aabf7291bb4320e1aeafe7804c3fa16d618bb98694ba57b"
+    },
+    {
+      "id": "ARMaa7538a8010540859453586297b1468f",
+      "name": "Marion",
+      "classification": "First Class",
+      "county_ids": [
+        "05035"
+      ],
+      "dataset_hash": "70b1077ec90e67d945b35f56cd3b7d46485c071ea577d4f826efe1439a95af2e"
+    },
+    {
+      "id": "ARM47cb097e842a4a21baea66e55aeae984",
+      "name": "Marked Tree",
+      "classification": "First Class",
+      "county_ids": [
+        "05111"
+      ],
+      "dataset_hash": "a961f2d0e27c51805214944ab1833aaa0514a3ddf5d8bcdbce7a01f4590e22a8"
+    },
+    {
+      "id": "ARM1e3987ddc047496baf36bffd246a5401",
+      "name": "Marmaduke",
+      "classification": "Second Class",
+      "county_ids": [
+        "05055"
+      ],
+      "dataset_hash": "e1cbf955688ae9c864de7474185e58e830ee37c3cf1b1b44d3caf9f4bb0e79cb"
+    },
+    {
+      "id": "ARMddc7c7ed442547cf807b8a11c1beb4ca",
+      "name": "Marshall",
+      "classification": "Second Class",
+      "county_ids": [
+        "05129"
+      ],
+      "dataset_hash": "ea31633ab21ee88ede0aa516eff0a783ba8674fad992c6b1e7d5770e41a9f7d4"
+    },
+    {
+      "id": "ARMde0bf48d5b9e461dbffbe4a2c25c73f4",
+      "name": "Marvell",
+      "classification": "Second Class",
+      "county_ids": [
+        "05107"
+      ],
+      "dataset_hash": "2d2410eded17514a3b9cc8174322a1feb9d800a8876c03b63c265ba92699a938"
+    },
+    {
+      "id": "ARMa52737be9dcc4cf98a500245d43f2822",
+      "name": "Maumelle",
+      "classification": "First Class",
+      "county_ids": [
+        "05045",
+        "05119"
+      ],
+      "dataset_hash": "48b3cfad79c561873776e082799ffabd83c525f28804fb325cad46b105984257"
+    },
+    {
+      "id": "ARM5e8d74c11eba4c28a158b39669d41a24",
+      "name": "Mayflower",
+      "classification": "Second Class",
+      "county_ids": [
+        "05045"
+      ],
+      "dataset_hash": "d03b0946b6ce2e678a362a4c1e68f96ff373aae186000878a21fc0caa73d8ddd"
+    },
+    {
+      "id": "ARM94aedf21c1514aa38b42003e8e162a2c",
+      "name": "Maynard",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05121"
+      ],
+      "dataset_hash": "992f7e3bee00883fa24bdfacbeb9becd4bbaedf51a7ee3959b2d1d40e1ecf23e"
+    },
+    {
+      "id": "ARM56b4092c463e45c1828998c5af815385",
+      "name": "McCaskill",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05057"
+      ],
+      "dataset_hash": "48413bb7f1f668af6a5858e8674413af58612e7aae572057bc5e1d38748dedbf"
+    },
+    {
+      "id": "ARMbe4784e958724094abd7abedbc4b5fbf",
+      "name": "McCrory",
+      "classification": "First Class",
+      "county_ids": [
+        "05147"
+      ],
+      "dataset_hash": "abc307346e8cab5492525a55397fe84790fee9ff3597a46a2422f38fa1d8179f"
+    },
+    {
+      "id": "ARMba048c06d85e49329a5d4769c5e67e86",
+      "name": "McDougal",
+      "classification": "Second Class",
+      "county_ids": [
+        "05021"
+      ],
+      "dataset_hash": "885d3ef7ea91b902fdf80e05e95831c6b15404349b11da554b0ab3a3a3398469"
+    },
+    {
+      "id": "ARM6fb3d106dc674ad1bdb5ea100894cbc3",
+      "name": "McGehee",
+      "classification": "First Class",
+      "county_ids": [
+        "05041"
+      ],
+      "dataset_hash": "b1911a61df0dbe5d53893120b8057fb1a4698b318e44af2405e48807d76191ee"
+    },
+    {
+      "id": "ARM5d6de666150d4d69a1dea00c954632f6",
+      "name": "McNab",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05057"
+      ],
+      "dataset_hash": "ee26bb393e3145bba30256f465a1441e87139d2b63a328b115fc9998bcb4cd13"
+    },
+    {
+      "id": "ARMfa328dc10e85497a8c8fbf9eb4a87bf7",
+      "name": "McNeil",
+      "classification": "Second Class",
+      "county_ids": [
+        "05027"
+      ],
+      "dataset_hash": "0652e5633aaa3d1b8c41ed574416aaf2504d15f4c0848108e98a463396a6e7a5"
+    },
+    {
+      "id": "ARMaa36d9201756404289bc0df3e9a4592b",
+      "name": "McRae",
+      "classification": "Second Class",
+      "county_ids": [
+        "05145"
+      ],
+      "dataset_hash": "0067112c63cbcc521213630756e68a6a9401c93ef8dad975009064d43e581ae2"
+    },
+    {
+      "id": "ARMb1f57560c9d047068b5d8deaef793055",
+      "name": "Melbourne",
+      "classification": "Second Class",
+      "county_ids": [
+        "05065"
+      ],
+      "dataset_hash": "9fb2c90b63258fab3acf44fc9cbdd8f59760269aef2bccb78adc6f749e298639"
+    },
+    {
+      "id": "ARM76213f9fa1b544b4bace300603646f8a",
+      "name": "Mena",
+      "classification": "First Class",
+      "county_ids": [
+        "05113"
+      ],
+      "dataset_hash": "59669f94bd800f4b978fc884a590f41945476b0d174f2f18a0f128082328b603"
+    },
+    {
+      "id": "ARM9eac01810e7747f1948b6aff5991e406",
+      "name": "Menifee",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05029"
+      ],
+      "dataset_hash": "df17a81feab1e38feab51e5f5efd8719e7e30ce13a290ce2248e9540755cb199"
+    },
+    {
+      "id": "ARMad8f1494ecfa410b941b65fa8ae3801b",
+      "name": "Midland",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05131"
+      ],
+      "dataset_hash": "a077e61c5ef0e617ad2140c274d9a969adeb96e2c5398076d804f1a925b6b5f6"
+    },
+    {
+      "id": "ARMb768b8d1f5074077a42c060ea9bbbe28",
+      "name": "Midway",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05059"
+      ],
+      "dataset_hash": "a626602cc795e1cce84f6b1a715fdc41610d2c3c85ac9e51aaacad700709977d"
+    },
+    {
+      "id": "ARM634887a57d46457db6b7ea4398cff9c5",
+      "name": "Mineral Springs",
+      "classification": "Second Class",
+      "county_ids": [
+        "05061"
+      ],
+      "dataset_hash": "5eb906bc3ea4f5d6925a89b90cbce55f9051b426de075092f143454d7d1d942a"
+    },
+    {
+      "id": "ARM955212c716a1466699d002100adcd9e0",
+      "name": "Minturn",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05075"
+      ],
+      "dataset_hash": "edc19aa89dec048ff2e950b004d8a3439df194cb7269004c78b2641226c0d7dc"
+    },
+    {
+      "id": "ARM670c3bce0ce44471a5ad1acda0a647b2",
+      "name": "Mitchellville",
+      "classification": "Second Class",
+      "county_ids": [
+        "05041"
+      ],
+      "dataset_hash": "b3028764902fc5592c21f470baad01f4334f2dbcb996764258673525cda5222d"
+    },
+    {
+      "id": "ARM8f4b6d999b4647c6a490c941a26b9fa9",
+      "name": "Monette",
+      "classification": "Second Class",
+      "county_ids": [
+        "05031"
+      ],
+      "dataset_hash": "d94cf79315fc0e5aea4301d174caaf6345c6df1b0ed04c252ff9d04c082c8c69"
+    },
+    {
+      "id": "ARMe32ac40883c54b6aa1b9dfc018612ec7",
+      "name": "Monticello",
+      "classification": "First Class",
+      "county_ids": [
+        "05043"
+      ],
+      "dataset_hash": "e0bce6b26b7012d67f6e93ddbb1a1989fcf8479636fcbeaa87619da43f846ead"
+    },
+    {
+      "id": "ARM452c62d71cd0421e97eba2a1a020dcff",
+      "name": "Montrose",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05003"
+      ],
+      "dataset_hash": "689211d7c3c425c067814c5a0189051d29a30ff08af95ada9840987dbd2915f6"
+    },
+    {
+      "id": "ARMe7844248316f4989b8556a1c042cab58",
+      "name": "Moorefield",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05063"
+      ],
+      "dataset_hash": "da93fc9e429557aa714404f61b3387248800dacf78fbadbe8f5dab47be38ef68"
+    },
+    {
+      "id": "ARMe46fe285a9174547b2acf108a721bda6",
+      "name": "Moro",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05077"
+      ],
+      "dataset_hash": "5be24f256492869e49f4b0860cac96b87e1ceaab9de9006323191d0cf3f85b9c"
+    },
+    {
+      "id": "ARM85178f8fdaa344c486d48a4082296df0",
+      "name": "Morrilton",
+      "classification": "First Class",
+      "county_ids": [
+        "05029"
+      ],
+      "dataset_hash": "4ce6346cb5427056649c122084d91555446a84c60ca89c194d5e3f38b5d7717e"
+    },
+    {
+      "id": "ARM2b558e7b42074b1585b9bf8ccf452330",
+      "name": "Morrison Bluff",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05083"
+      ],
+      "dataset_hash": "eb68c6391d832835f5f41566669fbbad0c36f2d8170ee7c62847da60ecd7384c"
+    },
+    {
+      "id": "ARM9ad9625b44da4dfcad1b531ff3ee4f55",
+      "name": "Mount Ida",
+      "classification": "Second Class",
+      "county_ids": [
+        "05097"
+      ],
+      "dataset_hash": "471c36084ab5a3a1b3356337936e3112830ece22772a9f66613e05c0aa80e154"
+    },
+    {
+      "id": "ARM21219958584944a1b091038d2d9927a3",
+      "name": "Mount Pleasant",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05065"
+      ],
+      "dataset_hash": "03c4717c7aeefc8df655d2e87a5193c77f1921de77acd8c339cb6d3a63e1e00e"
+    },
+    {
+      "id": "ARM748955f91410466190b54f44e2d7b6a5",
+      "name": "Mount Vernon",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05045",
+        "05145"
+      ],
+      "dataset_hash": "b411b1a6b4255a01536c066557694616ef40add922eec47ff7b7ee910083da70"
+    },
+    {
+      "id": "ARM0c74d80259d94452bc89cd1cae4f8bcd",
+      "name": "Mountain Home",
+      "classification": "First Class",
+      "county_ids": [
+        "05005"
+      ],
+      "dataset_hash": "70ed556ea7c0a810399a2a3556aa48df26869777a4fc64cc30de45bde4137a75"
+    },
+    {
+      "id": "ARM09407026b9f143688e82e2d500ce9a93",
+      "name": "Mountain Pine",
+      "classification": "Second Class",
+      "county_ids": [
+        "05051"
+      ],
+      "dataset_hash": "322cba5811dc18be881dacb57e3f168c6d0424292858d8e373dc47143711b989"
+    },
+    {
+      "id": "ARMa485f17259874dd0a30b7d725183d1e3",
+      "name": "Mountain View",
+      "classification": "First Class",
+      "county_ids": [
+        "05137"
+      ],
+      "dataset_hash": "5d4ac62095629c6b72b441b35fbc6691853afa87ad7ffa99b891ddb997073cdc"
+    },
+    {
+      "id": "ARM63b4615ea6ed427685ae248c7cbaacda",
+      "name": "Mountainburg",
+      "classification": "Second Class",
+      "county_ids": [
+        "05033"
+      ],
+      "dataset_hash": "c19811bc4c06afa2eec6a4a39ac3cd3aa6bc4de2e4b9628f92a10860f45f8113"
+    },
+    {
+      "id": "ARMb40f1f8435e74286930481e6974c01fb",
+      "name": "Mulberry",
+      "classification": "Second Class",
+      "county_ids": [
+        "05033",
+        "05047"
+      ],
+      "dataset_hash": "13fde4f54321b0724dfaa877ea82ec09e50c63fa3919fe72948c51e83f7050f0"
+    },
+    {
+      "id": "ARM5259868bf4984cf89ec1b73ad3de0c7b",
+      "name": "Murfreesboro",
+      "classification": "Second Class",
+      "county_ids": [
+        "05109"
+      ],
+      "dataset_hash": "d7c6e4fa682052eece2b28f35c09012561e88f67c20ca9b8552cfba8346cdfd7"
+    },
+    {
+      "id": "ARM406cd6ea3e734499aa5ff5d84448d339",
+      "name": "Nashville",
+      "classification": "First Class",
+      "county_ids": [
+        "05057",
+        "05061"
+      ],
+      "dataset_hash": "bdeda908f4a2e39f0bcd50ff3b76e2a73a86748772da83ffcbbd47c275610f52"
+    },
+    {
+      "id": "ARM999b95b823594615bb269dc614027ae7",
+      "name": "Newark",
+      "classification": "Second Class",
+      "county_ids": [
+        "05063"
+      ],
+      "dataset_hash": "4c9d2a91cccfdd3e1c0d96a005eaeb8aec6ef3949e95eaa69de139a5cd2ca9c3"
+    },
+    {
+      "id": "ARM2433f4fd4f264a25b58e5850bb5d6410",
+      "name": "Newport",
+      "classification": "First Class",
+      "county_ids": [
+        "05067"
+      ],
+      "dataset_hash": "db0356d10b67a52fd840562497d38debae1e4da071e5d45d7b5e3e1d5d51c55f"
+    },
+    {
+      "id": "ARM038df4db6d02495d88e9eeeb5c2e1eaa",
+      "name": "Nimmons",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05021"
+      ],
+      "dataset_hash": "b63bd0ce1632e0e4e632de6f790e951229b32257e8362e75246b28936abc5282"
+    },
+    {
+      "id": "ARM298428e5093441009639607136ced6c8",
+      "name": "Norfork",
+      "classification": "Second Class",
+      "county_ids": [
+        "05005"
+      ],
+      "dataset_hash": "482c432c59e51aabfa1f2b742bd0ca8db9e7c4b3da9dbf5042136920fad427aa"
+    },
+    {
+      "id": "ARM9f9c344dd3454f8f9dd21afb09f41f71",
+      "name": "Norman",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05097"
+      ],
+      "dataset_hash": "0c87094e9212396cf92daba5c8090fdaa0a95ab00289ef1e7d4df5a5cd5ee25f"
+    },
+    {
+      "id": "ARM0db8136032fe48b586819d55aed07e18",
+      "name": "Norphlet",
+      "classification": "Second Class",
+      "county_ids": [
+        "05139"
+      ],
+      "dataset_hash": "4dee2ff5feb61a21acd8e2e2c9e9f65514e8d23ed713bd2a9ec52e5308ad055a"
+    },
+    {
+      "id": "ARMb160c9be05624eae896e2729da1263ab",
+      "name": "North Little Rock",
+      "classification": "First Class",
+      "county_ids": [
+        "05119"
+      ],
+      "dataset_hash": "d92cd401e15afedf99323c627ebd08039cbfbdbdb2d24664132c86a5811a1b99"
+    },
+    {
+      "id": "ARM5fef363e5fad4d328d566e5b879c334b",
+      "name": "O'Kean",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05055",
+        "05121"
+      ],
+      "dataset_hash": "b6c18a4110e785f4f26bc112fcd7648d4fb9b59166b9ee93b5d758a7e1d9dee7"
+    },
+    {
+      "id": "ARMdee512958b47468cbb5fe349a10c0307",
+      "name": "Oak Grove",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05015"
+      ],
+      "dataset_hash": "afa5b2df0e1ace451d47f9ee45c1a9d0a703fa4779c85bbea17b68ae16d3ab48"
+    },
+    {
+      "id": "ARM2aa09b47164c406cb89a427b7967395a",
+      "name": "Oak Grove Heights",
+      "classification": "Second Class",
+      "county_ids": [
+        "05055"
+      ],
+      "dataset_hash": "a5b0846287af9fc9dcc6195b32696ab5f4c390b452d127699e4a3eb368630674"
+    },
+    {
+      "id": "ARM597b7303d24640e39db46be465c6b1a7",
+      "name": "Oakhaven",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05057"
+      ],
+      "dataset_hash": "bb22499984c4a62cdade406887b6cf70321c0bee556a2f3fa6b7ae6c14aff6ae"
+    },
+    {
+      "id": "ARM43c3672808ee431484b9db7133026674",
+      "name": "Oden",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05097"
+      ],
+      "dataset_hash": "aabedc152c940caa0cee1127642463e769730593d5f4bb7118ec6cc5d1ce2452"
+    },
+    {
+      "id": "ARM379306b589b14d6cba167975569ee70e",
+      "name": "Ogden",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05081"
+      ],
+      "dataset_hash": "ebe023e971c9116b39583e226b57f99a0a4d6007cc948c6676905796af4838a8"
+    },
+    {
+      "id": "ARM468c0d129bfc4dc48a7b61eff8f6ae64",
+      "name": "Oil Trough",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05063"
+      ],
+      "dataset_hash": "f421cd5c8c25b33fbba5081429e100be24eae060dc3339394bd72b3cc663a2c3"
+    },
+    {
+      "id": "ARMea9188d441da4d3696ee8649a93cf764",
+      "name": "Okolona",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05019"
+      ],
+      "dataset_hash": "accbe4ff1c30c45b71bdc2c7153dfebd3306657170ce545d60d757cb1ae3b877"
+    },
+    {
+      "id": "ARM99b647a5d99845df8e78d45aa2b90b26",
+      "name": "Ola",
+      "classification": "Second Class",
+      "county_ids": [
+        "05149"
+      ],
+      "dataset_hash": "e2a2d6b5c126d7a114229c778c40f2ea9f5208b1b269b440f99a5c0f8610e927"
+    },
+    {
+      "id": "ARM8cad7a81a03b4e959ac2425b0f1ac83a",
+      "name": "Omaha",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05009"
+      ],
+      "dataset_hash": "42f4b429c661361e6d705ca1ef715a5660fe00870212457e65c59b25dda15b49"
+    },
+    {
+      "id": "ARMf13414e18c24499783fb76eda6a866de",
+      "name": "Oppelo",
+      "classification": "Second Class",
+      "county_ids": [
+        "05029"
+      ],
+      "dataset_hash": "c8d55b342ee8b7635e5eb85a9793b995cfe56e454a9594aa3a42cf8c1cace9be"
+    },
+    {
+      "id": "ARMab8e8798e15f4c30b1636c5ee0d4b878",
+      "name": "Osceola",
+      "classification": "First Class",
+      "county_ids": [
+        "05093"
+      ],
+      "dataset_hash": "625e8e4a096e6846c82be144b208f71eb21c9cd9f2abd8553f6445e98d0be390"
+    },
+    {
+      "id": "ARMcdcf4b3ac48b4f4a9fb389ea9ff8f6e2",
+      "name": "Oxford",
+      "classification": "Second Class",
+      "county_ids": [
+        "05049",
+        "05065"
+      ],
+      "dataset_hash": "848217885463b5a10d8d83829282b1e14db84c0e06bb56059a3c53c2ca2f9884"
+    },
+    {
+      "id": "ARM953368dca3c1405fb566d075fb537dbc",
+      "name": "Ozan",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05057"
+      ],
+      "dataset_hash": "1e693eaa0a88f48fa35ba53c45efd91a86ec456a3437aaacde76bdeb2267be8d"
+    },
+    {
+      "id": "ARM48534d4ef7da4423b2ba24a691faf749",
+      "name": "Ozark",
+      "classification": "First Class",
+      "county_ids": [
+        "05047"
+      ],
+      "dataset_hash": "02566601217dede688b24e4086d2fa4faf0a37675d13c99a0f9f2ffb32d2704a"
+    },
+    {
+      "id": "ARM0c087d0aab5c4805b6f7e410bc315da8",
+      "name": "Palestine",
+      "classification": "Second Class",
+      "county_ids": [
+        "05123"
+      ],
+      "dataset_hash": "ff90295ca12f675dc1bf467fd8f5ffd5bef50601e1df7df4b18c0e4c61a8342b"
+    },
+    {
+      "id": "ARMd314cba0050c41f8865b5c9a839e8ce0",
+      "name": "Pangburn",
+      "classification": "Second Class",
+      "county_ids": [
+        "05145"
+      ],
+      "dataset_hash": "61fb889decb87f6c0948afbd7b74f08d5939afaeea98b027f32bb184a4c3b8a5"
+    },
+    {
+      "id": "ARM5366bf3cb417462ab26b28535d5ee4d7",
+      "name": "Paragould",
+      "classification": "First Class",
+      "county_ids": [
+        "05055"
+      ],
+      "dataset_hash": "f48960b6b2ed14d197d71990c38757c9af58a36e9623ceaa6819aea36349e82c"
+    },
+    {
+      "id": "ARM5a54039e35f946bc8786a9127d47533a",
+      "name": "Paris",
+      "classification": "First Class",
+      "county_ids": [
+        "05083"
+      ],
+      "dataset_hash": "836130aaed7a3b633d9d68c5a4f647af5238fb443326953442a86e98145a5046"
+    },
+    {
+      "id": "ARM296a2b383b2049078cf9d702f356a1e1",
+      "name": "Parkdale",
+      "classification": "Second Class",
+      "county_ids": [
+        "05003"
+      ],
+      "dataset_hash": "49d473ecd7ff4a445e92512b19b0faf1cc7443c2b0289c1ed55e1fdc2c666541"
+    },
+    {
+      "id": "ARM8bc564be6b4a4b3ea205a326a4873338",
+      "name": "Parkin",
+      "classification": "First Class",
+      "county_ids": [
+        "05037"
+      ],
+      "dataset_hash": "618ceaa3be20597716f31c7f43a308a8fb3ad988bc0ad04abc597a31c3682318"
+    },
+    {
+      "id": "ARM11535c1de83e4992a5e7d0b089097a3c",
+      "name": "Patmos",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05057"
+      ],
+      "dataset_hash": "13c7769439f10a4282c9ff1e3305a92b2cc3498da2360436dec7ed36f5720091"
+    },
+    {
+      "id": "ARMd500be08b5724f30bf044dfec75ec6ee",
+      "name": "Patterson",
+      "classification": "Second Class",
+      "county_ids": [
+        "05147"
+      ],
+      "dataset_hash": "86b3a613ed1b79b11bf7897e58758f8e347ad6e73e6b21b7483888cbe3fc859f"
+    },
+    {
+      "id": "ARMe335833d362448d5848212a2f2bcec2c",
+      "name": "Pea Ridge",
+      "classification": "First Class",
+      "county_ids": [
+        "05007"
+      ],
+      "dataset_hash": "f4b09daba540a8c0d624e5a7b209fee8973500ab2085c4426147c0be24326853"
+    },
+    {
+      "id": "ARM4112ff44c0854f9dbe94c46e2e89bb4b",
+      "name": "Peach Orchard",
+      "classification": "Second Class",
+      "county_ids": [
+        "05021"
+      ],
+      "dataset_hash": "2a23775846192d870a3807258f08fb76f4922ea8239123c520de63d3aad69960"
+    },
+    {
+      "id": "ARMfb9f3fc4170a47ecb001b5102ebb89c2",
+      "name": "Perla",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05059"
+      ],
+      "dataset_hash": "340f7459ebbfb2654a4f1285f0b90ef09cd8d6d73bdb7e8583f2105ea1500656"
+    },
+    {
+      "id": "ARMb09147bd0b3f4b3eb8bb89384b2b95d8",
+      "name": "Perry",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05105"
+      ],
+      "dataset_hash": "b82c1f9adc794102e446dcaf63d0d70e5be7bc1c8a7705c03e6327c9e0ceed0e"
+    },
+    {
+      "id": "ARM1e745c127e264c82aba7e2b401ba39ca",
+      "name": "Perrytown",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05057"
+      ],
+      "dataset_hash": "a4cdc549bc1c940af8b7190f9227d93cccd2574e908626ba89b8e7a88824ef9d"
+    },
+    {
+      "id": "ARM37e9c851b4c64973a224be16badc62b4",
+      "name": "Perryville",
+      "classification": "Second Class",
+      "county_ids": [
+        "05105"
+      ],
+      "dataset_hash": "c197cf4bbfdb641358452fa56313a4d1970b2c2282579e0663a4df466d930b3d"
+    },
+    {
+      "id": "ARM2015e13c5b6a4ac8ac292df44dd6a1d2",
+      "name": "Piggott",
+      "classification": "First Class",
+      "county_ids": [
+        "05021"
+      ],
+      "dataset_hash": "994452ee67e15a22ce7e4caa25b51acc5dd3b2a7b1f11fc4a74d155672e46900"
+    },
+    {
+      "id": "ARMd29f0a25aa404c4a89f0bb9b83dbbbd2",
+      "name": "Pindall",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05129"
+      ],
+      "dataset_hash": "a1905422e74c744f35d5e8e6ae730a7ab8379f16bcd815d0732ca22bad683272"
+    },
+    {
+      "id": "ARM66e3a590954c463aa94f164d4ce503f0",
+      "name": "Pine Bluff",
+      "classification": "First Class",
+      "county_ids": [
+        "05069"
+      ],
+      "dataset_hash": "9aec53f417fdf4323488b50b2158e525c4387d53dc4a9d343a7f5de85802342d"
+    },
+    {
+      "id": "ARM74aa569f5d644e18852fbd44cb747048",
+      "name": "Pineville",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05065"
+      ],
+      "dataset_hash": "16fe7244617605378577730e52261c03a8f805234440d4b481630710190da366"
+    },
+    {
+      "id": "ARMee15ec00ca7845648bff0ca780796966",
+      "name": "Plainview",
+      "classification": "Second Class",
+      "county_ids": [
+        "05149"
+      ],
+      "dataset_hash": "f0829e1b40f689ec2211a872ad04aaa17ea47e76d86cb7c0854d784780797324"
+    },
+    {
+      "id": "ARM15a5c0b6159c420da98e3e7861800f7c",
+      "name": "Pleasant Plains",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05063"
+      ],
+      "dataset_hash": "669edb9500dcde21b4dc151994c626cdbfd4289ad02257ed70b886398b51c6c8"
+    },
+    {
+      "id": "ARM733c312c04b84ec1963bd14849357454",
+      "name": "Plumerville",
+      "classification": "Second Class",
+      "county_ids": [
+        "05029"
+      ],
+      "dataset_hash": "32149b5991bf106281ce31e41806702395bc33129b538a91a7c23b3a7d476251"
+    },
+    {
+      "id": "ARM15ee29397209456fbbd90ad7162f971d",
+      "name": "Pocahontas",
+      "classification": "First Class",
+      "county_ids": [
+        "05121"
+      ],
+      "dataset_hash": "42519d171d786e8f414e01deb39c77f2c41b99ed907f6500ec273edac0725830"
+    },
+    {
+      "id": "ARM67ab15f6c3a643ae8cfffdd82a924ca2",
+      "name": "Pollard",
+      "classification": "Second Class",
+      "county_ids": [
+        "05021"
+      ],
+      "dataset_hash": "2fe39924c52088eb5e36e31acd6bc594e0a8c36626610a8f827dccc08026cebe"
+    },
+    {
+      "id": "ARM4eb812ba632e4806bee0583a1bcbc3ab",
+      "name": "Portia",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05075"
+      ],
+      "dataset_hash": "82ed0c0af0389015740fac8ec2e7bbafaa0ea3602446be52250fa16bd1986ecf"
+    },
+    {
+      "id": "ARM8bc701c3f68549dda337d3a5d4b1c398",
+      "name": "Portland",
+      "classification": "Second Class",
+      "county_ids": [
+        "05003"
+      ],
+      "dataset_hash": "2301d7ea05af25a6641137de5b9293444c8a6d2914476f21a66a38b8aeeadb17"
+    },
+    {
+      "id": "ARM89f679c060f349ce819b70645065dccc",
+      "name": "Pottsville",
+      "classification": "First Class",
+      "county_ids": [
+        "05115"
+      ],
+      "dataset_hash": "ec019dbd0aba6a22921454c588166f8a8859f7db0a984687863218ff5c2268fb"
+    },
+    {
+      "id": "ARM71e561efeac0408b99d755ec259f90de",
+      "name": "Powhatan",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05075"
+      ],
+      "dataset_hash": "26c6c76258d9677715d760f786702267515f3facd415a38ad49ab4f60fb9fea4"
+    },
+    {
+      "id": "ARMf7b761edc33d492d82ccdc5c605ad69c",
+      "name": "Poyen",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05053"
+      ],
+      "dataset_hash": "53e18db1398c5fe121bb51c186585bf8a2615506728c678e1567d6a4ff5ddd69"
+    },
+    {
+      "id": "ARMf079fe378dd5458aa19858f674c64379",
+      "name": "Prairie Grove",
+      "classification": "First Class",
+      "county_ids": [
+        "05143"
+      ],
+      "dataset_hash": "3018141f2256a3b6d5d0882fd27f1e447823b7cadaaf2ddc07bc8b50ac3fe436"
+    },
+    {
+      "id": "ARM3f0706debbab4d66945a7ec5c43f9b62",
+      "name": "Prattsville",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05053"
+      ],
+      "dataset_hash": "d96e574718c2f1259d0c61305e14f10d137d702e198c3a28b843e84d28a43b8f"
+    },
+    {
+      "id": "ARMaf92fc80d1714cee9d5abafd0a6d8dec",
+      "name": "Prescott",
+      "classification": "First Class",
+      "county_ids": [
+        "05099"
+      ],
+      "dataset_hash": "9f8960d8aca5b23c167e65c2bd7a29274bc313cf1a5933e29ae031ac93c422aa"
+    },
+    {
+      "id": "ARM4f68c709fe014bcdb7f8f8060201437c",
+      "name": "Pyatt",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05089"
+      ],
+      "dataset_hash": "efd45503dc82e18fa8477211459ba3debdde6cd060505bc8a0d7c9ab4fa750e5"
+    },
+    {
+      "id": "ARMbc0483fc3cfc4d6b971d74581a71c4c2",
+      "name": "Quitman",
+      "classification": "Second Class",
+      "county_ids": [
+        "05023",
+        "05045"
+      ],
+      "dataset_hash": "12f6fa3809b282000744a79e569849633e99a6db3181b8c308de691520070f7a"
+    },
+    {
+      "id": "ARM191fadc3386a4398921a17cd3c81ccf2",
+      "name": "Ratcliff",
+      "classification": "Second Class",
+      "county_ids": [
+        "05047",
+        "05083"
+      ],
+      "dataset_hash": "23e14b0d9ee2328fcc2f201ba13bb815f9403ab89d0c5f6f66a7bdc0adbec242"
+    },
+    {
+      "id": "ARM3199b0e2dd64467a8b6ac4b5cd118474",
+      "name": "Ravenden",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05075",
+        "05121",
+        "05135"
+      ],
+      "dataset_hash": "548793c77b91af44a06a239bbcbc8067a0aa92e4bb0134dca5c07d6060191106"
+    },
+    {
+      "id": "ARM53a3d65c93074ccda725f47ac02afdff",
+      "name": "Ravenden Springs",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05121"
+      ],
+      "dataset_hash": "e02c103e2a1029d258eeddee3c03ab6bd0b0a008366231e6487ad4b28000c65c"
+    },
+    {
+      "id": "ARM0829fde6ce414fb0a54564de5802f43f",
+      "name": "Rector",
+      "classification": "Second Class",
+      "county_ids": [
+        "05021"
+      ],
+      "dataset_hash": "3ea83aac072864f28457c23f3048e6e30849d71a26901fcf7b1f96baa379757d"
+    },
+    {
+      "id": "ARMe711c7c9bcb949c887464ffb99c311e2",
+      "name": "Redfield",
+      "classification": "Second Class",
+      "county_ids": [
+        "05069"
+      ],
+      "dataset_hash": "4f6fdff4af3982662c059245f65c1d170f246788210b6f5cbc643962e24a971e"
+    },
+    {
+      "id": "ARMbe502a0359ba40a08e54ed38360555ec",
+      "name": "Reed",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05041"
+      ],
+      "dataset_hash": "0aed18c5d13d28e14d5018b3ffe32076d19eafc71cf25b71dc4e2d762563d52b"
+    },
+    {
+      "id": "ARMdca82c4608864ee2be662c1d77241895",
+      "name": "Reyno",
+      "classification": "Second Class",
+      "county_ids": [
+        "05021",
+        "05121"
+      ],
+      "dataset_hash": "d26ffabc9358a756dabe83756959ba4a774f2eef441420916a5bcbf909505a28"
+    },
+    {
+      "id": "ARMe5722e0bf1ab4150b6645270e72de3ec",
+      "name": "Rison",
+      "classification": "Second Class",
+      "county_ids": [
+        "05025"
+      ],
+      "dataset_hash": "9bd3cfabf091b35c0df1bb9b41184ffb61145e3e313bba47d121e73e0aa96d4b"
+    },
+    {
+      "id": "ARM189f96e0f0e14167b8412a2448b197a4",
+      "name": "Rockport",
+      "classification": "Second Class",
+      "county_ids": [
+        "05059"
+      ],
+      "dataset_hash": "5c46c05f067bd274266161fe6735941913176241d35de474dcc06831f4d9de0b"
+    },
+    {
+      "id": "ARMbe0deee78c1c4a4cb3781ac660a046ee",
+      "name": "Roe",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05095"
+      ],
+      "dataset_hash": "5b51d4c56e61a49707fec2eda2a05907d25406e786a3acb969087cabe569325f"
+    },
+    {
+      "id": "ARMedb0547acc754a4f844260c7cdffb60a",
+      "name": "Rogers",
+      "classification": "First Class",
+      "county_ids": [
+        "05007"
+      ],
+      "dataset_hash": "0fa4c72038e7d384679b4facc2e0293470b61b1bb93f73d38b3373e33c9d8bfc"
+    },
+    {
+      "id": "ARMc15042c5903148319ee27abb264e5e7e",
+      "name": "Rondo",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05077"
+      ],
+      "dataset_hash": "9e6e18c6bf2976f03b5a9312a8aa45e00bfea41557564fe780a12da47b70861b"
+    },
+    {
+      "id": "ARM3c600cb13b374f8199942aaf1e5ec14e",
+      "name": "Rose Bud",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05145"
+      ],
+      "dataset_hash": "449c555978e24ab61942206c740aa6a91d5243189cb5276c7695ab3d47a91e9d"
+    },
+    {
+      "id": "ARMbef077ce8bf34fcdb483ba059a64fc6c",
+      "name": "Rosston",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05099"
+      ],
+      "dataset_hash": "f7ece26cf0fda869d80000c6669d3e98e86997b9af8dead54a9c0e9a2cd78881"
+    },
+    {
+      "id": "ARM255776124aad49659c861be4628d4fc8",
+      "name": "Rudy",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05033"
+      ],
+      "dataset_hash": "5901aed710a6545213a0a0cb98bcaea0cdd3a2a8b3624a23af14f514809d41fb"
+    },
+    {
+      "id": "ARMfd387e7f45044e9eb1c31ba39b2c8db6",
+      "name": "Russell",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05145"
+      ],
+      "dataset_hash": "2924d41ba72cc7c73ac4959615713db087b138480dbfb88c7cad4eb7a6ba9e63"
+    },
+    {
+      "id": "ARMfa1776d2e30645618de1294b1c629fd5",
+      "name": "Russellville",
+      "classification": "First Class",
+      "county_ids": [
+        "05115"
+      ],
+      "dataset_hash": "f5edc912a81d6954eaa2d95d8f0a1321e3f2e8621e8c81661baafea50aacfd3d"
+    },
+    {
+      "id": "ARMeaedd237498f4009874eb344b873be42",
+      "name": "Saint Charles",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05001"
+      ],
+      "dataset_hash": "dfcd5dfad8252bb6cc2d75627b5f3c27ab8b20c5ddd5b70b68ea825e744a4cb3"
+    },
+    {
+      "id": "ARM94cde09d1f3a443eab932d0e3896f97f",
+      "name": "Saint Francis",
+      "classification": "Second Class",
+      "county_ids": [
+        "05021"
+      ],
+      "dataset_hash": "9642c7a9510f0edf8ccb4943e77ea3c0c3887fb75e87af08a042b4dc00f9ca69"
+    },
+    {
+      "id": "ARMbd59ebc783e6402e9ce1b451d0fd4c98",
+      "name": "Saint Joe",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05129"
+      ],
+      "dataset_hash": "0ee59a92792d7e8c1e3b0665dba6e872d2721fa133873a2f16d67193fee45b41"
+    },
+    {
+      "id": "ARMc5f06bd256384180a7141ea6e1e62ed4",
+      "name": "Saint Paul",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05087"
+      ],
+      "dataset_hash": "209f85222b10d7c10e3f573042250a69bb28882ca5ab6806294b079e8aa4a7e8"
+    },
+    {
+      "id": "ARMe46950e0bfd443e3b2799d8c207f6f54",
+      "name": "Salem",
+      "classification": "First Class",
+      "county_ids": [
+        "05049"
+      ],
+      "dataset_hash": "46d0d54728a7e98093da40db27a56640ca2a4e19fe06005baa3e56aca7836f87"
+    },
+    {
+      "id": "ARMc813999460f345a3b3f53c068d8df417",
+      "name": "Salesville",
+      "classification": "Second Class",
+      "county_ids": [
+        "05005"
+      ],
+      "dataset_hash": "dcd4d80276d231932d253f6e495e8c7b814c2187c8d3b4909766ba78c8022b10"
+    },
+    {
+      "id": "ARMefca0ca10cb345c6997919983bde8d6d",
+      "name": "Scranton",
+      "classification": "Second Class",
+      "county_ids": [
+        "05083"
+      ],
+      "dataset_hash": "f8a50a1a6426bd7e46010cf465b88a9a04a1f5d16333aaef6cf0ca5ad05ee5a0"
+    },
+    {
+      "id": "ARM5699c04aa0ed4c2dbf6ab56877a638dc",
+      "name": "Searcy",
+      "classification": "First Class",
+      "county_ids": [
+        "05145"
+      ],
+      "dataset_hash": "42e7c7a19dd6877e2495d7450ffcc64dd2d9f5ad0abd2624856ae5af06e81948"
+    },
+    {
+      "id": "ARM9f4e7def905343e09a16d7bb579e98d3",
+      "name": "Sedgwick",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05031",
+        "05055",
+        "05075"
+      ],
+      "dataset_hash": "eac093eec5c37e6bcd8fb98e93bc5959cf7ff2afde93bdb0f00b3be13781ee3c"
+    },
+    {
+      "id": "ARM8b8af364c5de4ece900cdbf2f7d88ede",
+      "name": "Shannon Hills",
+      "classification": "Second Class",
+      "county_ids": [
+        "05119",
+        "05125"
+      ],
+      "dataset_hash": "ee670cdc640c1480ebfbe4f25e1705ead4183b954c598583aebc39e759abd2bf"
+    },
+    {
+      "id": "ARMce2c94a75ace42e69977dd9b54d25ee1",
+      "name": "Sheridan",
+      "classification": "First Class",
+      "county_ids": [
+        "05053"
+      ],
+      "dataset_hash": "41df24dc327ff9f1ace529c450413e3d2b8d3b6a7f3de47d4b07c219e02593b0"
+    },
+    {
+      "id": "ARM9de40262c6c54f53addf661b43dc47e3",
+      "name": "Sherrill",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05069"
+      ],
+      "dataset_hash": "6744da4e71c52fd220f2a75f1f16355afd947ca0cb34798886ac0cc308442902"
+    },
+    {
+      "id": "ARM793f5738f8824854823cc8ad6ccd3e46",
+      "name": "Sherwood",
+      "classification": "First Class",
+      "county_ids": [
+        "05119"
+      ],
+      "dataset_hash": "357943b3b942ac43a6f1ac2a547b46268493f01b3455eeff63bc20632219fc4d"
+    },
+    {
+      "id": "ARM5634ac7aa4ba41418e7f395b5c05d0ff",
+      "name": "Shirley",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05141"
+      ],
+      "dataset_hash": "5b7bedd5e5db18ec483d11c2a4e77aaceb13b4bf855a37986831dacc60570a86"
+    },
+    {
+      "id": "ARM9fd72e2cd2b8446797661db3b3bfc88a",
+      "name": "Sidney",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05065",
+        "05135"
+      ],
+      "dataset_hash": "bb9118d253a2afa2bfc9230d2186cb74571f06fb3234b037f60ec3c265890cdb"
+    },
+    {
+      "id": "ARM42a8f393f9f3407a96b80a615a59c9ac",
+      "name": "Siloam Springs",
+      "classification": "First Class",
+      "county_ids": [
+        "05007"
+      ],
+      "dataset_hash": "8b059717c8dd3cb8fd195b1a4fdebfca919b1062a282eb0301ade56b72a01b74"
+    },
+    {
+      "id": "ARM23a5b62652884bd0a4586a2d92575000",
+      "name": "Smackover",
+      "classification": "Second Class",
+      "county_ids": [
+        "05103",
+        "05139"
+      ],
+      "dataset_hash": "8577216b1f8b75b1ddcb65914220b34b111d4f595c790b1c0cd4ccccaa950a2c"
+    },
+    {
+      "id": "ARMed768a9de6dd47739ac4e01afb836334",
+      "name": "Smithville",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05075"
+      ],
+      "dataset_hash": "d6cc226152bf7dc4ce18cf6d2c16968059c18e832b8ed8a79861a2e25a0ccdec"
+    },
+    {
+      "id": "ARM4c7a0aab6d6c4c138c42f7fb54b860a1",
+      "name": "South Lead Hill",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05009"
+      ],
+      "dataset_hash": "5b509799052ea15a9b1944ff6f726e3e9a1dd28e0b521833beccdd1ec8115cff"
+    },
+    {
+      "id": "ARMe9f3df4faa0848db90e029679d98c88a",
+      "name": "Southside",
+      "classification": "Second Class",
+      "county_ids": [
+        "05063"
+      ],
+      "dataset_hash": "4aae9832050952407de38bf4f64cc60c8e9d1a0b987d49c7ee286c5c565a3f86"
+    },
+    {
+      "id": "ARM9c2218781d8b42c8b2a859952a5b6fff",
+      "name": "Sparkman",
+      "classification": "Second Class",
+      "county_ids": [
+        "05039"
+      ],
+      "dataset_hash": "151b101eba84e191b470b9153c1629aa9768715b052d2da7bd29e22cc2a189e7"
+    },
+    {
+      "id": "ARM18defa0254114c588a83d025f6dfc9a1",
+      "name": "Springdale",
+      "classification": "First Class",
+      "county_ids": [
+        "05007",
+        "05143"
+      ],
+      "dataset_hash": "3df32b6b86cc94551f64a826ceec6a59dfc7659aec9183a2ecea52ffc543557f"
+    },
+    {
+      "id": "ARM8024808a622e43e49c25156d6f0b44d4",
+      "name": "Springtown",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05007"
+      ],
+      "dataset_hash": "ed4809f47413ee3c3b7bda2dd1334db06cbc8a53fc987c3dbe9fca1e4bf93c03"
+    },
+    {
+      "id": "ARM573190091a0d4597aabe34964aede856",
+      "name": "Stamps",
+      "classification": "Second Class",
+      "county_ids": [
+        "05073"
+      ],
+      "dataset_hash": "0a5710b66768b8cc50044323552da1c052808d934489208da642b2c1f98753e4"
+    },
+    {
+      "id": "ARM44ae3d99715c4e22818945b4bcc80588",
+      "name": "Star City",
+      "classification": "Second Class",
+      "county_ids": [
+        "05079"
+      ],
+      "dataset_hash": "c083c64f22cab7c16313bc70164d3d4c4c4ebc6b44d741efed7ec6b007e55f02"
+    },
+    {
+      "id": "ARM65a306cd3f3047a4b9ceb7fa80bd2bb8",
+      "name": "Stephens",
+      "classification": "Second Class",
+      "county_ids": [
+        "05103"
+      ],
+      "dataset_hash": "c9dccf34411449b746477a5b77f8b9f58d8bf515e0afbfb25ad7d849484bed96"
+    },
+    {
+      "id": "ARM90befd69fa39412fb75adf9d77de0d20",
+      "name": "Strawberry",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05075"
+      ],
+      "dataset_hash": "c25a739f51aa772ed8052292beca0012c8ec22be84d7b3310c267f06cc6e08c2"
+    },
+    {
+      "id": "ARMae9422a27da34587b3f4b52f84a0221e",
+      "name": "Strong",
+      "classification": "Second Class",
+      "county_ids": [
+        "05139"
+      ],
+      "dataset_hash": "21ebb5bfbfa922d53cf0ccb59a884648f74a231da7f3c0534d8123bf1f8cfb58"
+    },
+    {
+      "id": "ARMd5308430ad0a4c9fb06f7233009ed592",
+      "name": "Stuttgart",
+      "classification": "First Class",
+      "county_ids": [
+        "05001"
+      ],
+      "dataset_hash": "900a0b4dc830f83d618a304e692e696cc77a9bd274a9715bd53a702536831553"
+    },
+    {
+      "id": "ARM3fad384030454b98a7ce56b6257ca982",
+      "name": "Subiaco",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05083"
+      ],
+      "dataset_hash": "ce477110ac8f2a0e6c33498e1ddbe955536a28a4c7313b3bf7a669c3bde7fcc5"
+    },
+    {
+      "id": "ARM95623b034e1d424485a1f7d0d9a305d2",
+      "name": "Success",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05021"
+      ],
+      "dataset_hash": "a18f0f2680a104939742ce2dcd3bd4144babf9b491d0664a09cc941cd79debbd"
+    },
+    {
+      "id": "ARMa980ae52d7ee41919d8b1a7f8c18e029",
+      "name": "Sulphur Rock",
+      "classification": "Second Class",
+      "county_ids": [
+        "05063"
+      ],
+      "dataset_hash": "831bfabb4ec767e11b229c5d3554e9bc98794e268c7bf3d365c3713f4762f678"
+    },
+    {
+      "id": "ARM0f7138c305af40918619052921aa37cc",
+      "name": "Sulphur Springs",
+      "classification": "Second Class",
+      "county_ids": [
+        "05007"
+      ],
+      "dataset_hash": "3d46163391877678f06d5d38540d7093b1f350963ea83a75ddf552362f19ae12"
+    },
+    {
+      "id": "ARM233b31eb06fc42deb27720046fb55567",
+      "name": "Summit",
+      "classification": "Second Class",
+      "county_ids": [
+        "05089"
+      ],
+      "dataset_hash": "4cb66b30cb1b03bb96800db7d4d226a6d1eee2e94e6b013c388c7f05332a3ab2"
+    },
+    {
+      "id": "ARMd1e177fec1744b0f87a0d61c1ddb4d4f",
+      "name": "Sunset",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05035"
+      ],
+      "dataset_hash": "9713d418c5ce4520f174e4930d9dc8a56582b3985c80bc10db8e4fee48687dec"
+    },
+    {
+      "id": "ARM02b16947387f4bde911cd9c203bd0c9b",
+      "name": "Swifton",
+      "classification": "Second Class",
+      "county_ids": [
+        "05067"
+      ],
+      "dataset_hash": "0dcab17d3c5e328dad0264974c463a4792540a0461d3a0fbd8630ff5fbb5b773"
+    },
+    {
+      "id": "ARM5de8aed0937847a0a00454519c65b50d",
+      "name": "Taylor",
+      "classification": "Second Class",
+      "county_ids": [
+        "05027"
+      ],
+      "dataset_hash": "41d473370007050402a7a9fe89f87f69d057cf59b968bd7d053fe4f018110383"
+    },
+    {
+      "id": "ARMc356855dbb7f44b0a2166b30318bb5eb",
+      "name": "Texarkana",
+      "classification": "First Class",
+      "county_ids": [
+        "05091"
+      ],
+      "dataset_hash": "59994ddf05717bc8c5508b4e8ef17f64ebb6ac2c6f3eb49fa27382a3aff25040"
+    },
+    {
+      "id": "ARM7956e39fa4d9450f9376e769111959b3",
+      "name": "Thornton",
+      "classification": "Second Class",
+      "county_ids": [
+        "05013"
+      ],
+      "dataset_hash": "83cfbcd8b1054d515f7be8f6d3e246d5cb76ba92ae40298fc472576013941829"
+    },
+    {
+      "id": "ARM37cea50151c64158ae9785af5b71a19c",
+      "name": "Tillar",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05041",
+        "05043"
+      ],
+      "dataset_hash": "f319684e58249a7304f34df32f0cd6d7365e8312eba7f3a51dd5bb27fc0e1d1c"
+    },
+    {
+      "id": "ARM1265aad50f7843d2860d61f22ebbe152",
+      "name": "Tinsman",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05013"
+      ],
+      "dataset_hash": "694d35394896d9216f5b0edf509a01f12cb53d0f1f69de82ed21b3186118248d"
+    },
+    {
+      "id": "ARM9fb2e9758dd944aebf55d8ac9332015a",
+      "name": "Tollette",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05061"
+      ],
+      "dataset_hash": "321f330c4655bb57ef1a8e19e260082947b2281037583842f93728ef4173a57a"
+    },
+    {
+      "id": "ARM30eaf4eff592401b8b3f4e1c2e74710e",
+      "name": "Tontitown",
+      "classification": "First Class",
+      "county_ids": [
+        "05143"
+      ],
+      "dataset_hash": "fed985955787dde017d3dfe05f95bf9f439118bd1b0b53d0850996eabc654269"
+    },
+    {
+      "id": "ARM080bb685958a4c5abff2acc4a5b6d01a",
+      "name": "Traskwood",
+      "classification": "Second Class",
+      "county_ids": [
+        "05059",
+        "05125"
+      ],
+      "dataset_hash": "25e3a1fe31b3f9dc942fd281fed516040231db209e0a3fd0fa8bfbcceab42129"
+    },
+    {
+      "id": "ARMf03691c6fb9a450eb2399665a5880778",
+      "name": "Trumann",
+      "classification": "First Class",
+      "county_ids": [
+        "05111"
+      ],
+      "dataset_hash": "fdf18fd69c1039560eb1bbe92bf10698c76fdfcb8adf4c111890fb6b994451e3"
+    },
+    {
+      "id": "ARM68674b266c3e4f1da24254c4dcc2160f",
+      "name": "Tuckerman",
+      "classification": "First Class",
+      "county_ids": [
+        "05067"
+      ],
+      "dataset_hash": "1d5452105fdeb6df5f94a5448bd7800c07dfcf717c5ac32c0ca05abebac08771"
+    },
+    {
+      "id": "ARM6c6cf37d473a4915b67e173633f9c929",
+      "name": "Tull",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05053",
+        "05125"
+      ],
+      "dataset_hash": "c2666a7333dc659b9cd9c2e9dd0c5eafbe42eb92a63ec2c932c34e6a0b6916de"
+    },
+    {
+      "id": "ARMfca419ea9e15401e856a172a82918b0b",
+      "name": "Tupelo",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05067"
+      ],
+      "dataset_hash": "79cd2f5173693349cd58c7df0c54b506ffdebeed661835e9607f310b107b2bf8"
+    },
+    {
+      "id": "ARM46e281087ab24b73847797577d9dd7b9",
+      "name": "Turrell",
+      "classification": "Second Class",
+      "county_ids": [
+        "05035"
+      ],
+      "dataset_hash": "91f5a56ff834cc00c82704327f10930a1d7ea7d661bca9161c1a85b0bfaa1b37"
+    },
+    {
+      "id": "ARM10f8836fa694402d911403559480faea",
+      "name": "Twin Groves",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05045"
+      ],
+      "dataset_hash": "032f5625dfc37d0d74c77da206b3624c0014c14e34fefdf49693bf69d95748df"
+    },
+    {
+      "id": "ARMbab5e6ee7c614b25a14bfc738f074588",
+      "name": "Tyronza",
+      "classification": "Second Class",
+      "county_ids": [
+        "05111"
+      ],
+      "dataset_hash": "08e90719a2724583b4bfdfa6b0a445688cc944f8f7b14a043cfd3ce8368de844"
+    },
+    {
+      "id": "ARM48cacdcc2603465e83631e1fc6750aa7",
+      "name": "Ulm",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05117"
+      ],
+      "dataset_hash": "3a8e88f846ecdc472163520a4fb0973cef1eea628b89b2575f26a2f0cebac466"
+    },
+    {
+      "id": "ARM60fc3e28ffa64dfab5f649d926ad1979",
+      "name": "Valley Springs",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05009"
+      ],
+      "dataset_hash": "0cb34a501dc5e5c21afe48a16ecf0277a64b861071542379d7d77dc19e38d5ce"
+    },
+    {
+      "id": "ARM7b4bc4e171f9429283d71f2c7d5b25bf",
+      "name": "Van Buren",
+      "classification": "First Class",
+      "county_ids": [
+        "05033",
+        "05131"
+      ],
+      "dataset_hash": "e3dccb83639ab99ba091f192788ff283bebc6961ad3892e7f6a813f1056b3458"
+    },
+    {
+      "id": "ARMac29f42e13874007933734821ba52727",
+      "name": "Vandervoort",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05113"
+      ],
+      "dataset_hash": "81a469d92374f3b84396d18062a0ff76d76cf55d69f636df32ae19eb62bb2a96"
+    },
+    {
+      "id": "ARM86593bdd04f04f88bd3e5ee3e46e1f94",
+      "name": "Victoria",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05093"
+      ],
+      "dataset_hash": "0082cf4008ff2ae23d78c6c189e37ea50bf6c2ae640af721ce054c4bc136c0c8"
+    },
+    {
+      "id": "ARM330fa29dbec4456f833ee7b6c14c2588",
+      "name": "Vilonia",
+      "classification": "Second Class",
+      "county_ids": [
+        "05045"
+      ],
+      "dataset_hash": "91285f41a1d5b77da2b76690e9cd6c3b632c7a6ee8f1cb5ee76e77f03497dcf8"
+    },
+    {
+      "id": "ARMb92acd5ba6124d0ea64d46e0a84f4cf4",
+      "name": "Viola",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05049"
+      ],
+      "dataset_hash": "d8f7788515bfc90dddd6e2a84b8b1c90dd8906e0cd1e19fc6f8fd5573f49540e"
+    },
+    {
+      "id": "ARMec275f10a27d4be4aee14e1b73ad1fe4",
+      "name": "Wabbaseka",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05069"
+      ],
+      "dataset_hash": "bb40fca142637da5e6c570acc21f8bd5c4c04f124ad90594b710092104cfd86c"
+    },
+    {
+      "id": "ARM0838fb60d009478682675dedd2f13705",
+      "name": "Waldenburg",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05111"
+      ],
+      "dataset_hash": "aeedf4c21acb6aacd2a6a83b5b6ed4b9f915c712a69cde2ff6a6f4f0691a93ee"
+    },
+    {
+      "id": "ARM47574295e8d04fde8a0eaf2ed2ada494",
+      "name": "Waldo",
+      "classification": "Second Class",
+      "county_ids": [
+        "05027"
+      ],
+      "dataset_hash": "c3eaa45924c3ba1b8b9e65b260f5c17111d319a5f08f1389b89fbadc8df25fcf"
+    },
+    {
+      "id": "ARM8138e7f3140943e7862e4f4347c45e23",
+      "name": "Waldron",
+      "classification": "First Class",
+      "county_ids": [
+        "05127"
+      ],
+      "dataset_hash": "06982c7eb547e1c849198e3db14120c69e18d7004477484117ef2d9746b463eb"
+    },
+    {
+      "id": "ARMeac661ec7d374321bfc366ecb927d165",
+      "name": "Walnut Ridge",
+      "classification": "First Class",
+      "county_ids": [
+        "05075"
+      ],
+      "dataset_hash": "46ff6c857352b8511f5e34620b9d72e0ef66f252ff79c4d9915f7fba9fb42b6d"
+    },
+    {
+      "id": "ARM822d29ba3dd44c8abff21dd5f016d29d",
+      "name": "Ward",
+      "classification": "First Class",
+      "county_ids": [
+        "05085"
+      ],
+      "dataset_hash": "5dcdf57d89c2194962981967354c560dc6750bea0dc6674744aca24c4e69c918"
+    },
+    {
+      "id": "ARMf0d03d8e59ab4847894e27a995ce54df",
+      "name": "Warren",
+      "classification": "First Class",
+      "county_ids": [
+        "05011"
+      ],
+      "dataset_hash": "efcfad032237db51b5f86e7f8726d72896ae8e52032d666a991030763d834ae8"
+    },
+    {
+      "id": "ARM70e2acab406b431fb62df99340e97b2a",
+      "name": "Washington",
+      "classification": "Second Class",
+      "county_ids": [
+        "05057"
+      ],
+      "dataset_hash": "a87e259014e2c33d0c44eaf039cb2eb9cfea5a3c81c5ee4463a49f558f858584"
+    },
+    {
+      "id": "ARM1d88bb9458d04ec4829a6ac905471115",
+      "name": "Watson",
+      "classification": "Second Class",
+      "county_ids": [
+        "05041"
+      ],
+      "dataset_hash": "17fb5b3d8eacad85b3748f595b91c83d57588b43f098068689eaae8a25c1a832"
+    },
+    {
+      "id": "ARM8b71a0eef52d40b2801731d0536b0621",
+      "name": "Weiner",
+      "classification": "Second Class",
+      "county_ids": [
+        "05111"
+      ],
+      "dataset_hash": "2b69e756475222ba72c994c94dd84e4b2d66faa30c90e63b374328bc52fc342d"
+    },
+    {
+      "id": "ARM8619ee3777ac48ed9078838616893be0",
+      "name": "Weldon",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05067"
+      ],
+      "dataset_hash": "05e113620602794749b735e135296b897639f4f39e87e3658a347b89d9dba751"
+    },
+    {
+      "id": "ARMac6eb364ea4e455d89f947e6aaf445e1",
+      "name": "West Fork",
+      "classification": "First Class",
+      "county_ids": [
+        "05143"
+      ],
+      "dataset_hash": "76d0dad4986d88c49fcdbde7882d3797e2c1da3fa644fa400ec4e65cf62fa87b"
+    },
+    {
+      "id": "ARM671a2108c1b649cc8ea904bafd327cf6",
+      "name": "West Memphis",
+      "classification": "First Class",
+      "county_ids": [
+        "05035"
+      ],
+      "dataset_hash": "3def7e2868b6f988c8d1ad96d7b250ed691c3ded9491051bd32a8fac4041568f"
+    },
+    {
+      "id": "ARMb7ce2898d77d446287f36ba09cc8f089",
+      "name": "West Point",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05145"
+      ],
+      "dataset_hash": "73efc6d81714cc901237eb550b5e75a8a82653cbb6484a4fb6ef24e84bd36c84"
+    },
+    {
+      "id": "ARMafd918b9e898403cab74dfe25c89aab8",
+      "name": "Western Grove",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05101",
+        "05129"
+      ],
+      "dataset_hash": "585a3492d4a0f860472a13b8f48924873622176b186601ffadf3392aaa68d974"
+    },
+    {
+      "id": "ARMd5e54fe447df4464b1f4e93f72c18690",
+      "name": "Wheatley",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05077",
+        "05095",
+        "05123"
+      ],
+      "dataset_hash": "2c7e6f707b12944a3f0cf694fd9a8e69cd31c0c429ca2e8980724501faeebf59"
+    },
+    {
+      "id": "ARM6722f9dfa026428a960d17e74274ff91",
+      "name": "Whelen Springs",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05019"
+      ],
+      "dataset_hash": "ec08d48b14859e3d0d20b1958ce69ffe34e45d8677fd3a22d30e234c28b33a8d"
+    },
+    {
+      "id": "ARMc890dd45e1c04406b0060c3ac78d2ddf",
+      "name": "White Hall",
+      "classification": "First Class",
+      "county_ids": [
+        "05069"
+      ],
+      "dataset_hash": "b5ce5fa296be6b15328ddf4c46851bf9d40ccc88a750d4acd30b2e9ed237764b"
+    },
+    {
+      "id": "ARM4de0b96e4b774a2d8e79eeb0e8e38954",
+      "name": "Wickes",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05113"
+      ],
+      "dataset_hash": "041334609424811bf4d3fe571c155a807b5176a097f20784a33c6a84de5b74ee"
+    },
+    {
+      "id": "ARM902478df75ea4002b802a97e748d65b9",
+      "name": "Widener",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05123"
+      ],
+      "dataset_hash": "efe279d85414fcedeb712d293b9477f0e97d75e0992a58a109167aafa27983ef"
+    },
+    {
+      "id": "ARMac61340f3293467f93a19b7c11f9f051",
+      "name": "Wiederkehr Village",
+      "classification": "Second Class",
+      "county_ids": [
+        "05047"
+      ],
+      "dataset_hash": "1169db42de115b3a1752692741ce89fc71ce2097153b1a5d97f5dc730b292a0c"
+    },
+    {
+      "id": "ARMb29a1166dcde4a3eace13ce9dff00beb",
+      "name": "Williford",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05135"
+      ],
+      "dataset_hash": "0fd0c8720d2d75fc417742fa67ae9ef024b4fed2ea629fc94050b073ea7e73eb"
+    },
+    {
+      "id": "ARM16797b349e064d33b34a82e53d74c099",
+      "name": "Willisville",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05099"
+      ],
+      "dataset_hash": "827263277c384807496120700e664abfdd0ab1a330a4352341e289c2c83fd68c"
+    },
+    {
+      "id": "ARMb74cd25c6be54d3186c15c70a5b70d88",
+      "name": "Wilmar",
+      "classification": "Second Class",
+      "county_ids": [
+        "05043"
+      ],
+      "dataset_hash": "915def96fc5afbdbfa791ac1c6d936264e21e5a56174a88e391155a8c6f3d89c"
+    },
+    {
+      "id": "ARM07895fe433fc461c96b286291b523682",
+      "name": "Wilmot",
+      "classification": "Second Class",
+      "county_ids": [
+        "05003"
+      ],
+      "dataset_hash": "9b2be1bde1debfccf2095fdc5ad83932a4d42041122fbac8f59be8b96106ab75"
+    },
+    {
+      "id": "ARMf7c666dfcf5f4f58bf2472d2e66e6e61",
+      "name": "Wilson",
+      "classification": "Second Class",
+      "county_ids": [
+        "05093"
+      ],
+      "dataset_hash": "3d3bd03888593c678b95124d1312c90f92220b2c6d3120e6ee6fb699872f414e"
+    },
+    {
+      "id": "ARM154b39629e0149daaa0dabbf731feb95",
+      "name": "Wilton",
+      "classification": "Second Class",
+      "county_ids": [
+        "05081"
+      ],
+      "dataset_hash": "2b83567021b3ac6f8ed49cd4e67a12ebebe430036996bf2aba250d4872334de2"
+    },
+    {
+      "id": "ARM82428d6732ef4b2d858575be923fb47a",
+      "name": "Winchester",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05043"
+      ],
+      "dataset_hash": "345db4237ab3c550760ead772a5b6b284f24c701ddf8491023bb5b6ec10165c8"
+    },
+    {
+      "id": "ARM6b0b1f49028e403eaf6e173fad7e6bcc",
+      "name": "Winslow",
+      "classification": "Second Class",
+      "county_ids": [
+        "05143"
+      ],
+      "dataset_hash": "bedf45ff72510a0971a0c8ce1830ce16b438e26e11f910a97942614d317ba52b"
+    },
+    {
+      "id": "ARM83518db08b874e8f94548fc4ed1480c1",
+      "name": "Winthrop",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05081"
+      ],
+      "dataset_hash": "35935844aa8cfb59a7b56eee2be37cdc86b78f52951e7b551c8cededd703dcfa"
+    },
+    {
+      "id": "ARM243a3f58dab34a04981f3c226fce49f8",
+      "name": "Wooster",
+      "classification": "Second Class",
+      "county_ids": [
+        "05045"
+      ],
+      "dataset_hash": "adac32ca317449df6fba4aa84934664d7a9d434aa4454e3659ef9f557d5b0f48"
+    },
+    {
+      "id": "ARMda8212e71004417da35b0d30388e5ec9",
+      "name": "Wrightsville",
+      "classification": "Second Class",
+      "county_ids": [
+        "05119"
+      ],
+      "dataset_hash": "cdca771646757b6bf53f37ef4ab5c5ee12665b6c4af3d621c2fa275481fd94e8"
+    },
+    {
+      "id": "ARM383bcd8a00484ade85cdece533313228",
+      "name": "Wynne",
+      "classification": "First Class",
+      "county_ids": [
+        "05037"
+      ],
+      "dataset_hash": "881a3b7f29db0f2785d96c99e837dce456c9204df34d7066af0a7463c06d8e64"
+    },
+    {
+      "id": "ARM5c5f6cf9085c4ed78200c5ac0266ecc2",
+      "name": "Yellville",
+      "classification": "Second Class",
+      "county_ids": [
+        "05089"
+      ],
+      "dataset_hash": "a92646c0eb339a1556e786bf81c442adda3bacbe152776577c616a5f8f205e74"
+    },
+    {
+      "id": "ARMa3587c93b51f4f96b227b38a428c8614",
+      "name": "Zinc",
+      "classification": "Incorporated",
+      "county_ids": [
+        "05009"
+      ],
+      "dataset_hash": "2c7f22d70d7062b2e515207bdeaf3dcfdac6530b64f2e66de31326ebd6d0cd15"
+    }
+  ]
+}

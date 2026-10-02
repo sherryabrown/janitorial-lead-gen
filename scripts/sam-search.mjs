@@ -1,14 +1,22 @@
 import { serverKey, project } from './lib/supabase-admin.mjs';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 // The admin key stays in memory; never save/log it or send it to SAM.gov.
-const [kind, filtersJson] = process.argv.slice(2);
-if (!['opportunities', 'awards'].includes(kind) || !filtersJson) {
-  console.error('Usage: node scripts/sam-search.mjs opportunities|awards FILTERS_JSON');
+const [kind, filtersInput] = process.argv.slice(2);
+if (!['opportunities', 'awards'].includes(kind) || !filtersInput) {
+  console.error('Usage: node scripts/sam-search.mjs opportunities|awards FILTERS_JSON|-|@FILTERS_FILE');
   process.exit(2);
 }
-const filters = JSON.parse(filtersJson);
+let filters;
+try {
+  const filtersJson = filtersInput === '-' ? readFileSync(0, 'utf8')
+    : filtersInput.startsWith('@') ? readFileSync(filtersInput.slice(1), 'utf8') : filtersInput;
+  filters = JSON.parse(filtersJson);
+} catch {
+  console.error('Filters must be valid JSON. In PowerShell, pipe $filters to this script and pass - as the filter argument. No SAM request sent.');
+  process.exit(2);
+}
 if(!filters||Array.isArray(filters)||typeof filters!=='object'||Object.keys(filters).some(k=>/api.?key|authorization|token|password|secret/i.test(k))) {
   console.error('Filters must be an object without credentials. The SAM key stays in Supabase.');process.exit(2);
 }

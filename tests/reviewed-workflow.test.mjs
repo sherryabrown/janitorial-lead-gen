@@ -60,6 +60,24 @@ test('explicit deferral does not create records, links or status changes',()=>{
   const r=reviewFor();r.decisions=[{...r.decisions[0],action:'defer',reason:'Needs more evidence'}];
   const m=planReviewedBatch(before,r,runs);assert.equal(m.records.length,0);assert.ok(m.unresolved.some(x=>x.reason==='Needs more evidence'));
 });
+test('routed revision keeps immutable intake identity while reviewing the canonical notice',()=>{
+  const snapshot=structuredClone(before);
+  const original=snapshot.procurement_intake_items.find(i=>i.external_id==='b878faa7fc7a496c9fef1ac3f0798de6');
+  const revision=structuredClone(original);
+  revision.id='90000000-0000-4000-8000-000000000001';
+  revision.external_id=`${original.external_id}@changed-hash`;
+  revision.status='pending';
+  revision.payload.routed_capture={record_identity:original.external_id,observation_hashes:['a'.repeat(64)]};
+  snapshot.procurement_intake_items.push(revision);
+  const review=reviewFor(snapshot);
+  review.batch='routed-revision';
+  review.decisions=[{intake_id:revision.id,intake_hash:hash(revision.payload),action:'process',
+    reason:'Review routed revision against the saved SAM notice'}];
+  const result=planReviewedBatch(snapshot,review,runs);
+  assert.equal(result.decisions[0].external_id,original.external_id);
+  assert.equal(result.summary.new_leads,0);
+  assert.equal(result.decisions[0].intake.external_id,revision.external_id);
+});
 test('manual forecast can be explicitly reviewed without any invented SAM forecast API',()=>{
   const i=before.procurement_intake_items.find(i=>i.external_id==='FWS2025001061'),r=reviewFor();
   r.run_ids=[];r.batch='offline-forecast-example';r.decisions=[{intake_id:i.id,intake_hash:hash(i.payload),action:'process',approve_new:true,
