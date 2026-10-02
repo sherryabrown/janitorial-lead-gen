@@ -23,7 +23,7 @@ export function canonicalUrl(value){const u=new URL(publicUrl(value));u.hash='';
 const scopeKey=s=>({...s,requested_search_areas:s.requested_search_areas.map(a=>Object.fromEntries(Object.entries(a).map(([k,v])=>[k,typeof v==='string'?textKey(v):v]))).sort((a,b)=>hash(a).localeCompare(hash(b)))});
 export function planRegistry(spec,before){
  base(spec,before);need(Array.isArray(spec.requests)&&spec.requests.length&&Array.isArray(spec.sources),'Explicit sources/requests required');
- const rows=[],requests={},sources={};
+ const rows=[],requests={},sources={},requestSourcePairs=new Map();
  for(const r of spec.requests){
   need(r.key&&!requests[r.key]&&r.name&&r.requested_search_areas?.length,'Invalid/duplicate request key');
   need(r.requested_search_areas.every(a=>a.state_code==='AR'&&['city','county'].includes(a.area_type)&&(a.area_type==='city'?a.city_name:a.county_name)),'Resolved Arkansas city/county area required');
@@ -54,6 +54,45 @@ export function planRegistry(spec,before){
   if(old)delete row.updated_at;
   safeMetadata(row.config);if(!old||!Object.entries(row).every(([k,v])=>same(old[k],v)))rows.push(delta('procurement_sources',old,row));
   (sources[s.local_key]??=[]).push({id,code:s.code,request_ids:associations.map(a=>a.search_request_id)});
+  for(const a of associations) requestSourcePairs.set(`${a.search_request_id}/${id}`,
+    {search_request_id:a.search_request_id,source_id:id,discovery_reason:s.identity_evidence});
+ }
+ if(Array.isArray(before.procurement_request_sources)) for(const link of requestSourcePairs.values()){
+  if(!before.procurement_request_sources.some(x=>x.search_request_id===link.search_request_id&&x.source_id===link.source_id))
+    rows.push(delta('procurement_request_sources',null,
+      {id:stableId(['procurement-request-source',link.search_request_id,link.source_id]),...link}));
+ }
+ for(const c of spec.capabilities??[]){
+  need(Array.isArray(before.procurement_source_capabilities)&&Array.isArray(before.procurement_geographies),
+    'Capability registration requires a fresh geography/capability snapshot');
+  const sourceRow=rows.find(d=>d.table==='procurement_sources'&&d.row.code===c.source_code)?.row??
+    before.procurement_sources.find(s=>s.code===c.source_code);
+  need(sourceRow&&before.procurement_geographies.some(g=>g.id===c.route_geography_id&&g.source_active!==false),
+    'Capability source and active route geography required');
+  need(['forecast','opportunity','award'].includes(c.kind)&&['api','browser','document'].includes(c.method),
+    'Capability kind and method required');
+  publicUrl(c.endpoint_url);publicUrl(c.official_entry_url);
+  need(c.method_spec?.version===1&&c.parser_version?.trim(),
+    'Versioned method specification and parser required');
+  need(c.verified_at&&c.verified_until&&Date.parse(c.verified_until)>Date.parse(c.verified_at)&&
+    c.verification_evidence&&Object.keys(c.verification_evidence).length,
+    'Current verification evidence and expiry required');
+  safeMetadata(c.method_spec);safeMetadata(c.verification_evidence);
+  const matches=before.procurement_source_capabilities.filter(x=>x.source_id===sourceRow.id&&x.kind===c.kind&&
+    x.endpoint_url===c.endpoint_url&&x.method===c.method);
+  need(matches.length<=1,'Ambiguous existing capability');
+  const old=matches[0];
+  need(!old?.verified_at||Date.parse(c.verified_at)>=Date.parse(old.verified_at),
+    'Older method verification would replace newer evidence');
+  const row={...(old??{id:stableId(['procurement-capability',sourceRow.id,c.kind,c.method,c.endpoint_url]),
+    source_id:sourceRow.id,kind:c.kind,method:c.method,endpoint_url:c.endpoint_url}),
+    official_entry_url:c.official_entry_url,route_geography_id:c.route_geography_id,
+    agency_geography_id:c.agency_geography_id??old?.agency_geography_id??null,
+    availability:'active',verified_at:c.verified_at,verified_until:c.verified_until,
+    verification_evidence:c.verification_evidence,parser_version:c.parser_version,
+    method_spec:c.method_spec,next_action:c.next_action??null};
+  if(old) delete row.updated_at;
+  if(!old||!Object.entries(row).every(([k,v])=>same(old[k],v))) rows.push(delta('procurement_source_capabilities',old,row));
  }
  need(new Set(rows.map(r=>r.table+'/'+r.row.id)).size===rows.length,'Duplicate physical source/request in one package');
  return {version:1,kind:'registry',project_ref:spec.project_ref,authorization:spec.authorization,rows,mappings:{requests,sources}};
@@ -94,18 +133,19 @@ export function planManual(spec,before){
 const literal=v=>`'${JSON.stringify(v).replaceAll("'","''")}'::jsonb`;
 const quote=k=>{need(/^[a-z_]+$/.test(k),'Invalid SQL identifier');return '"'+k+'"';};
 export function persistenceSql(m){
- const allowed=['procurement_sources','procurement_search_requests','procurement_intake_items'];
+ const allowed=['procurement_sources','procurement_search_requests','procurement_intake_items','procurement_source_capabilities','procurement_request_sources'];
  const statements=m.rows.map(d=>{
   need(allowed.includes(d.table)&&uuid.test(d.row.id),'Invalid persistence target');const keys=Object.keys(d.row),table='public.'+quote(d.table),json=literal(d.row),before=literal(d.before);
   const projection=keys.map(k=>`'${k}',to_jsonb(t)->'${k}'`).join(',');
+  const expected=`(select jsonb_build_object(${keys.map(k=>`'${k}',to_jsonb(x)->'${k}'`).join(',')}) from jsonb_populate_record(null::${table},${json}) x)`;
   return `do $guard$ begin
- if exists(select 1 from ${table} t where id='${d.row.id}' and not (jsonb_build_object(${projection})=${json}${d.before?` or (to_jsonb(t)-'updated_at'=${before}-'updated_at' and t.updated_at=(${before}->>'updated_at')::timestamptz)`:''})) then raise exception 'Persistence baseline changed'; end if;
+ if exists(select 1 from ${table} t where id='${d.row.id}' and not (jsonb_build_object(${projection})=${expected}${d.before?` or (to_jsonb(t)-'updated_at'=${before}-'updated_at' and t.updated_at=(${before}->>'updated_at')::timestamptz)`:''})) then raise exception 'Persistence baseline changed'; end if;
  ${d.before?`if not exists(select 1 from ${table} where id='${d.row.id}') then raise exception 'Persistence baseline missing'; end if;`:''}
  end $guard$;
- ${d.before?`update ${table} t set ${keys.filter(k=>k!=='id').map(k=>`${quote(k)}=x.${quote(k)}`).join(',')},updated_at=now() from jsonb_populate_record(null::${table},${json}) x where t.id=x.id and jsonb_build_object(${projection})<>${json};`:`insert into ${table} (${keys.map(quote).join(',')}) select ${keys.map(quote).join(',')} from jsonb_populate_record(null::${table},${json}) on conflict(id) do nothing;`}`;
+ ${d.before?`update ${table} t set ${keys.filter(k=>k!=='id').map(k=>`${quote(k)}=x.${quote(k)}`).join(',')},updated_at=now() from jsonb_populate_record(null::${table},${json}) x where t.id=x.id and jsonb_build_object(${projection})<>${expected};`:`insert into ${table} (${keys.map(quote).join(',')}) select ${keys.map(quote).join(',')} from jsonb_populate_record(null::${table},${json}) on conflict(id) do nothing;`}`;
  }).join('\n');
  return `begin; set local lock_timeout='10s'; set local statement_timeout='90s';
-lock table public.procurement_sources,public.procurement_search_requests,public.procurement_intake_items in share row exclusive mode;
+lock table public.procurement_sources,public.procurement_search_requests,public.procurement_intake_items${m.rows.some(r=>r.table==='procurement_source_capabilities')?',public.procurement_source_capabilities':''}${m.rows.some(r=>r.table==='procurement_request_sources')?',public.procurement_request_sources':''} in share row exclusive mode;
 ${statements}
 -- AFTER_CANONICAL_UPSERT: offline fault-injection point.
 commit;\n`;

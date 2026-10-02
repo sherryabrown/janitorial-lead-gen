@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
-import {planRegistry,planManual,canonicalUrl,publicUrl,safeMetadata,stableId} from '../scripts/lib/research-persistence.mjs';
+import {planRegistry,planManual,persistenceSql,canonicalUrl,publicUrl,safeMetadata,stableId} from '../scripts/lib/research-persistence.mjs';
 import {planReviewedBatch,hash} from '../scripts/lib/reviewed-batch.mjs';
 const load=p=>JSON.parse(readFileSync(p,'utf8'));
 const before=load('tests/fixtures/research/build-persistence-before.json'),spec=load('tests/fixtures/research/build-registry-spec.json');
@@ -67,6 +67,28 @@ test('credentials and tokenized document URLs cannot enter public source metadat
  assert.throws(()=>publicUrl('https://example.org/doc?X-Amz-Signature=private'),/Credential/);
  assert.throws(()=>safeMetadata({access_token:'private'}),/Sensitive/);
  const s=structuredClone(spec);s.sources[0].metadata={api_key:'private'};assert.throws(()=>planRegistry(s,before),/Sensitive/);
+});
+test('verified route capabilities require fresh evidence and never store credentials',()=>{
+ const b=structuredClone(before),s=structuredClone(spec);
+ b.procurement_geographies=[{id:'ARLaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',kind:'locality',name:'Texarkana',source_active:true}];
+ b.procurement_source_capabilities=[];
+ b.procurement_request_sources=[];
+ s.capabilities=[{source_code:'texarkana-city',route_geography_id:b.procurement_geographies[0].id,
+  kind:'opportunity',method:'api',endpoint_url:'https://www.texarkanaar.gov/bids',
+  official_entry_url:'https://www.texarkanaar.gov/departments/finance.php',
+  verified_at:'2026-10-02T12:00:00Z',verified_until:'2026-11-02T12:00:00Z',
+  verification_evidence:{receipt:'saved public test response'},parser_version:'texarkana-v1',
+  method_spec:{version:1,query:{category:'janitorial'},pagination:{type:'single-page'}}}];
+ const m=planRegistry(s,b),cap=m.rows.find(x=>x.table==='procurement_source_capabilities');
+ assert.ok(cap);assert.equal(cap.row.route_geography_id,b.procurement_geographies[0].id);
+ assert.ok(m.rows.some(x=>x.table==='procurement_request_sources'));
+ assert.match(persistenceSql(m),/lock table .*procurement_source_capabilities/);
+ const applied=structuredClone(b);for(const d of m.rows){applied[d.table]=applied[d.table].filter(x=>x.id!==d.row.id);applied[d.table].push({...d.row,updated_at:'2026-10-02T12:00:00Z'});}
+ assert.equal(planRegistry(s,applied).rows.length,0);
+ const stale=structuredClone(s);stale.capabilities[0].verified_at='2026-09-01T12:00:00Z';
+ assert.throws(()=>planRegistry(stale,applied),/Older method/);
+ const secret=structuredClone(s);secret.capabilities[0].method_spec.api_key='private';
+ assert.throws(()=>planRegistry(secret,b),/Sensitive/);
 });
 test('real manual findings require mapped requests, immutable evidence and primary promotion',()=>{
  const b=registered(),m=planRegistry(spec,before),f=load('tests/fixtures/research/finding.json');

@@ -4,7 +4,7 @@ import { adminClient,project } from './lib/supabase-admin.mjs';
 const destination=process.argv[2];
 if (!destination || existsSync(destination)) throw new Error('Supply a new snapshot filename; existing snapshots are never overwritten.');
 const db=adminClient(), snapshot={project_ref:project,captured_at:new Date().toISOString()};
-for (const table of ['procurement_sources','procurement_leads','procurement_intake_items','procurement_intake_leads','procurement_request_leads','procurement_search_requests','procurement_versions','procurement_events']) {
+for (const table of ['procurement_sources','procurement_leads','procurement_intake_items','procurement_intake_leads','procurement_request_leads','procurement_search_requests','procurement_versions','procurement_events','procurement_geographies','procurement_source_capabilities','procurement_request_sources']) {
   const rows=[];
   for(let offset=0;;offset+=1000) {
     const {data,error}=await db.from(table).select('*').order('id').range(offset,offset+999);
