@@ -1,8 +1,6 @@
-We're going to methodically start building out this UI-only prototype for a janitorial lead-generation product.
+We're going to methodically build out the UI and supporting backend for this janitorial lead-generation product.
 
-Only build real integrations if specifically asked for. Clarify if you're not sure if the request should create a particular integration.
-
-When the specifically asked for request involves a database, do not use mock data. You can retain any mock data that currently exists, unless it will now point to the database. Have all mock location-related data be in or near Little Rock, AR.
+Be very focused on only the requested changes for the front end, back end, integrations, data, etc. Do NOT change any current behavior unless it was specifically requested. Do NOT assume the changes to make for current behavior affected by specific requests. Instead, please share the impact and ask questions for how to manage unrequested affected behavior.
 
 Queues are entry points, not workflow silos.
 
