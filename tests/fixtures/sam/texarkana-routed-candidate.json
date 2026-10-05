@@ -1,0 +1,20 @@
+{
+  "run_id": "4d00a5f3-2601-4b23-8dcf-6188ca781d37",
+  "captured": true,
+  "status": "success",
+  "collector": "sam-search",
+  "kind": "opportunities",
+  "query_url": "https://api.sam.gov/opportunities/v2/search?ncode=561720&postedFrom=10%2F01%2F2026&postedTo=10%2F02%2F2026&state=AR&limit=100&offset=0",
+  "filters": {"ncode":"561720","postedFrom":"10/01/2026","postedTo":"10/02/2026","state":"AR","limit":100,"offset":0},
+  "upstream_status": 200,
+  "response": {"totalRecords":1,"limit":100,"offset":0,"opportunitiesData":[{
+    "noticeId":"f7157407b8254d7fad83015fb800b683",
+    "title":"Janitorial Services, Arkansas Post Field Office",
+    "type":"Award Notice",
+    "postedDate":"2026-10-02",
+    "award":{"date":"2026-09-30","number":"W9127S26PA097"},
+    "placeOfPerformance":{"city":{"name":"Tichnor"},"state":{"code":"AR"},"zip":"72166"},
+    "officeAddress":{"city":"LITTLE ROCK","state":"AR"},
+    "naicsCode":"561720"
+  }]}
+}

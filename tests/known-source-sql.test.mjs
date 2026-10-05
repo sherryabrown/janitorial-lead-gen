@@ -5,6 +5,9 @@ import { PGlite } from '@electric-sql/pglite';
 
 const migration = readFileSync('supabase/migrations/20261002000200_known_source_execution.sql', 'utf8');
 const publicMigration = readFileSync('supabase/migrations/20261002000300_public_source_checks.sql', 'utf8');
+const reconciliationMigration = readFileSync('supabase/migrations/20261002000400_reconcile_known_gaps.sql', 'utf8');
+const sourceGapMigration = readFileSync('supabase/migrations/20261004000100_source_gap_accountability.sql','utf8');
+const ardotMigration = readFileSync('supabase/migrations/20261004000200_ardot_known_adapter.sql','utf8');
 const id = n => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const setup = `
 create role anon; create role authenticated; create role service_role;
@@ -40,6 +43,91 @@ insert into public.procurement_source_capabilities values
  ('${id(4)}','${id(1)}','05001','award','api','active',now()-interval '1 day',
   now()+interval '1 day','{"version":1,"runner_id":"sam-search"}');
 `;
+
+test('ARDOT adapter migration admits only the registered source and preserves other methods', async () => {
+  const db = new PGlite();
+  try {
+    await db.exec(setup); await db.exec(migration); await db.exec(publicMigration);
+    await db.exec(ardotMigration);
+    await db.query('insert into public.procurement_sources values ($1,$2,$3)',
+      [id(10),'ardot','https://ardot.gov/divisions/equipment-procurement/commodities-and-services/bids-by-fiscal-year/']);
+    const spec = { version: 1, runner_id: 'ardot-table',
+      entry_url: 'https://ardot.gov/divisions/equipment-procurement/commodities-and-services/bids-by-fiscal-year/',
+      ajax_url: 'https://ardot.gov/wp-admin/admin-ajax.php?action=get_wdtable&table_id=53' };
+    await db.query(`insert into public.procurement_source_capabilities values
+      ($1,$2,'05001','opportunity','browser','active',now()-interval '1 day',now()+interval '1 day',$3)`,
+    [id(11),id(10),spec]);
+    const task={target_id:id(3),task_key:`opportunity:${id(11)}`,agency_scope:'county',
+      route_geography_id:'05001',kind:'opportunity',priority:0,reason:'ARDOT table',
+      source_id:id(10),capability_id:id(11),state:'unchecked',query_window:{},evidence:{}};
+    const plan=tasks=>db.query('select public.create_procurement_known_plan($1,$2) result',[id(2),tasks]);
+    assert.equal((await plan([task])).rows[0].result.jobs_created,1);
+    const sam={...task,task_key:`award:${id(4)}`,source_id:id(1),capability_id:id(4),kind:'award'};
+    assert.equal((await plan([sam])).rows[0].result.jobs_created,1);
+    await db.query('update public.procurement_sources set code=$1 where id=$2',['other',id(10)]);
+    await assert.rejects(plan([{...task,task_key:'opportunity:wrong-source'}]),/runnable capability/);
+  } finally { await db.close(); }
+});
+
+test('source gaps survive other working sources, resolve by exact source, and reopen without deleting history',async()=>{
+  const db=new PGlite();
+  try {
+    await db.exec(setup);await db.exec(migration);await db.exec(publicMigration);await db.exec(reconciliationMigration);await db.exec(sourceGapMigration);
+    await db.query('insert into public.procurement_sources values ($1,$2,$3)',[id(8),'other','https://example.gov/other']);
+    const base={target_id:id(3),agency_scope:'county',route_geography_id:'05001',kind:'award',priority:0,query_window:{},reason:'Needs method'};
+    const gap={...base,task_key:`award:source:${id(8)}:missing`,source_id:id(8),capability_id:null,state:'method_missing',evidence:{scope:'source_category'}};
+    const known={...base,task_key:`award:${id(4)}`,source_id:id(1),capability_id:id(4),state:'unchecked'};
+    const plan=tasks=>db.query('select public.create_procurement_known_plan($1,$2) result',[id(2),tasks]);
+    const reconcile=tasks=>db.query('select public.reconcile_procurement_source_gaps($1,$2) result',[id(2),tasks]);
+    await plan([gap,known]);
+    assert.deepEqual((await reconcile([gap,known])).rows[0].result,{superseded:0,reopened:0});
+    assert.deepEqual((await plan([gap,known])).rows[0].result,{tasks_created:0,jobs_created:0});
+    await db.query(`insert into public.procurement_source_capabilities values ($1,$2,'05001','award','api','active',now()-interval '1 day',now()+interval '1 day','{"version":1,"runner_id":"sam-search"}')`,[id(9),id(8)]);
+    const other={...known,task_key:`award:${id(9)}`,source_id:id(8),capability_id:id(9)};
+    await plan([known,other]);
+    assert.equal((await reconcile([known,other])).rows[0].result.superseded,1);
+    assert.equal((await reconcile([known,other])).rows[0].result.superseded,0);
+    await db.query("update public.procurement_source_capabilities set verified_until=now()-interval '1 hour' where id=$1",[id(9)]);
+    assert.equal((await reconcile([gap,known])).rows[0].result.reopened,1);
+    const row=(await db.query('select * from public.procurement_coverage_tasks where task_key=$1',[gap.task_key])).rows[0];
+    assert.equal(row.state,'method_missing');assert.equal(row.evidence.previous_resolution[0].capability_id,id(9));
+    assert.equal((await db.query('select count(*)::int n from public.procurement_jobs')).rows[0].n,2);
+    await db.exec('set role authenticated');await assert.rejects(reconcile([gap,known]),/permission denied/);
+  }finally{await db.close();}
+});
+
+test('replanning preserves historical gaps, supersedes resolved gaps, and reopens expired methods', async () => {
+  const db = new PGlite();
+  try {
+    await db.exec(setup); await db.exec(migration); await db.exec(publicMigration);
+    await db.exec(reconciliationMigration);
+    const missing={target_id:id(3),task_key:'award:missing',agency_scope:'county',
+      route_geography_id:'05001',kind:'award',priority:0,reason:'No method',
+      source_id:null,capability_id:null,state:'method_missing',query_window:{from:'2026-09-01',to:'2026-09-30'},
+      evidence:{registered_source_ids:[id(1)]}};
+    const known={...missing,task_key:`award:${id(4)}`,reason:'Verified method',
+      source_id:id(1),capability_id:id(4),state:'unchecked',evidence:{}};
+    const plan=tasks=>db.query('select public.create_procurement_known_plan($1,$2) result',[id(2),tasks]);
+    const reconcile=tasks=>db.query('select public.reconcile_procurement_known_gaps($1,$2) result',[id(2),tasks]);
+    await plan([missing]);
+    assert.deepEqual((await reconcile([missing])).rows[0].result,{superseded:0,reopened:0});
+    await plan([known]);
+    assert.deepEqual((await reconcile([known])).rows[0].result,{superseded:1,reopened:0});
+    let rows=(await db.query('select task_key,state,evidence from public.procurement_coverage_tasks order by task_key')).rows;
+    assert.equal(rows.find(row=>row.task_key==='award:missing').state,'superseded');
+    assert.equal(rows.find(row=>row.task_key==='award:missing').evidence.superseded_by[0].capability_id,id(4));
+    assert.deepEqual((await reconcile([known])).rows[0].result,{superseded:0,reopened:0});
+    await db.query('update public.procurement_source_capabilities set verified_until=now()-interval \'1 hour\' where id=$1',[id(4)]);
+    await plan([missing]);
+    assert.deepEqual((await reconcile([missing])).rows[0].result,{superseded:0,reopened:1});
+    rows=(await db.query('select task_key,state,evidence from public.procurement_coverage_tasks order by task_key')).rows;
+    assert.equal(rows.find(row=>row.task_key==='award:missing').state,'method_missing');
+    assert.equal(rows.find(row=>row.task_key==='award:missing').evidence.superseded_by,undefined);
+    assert.equal((await db.query('select count(*)::int n from public.procurement_jobs')).rows[0].n,1);
+    await db.exec('set role authenticated');
+    await assert.rejects(reconcile([known]),/permission denied/);
+  } finally { await db.close(); }
+});
 
 test('known plan is idempotent, leased once, and complete zero is distinct from partial', async () => {
   const db = new PGlite();

@@ -100,6 +100,17 @@ test('real manual findings require mapped requests, immutable evidence and prima
  assert.throws(()=>planReviewedBatch(b,r,[]),/Secondary/);
  r.decisions[0]={...r.decisions[0],action:'defer',approve_new:undefined};assert.equal(planReviewedBatch(b,r,[]).records.length,0);
 });
+test('manual intake accepts an authoritative request-source link without legacy config association',()=>{
+ const b=registered(),s=load('tests/fixtures/research/build-manual-spec.json');
+ s.findings=s.findings.slice(0,1);
+ const source=b.procurement_sources.find(x=>x.id===s.findings[0].source_id);
+ b.procurement_request_sources=[{source_id:source.id,search_request_id:s.findings[0].request_ids[0]}];
+ delete source.config.research_persistence.request_associations;
+ assert.ok(b.procurement_request_sources.some(x=>x.source_id===source.id&&x.search_request_id===s.findings[0].request_ids[0]));
+ assert.equal(planManual(s,b).rows.length,1);
+ b.procurement_request_sources=b.procurement_request_sources.filter(x=>x.source_id!==source.id);
+ assert.throws(()=>planManual(s,b),/registered for/);
+});
 test('actual manual spec rejects wrong project, unmapped source scope and missing evidence',()=>{
  const b=registered(),s=load('tests/fixtures/research/build-manual-spec.json');
  const wrong=structuredClone(s);wrong.project_ref='aaaaaaaaaaaaaaaaaaaa';assert.throws(()=>planManual(wrong,b),/project/);

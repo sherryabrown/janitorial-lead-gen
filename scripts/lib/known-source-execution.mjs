@@ -9,7 +9,7 @@ const validDate = value => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.te
   !Number.isNaN(Date.parse(`${value}T00:00:00Z`));
 const samDate = value => `${value.slice(5, 7)}/${value.slice(8, 10)}/${value.slice(0, 4)}`;
 const normalize = value => String(value ?? '').toLowerCase().replace(/\b(county|city|town)\b/g, '').replace(/[^a-z0-9]/g, '');
-const covers = (source, geography) => source.source_coverage_areas?.some(area =>
+export const covers = (source, geography) => source.source_coverage_areas?.some(area =>
   area.state_code === 'AR' && (geography.kind === 'municipality' && area.area_type === 'city' &&
     normalize(area.city_name) === normalize(geography.name) ||
   geography.kind === 'county' && area.area_type === 'county' &&
@@ -18,14 +18,30 @@ const covers = (source, geography) => source.source_coverage_areas?.some(area =>
   geography.kind === 'state' && source.source_coverage_areas?.some(area =>
     area.area_type === 'country' && area.country_code === 'US');
 
-export function adapterContract(capability, source) {
+export function adapterContract(capability, source, now = new Date()) {
   const spec = capability.method_spec;
   if (capability.availability !== 'active' || !capability.parser_version ||
       !capability.verification_evidence || !Object.keys(capability.verification_evidence).length ||
       !capability.verified_at || !capability.verified_until ||
-      Date.parse(capability.verified_at) > Date.now() || Date.parse(capability.verified_until) <= Date.now())
+      !Number.isFinite(Date.parse(capability.verified_at)) || !Number.isFinite(Date.parse(capability.verified_until)) ||
+      Date.parse(capability.verified_at) > now.getTime() || Date.parse(capability.verified_until) <= now.getTime())
     fail('Source method verification is missing or expired');
   if (spec?.version !== 1) fail('Verified source needs a versioned adapter');
+  if (capability.method === 'browser' && spec.runner_id === 'ardot-table') {
+    if (source?.code !== 'ardot' || capability.kind !== 'opportunity' ||
+        spec.check_when !== 'each_request' ||
+        spec.entry_url !== 'https://ardot.gov/divisions/equipment-procurement/commodities-and-services/bids-by-fiscal-year/' ||
+        spec.ajax_url !== 'https://ardot.gov/wp-admin/admin-ajax.php?action=get_wdtable&table_id=53' ||
+        spec.page_size !== 100 || spec.max_pages !== 30 || spec.max_records !== 3000 ||
+        spec.max_bytes !== 2_000_000 ||
+        !Array.isArray(spec.allowed_hosts) || spec.allowed_hosts.join(',') !== 'ardot.gov')
+      fail('ARDOT table needs reviewed pagination and URL bounds');
+    return { version: 1, runner_id: 'ardot-table', kind: 'opportunity',
+      parser_version: capability.parser_version, check_when: 'each_request',
+      entry_url: spec.entry_url, ajax_url: spec.ajax_url, page_size: 100,
+      max_pages: 30, max_records: 3000, max_bytes: 2_000_000,
+      allowed_hosts: spec.allowed_hosts };
+  }
   if (['browser', 'document'].includes(capability.method) && spec.runner_id === 'public-fetch') {
     if (spec.check_when !== 'each_request' || !Array.isArray(spec.urls) ||
         !spec.urls.length || spec.urls.length > 20 || !Array.isArray(spec.allowed_hosts) ||
@@ -79,14 +95,17 @@ export function registeredEntryContract(source) {
         new URL(source.url).searchParams.has('docId')) return null;
     const host = new URL(source.url).hostname.toLowerCase();
     if (!safePublicUrl(source.url, [host])) return null;
+    const allowedHosts = ['state-intents','state-other'].includes(source.code) &&
+      host === 'www.arkansas.gov' && /^\/tss\/procurement\//.test(new URL(source.url).pathname)
+      ? [host,'www.ark.org'] : [host];
     return { version: 1, runner_id: 'public-fetch', method: 'registry-entry',
       parser_version: 'registry-entry-v1', check_when: 'each_request',
-      urls: [source.url], allowed_hosts: [host], max_bytes: 2_000_000 };
+      urls: [source.url], allowed_hosts: allowedHosts, max_bytes: 2_000_000 };
   } catch { return null; }
 }
 
-export function samFilters(capability, source, window, pageIndex) {
-  const contract = adapterContract(capability, source);
+export function samFilters(capability, source, window, pageIndex, now = new Date()) {
+  const contract = adapterContract(capability, source, now);
   if (!window || !validDate(window.from) || !validDate(window.to) ||
       window.from > window.to || !Number.isInteger(pageIndex) ||
       pageIndex < 0 || pageIndex >= contract.max_pages)
@@ -127,14 +146,26 @@ export function buildKnownSourcePlan(request, targets, geographies, capabilities
         const source = sourceById.get(capability.source_id);
         let reason = null;
         try {
-          const contract = adapterContract(capability, source);
-          if (contract.runner_id === 'sam-search') samFilters(capability, source, window, 0);
+          const contract = adapterContract(capability, source, now);
+          if (contract.runner_id === 'sam-search') samFilters(capability, source, window, 0, now);
         } catch (error) { reason = error.message; }
         tasks.push({ ...common, task_key: `${kind}:${capability.id}`,
           source_id: source.id, capability_id: capability.id,
           state: reason ? 'blocked' : 'unchecked',
           reason: reason ?? `Verified ${source.name} method ready for deterministic collection` });
         if (!reason) runnable++;
+      }
+      // Keep each registered source visible even when a different source covers this category.
+      for (const source of sources.filter(s => covers(s, geography) || attached.some(c => c.source_id === s.id))) {
+        if (verified.some(c => c.source_id === source.id) || unsupportedCategory(source, kind, geography.id, now)) continue;
+        const previous = attached.filter(c => c.source_id === source.id);
+        tasks.push({ ...common, task_key: `${kind}:source:${source.id}:missing`, source_id: source.id,
+          capability_id: null, state: 'method_missing',
+          evidence: { scope: 'source_category', registered_source_ids: [source.id],
+            prior_capability_ids: previous.map(c => c.id),
+            method_status: previous.length ? 'unverified_or_expired' : 'not_verified' },
+          reason: previous.length ? `Reverify expired or unavailable ${source.name} ${kind} method`
+            : `Verify whether ${source.name} supports ${kind}, then save its check method` });
       }
       if (!runnable) {
         const registered = sources.filter(s => covers(s, geography)).map(s => s.id).sort();
@@ -149,7 +180,7 @@ export function buildKnownSourcePlan(request, targets, geographies, capabilities
     for (const source of sources.filter(s => covers(s, geography))) {
       if (entrySources.has(source.id) || !registeredEntryContract(source) ||
           capabilities.some(c => c.source_id === source.id && c.route_geography_id === geography.id &&
-            c.availability === 'active' && c.method_spec?.runner_id === 'public-fetch' &&
+            c.availability === 'active' && ['public-fetch','ardot-table'].includes(c.method_spec?.runner_id) &&
             c.verified_until && Date.parse(c.verified_until) > now.getTime())) continue;
       entrySources.add(source.id);
       tasks.push({ target_id: target.id, route_geography_id: geography.id,
@@ -164,8 +195,19 @@ export function buildKnownSourcePlan(request, targets, geographies, capabilities
   return { request_id: request.id, tasks,
     known: tasks.filter(t => t.state === 'unchecked' && t.kind !== 'source_entry').length,
     entry_checks: tasks.filter(t => t.kind === 'source_entry').length,
-    gaps: tasks.filter(t => ['source_missing', 'method_missing'].includes(t.state)).length,
+    gaps: tasks.filter(t => ['source_missing', 'method_missing'].includes(t.state) && t.evidence?.scope !== 'source_category').length,
+    source_gaps: tasks.filter(t => t.evidence?.scope === 'source_category').length,
     blocked: tasks.filter(t => t.state === 'blocked').length };
+}
+
+// Unsupported categories require an explicit, dated, route-specific evidence record.
+// Old unchecked/partial research notes never establish non-applicability.
+export function unsupportedCategory(source, kind, geographyId, now = new Date()) {
+  return (source.config?.known_source_review?.category_assessments ?? []).find(a =>
+    a.kind === kind && a.route_geography_id === geographyId && a.status === 'unsupported' &&
+    typeof a.reason === 'string' && a.reason.trim() && a.evidence && Object.keys(a.evidence).length &&
+    Number.isFinite(Date.parse(a.checked_at)) && Date.parse(a.checked_at) <= now.getTime() &&
+    Number.isFinite(Date.parse(a.valid_until)) && Date.parse(a.valid_until) > now.getTime());
 }
 
 export function inspectSamCapture(capture, kind, limit, pageIndex) {

@@ -103,7 +103,12 @@ export function planManual(spec,before){
   need(uuid.test(f.source_id)&&before.procurement_sources.some(x=>x.id===f.source_id),'Missing registered source');
   need(f.request_ids?.length&&f.request_ids.every(id=>before.procurement_search_requests.some(x=>x.id===id)),'Missing registered geographic request');
   const associations=before.procurement_sources.find(x=>x.id===f.source_id).config?.research_persistence?.request_associations;
-  need(associations&&f.request_ids.every(id=>associations.some(a=>a.search_request_id===id)),'Source is not registered for the reviewed geographic request');
+  need(f.request_ids.every(id=>
+    associations?.some(a=>a.search_request_id===id) ||
+    before.procurement_request_sources?.some(a=>a.search_request_id===id&&a.source_id===f.source_id) ||
+    before.procurement_coverage_tasks?.some(t=>t.source_id===f.source_id&&t.kind!=='source_entry'&&
+      before.procurement_request_targets?.some(target=>target.id===t.target_id&&target.search_request_id===id))),
+    'Source is not registered for the reviewed geographic request');
   need(f.external_id&&!f.external_id.startsWith('page:')&&f.payload?.title&&f.review_reason,'Record identity/title/review reason required');
   need(['primary','secondary'].includes(f.confidence),'Evidence confidence required');publicUrl(f.payload.source_url);safeMetadata(f.payload);
   need(f.evidence?.length&&f.evidence.every(e=>{publicUrl(e.url);return /^[a-f0-9]{64}$/.test(e.content_sha256)&&e.excerpt?.trim()&&e.retrieved_at&&e.locator;}),'Evidence URL/hash/excerpt/time/page required');

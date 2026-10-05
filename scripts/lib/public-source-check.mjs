@@ -1,9 +1,35 @@
 import { createHash } from 'node:crypto';
+import { JSDOM } from 'jsdom';
 import { safePublicUrl } from './known-source-execution.mjs';
 
 const acceptable = /^(text\/(html|plain|xml)|application\/(pdf|xml|xhtml\+xml))(;|$)/i;
 export function contentChangeType(previousHashes, hash) {
   return previousHashes.includes(hash) ? 'unchanged' : previousHashes.length ? 'changed' : 'new';
+}
+
+export const semanticSources = new Set([
+  'arbuy-janitorial', 'arbuy', 'ariba', 'state-contracts', 'state-intents', 'state-other', 'dhs',
+]);
+
+export function semanticPublicHash(sourceCode, body) {
+  if (!semanticSources.has(sourceCode)) return createHash('sha256').update(body).digest('hex');
+  const document = new JSDOM(body.toString('utf8')).window.document;
+  for (const element of document.querySelectorAll('script,style,noscript,template')) element.remove();
+  const clean = text => String(text ?? '').replace(/\s+/g, ' ').trim();
+  if (sourceCode === 'arbuy-janitorial') {
+    const visible = clean(document.body?.textContent);
+    const documents = [...document.querySelectorAll('a[href]')]
+      .filter(anchor => /^javascript:downloadFile\('\d+'\);?$/i.test(anchor.getAttribute('href') ?? ''))
+      .map(anchor => [clean(anchor.textContent), anchor.getAttribute('href')]);
+    return createHash('sha256').update(JSON.stringify({ visible, documents })).digest('hex');
+  }
+  const rows = sourceCode === 'state-intents'
+    ? [...document.querySelectorAll('tr.rowitem1_bold, tr.rowitem2_bold')]
+    : [...document.querySelectorAll(sourceCode === 'dhs' ? '#table_1 tbody tr' : 'table tbody tr')];
+  const values = rows.map(row => ({ text: clean(row.textContent),
+    links: [...row.querySelectorAll('a[href]')].map(anchor => [clean(anchor.textContent), anchor.getAttribute('href')]) }));
+  if (!values.length) return createHash('sha256').update(body).digest('hex');
+  return createHash('sha256').update(JSON.stringify(values)).digest('hex');
 }
 export async function fetchPublicCheck(contract, requestedUrl, fetcher = fetch) {
   if (contract.runner_id !== 'public-fetch' || !safePublicUrl(requestedUrl, contract.allowed_hosts))

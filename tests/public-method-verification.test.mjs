@@ -44,3 +44,40 @@ test('state contracts listing is a contract reference check, not executed award 
   const empty = { ...f.capture, content_base64: Buffer.from('<title>State Contracts</title>').toString('base64') };
   assert.throws(() => verifiedPublicMethod(f.source, f.state, f.run, f.task, empty), /bytes do not match/);
 });
+
+test('other-unit listing accepts only the reviewed Arkansas government redirect', () => {
+  const f = fixture('ariba');
+  f.source.code = 'state-other';
+  f.source.url = 'https://www.arkansas.gov/tss/procurement/bids/index.php';
+  const bytes = Buffer.from('<title>Arkansas Department of Shared Administrative Services</title>' +
+    '<main>Current Solicitations — Other Procurement Units<table><tbody><tr><td>IFB-27-001</td></tr></tbody></table></main>');
+  const hash = createHash('sha256').update(bytes).digest('hex');
+  f.run.detail.content_sha256 = hash;
+  Object.assign(f.capture, { requested_url: f.source.url,
+    final_url: 'https://www.ark.org/tss/procurement/bids/index.php',
+    content_base64: bytes.toString('base64'), content_sha256: hash });
+  const method = verifiedPublicMethod(f.source, f.state, f.run, f.task, f.capture);
+  assert.equal(method.kind, 'opportunity');
+  assert.deepEqual(method.method_spec.allowed_hosts, ['www.arkansas.gov', 'www.ark.org']);
+  assert.match(method.verification_evidence.coverage_limit, /Only units and rows/);
+  assert.throws(() => verifiedPublicMethod(f.source, f.state, f.run, f.task,
+    { ...f.capture, final_url: 'https://www.ark.org/tss/procurement/other.php' }), /Matching audited/);
+});
+
+test('anticipation notices remain award-stage references, not executed awards', () => {
+  const f = fixture('ariba');
+  f.source.code = 'state-intents';
+  f.source.url = 'https://www.arkansas.gov/tss/procurement/pro_intent.php';
+  const bytes = Buffer.from('<title>Arkansas Department of Shared Administrative Services</title>' +
+    '<main>Notice - Anticipation to Award<table><tr class="rowitem1_bold"><td>SP-27-022</td></tr></table></main>');
+  const hash = createHash('sha256').update(bytes).digest('hex');
+  f.run.detail.content_sha256 = hash;
+  Object.assign(f.capture, { requested_url: f.source.url,
+    final_url: 'https://www.ark.org/tss/procurement/pro_intent.php',
+    content_base64: bytes.toString('base64'), content_sha256: hash });
+  const method = verifiedPublicMethod(f.source, f.state, f.run, f.task, f.capture);
+  assert.equal(method.kind, 'award');
+  assert.match(method.verification_evidence.coverage_limit, /not an executed award/);
+  assert.throws(() => verifiedPublicMethod(f.source, f.state, f.run, f.task,
+    { ...f.capture, final_url: 'https://example.com/tss/procurement/pro_intent.php' }), /Matching audited/);
+});

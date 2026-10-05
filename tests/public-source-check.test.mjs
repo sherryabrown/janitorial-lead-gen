@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { adapterContract, buildKnownSourcePlan, safePublicUrl } from '../scripts/lib/known-source-execution.mjs';
-import { fetchPublicCheck, contentChangeType } from '../scripts/lib/public-source-check.mjs';
+import { adapterContract, buildKnownSourcePlan, registeredEntryContract, safePublicUrl } from '../scripts/lib/known-source-execution.mjs';
+import { fetchPublicCheck, contentChangeType, semanticPublicHash } from '../scripts/lib/public-source-check.mjs';
 
 const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 const source={id:id(1),code:'tasd-public-board',name:'TASD board',
@@ -52,6 +52,36 @@ test('the same URL and hash is unchanged; a new hash retains a changed version',
   assert.equal(contentChangeType(['a'.repeat(64)], 'b'.repeat(64)),'changed');
 });
 
+test('ARBuy record fingerprint ignores page scripts but detects status and document changes', () => {
+  const page = (script, status, documentId) => Buffer.from(`<html><body><script>${script}</script>` +
+    `Bid Number: S000000473 ${status}<a href="javascript:downloadFile('${documentId}');">Solicitation</a>` +
+    '</body></html>');
+  const first = semanticPublicHash('arbuy-janitorial', page('nonceA', 'Intent to Award', '16273'));
+  assert.equal(first, semanticPublicHash('arbuy-janitorial',
+    page('nonceB', 'Intent to Award', '16273')));
+  assert.notEqual(first, semanticPublicHash('arbuy-janitorial',
+    page('nonceB', 'Awarded', '16273')));
+  assert.notEqual(first, semanticPublicHash('arbuy-janitorial',
+    page('nonceB', 'Intent to Award', '16274')));
+});
+
+test('state intent fingerprint ignores page clock but detects a new notice', () => {
+  const page = (clock, notice) => Buffer.from(`<html><body>Notice - Anticipation to Award ${clock}` +
+    `<table><tr class="rowitem1_bold"><td>${notice}</td>` +
+    '<td><a href="https://sas.arkansas.gov/ata/notice/">Download</a></td></tr></table></body></html>');
+  const first = semanticPublicHash('state-intents', page('07:12 PM', 'SP-27-022'));
+  assert.equal(first, semanticPublicHash('state-intents', page('07:16 PM', 'SP-27-022')));
+  assert.notEqual(first, semanticPublicHash('state-intents', page('07:16 PM', 'SP-27-023')));
+});
+
+test('ARBuy open-view fingerprint ignores session fields but detects a result row', () => {
+  const page = (csrf, row) => Buffer.from(`<html><body><input value="${csrf}">` +
+    `<table><tbody><tr><td>${row}</td></tr></tbody></table></body></html>`);
+  const first = semanticPublicHash('arbuy', page('session-one', 'No records found.'));
+  assert.equal(first, semanticPublicHash('arbuy', page('session-two', 'No records found.')));
+  assert.notEqual(first, semanticPublicHash('arbuy', page('session-two', 'SP-27-001')));
+});
+
 test('unsafe URL, unreviewed redirect, rate limit and oversize content stop the check',async()=>{
   const contract=adapterContract(capability,source),url=contract.urls[0];
   assert.equal(safePublicUrl('http://www.tasd7.net/page',contract.allowed_hosts),false);
@@ -66,4 +96,21 @@ test('unsafe URL, unreviewed redirect, rate limit and oversize content stop the 
     status:200,headers:{'content-type':'text/html'}}));
   assert.equal(oversized.state,'partial');
   assert.match(oversized.reason,/byte bound/);
+});
+
+test('legacy Arkansas listing redirect is bounded to the reviewed host', async () => {
+  const entry = registeredEntryContract({ code: 'state-other',
+    url: 'https://www.arkansas.gov/tss/procurement/bids/index.php' });
+  assert.deepEqual(entry.allowed_hosts, ['www.arkansas.gov', 'www.ark.org']);
+  const redirected = await fetchPublicCheck(entry, entry.urls[0], async url =>
+    url.includes('arkansas.gov')
+      ? new Response(null, { status: 302,
+        headers: { location: 'https://www.ark.org/tss/procurement/bids/index.php' } })
+      : new Response('<html>Current Solicitations</html>', { status: 200,
+        headers: { 'content-type': 'text/html' } }));
+  assert.equal(redirected.state, 'captured');
+  assert.equal(redirected.redirects.length, 1);
+  const unrelated = registeredEntryContract({ code: 'some-agency',
+    url: 'https://www.arkansas.gov/tss/procurement/bids/index.php' });
+  assert.deepEqual(unrelated.allowed_hosts, ['www.arkansas.gov']);
 });

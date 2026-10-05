@@ -11,7 +11,10 @@ export function verifyBatch(before,after,m) {
     check(a&&same(a.payload,r.payload)&&a.search_term_used===r.search_term_used,`Lead postcondition: ${r.id}`);
     if(!a) continue;
     check(a.source_id===r.source_id&&a.external_id===r.external_id,`Lead identity: ${r.id}`);
-    if(b) for(const [k,v] of Object.entries(b)) if(!mutable.has(k)) check(same(a[k],v),`Preserved lead field differs: ${r.id}/${k}`);
+    if(b) for(const [k,v] of Object.entries(b)) if(!mutable.has(k)) {
+      if(k==='bid_type'&&r.reviewed_award_promotion===true)check(v==='intent_to_award'&&a[k]==='award'&&r.payload.bid_type==='award',`Reviewed award promotion differs: ${r.id}`);
+      else check(same(a[k],v),`Preserved lead field differs: ${r.id}/${k}`);
+    }
     if(!b) {
       check(a.bid_type===r.payload.bid_type,`New lead classification: ${r.id}`);
       check(a.estimated_annual_amount===null,`Unexpected annual estimate: ${r.id}`);

@@ -113,7 +113,7 @@ export function planReviewedBatch(snapshot,review,runs) {
       const parent=snapshot.procurement_intake_items.find(x=>x.id===manual.amends_intake_id);
       need(parent&&parent.source_id===i.source_id&&parent.status!=='ignored'&&
         (parent.payload.manual_capture?.record_external_id??parent.external_id)===recordExternal,'Invalid amendment parent/record');
-      need(matches.length===1&&snapshot.procurement_intake_leads.some(l=>l.intake_id===parent.id&&l.lead_id===matches[0].id),
+      need(snapshot.procurement_intake_leads.some(l=>l.intake_id===parent.id),
         'Amendment parent must already link to one canonical lead; review the original first');
     }
     if(evidence.kind==='award') {
@@ -135,11 +135,23 @@ export function planReviewedBatch(snapshot,review,runs) {
         need(p&&target[0].source_id===i.source_id&&p.source_url===i.payload.url&&target[0].payload.source_url===p.source_url&&
           p.solicitation_id&&target[0].payload.solicitation_id===p.solicitation_id&&
           typeof p.exact_text==='string'&&p.exact_text.includes(p.solicitation_id)&&i.payload.text?.includes(p.exact_text),'Page backfill needs exact detail URL and explicit identifier text, not a title similarity');
+      } else if(evidence.kind==='manual'&&target[0].source_id!==i.source_id) {
+        const p=d.match_evidence;
+        need(manual?.confidence==='primary'&&p?.solicitation_id&&
+          p.solicitation_id===target[0].payload.solicitation_id&&
+          p.solicitation_id===i.payload.solicitation_id&&
+          p.source_url===i.payload.source_url&&
+          typeof p.exact_text==='string'&&p.exact_text.includes(p.solicitation_id)&&
+          manual.evidence.some(e=>e.url===p.source_url&&e.excerpt.includes(p.exact_text)),
+          'Cross-source manual match needs primary evidence and an exact shared solicitation identifier');
       } else need(target[0].source_id===i.source_id&&target[0].external_id===recordExternal,'Unproven cross-source merge');
       matches=target;
     }
     need(matches.length<=1,'Ambiguous existing lead identity');
     const old=matches[0];
+    if(manual?.amends_intake_id)need(old&&snapshot.procurement_intake_leads.some(l=>
+      l.intake_id===manual.amends_intake_id&&l.lead_id===old.id),
+      'Amendment target must match the parent canonical lead');
     need(old||d.approve_new===true,'New lead requires explicit approve_new decision');
     need(old||!i.external_id.startsWith('page:'),'Page snapshots cannot become canonical leads');
     let patch;
@@ -173,6 +185,21 @@ export function planReviewedBatch(snapshot,review,runs) {
       const unchangedObservation=parent&&same(sourceFacts(parent.payload),sourceFacts(i.payload));
       patch=old?(unchangedObservation?{}:{intake_source_evidence:{...(old.payload.intake_source_evidence||{}),[i.id]:provenance}}):{...i.payload,intake_source_evidence:{[i.id]:provenance}};
     }
+    if(d.promote_existing_to_award===true) {
+      need(old&&evidence.kind==='manual'&&manual?.amends_intake_id&&
+        old.payload.bid_type==='intent_to_award'&&i.payload.bid_type==='award'&&
+        i.payload.executed_contract_verified===true&&
+        i.payload.solicitation_id===old.payload.solicitation_id&&
+        /^\d{4}-\d{2}-\d{2}$/.test(i.payload.contract_start||'')&&
+        /^\d{4}-\d{2}-\d{2}$/.test(i.payload.contract_end||'')&&
+        i.payload.contract_start<=i.payload.contract_end&&
+        manual.evidence.some(e=>e.url===i.payload.source_url&&/signature|signed/i.test(e.locator)),
+        'Existing award promotion needs a linked primary signed-contract amendment and exact solicitation');
+      patch={...patch,bid_type:'award',award_stage:'executed_statewide_contract',
+        executed_contract_verified:true,contract_start:i.payload.contract_start,
+        contract_end:i.payload.contract_end,incumbent:i.payload.incumbent,
+        status_note:i.payload.status_note};
+    }
     if(!old) {
       need(patch.title&&/^https:\/\//.test(patch.source_url||'')&&['award','contract','forecast','opportunity','historical_opportunity','intent_to_award'].includes(patch.bid_type),'New lead must have verified source URL, title, and valid classification');
       need(Array.isArray(patch.work_performance_locations)&&patch.work_performance_locations.length,'Work-location evidence required');
@@ -189,6 +216,7 @@ export function planReviewedBatch(snapshot,review,runs) {
     if(prior) for(const k of Object.keys(patch)) need(!Object.hasOwn(prior.payload,k)||!['sam_api_evidence','sam_notice_evidence'].includes(k)||same(prior.payload[k],patch[k]),'Two intakes propose conflicting source evidence');
     const terms=[old?.search_term_used,prior?.search_term_used,...evidence.queries].filter(Boolean).flatMap(x=>x.split('\n'));
     records.set(key,{id,source_id:source,external_id:external,expected_payload:old?.payload??null,expected_search_term:old?.search_term_used??null,
+      reviewed_award_promotion:d.promote_existing_to_award===true,
       payload,search_term_used:terms.length?[...new Set(terms)].sort().join('\n'):old?.search_term_used??null,
       identity:identity||prior?.identity||null,piid:identity?(evidence.payload?.award_id||evidence.record?.award?.number):prior?.piid||null});
     if(old) sameLead++;
