@@ -1,5 +1,7 @@
 # Procurement collection and reviewed processing
 
+For login/API setup and verified authenticated capture, use [SOURCE-ACCESS.md](SOURCE-ACCESS.md). Access tracking never imports a lead. Saved API/browser captures feed the existing interpretation, immutable intake and exact-package reviewed import below; current schema, tests, scoped authority and readback remain required.
+
 This is the current operating procedure. It supersedes batch-specific preparation/import instructions in historical reports. It does not promise flawless source data or uninterrupted APIs. It requires clear failures, protected user data, explicit approvals, and verifiable outcomes.
 
 ## What must be true

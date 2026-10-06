@@ -3,3 +3,6 @@ verify_jwt = false
 
 [functions.sam-search]
 verify_jwt = false
+
+[functions.source-api]
+verify_jwt = false

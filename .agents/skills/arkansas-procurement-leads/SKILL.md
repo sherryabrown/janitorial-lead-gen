@@ -14,6 +14,7 @@ Find actionable, traceable procurement information without confusing a forecast,
 - Read [verified-methods.md](references/verified-methods.md) at the start to distinguish proven retrieval from unverified signup/access claims. These are dated historical observations, not current availability guarantees.
 - For discovery/collection, read [discovery.md](references/discovery.md).
 - Before portal signup/sign-in or email validation, read [accounts-and-email.md](references/accounts-and-email.md).
+- For this repository's operational login/API activation, use [SOURCE-ACCESS.md](../../../docs/SOURCE-ACCESS.md) and `scripts/source-access.mjs`. Private database checkpoints own source setup; saved methods feed the existing runner and reviewed import.
 - For source retention, API discovery/signup, or resuming access setup, read [api-access-and-tracking.md](references/api-access-and-tracking.md). Load the saved source ledger before creating duplicate accounts/applications; check official API availability for each source during discovery.
 - For actionable portal/API signup handoffs, read [signup-alerts.md](references/signup-alerts.md). Resend alerts to the authorized recipient are separate from read-only Gmail verification and portal subscriptions.
 - Before using the existing CLI, API runner, staging or importing, read [runner-and-import.md](references/runner-and-import.md). Current local dependencies and geographic limitations matter; do not reuse the old Arkansas pilot's approvals/request ID for a new city without validating scope.

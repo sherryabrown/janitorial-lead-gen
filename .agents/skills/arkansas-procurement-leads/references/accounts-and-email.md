@@ -11,7 +11,7 @@ User-provided business details from this session, for authorized registrations o
 - Business name: Executive Services SPIN (legal entity name/certifications not independently verified).
 - Email: sherry.brown@executiveservicesspin.com.
 - Address: 10515 W. Markham St., Suite K5, Little Rock, AR 72205.
-- Phone **214-937-9610 was supplied specifically for AR Bid/IonWave**. Confirm before using it for other portals or as a general company/MFA phone.
+- Phone: 214-937-9610 
 
 Confirm missing required contact/legal details instead of inventing them. Do not infer authorized signatory status, tax IDs, banking data, certifications, UEI, or business classifications. Do not register an entity in SAM when the task only needs individual API access or notice research.
 
@@ -63,4 +63,4 @@ For each portal record the official URL and evidence date, with separate fields 
 
 Report the exact next user action, not just “needs credentials.” Keep API key issuance, usable API request, portal login, and subscription delivery as separate confirmations.
 
-Persist these independent outcomes, evidence timestamps and next actions in [the shared source ledger](api-access-and-tracking.md). For user action needed to obtain portal/API access, follow [signup-alerts.md](signup-alerts.md); Gmail remains read-only and Resend is the only authorized outgoing alert service.
+Persist these independent outcomes, observation/known occurrence timestamps and next actions in the [private database access lifecycle](../../../../docs/SOURCE-ACCESS.md). Reconcile the supplemental source ledger before setup; never overwrite existing application progress. For user action needed to obtain portal/API access, follow [signup-alerts.md](signup-alerts.md); Gmail remains read-only and Resend is the only authorized outgoing alert service.

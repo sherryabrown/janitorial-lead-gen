@@ -108,9 +108,13 @@ async function stage(packet, result) {
   }
   for (const finding of result.findings) for (const evidence of finding.supporting_evidence ?? []) {
     const bytes = readFileSync(evidence.local_path);
-    if (createHash('sha256').update(bytes).digest('hex') !== evidence.content_sha256 ||
-        !bytes.subarray(0, 5).equals(Buffer.from('%PDF-')))
-      throw new Error('Supporting PDF evidence changed; no intake write sent');
+    const recognized = evidence.content_type === 'text/html'
+      ? /<html\b/i.test(bytes.toString('utf8').slice(0, 2000)) &&
+        (bytes.toString('utf8').includes(evidence.excerpt) ||
+          bytes.toString('utf8').includes(evidence.excerpt.replaceAll('&','&amp;')))
+      : bytes.subarray(0, 5).equals(Buffer.from('%PDF-'));
+    if (createHash('sha256').update(bytes).digest('hex') !== evidence.content_sha256 || !recognized)
+      throw new Error('Supporting source evidence changed or unreadable; no intake write sent');
   }
   const {manifest,receipt}=planInterpretationIntake(packet,result,before,evidencePaths);
   const items = manifest.rows.map(delta=>delta.row);

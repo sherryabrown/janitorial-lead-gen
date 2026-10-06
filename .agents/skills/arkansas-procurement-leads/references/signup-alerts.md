@@ -1,5 +1,7 @@
 # Signup-action alerts through Resend
 
+Source signup/resume stages now live in the [private database lifecycle](../../../../docs/SOURCE-ACCESS.md). This file still owns connection readiness and outgoing alert receipts in the private local connection/alert ledgers. Registration verification mail and source approval are independent of an alert's delivery.
+
 ## Authority and readiness
 
 The user authorized transactional alerts about needed portal/API signup actions to **sherry.brown@executiveservicesspin.com**, using **Resend**. Do not send to other recipients or agencies, use Gmail for sending, or add marketing. This authority persists for these signup handoffs; no per-alert confirmation is needed once the connection/sender is ready. Gmail remains strictly read-only or manual under [accounts-and-email.md](accounts-and-email.md).

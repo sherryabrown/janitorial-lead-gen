@@ -40,7 +40,8 @@ try {
     create function auth.uid() returns uuid language sql stable as 'select nullif(current_setting(''request.jwt.claims'',true)::jsonb->>''sub'','''')::uuid';
     grant usage on schema public,auth to anon,authenticated,service_role;
     grant execute on function auth.uid() to anon,authenticated,service_role;`);
-  for(const path of ['supabase/baselines/20260930_public_procurement.sql','supabase/migrations/20260930000100_authenticated_procurement_reads.sql','supabase/migrations/20260930000200_procurement_queue_pages.sql','supabase/migrations/20261001000100_queue_bounds_and_historical_dates.sql']) sql(readFileSync(path,'utf8'));
+  for(const path of ['supabase/baselines/20260930_public_procurement.sql','supabase/migrations/20260930000100_authenticated_procurement_reads.sql','supabase/migrations/20260930000200_procurement_queue_pages.sql','supabase/migrations/20261001000100_queue_bounds_and_historical_dates.sql',
+    'supabase/migrations/20261005000700_public_source_access_handoffs.sql','supabase/migrations/20261006000100_source_access_lifecycle.sql']) sql(readFileSync(path,'utf8'));
   const fixtures=JSON.parse(readFileSync('tests/fixtures/research/mapping.json','utf8'));
   const source=fixtures.procurement_sources[0],payload=fixtures.procurement_leads[1].payload;
   sql(`insert into auth.users values('${first}'),('${second}'); insert into procurement_members(user_id) values('${second}');
@@ -58,6 +59,12 @@ try {
   for(const table of ['procurement_leads','procurement_sources','procurement_versions','procurement_events','procurement_registrations','spin_contract_opportunities']) assert.ok([401,403].includes((await api(`${table}?select=*&limit=1`)).status),`Anonymous ${table} read denied`);
   for(const jwt of ['invalid-token',token('authenticated',first,true)]) assert.equal((await api('procurement_leads?select=id&limit=1',jwt)).status,401,'Invalid/expired JWT rejected by real HTTP gateway');
   for(const jwt of [nonMember,member]) assert.equal((await api(`procurement_leads?id=eq.${leadId}&select=id`,jwt)).body[0].id,leadId);
+  for(const jwt of [undefined,nonMember,member]) {
+    assert.ok([401,403].includes((await api('procurement_access_handoffs?select=id',jwt)).status),'Private lifecycle is not readable by browser roles');
+    assert.ok([401,403].includes((await api('rpc/record_procurement_access_event',jwt,{
+      p_handoff_id:randomUUID(),p_expected_revision:0,p_expected_updated_at:new Date().toISOString(),p_event_id:'denied',p_input_hash:'a'.repeat(64),p_lifecycle:{}})).status),'Browser cannot execute lifecycle transition');
+  }
+  assert.equal((await api('procurement_access_handoffs?select=id',token('service_role'))).status,200,'Trusted server can resume private lifecycle');
   assert.equal((await api('rpc/update_procurement_lead_stage',nonMember,{p_lead_id:leadId,p_new_stage:'interested',p_reason_code:null,p_reason_note:null})).status,200);
   assert.equal((await api('rpc/bulk_update_procurement_lead_stage',member,{p_lead_ids:[leadId],p_new_stage:'applied',p_reason_code:null,p_reason_note:null})).status,200);
   assert.ok([401,403].includes((await api('rpc/update_procurement_lead_stage',undefined,{p_lead_id:leadId,p_new_stage:'won',p_reason_code:null,p_reason_note:null})).status));

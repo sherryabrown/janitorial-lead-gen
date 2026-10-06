@@ -1,0 +1,81 @@
+[
+  {
+    "id": "f7157407b8254d7fad83015fb800b683",
+    "title": "Janitorial Services, Arkansas Post Field Office",
+    "type": "Award Notice",
+    "active": "Yes",
+    "posted": "2026-10-02",
+    "place": {
+      "city": {
+        "code": "69170",
+        "name": "Tichnor"
+      },
+      "state": {
+        "code": "AR",
+        "name": "Arkansas"
+      },
+      "zip": "72166",
+      "country": {
+        "code": "USA",
+        "name": "UNITED STATES"
+      }
+    },
+    "solicitation": "W9127S26PA097",
+    "url": "https://sam.gov/workspace/contract/opp/f7157407b8254d7fad83015fb800b683/view",
+    "resourceLinks": null
+  },
+  {
+    "id": "5665042bdeab4cf4be1b1af5291286e9",
+    "title": "Janitorial Services, Ozark Powerhouse Russellville Site Office",
+    "type": "Award Notice",
+    "active": "Yes",
+    "posted": "2026-09-23",
+    "place": {
+      "city": {
+        "code": "52970",
+        "name": "Ozark"
+      },
+      "state": {
+        "code": "AR",
+        "name": "Arkansas"
+      },
+      "zip": "72949",
+      "country": {
+        "code": "USA",
+        "name": "UNITED STATES"
+      }
+    },
+    "solicitation": "W9127S26PA089",
+    "url": "https://sam.gov/workspace/contract/opp/5665042bdeab4cf4be1b1af5291286e9/view",
+    "resourceLinks": null
+  },
+  {
+    "id": "1a71da7afb094db3a2c8b9f5466ad6a2",
+    "title": "ARKANSAS MULTI SITE/CUSTODIAL ",
+    "type": "Award Notice",
+    "active": "Yes",
+    "posted": "2026-04-28",
+    "place": {
+      "streetAddress": "Multi-Site: SEE MAPS ATTACHMENT",
+      "zip": ""
+    },
+    "solicitation": "W911SA26QA114",
+    "url": "https://sam.gov/workspace/contract/opp/1a71da7afb094db3a2c8b9f5466ad6a2/view",
+    "resourceLinks": null
+  },
+  {
+    "id": "ae70956e37264b6aaa810a75668a7bad",
+    "title": "ARKANSAS MULTI SITE/CUSTODIAL ",
+    "type": "Combined Synopsis/Solicitation",
+    "active": "Yes",
+    "posted": "2026-04-15",
+    "deadline": "2026-04-20T10:00:00-06:00",
+    "place": {
+      "streetAddress": "Multi-Site: SEE MAPS ATTACHMENT",
+      "zip": ""
+    },
+    "solicitation": "W911SA26QA114",
+    "url": "https://sam.gov/workspace/contract/opp/ae70956e37264b6aaa810a75668a7bad/view",
+    "resourceLinks": null
+  }
+]

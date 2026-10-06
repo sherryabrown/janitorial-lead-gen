@@ -27,61 +27,16 @@ Preserve the existing SAM key inside Supabase and use the documented [runner](ru
 
 401/403 means access/scope needs correction; 429 means respect the documented quota/backoff; timeout or malformed envelopes are unknown/failed outcomes, not zero results. Preserve the audit and inspect it before one bounded justified retry. Never repeat an uncertain signup submission before checking current application state. Expired/revoked credentials require correction without erasing prior verification history.
 
-## Durable local record contract
+## Authoritative source activation and resume
 
-Use `outputs/procurement-access/sources.json` as the shared source/access ledger. Use `connections.json` for Gmail/Resend prerequisites, `alerts.json` for alert events/attempts, and sanitized dated evidence under `outputs/procurement-access/evidence/`. These private local files are Git-ignored, not database tables, secret stores or guaranteed backups. Do not create fabricated live records to demonstrate the schema.
+For this project, use [SOURCE-ACCESS.md](../../../../docs/SOURCE-ACCESS.md) and `scripts/source-access.mjs`. The service-role-only `procurement_access_handoffs.lifecycle` owns source access stages, event history, stable submission attempts, account references, blockers and next actions. Stage vocabularies are defined once in the shared access library. Research requirements remain in handoff `details`; staff-readable `procurement_registrations` receives only compatible summaries.
 
-Each JSON file has `schema_version: 1`, `updated_at` and its record array (`sources`, `connections` or `alerts`). Create it with an empty array only when a real authorized task needs persistence; add only observed or explicitly attributed facts. Use UTC ISO timestamps for records; display dates in the user's timezone.
+Reconcile existing registration, database handoffs and `outputs/procurement-access/sources.json` before external setup. The source file is supplemental historical evidence, not the authoritative activation checkpoint. Resolve aliases explicitly; preserve older scopes/proofs and all submitted/pending/issued stages. Resume can proceed from the database when local source files are unavailable. Never reset current observed progress from an older local record.
 
-Structural example only, not a captured source ledger (fill `updated_at` with the actual save time):
+An external form/API application starts with a persisted intent and stable attempt ID. Save actual submission or uncertain outcome, distinct email-sent/received/verified stages, provider approval and current access proof. Observation time is separate from a known actual occurrence time; unknown email send time remains unknown. Reconcile an uncertain attempt before any new submission/resend. Verification creates audited capture evidence; activation prepares a capability for the existing reviewed register/test/apply/readback path.
 
-```json
-{"schema_version": 1, "updated_at": null, "sources": []}
-```
+`outputs/procurement-access/connections.json` and `alerts.json` keep their existing private prerequisite/notification contracts. They use `schema_version:1`, UTC `updated_at`, and the appropriate record array; sanitized evidence stays under `outputs/procurement-access/evidence/`. These files are Git-ignored and are not secret stores or guaranteed backups. Never initialize an empty file over existing records. Reread/merge fresh state, detect conflicts, write a temporary sibling and replace safely, then read back. Stop on uncertain sends or conflicting updates; sequential local files do not guarantee concurrent-worker safety.
 
-The connection and alert files use the same envelope with `connections` and `alerts` respectively. Each source nests `coverage.forecasts`, `coverage.opportunities`, `coverage.awards`, `portal` and `api`; each independent state holds its evidence date/reference. Do not copy this empty example over an existing ledger.
+Use the fixed-recipient [Resend alert contract](signup-alerts.md) and strictly read-only/manual [email contract](accounts-and-email.md). Connection/alert failure does not block available public work. No background poller or recurring automation follows from a saved checkpoint.
 
-### Source record fields
-
-| Field/group | Required meaning |
-| --- | --- |
-| `source_id`, `identity` | Stable local identity; provider, agency/tenant and canonical official entry URL. A shared login is not one enrollment for every agency. |
-| `agency`, `official_urls` | Actual name and entry, procurement, document, developer and signup URLs where known. |
-| `scopes` | Multiple request/jurisdiction associations with city/county, service, dates and work-area evidence; preserve earlier scopes. Only store real existing database IDs when known. |
-| `discovered_at`, `checked_at`, `authorization` | Evidence dates and current task authority, including allowed setup scope. Authority never derives from an old report. |
-| `coverage` | Separate forecast/opportunity/award records with status, method, dates, exact query/pages/run IDs, finding counts, location uncertainties and limits. |
-| `portal` | Independent registration, email verification, agency approval, sign-in, document access and notifications. |
-| `api` | Discovery, registration, credential issuance, request verification, access method, documented capabilities, granted scopes and safe credential reference. |
-| `evidence` | Sanitized official URL/local evidence path, timestamp, and confidence: `observed`, `user_reported` or `historical`. |
-| `blocker`, `next_action`, `responsible_party` | Exact issue and action; responsibility is `agent`, `user` or `provider`. Blocker is separate from registration state. |
-| `history` | Append-only events with field, previous/new state, time, evidence and reason. Preserve contradictions and earlier successful checks. |
-
-### Independent state vocabularies
-
-| Dimension | States |
-| --- | --- |
-| Coverage, per category | `unchecked`, `partial`, `blocked`, `reviewed_with_results`, `reviewed_no_results_for_stated_scope` |
-| Portal registration | `not_started`, `submitted`, `awaiting_email`, `pending_agency_approval`, `verified`, `rejected` |
-| Portal email verification | `not_required`, `not_tested`, `awaiting_email`, `verified`, `blocked` |
-| Portal agency approval | `not_required`, `not_tested`, `pending`, `approved`, `rejected` |
-| Portal sign-in | `not_tested`, `verified`, `blocked` |
-| Portal documents, per category | `not_tested`, `accessible`, `partial`, `blocked` |
-| Portal subscription notifications | `not_requested`, `enabled_unverified`, `delivery_verified` |
-| API discovery | `not_checked`, `documented_available`, `not_found_after_review`, `unavailable` |
-| API registration | `not_required`, `not_started`, `submitted`, `awaiting_email`, `pending_provider_approval`, `approved`, `rejected` |
-| API credential issuance | `not_required`, `not_issued`, `issued`, `expired`, `revoked`, `unknown` |
-| API request verification | `not_tested`, `verified`, `failed` |
-
-Success requires evidence of that specific outcome: form acceptance proves submitted; actual email-confirmed portal state proves verification; provider approval evidence proves approval; issuance proves a credential exists; a successful upstream request proves usable API access for that endpoint/scope. A login does not prove document access, approval does not prove issuance, and issuance does not prove a working request. An alert email is neither a portal subscription test nor signup approval.
-
-For API verification store attempted/verified timestamps, endpoint and sanitized error/status. Preserve a historical successful verification while recording a newer failed attempt; never present the historical date as a current check. A CAPTCHA blocker must not reset a submitted application to `not_started`.
-
-## Save and resume
-
-1. Load relevant sources and connection/alert records at task start. Match provider/agency/URL plus request scope, not title alone. Historical reports provide candidates, not current verified access. Recheck uncertain/outdated facts before external actions.
-2. Save each newly discovered source and meaningful attempt/result, including blocked, pending and rejected outcomes. Preserve unrelated fields/scopes/history. For application research, also persist reviewed public coverage/request associations through [database-persistence.md](database-persistence.md). Do not copy the whole access ledger, credentials or private connection state into public source rows. Merge actual verified database IDs into the supplemental local ledger.
-3. Before writing, reread the file to detect intervening edits. Merge affected fields into the fresh version or stop on conflicting updates. Validate JSON and enum/required-field consistency. Write a temporary sibling and replace the target when supported; read back and check intended records. Do not overwrite a stale whole-file copy. This sequential file workflow is not safe for concurrent workers; reconcile rather than promise concurrency.
-4. If persistence fails, report unsaved state and the precise repair; do not claim captured/tracked. Keep evidence separate from normalized status and sanitize secrets before saving, not after logging them.
-5. On resume, inspect pending submission state before another application. Continue the recorded next action and recheck authority where the requested scope changes. Uncertain submission/send outcomes require reconciliation; do not silently retry.
-
-Final per-source handoff: agency/official URL, coverage and relevant dates, portal state, API state, blocker, next action/responsible party and alert outcome. Give ledger path and real collection/staging/import counts separately. Tracking permits future resume; it does not start background polling or a recurring automation.
+Report agency/source, portal/API stages, usable category access, saved method/run, blocker, actor, next action and alert outcome. Keep captured, staged, reviewed and imported/read-back counts separate. Credentials, raw email, codes, tokenized links and private account metadata never belong in public source records.

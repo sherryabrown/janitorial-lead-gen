@@ -1,6 +1,16 @@
 # Phase 2: known Arkansas source checks
 
+Authenticated source activation uses [SOURCE-ACCESS.md](SOURCE-ACCESS.md). Verified `api-bounded` methods use the existing job/run/capture path through the private `source-api` function; `authenticated-browser` methods return an explicit signed-in capture handoff. Access setup, captured content and reviewed lead coverage remain separate. Existing public methods and the separate statewide SAM path are preserved.
+
 > Current request-level commands: [Single known-source workflow](#single-known-source-workflow). The source-specific notes below are historical evidence and onboarding details. Sources with no verified runnable method remain reported gaps.
+
+## Public source discovery for a confirmed request
+
+Use `node scripts/public-source-discovery.mjs gaps REQUEST_UUID` after `geography-request.mjs create`. Its read-only route/category view distinguishes `source_missing`, `registered_method_missing_or_expired`, and `verified_method`; it excludes SAM. Research official city, independent city agency, county, then state sources only where needed. Register a new source or repaired versioned method through the existing `procurement-workflow.mjs register` review/test/apply path. Then use `known-source-workflow.mjs run`, `packet`, `interpret`, `review-template`, and the reviewed import path below. An archive or entry fetch alone is not lead coverage.
+
+For a researched portal or API, save a sanitized, dated handoff with `node scripts/public-source-discovery.mjs save-handoff INPUT.json`. Include source ID, `portal` or `api`, tenant, official evidence and signup/docs URLs, five `yes`/`no`/`unknown` access requirements, three category assessments, access state, blocker, next actor, and exact action. `node scripts/public-source-discovery.mjs handoff SOURCE_CODE` reads the private database record without the local ledger. The handoff reconciles existing registration progress, accepts no credentials or account email, and never submits a signup. The table is service-role-only; do not place access details in `procurement_sources.config`.
+
+The October 5 Rogers pilot registered `rogers-city-bids` (`261553c5-4af8-585d-a351-479698033c83`) on the official [archived bid listing](https://www.rogersar.gov/Bids.aspx?showAllBids=on), with opportunity method `1bde18a7-aa23-5b1b-afa8-177fb5b7983f`. Request `1aae73f1-36cb-4cf9-bb67-1c35f247e3cd` captured the archive in run `108cb66c-9a5a-4a87-be35-9f94fa2b5239`; the linked official bid 275 detail supported a partial interpretation and reviewed import of historical lead `3ab14a76-69c9-55f4-a0f0-900dae09ba4d`. The closed status and uncertain facilities are retained. Second request `20c11dca-c5fd-4470-8fdd-2938c13a66f0` reused the same method and captured run `2caf187e-5c05-41e3-8734-f1ad73448f1a` without registration or source research. Its new capture remains `needs_interpretation`; other Rogers, Benton County and state gaps remain explicit. The portal/API handoff readback is in the private table. No account or API request was made.
 
 ## Phase 2A: account for every registered source
 

@@ -1,6 +1,8 @@
 # Arkansas geography, source reuse, and lead updates
 
-> **Deferred source-discovery roadmap, October 5, 2026.** The 2A–2G steps below are historical source-onboarding work, not active instructions for the known-source workflow. Outstanding source methods and Phase 3 discovery remain deferred. The shared-workflow repair is recorded in `specs/done/known-source-workflow-repair.md`.
+> **Access lifecycle successor, October 6, 2026:** [Arkansas source access activation and reuse](../todo/arkansas-source-access-activation-and-reuse.md) owns the next login/API signup, verification, durable resume and authenticated-method reuse work. Closed-source steps below are historical backlog, not parallel build instructions. Automatic learning remains deferred.
+
+> **Deferred source-discovery roadmap, October 5, 2026.** The 2A–2G steps below are historical source-onboarding work, not active build instructions. The bounded public discovery successor is [Arkansas public-source discovery and reuse](../done/arkansas-public-source-discovery-and-reuse.md); it includes a private signup handoff but no signup actions. Its completion does not imply that every registered method or the old closed-source/automatic-learning roadmap is finished. Counts and unfinished checklists below are dated history. The shared-workflow repair is recorded in `specs/done/known-source-workflow-repair.md`.
 
 > **Completed implementation plan:** [Known-source workflow — one phase](../done/known-source-workflow.md). The user replaced the remaining source-by-source Phase 2 completion gates with that bounded end-to-end workflow. Preserve the completed work below; remaining batches and Phase 3 are deferred backlog, not requirements for the completed build. Historical completion rules below do not override the new plan.
 

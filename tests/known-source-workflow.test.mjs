@@ -36,6 +36,34 @@ function result(packet) {
       evidence:[{run_id:id(5),locator:'table 1 row 1',excerpt:'24-17 Janitorial services'}]}],
     exclusions:[],unresolved:[]};
 }
+test('saved generic API award feeds immutable intake and reviewed import without SAM',()=>{
+  const body=Buffer.from(JSON.stringify({results:[{id:'award-1',title:'Janitorial services',city:'Texarkana',state:'AR'}],page_metadata:{page:1,hasNext:false}}));
+  const ctx=context(body,'application/json');
+  ctx.task.kind='award';ctx.capability.method_spec={runner_id:'api-bounded',response_format:'bounded-json-v1',page_size:10,
+    pagination:{records_path:'results',terminal_path:'page_metadata.hasNext',terminal_value:false,page_response_path:'page_metadata.page',first_page:1}};
+  ctx.capability.parser_version='bounded-json-v1';
+  const packet=makeInterpretationPacket(ctx),decision=result(packet);
+  decision.findings[0].classification='award';decision.findings[0].payload.bid_type='award';
+  decision.findings[0].record_id='award-1';
+  decision.findings[0].evidence[0].locator='results[0]';
+  decision.findings[0].evidence[0].excerpt='Janitorial services';
+  assert.match(packet.pages[0].review,/award-1/);
+  const spec=manualSpecFromInterpretation(packet,decision,'zreplhkoxswtzxlchtjf',{[id(5)]:'saved.json'});
+  const before={project_ref:spec.project_ref,captured_at:'2026-10-04T12:00:00Z',
+    procurement_sources:[{id:id(2),code:'sample',config:{}}],procurement_search_requests:[{id:id(1)}],
+    procurement_request_sources:[],procurement_request_targets:[{id:id(9),search_request_id:id(1)}],
+    procurement_coverage_tasks:[{id:id(3),target_id:id(9),source_id:id(2),kind:'award'}],
+    procurement_intake_items:[],procurement_leads:[],procurement_intake_leads:[],procurement_request_leads:[],procurement_versions:[],procurement_events:[]};
+  const intake=planManual(spec,before).rows[0].row;before.procurement_intake_items=[intake];
+  assert.equal(planManual(spec,before).rows.length,0);
+  const review={version:1,batch:'api-award-test',project_ref:spec.project_ref,request_id:id(1),work_state:'AR',
+    scope:'Saved routine janitorial award',limitations:'One reviewed API page',reviewed_by:'Reviewer',run_ids:[],
+    decisions:[{intake_id:intake.id,intake_hash:hash(intake.payload),action:'process',approve_new:true,
+      reason:'Official award and Arkansas work site reviewed',request_match_reason:'Texarkana AR in saved record'}]};
+  const approved=planReviewedBatch(before,review,[]);
+  assert.equal(approved.records.length,1);
+  assert.equal(approved.records[0].payload.bid_type,'award');
+});
 test('HTML and PDF packets bind saved source bytes, request scope and method version',()=>{
   const html=makeInterpretationPacket(context());
   assert.equal(html.complete,true);
@@ -64,6 +92,22 @@ test('historical opportunity needs linked official evidence and stays historical
   assert.equal(spec.findings[0].evidence.length,2);
   finding.supporting_evidence[0].url='https://elsewhere.gov/unlisted.pdf';
   assert.throws(()=>validateInterpretation(packet,decision),/Supporting document/);
+});
+test('official HTML detail may support a linked archive finding without making the archive itself a lead',()=>{
+  const body=Buffer.from('<html><main><a href="bids.aspx?bidID=275">Janitorial RFP</a></main></html>');
+  const packet=makeInterpretationPacket(context(body));
+  const decision=result(packet),finding=decision.findings[0];
+  finding.payload.source_url='https://example.gov/bids.aspx?bidID=275';
+  finding.supporting_evidence=[{url:finding.payload.source_url,
+    content_sha256:'a'.repeat(64),local_path:'saved.html',content_type:'text/html',
+    retrieved_at:'2026-10-04T12:00:00Z',locator:'official bid detail',excerpt:'Janitorial RFP'}];
+  assert.equal(validateInterpretation(packet,decision).status,'reviewed_with_results');
+  const spec=manualSpecFromInterpretation(packet,decision,'zreplhkoxswtzxlchtjf',{[id(5)]:'archive.html'});
+  assert.equal(spec.findings[0].evidence[1].capture_kind,'text/html');
+  assert.equal(spec.findings[0].evidence[1].content_type,undefined);
+  finding.payload.source_url='https://example.gov/bids.aspx?bidID=276';
+  finding.supporting_evidence[0].url=finding.payload.source_url;
+  assert.throws(()=>validateInterpretation(packet,decision),/Finding URL/);
 });
 test('review cannot invent zero, cross-run evidence, or complete partial pages',()=>{
   const packet=makeInterpretationPacket(context());

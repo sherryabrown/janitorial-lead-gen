@@ -1,0 +1,104 @@
+[
+  {
+    "http_status": 200,
+    "run_id": "8e356fee-59e7-4b77-add8-b7563c33b882",
+    "captured": true,
+    "upstream_status": 200,
+    "status": "success",
+    "record_count": 2,
+    "complete_for_query": true,
+    "file": "C:\\Users\\sherr\\janitorial-lead-gen\\outputs\\sam-search\\8e356fee-59e7-4b77-add8-b7563c33b882.json",
+    "response_keys": [
+      "totalRecords",
+      "limit",
+      "offset",
+      "opportunitiesData",
+      "links"
+    ]
+  },
+  {
+    "http_status": 200,
+    "run_id": "f0f45491-6cbf-4a55-96a5-a983a8a6f0a2",
+    "captured": true,
+    "upstream_status": 200,
+    "status": "success",
+    "record_count": 2,
+    "complete_for_query": true,
+    "file": "C:\\Users\\sherr\\janitorial-lead-gen\\outputs\\sam-search\\f0f45491-6cbf-4a55-96a5-a983a8a6f0a2.json",
+    "response_keys": [
+      "totalRecords",
+      "limit",
+      "offset",
+      "opportunitiesData",
+      "links"
+    ]
+  },
+  {
+    "http_status": 200,
+    "run_id": "c350f897-c2a6-4f7d-b954-8e98480a91bf",
+    "captured": true,
+    "upstream_status": 200,
+    "status": "success",
+    "record_count": 0,
+    "complete_for_query": true,
+    "file": "C:\\Users\\sherr\\janitorial-lead-gen\\outputs\\sam-search\\c350f897-c2a6-4f7d-b954-8e98480a91bf.json",
+    "response_keys": [
+      "totalRecords",
+      "limit",
+      "offset",
+      "opportunitiesData",
+      "links"
+    ]
+  },
+  {
+    "http_status": 200,
+    "run_id": "90a0d54f-c525-4157-a903-c73cb293d0b7",
+    "captured": true,
+    "upstream_status": 200,
+    "status": "success",
+    "record_count": 0,
+    "complete_for_query": true,
+    "file": "C:\\Users\\sherr\\janitorial-lead-gen\\outputs\\sam-search\\90a0d54f-c525-4157-a903-c73cb293d0b7.json",
+    "response_keys": [
+      "totalRecords",
+      "limit",
+      "offset",
+      "opportunitiesData",
+      "links"
+    ]
+  },
+  {
+    "http_status": 200,
+    "run_id": "5ee810ba-dd6f-4cdd-a8ad-85c3781589f1",
+    "captured": true,
+    "upstream_status": 200,
+    "status": "success",
+    "record_count": 0,
+    "complete_for_query": true,
+    "file": "C:\\Users\\sherr\\janitorial-lead-gen\\outputs\\sam-search\\5ee810ba-dd6f-4cdd-a8ad-85c3781589f1.json",
+    "response_keys": [
+      "totalRecords",
+      "limit",
+      "offset",
+      "opportunitiesData",
+      "links"
+    ]
+  },
+  {
+    "http_status": 200,
+    "run_id": "56f44a59-11dc-4a1d-a860-24611bb1e7bd",
+    "captured": true,
+    "upstream_status": 200,
+    "status": "success",
+    "record_count": 3,
+    "complete_for_query": true,
+    "file": "C:\\Users\\sherr\\janitorial-lead-gen\\outputs\\sam-search\\56f44a59-11dc-4a1d-a860-24611bb1e7bd.json",
+    "response_keys": [
+      "totalRecords",
+      "limit",
+      "offset",
+      "opportunitiesData",
+      "links"
+    ]
+  }
+]

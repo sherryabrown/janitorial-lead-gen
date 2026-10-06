@@ -157,7 +157,9 @@ commit;\n`;
 }
 export function verifyPersistence(before,after,m){
  const errors=[];if(before.project_ref!==m.project_ref||after.project_ref!==m.project_ref)errors.push('Project mismatch');
- for(const d of m.rows){const row=after[d.table].find(x=>x.id===d.row.id);if(!row||!Object.entries(d.row).every(([k,v])=>same(row[k],v)))errors.push('Persistence postcondition: '+d.row.id);}
+ for(const d of m.rows){const row=after[d.table].find(x=>x.id===d.row.id);if(!row||!Object.entries(d.row).every(([k,v])=>
+   same(row[k],v)||(['verified_at','verified_until'].includes(k)&&v&&row[k]&&Date.parse(row[k])===Date.parse(v))))
+   errors.push('Persistence postcondition: '+d.row.id);}
  for(const table of Object.keys(before).filter(k=>Array.isArray(before[k])&&Array.isArray(after[k]))){
   for(const old of before[table])if(!m.rows.some(d=>d.table===table&&d.row.id===old.id)&&!same(old,after[table].find(x=>x.id===old.id)))errors.push('Unrelated row changed: '+table+'/'+old.id);
   const added=after[table].filter(x=>!before[table].some(b=>b.id===x.id));if(added.some(x=>!m.rows.some(d=>d.table===table&&d.row.id===x.id)))errors.push('Unexpected rows: '+table);

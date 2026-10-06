@@ -4,6 +4,7 @@ import { inspectArdotPage } from './ardot-table.mjs';
 import { inspectPublicJsonListing } from './public-json-listing.mjs';
 import { inspectPublicHtmlTable } from './public-html-table.mjs';
 import { inspectPublicBonfireProjects, inspectPublicBonfireContracts } from './public-bonfire-projects.mjs';
+import { inspectApiPage, apiField } from '../../supabase/functions/_shared/source-api.mjs';
 
 const clean = value => String(value ?? '').replace(/\s+/g, ' ').trim();
 const safeCell = value => clean(value).replaceAll('|', '\\|');
@@ -47,11 +48,21 @@ export function captureReview(capture, run, task, source, methodSpec = {}) {
   const isText = contentType.startsWith('text/plain') || contentType.startsWith('text/xml') ||
     contentType.startsWith('application/xml');
   const isPdf = contentType.startsWith('application/pdf');
-  const isJson = contentType.startsWith('application/json') && source.code === 'ardot';
+  const isBoundedApi = methodSpec.runner_id === 'api-bounded' && methodSpec.response_format === 'bounded-json-v1';
+  const isJson = contentType.startsWith('application/json') && (source.code === 'ardot' || isBoundedApi);
   if (!isHtml && !isText && !isPdf && !isJson && !isPublicJson && !isPublicTable && !isBonfire)
     throw new Error('Unsupported saved capture type');
   let title = '', visible = '', links = [], tables = [], documentActions = [];
-  if (isBonfire) {
+  if (isBoundedApi) {
+    const data=JSON.parse(body.toString('utf8'));
+    const assessment=inspectApiPage(data,methodSpec,run.page_index);
+    const records=apiField(data,methodSpec.pagination.records_path);
+    title='Saved official API results';
+    visible=`${assessment.count} records; terminal ${assessment.terminal}`;
+    tables=[{columns:[{name:'Record JSON'}],rows:records.map(r=>[JSON.stringify(r)]),
+      total_rows:records.length,keyword_rows:records.map((r,i)=>({number:i+1,cells:[JSON.stringify(r)]}))
+        .filter(r=>/janitor|custod|cleaning|housekeep|floor care/i.test(r.cells[0])),keyword_total:records.filter(r=>/janitor|custod|cleaning|housekeep|floor care/i.test(JSON.stringify(r))).length}];
+  } else if (isBonfire) {
     const contracts = methodSpec.response_format === 'bonfire-contracts-v1';
     const listing = contracts ? inspectPublicBonfireContracts(body, methodSpec)
       : inspectPublicBonfireProjects(body, methodSpec);

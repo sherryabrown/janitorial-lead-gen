@@ -119,6 +119,8 @@ Read every migration, grouped by purpose:
 
 ## 7. Discover sources, request access and alert the owner
 
+Operational access is defined in [SOURCE-ACCESS.md](SOURCE-ACCESS.md): trace `scripts/source-access.mjs`, the shared access/store libraries, private lifecycle migration, bounded `source-api` function and authenticated browser capture RPC into the existing known-source/import path. Verify separate provider-reported email send, receipt, verification, approval, category access and secret-free evidence; local source JSON is supplemental rather than authoritative.
+
 - [ ] Review the instructions that direct research behavior, not just executable code.
 
 | Skill file | Responsibility |

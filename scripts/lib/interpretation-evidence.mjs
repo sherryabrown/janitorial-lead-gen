@@ -3,12 +3,18 @@ import { inspectArdotPage } from './ardot-table.mjs';
 import { inspectPublicJsonListing } from './public-json-listing.mjs';
 import { inspectPublicHtmlTable } from './public-html-table.mjs';
 import { inspectPublicBonfireProjects, inspectPublicBonfireContracts } from './public-bonfire-projects.mjs';
+import { inspectApiPage } from '../../supabase/functions/_shared/source-api.mjs';
 
 const clean = value => String(value ?? '').replace(/\s+/g, ' ').trim();
 const emptyListing = /\bno\s+(?:(?:current|open|active|available)\s+)?(?:bids?|solicitations?|opportunities|records|results|contracts)\b|\b(?:0|zero)\s+(?:results|records|bids|opportunities)\b/i;
 
 // Retrieval success is not evidence that the intended listing was rendered.
 export function zeroEvidence(body, contentType, sourceCode, pageIndex=0, review='', methodSpec={}, reviewSummary=null) {
+  if (methodSpec.runner_id === 'api-bounded') {
+    const page=inspectApiPage(JSON.parse(body.toString('utf8')),methodSpec,pageIndex);
+    return {eligible:page.count>0 || page.terminal,reason:page.count===0 && !page.terminal ? 'API terminal proof missing' : null,
+      text:page.count ? review : '0 results in the saved official API query',listing:page.count>0,listing_rows:page.count};
+  }
   if (methodSpec.response_format === 'json-files-v1') {
     const page = inspectPublicJsonListing(body, methodSpec);
     return { eligible: page.terminal,

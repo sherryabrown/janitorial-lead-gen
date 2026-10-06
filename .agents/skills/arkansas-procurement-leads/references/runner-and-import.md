@@ -11,7 +11,7 @@ python C:/Users/sherr/Documents/Codex/2026-09-09/browser-plugin-browser-openai-b
 
 ## API retrieval
 
-For systematic API discovery, signup and durable source/access status, read [api-access-and-tracking.md](api-access-and-tracking.md). Load the local access ledger before new applications; preserve sources even when this runner cannot retrieve them. Its access states are separate from this CLI's batch `status`, intake status and canonical import receipts. Actionable setup handoffs use [signup-alerts.md](signup-alerts.md), without changing the runner or importing tracking records into Supabase.
+For systematic API discovery and signup, read [api-access-and-tracking.md](api-access-and-tracking.md). Reconcile the private database lifecycle and supplemental local ledger before new applications. Use [SOURCE-ACCESS.md](../../../../docs/SOURCE-ACCESS.md) to verify supported non-SAM API or authenticated browser methods and register them through the existing reviewed package. Source access states are separate from batch `status`, intake and canonical import receipts. Actionable setup handoffs retain [signup-alerts.md](signup-alerts.md).
 
 `scripts/sam-search.mjs opportunities|awards FILTERS_JSON` makes one request through the existing private Supabase function. The SAM key stays in Supabase; the local trusted runner uses the already authenticated management CLI to obtain server authorization in memory. Never ask the user to move the key to `.env`, expose it in chat, or embed it in the frontend.
 

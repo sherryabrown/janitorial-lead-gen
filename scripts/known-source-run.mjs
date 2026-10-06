@@ -7,6 +7,7 @@ import { inspectPublicHtmlTable } from './lib/public-html-table.mjs';
 import { inspectPublicBonfireProjects, inspectPublicBonfireContracts } from './lib/public-bonfire-projects.mjs';
 import { fetchPublicCheck, contentChangeType, semanticPublicHash, semanticSources } from './lib/public-source-check.mjs';
 import { inspectArdotEntry, fetchArdotPage } from './lib/ardot-table.mjs';
+import { collectKnownApi } from './lib/known-access-run.mjs';
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const [command, requestId, ...options] = process.argv.slice(2);
@@ -59,6 +60,13 @@ if (command === 'plan') {
     throw new Error(`Source code ${selectedSourceCode} is not registered`);
   const output = [];
   for (const candidate of geographyJobs(jobs, tasks, sources, capabilities, selectedSourceCode)) {
+    const pendingCapability=capabilities.find(c=>c.id===candidate.capability_id);
+    if(pendingCapability?.method_spec?.runner_id==='authenticated-browser') {
+      // Browser work is an explicit handoff; do not consume retry leases by polling.
+      output.push({job_id:candidate.id,task_id:candidate.task_id,state:'awaiting_browser_capture',
+        next:'Use source-access next, then source-access capture with audited signed-in pages. Entry checks are not lead coverage.'});
+      continue;
+    }
     const job = await rpc('claim_procurement_known_job', { p_job_id: candidate.id });
     if (!job) continue;
     const task = tasks.find(t => t.id === job.task_id);
@@ -85,6 +93,18 @@ if (command === 'plan') {
       if (!finished) throw new Error(`Job ${job.id} lease expired while recording blocked method`);
       output.push({ task_id: task.id, kind: task.kind, route_geography_id: task.route_geography_id,
         state: 'blocked', pages: 0, results: 0, run_ids: [], reason: error.message });
+      continue;
+    }
+    if (contract.runner_id === 'api-bounded') {
+      const result=await collectKnownApi(db,{job,task,capability,source,project,serverAuthorization:serverKey});
+      const finished=await rpc('finish_procurement_known_job',{
+        p_job_id:job.id,p_lease_token:job.lease_token,p_job_state:result.job_state,p_task_state:result.task_state,
+        p_checkpoint:{next_page:result.pages,run_ids:result.run_ids},p_evidence:{runner:'api-bounded',
+          parser_version:capability.parser_version,run_ids:result.run_ids,pages_confirmed:result.pages,
+          terminal_confirmed:result.job_state==='succeeded',interpretation:'pending',reason:result.reason},
+        p_pages:result.pages,p_results:0,p_last_error:result.reason});
+      if(!finished)throw new Error('API job lease expired; inspect stored capture before retry');
+      output.push({task_id:task.id,kind:task.kind,state:result.task_state,pages:result.pages,run_ids:result.run_ids,reason:result.reason});
       continue;
     }
     if (contract.runner_id === 'public-fetch') {

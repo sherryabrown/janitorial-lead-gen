@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { awardIdentity, actionIdentity, responseSummary, stable } from './sam-normalize.mjs';
+import { validateApiContract } from '../../supabase/functions/_shared/source-api.mjs';
 
 export const categories = ['forecast', 'opportunity', 'award'];
 const samCodes = { opportunity: 'sam', award: 'sam-awards' };
@@ -42,6 +43,20 @@ export function adapterContract(capability, source, now = new Date()) {
       Date.parse(capability.verified_at) > now.getTime() || Date.parse(capability.verified_until) <= now.getTime())
     fail('Source method verification is missing or expired');
   if (spec?.version !== 1) fail('Verified source needs a versioned adapter');
+  if (capability.method === 'api' && spec.runner_id === 'api-bounded') {
+    validateApiContract(spec);
+    return {...spec,kind:capability.kind,parser_version:capability.parser_version};
+  }
+  if (capability.method === 'browser' && spec.runner_id === 'authenticated-browser') {
+    if (spec.check_when !== 'each_request' || !Array.isArray(spec.urls) || !spec.urls.length ||
+      spec.urls.length>20 || !spec.allowed_hosts?.length || spec.urls.some(url=>!safePublicUrl(url,spec.allowed_hosts)) ||
+      !Number.isInteger(spec.max_bytes) || spec.max_bytes<1 || spec.max_bytes>2000000 ||
+      !/^[a-f0-9-]{36}$/i.test(spec.access_handoff_id ?? '') ||
+      typeof spec.check_instructions!=='string' || !spec.check_instructions.trim() ||
+      typeof spec.terminal_instruction!=='string' || !spec.terminal_instruction.trim())
+      fail('Authenticated portal needs reviewed instructions, destinations, access reference and bounds');
+    return {...spec,kind:capability.kind,parser_version:capability.parser_version};
+  }
   if (capability.method === 'browser' && spec.runner_id === 'ardot-table') {
     if (source?.code !== 'ardot' || capability.kind !== 'opportunity' ||
         spec.check_when !== 'each_request' ||

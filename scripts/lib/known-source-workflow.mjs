@@ -7,6 +7,14 @@ import { zeroEvidence, validateZeroBasis } from './interpretation-evidence.mjs';
 const sha = /^[a-f0-9]{64}$/;
 const need = (condition, message) => { if (!condition) throw new Error(message); };
 const text = value => typeof value === 'string' && value.trim().length > 0;
+function savedLink(page, target) {
+  if (!page.body) return false;
+  return [...page.body.toString('utf8').matchAll(/<a\s+[^>]*href=["']([^"']+)["']/gi)]
+    .some(match => {
+      try { return new URL(match[1].replaceAll('&amp;','&'), page.url).href === target; }
+      catch { return false; }
+    });
+}
 
 export function makeInterpretationPacket({ request, task, job, source, capability, runs, captures }) {
   need(request?.id && task?.id && job?.task_id === task.id && task.source_id === source?.id,
@@ -95,7 +103,9 @@ export function validateInterpretation(packet, result) {
       publicUrl(f.payload.source_url) === f.payload.source_url,
     'Finding title and official HTTPS URL required');
     need(packet.pages.some(page=>page.url===f.payload.source_url ||
-      page.review?.includes(f.payload.source_url)),
+      page.review?.includes(f.payload.source_url) ||
+      f.supporting_evidence?.some(e => e.url===f.payload.source_url &&
+        savedLink(page, f.payload.source_url))),
     'Finding URL must appear in a saved capture or point to that capture');
     if (f.supporting_evidence !== undefined) {
       need(Array.isArray(f.supporting_evidence) && f.supporting_evidence.length <= 5,
@@ -136,8 +146,8 @@ export function manualSpecFromInterpretation(packet, result, projectRef, evidenc
           excerpt: e.excerpt, retrieved_at: page.retrieved_at,
           locator: e.locator, local_path: evidencePaths[e.run_id],
           capture_kind: page.content_type };
-      }), ...(f.supporting_evidence ?? []).map(e => ({ ...e,
-        capture_kind: 'application/pdf' }))] })) };
+      }), ...(f.supporting_evidence ?? []).map(({content_type, ...e}) => ({ ...e,
+        capture_kind: content_type ?? 'application/pdf' }))] })) };
 }
 
 export function interpretationDigest(result) {

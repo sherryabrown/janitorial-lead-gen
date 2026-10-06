@@ -8,6 +8,8 @@ Start with the requested local government. Include schools, universities, water/
 
 For each source, keep a simple coverage ledger: agency, official entry URL, procurement portal/document URL, method, checked date, query/page range, forecasts status, opportunities status, awards status, distinct relevant findings, location uncertainties, access/cost/registration needs, evidence path, next action. Use `unchecked`, `partial`, `blocked`, `reviewed_with_results`, or `reviewed_no_results_for_stated_scope`; avoid an unsupported blanket `complete`.
 
+Reuse existing code when posisble.
+
 Start with database source coverage/request associations through [database-persistence.md](database-persistence.md), then load the supplemental `outputs/procurement-access/sources.json`. Reuse known official URLs/access, recheck freshness and discover missing agencies. Register reviewed public sources/coverage in the database for application research, including blocked/empty sources. Preserve previous scopes; source association does not verify a contract site. Finish verified-finding import and readback, or name the exact blocked step; local JSON is not the completion point.
 
 ## Collection methods that worked

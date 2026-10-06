@@ -8,6 +8,7 @@ const publicMigration = readFileSync('supabase/migrations/20261002000300_public_
 const reconciliationMigration = readFileSync('supabase/migrations/20261002000400_reconcile_known_gaps.sql', 'utf8');
 const sourceGapMigration = readFileSync('supabase/migrations/20261004000100_source_gap_accountability.sql','utf8');
 const ardotMigration = readFileSync('supabase/migrations/20261004000200_ardot_known_adapter.sql','utf8');
+const authenticatedMigration=readFileSync('supabase/migrations/20261006000200_authenticated_source_methods.sql','utf8');
 const id = n => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const setup = `
 create role anon; create role authenticated; create role service_role;
@@ -270,4 +271,42 @@ test('an early public migration can be repaired by applying known-source then re
     assert.equal(columns.length,1);
     assert.equal((await db.query(`select count(*)::integer n from public.procurement_public_captures`)).rows[0].n,0);
   } finally {await db.close();}
+});
+
+test('saved generic API and portal methods plan into existing jobs; portal capture is atomic and private',async()=>{
+  const db=new PGlite();try {
+    await db.exec(setup);await db.exec(migration);await db.exec(publicMigration);await db.exec(authenticatedMigration);
+    await db.exec(`create table procurement_registrations(id uuid primary key,login_state text,email_verification_state text,api_state text,updated_at timestamptz);
+      insert into procurement_sources values('${id(20)}','generic-agency','https://portal.example.gov/awards');`);
+    for(const file of ['20261005000700_public_source_access_handoffs.sql','20261006000100_source_access_lifecycle.sql','20261006000300_authenticated_browser_captures.sql','20261006000400_standalone_access_verification.sql'])
+      await db.exec(readFileSync(`supabase/migrations/${file}`,'utf8'));
+    const spec={version:1,runner_id:'authenticated-browser',access_handoff_id:id(21),urls:['https://portal.example.gov/awards'],max_bytes:10000};
+    await db.query(`insert into procurement_access_handoffs(id,source_id,channel,tenant,checked_on,access_state,next_actor,next_action,lifecycle)
+      values($1,$2,'portal','portal.example.gov','2026-10-06','pending','researcher','Check documents',$3)`,[id(21),id(20),
+      {version:1,events:[],attempts:[],account:{kind:'user_session'},stages:{sign_in:{state:'verified',provenance:'observed',verified_until:'2099-01-01'}}}]);
+    for(const [method,runner,capId] of [['api','api-bounded',22],['browser','authenticated-browser',23]]) {
+      await db.query(`insert into procurement_source_capabilities values($1,$2,'05001','award',$3,'active',now()-interval '1 day',now()+interval '1 day',$4)`,
+        [id(capId),id(20),method,runner==='authenticated-browser'?spec:{version:1,runner_id:runner}]);
+      const task={target_id:id(3),task_key:`award:${runner}`,agency_scope:'county',route_geography_id:'05001',kind:'award',priority:0,reason:'fixture',
+        capability_id:id(capId),source_id:id(20),state:'unchecked',query_window:{from:'2026-01-01',to:'2026-10-06'}};
+      assert.equal((await db.query('select create_procurement_known_plan($1,$2) result',[id(2),[task]])).rows[0].result.jobs_created,1);
+    }
+    const job=(await db.query('select * from procurement_jobs where capability_id=$1',[id(23)])).rows[0];
+    const leased=(await db.query('select claim_procurement_known_job($1) job',[job.id])).rows[0].job;
+    const page={run_id:id(24),url:spec.urls[0],content_type:'text/plain',content_sha256:'a'.repeat(64),content_base64:Buffer.from('Fixture award document').toString('base64'),retrieved_at:new Date().toISOString()};
+    const capture=pages=>db.query('select record_procurement_browser_capture($1,$2,$3,$4,$5,$6,$7,$8) receipt',
+      [id(21),job.id,leased.lease_token,spec,'award',pages,true,'Single listing reviewed to its terminal state']);
+    await assert.rejects(()=>capture([page,{...page,run_id:id(25),url:'https://other.gov/awards'}]),/Invalid browser capture/);
+    assert.equal((await db.query('select count(*)::int n from procurement_public_captures')).rows[0].n,0,'transaction rolls back every capture');
+    assert.equal((await capture([page])).rows[0].receipt.status,'saved');
+    assert.equal((await db.query('select state from procurement_coverage_tasks where id=$1',[job.task_id])).rows[0].state,'needs_interpretation');
+    await assert.rejects(()=>capture([page]),/lease/);
+    const standalone={...page,run_id:id(26)};
+    await db.query('select record_procurement_browser_capture($1,null,null,$2,$3,$4,$5,$6)',
+      [id(21),spec,'award',[standalone],true,'Standalone access proof before capability activation']);
+    const standaloneRun=(await db.query('select * from procurement_runs where id=$1',[id(26)])).rows[0];
+    assert.equal(standaloneRun.page_index,null);assert.equal(standaloneRun.job_id,null);
+    await db.exec('set role authenticated');await assert.rejects(()=>db.query('select * from procurement_access_handoffs'),/permission denied/);
+    await db.exec('reset role');
+  }finally{await db.close();}
 });
