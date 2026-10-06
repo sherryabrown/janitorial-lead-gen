@@ -1,5 +1,7 @@
 # Known-source workflow — one implementation phase
 
+> **October 5, 2026 audit:** The original checked acceptance items below overstated completion. The shared workflow still needed false-zero protection, public-method preview parity, interpretation revision/recovery, import-aware reporting, and a bounded integrated import test. See [the focused repair](known-source-workflow-repair.md). The original verification record is preserved below as history.
+
 ## Initiating request
 
 Use the recommendation to create ONE PHASE providing Geography → known sources → saved access method → capture → interpretation → persisted results. State what is in and out of scope. Accomplish only this workflow, succinctly and efficiently; ask questions only if requirements must be reduced to make one pass manageable.

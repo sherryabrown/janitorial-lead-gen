@@ -1,0 +1,11 @@
+{
+  "source_code": "little-rock",
+  "geography_name": "Little Rock",
+  "kind": "opportunity",
+  "organization_id": "691",
+  "organization_name": "City of Little Rock",
+  "entry_url": "https://littlerock.bonfirehub.com/portal/?tab=openOpportunities",
+  "url": "https://littlerock.bonfirehub.com/PublicPortal/getOpenPublicOpportunitiesSectionData",
+  "coverage_limit": "City of Little Rock public open Bonfire projects only; past projects, private invitations and public contracts are separate.",
+  "interpretation_guidance": "Review each public project title and detail for janitorial scope, deadline and actual work site. Public open-project response does not cover private invitations or historical projects."
+}

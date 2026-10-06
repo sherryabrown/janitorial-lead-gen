@@ -1,5 +1,7 @@
 # Arkansas geography, source reuse, and lead updates
 
+> **Deferred source-discovery roadmap, October 5, 2026.** The 2A–2G steps below are historical source-onboarding work, not active instructions for the known-source workflow. Outstanding source methods and Phase 3 discovery remain deferred. The shared-workflow repair is recorded in `specs/done/known-source-workflow-repair.md`.
+
 > **Completed implementation plan:** [Known-source workflow — one phase](../done/known-source-workflow.md). The user replaced the remaining source-by-source Phase 2 completion gates with that bounded end-to-end workflow. Preserve the completed work below; remaining batches and Phase 3 are deferred backlog, not requirements for the completed build. Historical completion rules below do not override the new plan.
 
 ## Initiating request

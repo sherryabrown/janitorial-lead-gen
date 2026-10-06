@@ -1,0 +1,10 @@
+{
+  "source_code": "north-little-rock",
+  "geography_name": "North Little Rock",
+  "kind": "opportunity",
+  "entry_url": "https://nlr.ar.gov/departments/finance/commerce/current-bids-and-bid-summaries/",
+  "url": "https://nlr.ar.gov/wp-admin/admin-ajax.php?juwpfisadmin=false&action=wpfd&task=files.display&view=files&id=534&rootcat=534&page=0&orderCol=ordering&orderDir=asc&page_limit=100",
+  "expected_category": "Active Bids",
+  "coverage_limit": "North Little Rock public Active Bids documents only; linked PDFs must be reviewed for deadlines and work scope.",
+  "interpretation_guidance": "Review each document title and linked PDF. The listing date is a document date, not proof of an open deadline. Exclude unrelated services with cited rows."
+}

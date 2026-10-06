@@ -113,7 +113,9 @@ export function planReviewedBatch(snapshot,review,runs) {
       const parent=snapshot.procurement_intake_items.find(x=>x.id===manual.amends_intake_id);
       need(parent&&parent.source_id===i.source_id&&parent.status!=='ignored'&&
         (parent.payload.manual_capture?.record_external_id??parent.external_id)===recordExternal,'Invalid amendment parent/record');
-      need(snapshot.procurement_intake_leads.some(l=>l.intake_id===parent.id),
+      need(snapshot.procurement_intake_leads.some(l=>l.intake_id===parent.id) ||
+        (d.supersedes_pending_intake_id===parent.id&&parent.status==='pending'&&
+          !snapshot.procurement_intake_leads.some(l=>l.intake_id===parent.id)),
         'Amendment parent must already link to one canonical lead; review the original first');
     }
     if(evidence.kind==='award') {
@@ -149,8 +151,9 @@ export function planReviewedBatch(snapshot,review,runs) {
     }
     need(matches.length<=1,'Ambiguous existing lead identity');
     const old=matches[0];
-    if(manual?.amends_intake_id)need(old&&snapshot.procurement_intake_leads.some(l=>
-      l.intake_id===manual.amends_intake_id&&l.lead_id===old.id),
+    if(manual?.amends_intake_id)need((old&&snapshot.procurement_intake_leads.some(l=>
+      l.intake_id===manual.amends_intake_id&&l.lead_id===old.id)) ||
+      (!old&&d.supersedes_pending_intake_id===manual.amends_intake_id),
       'Amendment target must match the parent canonical lead');
     need(old||d.approve_new===true,'New lead requires explicit approve_new decision');
     need(old||!i.external_id.startsWith('page:'),'Page snapshots cannot become canonical leads');

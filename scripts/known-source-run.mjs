@@ -1,7 +1,10 @@
 import { mkdirSync, writeFileSync, existsSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { adminClient, project, serverKey } from './lib/supabase-admin.mjs';
-import { buildKnownSourcePlan, adapterContract, registeredEntryContract, samFilters, inspectSamCapture, samObservations } from './lib/known-source-execution.mjs';
+import { buildKnownSourcePlan, adapterContract, registeredEntryContract, samFilters, inspectSamCapture, samObservations, geographyJobs } from './lib/known-source-execution.mjs';
+import { inspectPublicJsonListing } from './lib/public-json-listing.mjs';
+import { inspectPublicHtmlTable } from './lib/public-html-table.mjs';
+import { inspectPublicBonfireProjects, inspectPublicBonfireContracts } from './lib/public-bonfire-projects.mjs';
 import { fetchPublicCheck, contentChangeType, semanticPublicHash, semanticSources } from './lib/public-source-check.mjs';
 import { inspectArdotEntry, fetchArdotPage } from './lib/ardot-table.mjs';
 
@@ -13,6 +16,8 @@ if (!['plan', 'run'].includes(command) || !uuid.test(requestId || '') || options
     (options.length && (command !== 'run' || !sourceOption ||
       !/^[a-z0-9][a-z0-9-]{1,79}$/.test(selectedSourceCode))))
   throw new Error('Usage: node scripts/known-source-run.mjs plan REQUEST_UUID | run REQUEST_UUID [--source=SOURCE_CODE]');
+if (['sam', 'sam-awards'].includes(selectedSourceCode))
+  throw new Error('SAM is separate from geography refreshes. Use scripts/sam-search.mjs for an Arkansas-wide manual check.');
 const db = adminClient();
 async function rows(table, columns = '*', filter = null) {
   const result = [];
@@ -53,10 +58,7 @@ if (command === 'plan') {
   if (selectedSourceCode && !sources.some(s => s.code === selectedSourceCode))
     throw new Error(`Source code ${selectedSourceCode} is not registered`);
   const output = [];
-  for (const candidate of jobs) {
-    if (!['pending', 'partial', 'running'].includes(candidate.state)) continue;
-    if (selectedSourceCode && sources.find(s => s.id === tasks.find(t => t.id === candidate.task_id)?.source_id)?.code !== selectedSourceCode)
-      continue;
+  for (const candidate of geographyJobs(jobs, tasks, sources, capabilities, selectedSourceCode)) {
     const job = await rpc('claim_procurement_known_job', { p_job_id: candidate.id });
     if (!job) continue;
     const task = tasks.find(t => t.id === job.task_id);
@@ -109,6 +111,17 @@ if (command === 'plan') {
           run = inserted.data;
           const capture = await fetchPublicCheck(contract, url);
           if (capture.state === 'captured') {
+            let listing = null, listingError = null;
+            if (contract.response_format) {
+              try { listing = contract.response_format === 'json-files-v1'
+                ? inspectPublicJsonListing(capture.body, contract)
+                : contract.response_format === 'html-table-v1'
+                  ? inspectPublicHtmlTable(capture.body, contract)
+                  : contract.response_format === 'bonfire-projects-v1'
+                    ? inspectPublicBonfireProjects(capture.body, contract)
+                    : inspectPublicBonfireContracts(capture.body, contract); }
+              catch (error) { listingError = error.message; }
+            }
             const previous = await rows('procurement_public_captures', 'content_sha256', q =>
               q.eq('source_id', source.id).eq('final_url', capture.final_url)
             );
@@ -133,10 +146,15 @@ if (command === 'plan') {
               content_type: capture.content_type, content_sha256: capture.content_sha256,
               semantic_sha256: semanticHash,
               bytes: capture.bytes,
+              ...(contract.response_format ? { response_format: contract.response_format,
+                listing_count: listing?.records.length ?? null,
+                listing_terminal: listing?.terminal === true,
+                listing_reason: listingError ?? listing?.reason ?? null } : {}),
               change_type: contentChangeType(priorHashes, semanticHash),
               parser_version: contract.parser_version, check_when: contract.check_when,
               query_window: task.query_window, interpretation: 'pending' };
             const updated = await db.from('procurement_runs').update({ status: 'review_required',
+              record_count: listing?.records.length ?? 0,
               finished_at: new Date().toISOString(), detail }).eq('id', run.id);
             if (updated.error) throw new Error(`Public run ${run.id} update uncertain; inspect before retrying`);
             run.detail = detail;
@@ -165,6 +183,11 @@ if (command === 'plan') {
           break;
         }
         runIds.push(run.id); pages++;
+        if (contract.response_format && run.detail?.listing_terminal !== true) {
+          jobState = 'partial'; taskState = 'partial';
+          reason = run.detail?.listing_reason ?? 'Saved listing has no confirmed terminal page';
+          break;
+        }
       }
       const checkpoint = { next_page: pages, run_ids: runIds };
       const evidence = { runner: task.kind === 'source_entry' ? 'registry-entry' : 'public-fetch',

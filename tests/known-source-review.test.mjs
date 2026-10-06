@@ -22,6 +22,8 @@ test('coverage report distinguishes mapped methods from missing county sources',
     [{ source_code: 'state-contracts', run_id: 'award-run', category: 'award' }]).markdown,
     /award listing; content awaits interpretation/);
   assert.doesNotMatch(result.markdown, /zero results/i);
+  assert.match(result.markdown, /Arkansas-wide SAM \(manual\)/);
+  assert.match(result.markdown, /excluded from this city\/county plan/);
 });
 
 test('saved HTML review verifies bytes and identifies entry-only scope without interpreting leads', () => {

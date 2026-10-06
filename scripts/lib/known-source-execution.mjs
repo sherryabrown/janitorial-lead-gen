@@ -3,6 +3,21 @@ import { awardIdentity, actionIdentity, responseSummary, stable } from './sam-no
 
 export const categories = ['forecast', 'opportunity', 'award'];
 const samCodes = { opportunity: 'sam', award: 'sam-awards' };
+export const separateSamSource = (source, capability) =>
+  ['sam', 'sam-awards'].includes(source?.code) || capability?.method_spec?.runner_id === 'sam-search';
+export function geographyJobs(jobs, tasks, sources, capabilities, selectedSourceCode) {
+  const taskById = new Map(tasks.map(task => [task.id, task]));
+  const sourceById = new Map(sources.map(source => [source.id, source]));
+  const capabilityById = new Map(capabilities.map(capability => [capability.id, capability]));
+  return jobs.filter(job => {
+    if (!['pending', 'partial', 'running'].includes(job.state)) return false;
+    const task = taskById.get(job.task_id);
+    const source = sourceById.get(task?.source_id);
+    const capability = capabilityById.get(job.capability_id ?? task?.capability_id);
+    if (separateSamSource(source, capability)) return false;
+    return !selectedSourceCode || source?.code === selectedSourceCode;
+  });
+}
 const fail = message => { throw new Error(message); };
 export const digest = value => createHash('sha256').update(JSON.stringify(stable(value))).digest('hex');
 const validDate = value => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) &&
@@ -50,10 +65,40 @@ export function adapterContract(capability, source, now = new Date()) {
         spec.urls.some(url => !safePublicUrl(url, spec.allowed_hosts)) ||
         spec.allowed_hosts.some(host => !/^[a-z0-9.-]+$/.test(host) || host.startsWith('.') || host.endsWith('.')))
       fail('Public check needs reviewed URLs, hosts, schedule and byte bound');
+    if (spec.response_format === 'json-files-v1' &&
+        (spec.urls.length !== 1 || !Number.isInteger(spec.max_records) ||
+         spec.max_records < 1 || spec.max_records > 100 ||
+         typeof spec.expected_category !== 'string' || !spec.expected_category.trim()))
+      fail('JSON listing needs a bounded, verified category contract');
+    if (spec.response_format === 'html-table-v1' &&
+        (spec.urls.length !== 1 || !Number.isInteger(spec.max_records) ||
+         spec.max_records < 1 || spec.max_records > 100 ||
+         !spec.expected_organization?.trim() ||
+         spec.table_selector !== 'table.rgMasterTable' ||
+         spec.row_selector !== 'tr.rgRow, tr.rgAltRow'))
+      fail('HTML bid table needs a bounded, verified organization contract');
+    if (spec.response_format === 'bonfire-projects-v1' &&
+        (spec.urls.length !== 1 || !Number.isInteger(spec.max_records) ||
+         spec.max_records < 1 || spec.max_records > 100 ||
+         !/\/PublicPortal\/getOpenPublicOpportunitiesSectionData$/.test(spec.urls[0])))
+      fail('Bonfire projects need a bounded public endpoint contract');
+    if (spec.response_format === 'bonfire-contracts-v1' &&
+        (spec.urls.length !== 1 || !Number.isInteger(spec.max_records) ||
+         spec.max_records < 1 || spec.max_records > 100 ||
+         !/\/PublicPortal\/getPublicContractsSectionData$/.test(spec.urls[0])))
+      fail('Bonfire contracts need a bounded public endpoint contract');
+    if (spec.response_format !== undefined &&
+        !['json-files-v1', 'html-table-v1', 'bonfire-projects-v1',
+          'bonfire-contracts-v1'].includes(spec.response_format))
+      fail('Unsupported public listing format');
     return { version: 1, runner_id: 'public-fetch', kind: capability.kind,
       method: capability.method, parser_version: capability.parser_version,
       check_when: 'each_request', urls: spec.urls, allowed_hosts: spec.allowed_hosts,
-      max_bytes: spec.max_bytes };
+      max_bytes: spec.max_bytes,
+      ...(spec.response_format ? { response_format: spec.response_format,
+        expected_category: spec.expected_category, max_records: spec.max_records,
+        expected_organization: spec.expected_organization,
+        table_selector: spec.table_selector, row_selector: spec.row_selector } : {}) };
   }
   if (capability.method !== 'api' || spec.runner_id !== 'sam-search' ||
       source?.code !== samCodes[capability.kind])
@@ -87,8 +132,14 @@ export function safePublicUrl(value, allowedHosts) {
   } catch { return false; }
 }
 
-export function registeredEntryContract(source) {
+export function registeredEntryContract(source, now = new Date()) {
   try {
+    const entryAccess = source?.config?.known_source_research?.entry_access;
+    if (entryAccess?.status === 'blocked' && entryAccess?.method === 'public-fetch' &&
+        Number.isFinite(Date.parse(entryAccess.checked_at)) &&
+        Number.isFinite(Date.parse(entryAccess.valid_until)) &&
+        Date.parse(entryAccess.checked_at) <= now.getTime() &&
+        Date.parse(entryAccess.valid_until) > now.getTime()) return null;
     if (!source?.url || ['sam','sam-awards','usaspending','arbuy-janitorial','dhs'].includes(source.code) ||
         /\/api\//i.test(new URL(source.url).pathname) ||
         /\.pdf$/i.test(new URL(source.url).pathname) ||
@@ -123,6 +174,9 @@ export function samFilters(capability, source, window, pageIndex, now = new Date
 
 export function buildKnownSourcePlan(request, targets, geographies, capabilities, sources, now = new Date()) {
   const geographyById = new Map(geographies.map(g => [g.id, g]));
+  const allSources = new Map(sources.map(s => [s.id, s]));
+  sources = sources.filter(s => !separateSamSource(s));
+  capabilities = capabilities.filter(c => !separateSamSource(allSources.get(c.source_id), c));
   const sourceById = new Map(sources.map(s => [s.id, s]));
   const tasks = [];
   const entrySources = new Set();
@@ -178,7 +232,7 @@ export function buildKnownSourcePlan(request, targets, geographies, capabilities
       }
     }
     for (const source of sources.filter(s => covers(s, geography))) {
-      if (entrySources.has(source.id) || !registeredEntryContract(source) ||
+      if (entrySources.has(source.id) || !registeredEntryContract(source, now) ||
           capabilities.some(c => c.source_id === source.id && c.route_geography_id === geography.id &&
             c.availability === 'active' && ['public-fetch','ardot-table'].includes(c.method_spec?.runner_id) &&
             c.verified_until && Date.parse(c.verified_until) > now.getTime())) continue;

@@ -1,5 +1,7 @@
 # Replace Obsolete Spin Tables With Procurement Tables
 
+> **Deferred historical plan, October 5, 2026.** Procurement queue reads, stages, and notes already use production procurement data. The old Generate/spin migration discussed below was not completed and needs a separate product decision before any activation. This is not an active instruction for the known-source workflow repair.
+
 ## Problem
 
 The current prototype was built around a `spin_` schema that is now obsolete. The Edge Function still reads and writes `spin_geography`, `spin_procurement_sources`, `spin_contract_generation_runs`, and `spin_contract_opportunities`, while the React UI keeps contract and source records in mock arrays and only calls the Edge Function for the Generate flow. The production Supabase schema now uses tables whose names begin with `procurement_`, so the app needs one consistent data contract before it can display and update those records.

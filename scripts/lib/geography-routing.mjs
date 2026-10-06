@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { adapterContract, separateSamSource } from './known-source-execution.mjs';
 
 const categories = ['forecast', 'opportunity', 'award'];
 const normalize = value => String(value ?? '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('en-US');
@@ -56,6 +57,9 @@ export function selectedRoutes(resolution, selectedCityIds, confirmed = false, t
 }
 
 export function planSourceRoutes(routes, capabilities, sources, now = new Date()) {
+  const allSources = new Map(sources.map(source => [source.id, source]));
+  sources = sources.filter(source => !separateSamSource(source));
+  capabilities = capabilities.filter(c => !separateSamSource(allSources.get(c.source_id), c));
   const sourceById = new Map(sources.map(source => [source.id, source]));
   const seenCapabilities = new Set();
   return routes.map((geography, order) => {
@@ -65,9 +69,10 @@ export function planSourceRoutes(routes, capabilities, sources, now = new Date()
         Date.parse(c.verified_at) <= now.getTime() && Date.parse(c.verified_until) > now.getTime() &&
         c.verification_evidence && Object.keys(c.verification_evidence).length > 0 &&
         c.method_spec?.version === 1 && c.parser_version && sourceById.has(c.source_id));
-      const runnable = c => c.method === 'api' && c.method_spec?.runner_id === 'sam-search' &&
-        ((c.kind === 'opportunity' && sourceById.get(c.source_id)?.code === 'sam') ||
-         (c.kind === 'award' && sourceById.get(c.source_id)?.code === 'sam-awards'));
+      const runnable = c => {
+        try { adapterContract(c, sourceById.get(c.source_id), now); return true; }
+        catch { return false; }
+      };
       const known = verified.filter(runnable)
         .filter(c => { if (seenCapabilities.has(c.id)) return false; seenCapabilities.add(c.id); return true; })
         .map(c => ({ capability_id: c.id, source_id: c.source_id,

@@ -1,5 +1,7 @@
 # Supabase Connectivity Test
 
+> **Archived troubleshooting draft, October 5, 2026.** Some examples below refer to obsolete spin/generation paths. Use `docs/SUPABASE-CONNECTIVITY.md` for current read-only checks. Do not execute this draft as an active plan.
+
 ## Problem statement
 
 The prototype contains Supabase client wiring, but the current environment could not reach the configured Supabase endpoint during a read-only test. This plan provides an exact, repeatable way to verify connectivity locally without exposing the publishable key or using mock data for a database check.

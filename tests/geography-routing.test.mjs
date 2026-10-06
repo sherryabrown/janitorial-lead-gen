@@ -43,17 +43,24 @@ test('verified runnable methods are known; stale and candidate-only routes need 
   const verified={id:'cap-1',source_id:sam.id,route_geography_id:'05',kind:'opportunity',
     method:'api',availability:'active',verified_at:'2026-09-01T00:00:00Z',
     verified_until:'2026-11-01T00:00:00Z',verification_evidence:{receipt:'test'},
-    method_spec:{version:1,runner_id:'sam-search'},parser_version:'v1'};
+    method_spec:{version:1,runner_id:'sam-search',query_defaults:{ncode:'561720'}},parser_version:'v1'};
   const result=planSourceRoutes(routes,[verified,{...verified,id:'cap-stale',route_geography_id:countyA.id,
     source_id:source.id,verified_until:'2026-09-30T00:00:00Z'}],[source,sam],new Date('2026-10-02T00:00:00Z'));
   assert.deepEqual(result.map(x=>x.geography.id),[cityC.id,countyA.id,'05']);
   assert.equal(result[0].categories.opportunity.needs_research,true);
   assert.equal(result[1].categories.opportunity.needs_research,true);
   assert.equal(result[1].categories.opportunity.source_candidates[0].source_id,source.id);
-  assert.equal(result[2].categories.opportunity.known[0].capability_id,'cap-1');
-  assert.equal(result[2].categories.opportunity.needs_research,false);
+  assert.equal(result[2].categories.opportunity.known.length,0);
+  assert.equal(result[2].categories.opportunity.needs_research,true);
+  assert.equal(result[2].categories.opportunity.source_candidates.some(s=>s.source_id===sam.id),false);
   const unsupported=planSourceRoutes(routes,[{...verified,id:'cap-other',method_spec:{version:1,runner_id:'future-adapter'}}],
     [source,sam],new Date('2026-10-02T00:00:00Z'));
-  assert.equal(unsupported[2].categories.opportunity.needs_research,false);
-  assert.equal(unsupported[2].categories.opportunity.needs_implementation,true);
+  assert.equal(unsupported[2].categories.opportunity.needs_research,true);
+  const stateSource={id:'source-state',code:'state-other',name:'State postings',
+    source_coverage_areas:[{area_type:'state',state_code:'AR'}]};
+  const publicMethod={...verified,id:'cap-public',source_id:stateSource.id,method:'browser',
+    method_spec:{version:1,runner_id:'public-fetch',check_when:'each_request',
+      urls:['https://example.gov/bids'],allowed_hosts:['example.gov'],max_bytes:2000000}};
+  const withPublic=planSourceRoutes(routes,[verified,publicMethod],[source,sam,stateSource],new Date('2026-10-02'));
+  assert.deepEqual(withPublic[2].categories.opportunity.known.map(c=>c.capability_id),['cap-public']);
 });

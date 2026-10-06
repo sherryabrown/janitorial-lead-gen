@@ -1,0 +1,11 @@
+{
+  "source_code": "little-rock-contracts",
+  "geography_name": "Little Rock",
+  "kind": "award",
+  "organization_id": "691",
+  "organization_name": "City of Little Rock",
+  "entry_url": "https://littlerock.bonfirehub.com/portal/?tab=publicContracts",
+  "url": "https://littlerock.bonfirehub.com/PublicPortal/getPublicContractsSectionData",
+  "coverage_limit": "City of Little Rock Bonfire public-contract index only; linked contract details and execution evidence require review before classifying an award.",
+  "interpretation_guidance": "Review contract name, term, vendor and linked detail. A public-contract row is a candidate, not signed-award proof. Exclude test entries and unrelated work."
+}

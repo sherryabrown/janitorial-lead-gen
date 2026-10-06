@@ -1,0 +1,10 @@
+{
+  "source_code": "north-little-rock",
+  "geography_name": "North Little Rock",
+  "kind": "opportunity",
+  "entry_url": "https://nlr.ar.gov/departments/finance/commerce/bid-summary-archives/",
+  "url": "https://nlr.ar.gov/wp-admin/admin-ajax.php?juwpfisadmin=false&action=wpfd&task=files.display&view=files&id=1004&rootcat=535&page=0&orderCol=title&orderDir=desc&page_limit=100",
+  "expected_category": "2026",
+  "coverage_limit": "North Little Rock 2026 bid summaries only; these describe historical bids received, not open solicitations or confirmed awards.",
+  "interpretation_guidance": "Review linked PDF for solicitation, opening date, site and service. Treat a bid summary as historical opportunity evidence; do not infer an award winner or open deadline."
+}

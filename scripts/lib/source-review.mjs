@@ -1,6 +1,9 @@
 import { createHash } from 'node:crypto';
 import { JSDOM } from 'jsdom';
 import { inspectArdotPage } from './ardot-table.mjs';
+import { inspectPublicJsonListing } from './public-json-listing.mjs';
+import { inspectPublicHtmlTable } from './public-html-table.mjs';
+import { inspectPublicBonfireProjects, inspectPublicBonfireContracts } from './public-bonfire-projects.mjs';
 
 const clean = value => String(value ?? '').replace(/\s+/g, ' ').trim();
 const safeCell = value => clean(value).replaceAll('|', '\\|');
@@ -26,7 +29,7 @@ export function gapRows(plan, geographies, sources) {
     }));
 }
 
-export function captureReview(capture, run, task, source) {
+export function captureReview(capture, run, task, source, methodSpec = {}) {
   if (!capture || !run || !task || !source || capture.run_id !== run.id ||
       capture.source_id !== source.id || run.coverage_task_id !== task.id ||
       run.detail?.state !== 'content_saved')
@@ -36,14 +39,58 @@ export function captureReview(capture, run, task, source) {
       run.detail.content_sha256 !== capture.content_sha256)
     throw new Error('Saved capture hash does not match the audited run');
   const contentType = capture.content_type.toLowerCase();
-  const isHtml = contentType.startsWith('text/html') || contentType.startsWith('application/xhtml+xml');
+  const isPublicJson = methodSpec.response_format === 'json-files-v1';
+  const isPublicTable = methodSpec.response_format === 'html-table-v1';
+  const isBonfire = ['bonfire-projects-v1', 'bonfire-contracts-v1'].includes(methodSpec.response_format);
+  const isHtml = !isPublicJson && !isPublicTable && !isBonfire &&
+    (contentType.startsWith('text/html') || contentType.startsWith('application/xhtml+xml'));
   const isText = contentType.startsWith('text/plain') || contentType.startsWith('text/xml') ||
     contentType.startsWith('application/xml');
   const isPdf = contentType.startsWith('application/pdf');
   const isJson = contentType.startsWith('application/json') && source.code === 'ardot';
-  if (!isHtml && !isText && !isPdf && !isJson) throw new Error('Unsupported saved capture type');
+  if (!isHtml && !isText && !isPdf && !isJson && !isPublicJson && !isPublicTable && !isBonfire)
+    throw new Error('Unsupported saved capture type');
   let title = '', visible = '', links = [], tables = [], documentActions = [];
-  if (isHtml) {
+  if (isBonfire) {
+    const contracts = methodSpec.response_format === 'bonfire-contracts-v1';
+    const listing = contracts ? inspectPublicBonfireContracts(body, methodSpec)
+      : inspectPublicBonfireProjects(body, methodSpec);
+    title = contracts ? 'Public Bonfire contracts' : 'Public Bonfire open opportunities';
+    visible = `${listing.records.length} public ${contracts ? 'contracts' : 'projects'}; terminal ${listing.terminal}`;
+    const rowValues = row => contracts ? [row.id, row.title, row.starts, row.ends, row.url]
+      : [row.id, row.title, row.closes, row.url];
+    const matches = listing.records.map((row, index) => ({ row, index }))
+      .filter(({ row }) => /janitor|custod|cleaning|housekeep|floor care/i.test(row.title));
+    tables = [{ columns: (contracts
+      ? ['Contract ID', 'Title', 'Starts', 'Ends', 'Official detail']
+      : ['Project ID', 'Title', 'Closes', 'Official detail']).map(name => ({ name })),
+      rows: listing.records.map(rowValues), total_rows: listing.records.length,
+      keyword_rows: matches.map(({ row, index }) => ({ number: index + 1, cells: rowValues(row) })),
+      keyword_total: matches.length }];
+  } else if (isPublicTable) {
+    const listing = inspectPublicHtmlTable(body, methodSpec);
+    title = `${methodSpec.expected_organization} public bid listing`;
+    visible = `${listing.records.length} ${methodSpec.expected_organization} bids among ${listing.shown} shown; ` +
+      `${listing.total} across ${listing.pages} page(s); terminal ${listing.terminal}`;
+    const rowValues = row => [row.bid_number, row.title, row.bid_type, row.issued, row.closes];
+    const matches = listing.records.map((row, index) => ({ row, index }))
+      .filter(({ row }) => /janitor|custod|cleaning|housekeep|floor care/i.test(row.title));
+    tables = [{ columns: ['Bid number', 'Title', 'Type', 'Issued', 'Closes'].map(name => ({ name })),
+      rows: listing.records.map(rowValues), total_rows: listing.records.length,
+      keyword_rows: matches.map(({ row, index }) => ({ number: index + 1, cells: rowValues(row) })),
+      keyword_total: matches.length }];
+  } else if (isPublicJson) {
+    const listing = inspectPublicJsonListing(body, methodSpec);
+    title = `${listing.category} saved document listing`;
+    visible = `${listing.records.length} documents in ${listing.category}; terminal ${listing.terminal}`;
+    const rowValues = row => [row.id, row.title, row.created, row.url];
+    const matches = listing.records.map((row, index) => ({ row, index }))
+      .filter(({ row }) => /janitor|custod|cleaning|housekeep|floor care/i.test(row.title));
+    tables = [{ columns: ['Document ID', 'Title', 'Created', 'Official PDF'].map(name => ({ name })),
+      rows: listing.records.slice(0, 50).map(rowValues), total_rows: listing.records.length,
+      keyword_rows: matches.slice(0, 25).map(({ row, index }) =>
+        ({ number: index + 1, cells: rowValues(row) })), keyword_total: matches.length }];
+  } else if (isHtml) {
     const dom = new JSDOM(body.toString('utf8'), { url: capture.final_url });
     const document = dom.window.document;
     title = clean(document.title);
@@ -168,7 +215,8 @@ export function captureReview(capture, run, task, source) {
     ...documentActions.map(action => `- ${action.label}: ARBuy document ${action.document_id}`),
     '', 'These are page actions, not downloaded files. Review the official page before treating an attachment as evidence.', '');
   return { markdown: lines.join('\n') + '\n', body,
-    extension: isPdf ? '.pdf' : isHtml ? '.html.txt' : isJson ? '.json' : '.txt',
+    extension: isPdf ? '.pdf' : isPublicJson || isJson || isBonfire ? '.json' :
+      isHtml || isPublicTable ? '.html.txt' : '.txt',
     summary: { title, visible_characters: visible.length, links: links.length,
       tables: tables.map(table => ({ visible_rows: table.total_rows, shown_rows: table.rows.length })), scope } };
 }
@@ -195,5 +243,9 @@ export function gapReport(requestId, plan, geographies, sources, publicChecks = 
       'entry only' : `${check.category} listing`}; content awaits interpretation`) :
     ['- None yet.']));
   lines.push('', 'An entry check is never a forecast, opportunity, or award zero-result finding.', '');
+  lines.push('## Arkansas-wide SAM (manual)', '',
+    'SAM opportunities and awards are excluded from this city/county plan and its coverage counts.',
+    'Run `scripts/sam-search.mjs` separately with explicit Arkansas filters and date windows; inspect each saved run and terminal page before claiming coverage or staging intake.',
+    'Historical request-linked SAM tasks and intake remain preserved and are shown separately in the workflow report.', '');
   return { markdown: lines.join('\n') + '\n', gaps };
 }

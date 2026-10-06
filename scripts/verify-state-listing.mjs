@@ -1,11 +1,8 @@
 import { adminClient } from './lib/supabase-admin.mjs';
 import { verifiedPublicMethod } from './lib/public-method-verification.mjs';
+import { stateListingArgs } from './lib/state-listing-args.mjs';
 
-const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const [code, runId, flag] = process.argv.slice(2);
-if (!['state-intents', 'state-other'].includes(code) || !uuid.test(runId ?? '') ||
-    (flag !== undefined && flag !== '--apply') || process.argv.length > 5)
-  throw new Error('Usage: node scripts/verify-state-listing.mjs state-intents|state-other RUN_UUID [--apply]');
+const {code, runId, flag} = stateListingArgs(process.argv.slice(2));
 const db = adminClient();
 async function one(table, column, value) {
   const { data, error } = await db.from(table).select('*').eq(column, value).single();

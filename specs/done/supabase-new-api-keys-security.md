@@ -1,5 +1,7 @@
 # Supabase New API Keys Security
 
+> **Historical code plan, October 5, 2026.** Browser and server code now use publishable and secret-key configuration. This document does not establish that every deployed environment or key rotation was verified. Treat any remaining environment validation as an operational check.
+
 ## Problem
 
 Supabase is moving from the legacy JWT API keys named `anon` and `service_role` to the newer API keys named `publishable` and `secret`. This repo currently still uses legacy naming in:

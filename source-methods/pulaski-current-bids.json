@@ -1,0 +1,10 @@
+{
+  "source_code": "pulaski",
+  "geography_name": "Pulaski County",
+  "kind": "opportunity",
+  "entry_url": "https://www.pulaskicounty.net/bidding-specifications",
+  "url": "https://arkansas.ionwave.net/SourcingEvents.aspx?SourceType=1",
+  "expected_organization": "Pulaski County",
+  "coverage_limit": "Pulaski County rows in the public AR Bid current-opportunity table only. Linked bid details and closed bids are separate.",
+  "interpretation_guidance": "Filter to Organization = Pulaski County. Review each title and linked bid detail; confirm dates and work site. Do not treat other Arkansas organizations as county bids."
+}

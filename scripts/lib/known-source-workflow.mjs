@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { captureReview } from './source-review.mjs';
 import { hash } from './reviewed-batch.mjs';
 import { safeMetadata, publicUrl } from './research-persistence.mjs';
+import { zeroEvidence, validateZeroBasis } from './interpretation-evidence.mjs';
 
 const sha = /^[a-f0-9]{64}$/;
 const need = (condition, message) => { if (!condition) throw new Error(message); };
@@ -21,23 +22,25 @@ export function makeInterpretationPacket({ request, task, job, source, capabilit
       run.source_id === source.id && run.page_index === index,
     'Pages must belong to the selected job in order');
     const capture = captures[index];
-    const review = captureReview(capture, run, task, source);
+    const review = captureReview(capture, run, task, source, capability.method_spec);
     return { run_id: run.id, page_index: index, url: capture.final_url,
       retrieved_at: capture.retrieved_at, content_sha256: capture.content_sha256,
       content_type: capture.content_type, review: review.markdown,
-      extension: review.extension, body: review.body };
+      extension: review.extension, body: review.body,
+      zero_evidence: zeroEvidence(review.body, capture.content_type, source.code, run.page_index,
+        review.markdown, capability.method_spec, review.summary) };
   });
   const complete = job.state === 'succeeded' && task.evidence?.terminal_confirmed === true &&
     task.pages_reviewed === pages.length && task.evidence?.run_ids?.length === pages.length &&
     pages.every((page, index) => task.evidence.run_ids[index] === page.run_id);
-  const identity = { version: 1, request_id: request.id, task_id: task.id,
+  const identity = { version: 2, request_id: request.id, task_id: task.id,
     source_id: source.id, category: task.kind, query_window: task.query_window,
     service_scope: request.service_scope, method_id: capability.id,
     method_version: capability.parser_version,
     pages: pages.map(({ url, content_sha256, page_index }) => ({ url, content_sha256, page_index })),
     complete };
   const packet_hash = hash(identity);
-  return { version: 1, packet_hash, request_id: request.id, task_id: task.id,
+  return { version: 2, packet_hash, request_id: request.id, task_id: task.id,
     source_id: source.id, source_code: source.code, category: task.kind,
     request_scope: { service_scope: request.service_scope, search_windows: request.search_windows,
       requested_search_areas: request.requested_search_areas },
@@ -49,7 +52,7 @@ export function makeInterpretationPacket({ request, task, job, source, capabilit
 }
 
 export function validateInterpretation(packet, result) {
-  need(packet?.version === 1 && sha.test(packet.packet_hash) &&
+  need(packet?.version === 2 && sha.test(packet.packet_hash) &&
     result?.version === 1 && result.packet_hash === packet.packet_hash,
   'Interpretation must bind the exact packet');
   need(text(result.reviewed_by) && text(result.reviewed_scope) &&
@@ -59,6 +62,8 @@ export function validateInterpretation(packet, result) {
   need(result.coverage !== 'complete' || packet.complete, 'Incomplete capture cannot claim complete coverage');
   need(result.coverage !== 'complete' || result.unresolved.length === 0,
     'Unresolved evidence cannot claim complete coverage');
+  if (result.coverage === 'complete' && result.findings.length === 0)
+    validateZeroBasis(packet, result);
   need(result.findings.length + result.exclusions.length + result.unresolved.length > 0 ||
     result.coverage === 'complete', 'Empty partial interpretation has no reviewed outcome');
   const pages = new Map(packet.pages.map(page => [page.run_id, page]));
@@ -78,7 +83,9 @@ export function validateInterpretation(packet, result) {
   const identities = new Set();
   for (const f of result.findings) {
     need(text(f.record_id) && !f.record_id.startsWith('page:') && text(f.title) &&
-      f.classification === packet.category && text(f.reason) &&
+      (f.classification === packet.category ||
+        packet.category === 'opportunity' && f.classification === 'historical_opportunity') &&
+      text(f.reason) &&
       f.payload && typeof f.payload === 'object' && !Array.isArray(f.payload),
     'Finding needs stable record ID, title, category, reason and payload');
     need(!identities.has(f.record_id), 'Duplicate finding identity');
@@ -90,6 +97,15 @@ export function validateInterpretation(packet, result) {
     need(packet.pages.some(page=>page.url===f.payload.source_url ||
       page.review?.includes(f.payload.source_url)),
     'Finding URL must appear in a saved capture or point to that capture');
+    if (f.supporting_evidence !== undefined) {
+      need(Array.isArray(f.supporting_evidence) && f.supporting_evidence.length <= 5,
+        'Supporting documents must be bounded');
+      for (const evidence of f.supporting_evidence)
+        need(publicUrl(evidence.url) === evidence.url && sha.test(evidence.content_sha256) &&
+          text(evidence.local_path) && text(evidence.locator) && text(evidence.excerpt) &&
+          text(evidence.retrieved_at) && evidence.url === f.payload.source_url,
+        'Supporting document needs exact official URL, saved file and hash');
+    }
     safeMetadata(f);
   }
   for (const item of [...result.exclusions, ...result.unresolved])
@@ -109,22 +125,25 @@ export function manualSpecFromInterpretation(packet, result, projectRef, evidenc
       request_ids: [packet.request_id], external_id: f.record_id,
       payload: { ...f.payload, title: f.title, bid_type: f.classification,
         known_source_interpretation: { packet_hash: packet.packet_hash,
+          result_hash: interpretationDigest(result),
+          finding_hash: hash({request_id:packet.request_id, finding:f}),
           task_id: packet.task_id, work_location_basis: f.work_location_basis } },
       review_reason: f.reason, confidence: f.confidence ?? 'primary',
       field_basis: f.field_basis ?? {},
-      evidence: f.evidence.map(e => {
+      evidence: [...f.evidence.map(e => {
         const page = packet.pages.find(p => p.run_id === e.run_id);
         return { url: page.url, content_sha256: page.content_sha256,
           excerpt: e.excerpt, retrieved_at: page.retrieved_at,
           locator: e.locator, local_path: evidencePaths[e.run_id],
           capture_kind: page.content_type };
-      }) })) };
+      }), ...(f.supporting_evidence ?? []).map(e => ({ ...e,
+        capture_kind: 'application/pdf' }))] })) };
 }
 
 export function interpretationDigest(result) {
-  const { reviewed_by, reviewed_scope, coverage, findings, exclusions, unresolved } = result;
+  const { reviewed_by, reviewed_scope, coverage, findings, exclusions, unresolved, zero_basis } = result;
   return createHash('sha256').update(JSON.stringify({ reviewed_by, reviewed_scope, coverage,
-    findings, exclusions, unresolved })).digest('hex');
+    findings, exclusions, unresolved, zero_basis })).digest('hex');
 }
 
 export function samStageScope(requestId, tasks, sources) {

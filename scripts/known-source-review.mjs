@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { adminClient } from './lib/supabase-admin.mjs';
-import { buildKnownSourcePlan } from './lib/known-source-execution.mjs';
+import { buildKnownSourcePlan, separateSamSource } from './lib/known-source-execution.mjs';
 import { captureReview, gapReport } from './lib/source-review.mjs';
 import { sourceInventory, inventoryReport } from './lib/source-inventory.mjs';
 
@@ -67,6 +67,8 @@ if (command === 'report') {
     q.in('coverage_task_id', tasks.map(task => task.id))) : [];
   const taskById = new Map(tasks.map(task => [task.id, task]));
   const sourceById = new Map(sources.map(source => [source.id, source]));
+  const historicalSamTasks = tasks.filter(task => separateSamSource(sourceById.get(task.source_id),
+    capabilities.find(capability => capability.id === task.capability_id)));
   const publicChecks = runs.filter(run => run.detail?.state === 'content_saved').map(run => ({
     run_id: run.id, category: taskById.get(run.coverage_task_id)?.kind ?? 'unknown',
     source_code: sourceById.get(taskById.get(run.coverage_task_id)?.source_id)?.code ?? 'unknown',
@@ -81,7 +83,9 @@ if (command === 'report') {
     entry_checks: plan.entry_checks, source_gaps:plan.source_gaps, mapping_missing:mappingMissing, gaps: report.gaps.map(g => ({ geography: g.geography,
       category: g.category, state: g.state, registered_sources: g.registered_sources.length,
       source_code:g.source_code,scope:g.scope,
-      next_action: g.next_action })), saved_public_captures: publicChecks,
+    next_action: g.next_action })), saved_public_captures: publicChecks,
+    statewide_sam:{mode:'manual',included_in_geography_coverage:false,
+      historical_request_tasks:historicalSamTasks.length},
     file, next: 'Review category methods for known sources; source_missing routes need Phase 3 research.' }, null, 2));
 } else {
   const run = (await rows('procurement_runs', '*', q => q.eq('id', runId)))[0];

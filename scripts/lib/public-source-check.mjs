@@ -60,7 +60,10 @@ export async function fetchPublicCheck(contract, requestedUrl, fetcher = fetch) 
     if (response.status !== 200) return { state: 'partial', reason: `HTTP ${response.status}`,
       requested_url: requestedUrl, final_url: url, redirects, upstream_status: response.status };
     const contentType = response.headers.get('content-type') || '';
-    if (!acceptable.test(contentType)) return { state: 'partial', reason: `Unsupported content type: ${contentType || 'missing'}`,
+    if (!acceptable.test(contentType) &&
+        !(['bonfire-projects-v1', 'bonfire-contracts-v1'].includes(contract.response_format) &&
+          /^application\/json(;|$)/i.test(contentType)))
+      return { state: 'partial', reason: `Unsupported content type: ${contentType || 'missing'}`,
       requested_url: requestedUrl, final_url: url, redirects, upstream_status: 200 };
     const declared = Number(response.headers.get('content-length'));
     if (Number.isFinite(declared) && declared > contract.max_bytes) return { state: 'partial',

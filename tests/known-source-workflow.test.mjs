@@ -49,17 +49,37 @@ test('HTML and PDF packets bind saved source bytes, request scope and method ver
   altered.request.id=id(1);altered.capability.parser_version='public-v2';
   assert.notEqual(makeInterpretationPacket(altered).packet_hash,html.packet_hash);
 });
+test('historical opportunity needs linked official evidence and stays historical',()=>{
+  const packet=makeInterpretationPacket(context());
+  const decision=result(packet);
+  const finding=decision.findings[0];
+  finding.classification='historical_opportunity';
+  finding.payload.bid_type='historical_opportunity';
+  finding.supporting_evidence=[{url:'https://example.gov/bids',
+    content_sha256:'a'.repeat(64),local_path:'saved.pdf',
+    retrieved_at:'2026-10-04T12:00:00Z',locator:'PDF page 1',excerpt:'Bid summary'}];
+  assert.equal(validateInterpretation(packet,decision).status,'reviewed_with_results');
+  const spec=manualSpecFromInterpretation(packet,decision,'zreplhkoxswtzxlchtjf',{[id(5)]:'saved.html'});
+  assert.equal(spec.findings[0].payload.bid_type,'historical_opportunity');
+  assert.equal(spec.findings[0].evidence.length,2);
+  finding.supporting_evidence[0].url='https://elsewhere.gov/unlisted.pdf';
+  assert.throws(()=>validateInterpretation(packet,decision),/Supporting document/);
+});
 test('review cannot invent zero, cross-run evidence, or complete partial pages',()=>{
   const packet=makeInterpretationPacket(context());
   const no={...result(packet),findings:[],reviewed_scope:'All saved rows'};
-  assert.equal(validateInterpretation(packet,no).status,'reviewed_no_results');
+  assert.throws(()=>validateInterpretation(packet,no),/Zero requires evidence/);
+  const empty=makeInterpretationPacket(context(Buffer.from('<main>No current bids are available.</main>')));
+  const emptyReview={...no,packet_hash:empty.packet_hash,zero_basis:[{
+    run_id:id(5),locator:'main',excerpt:'No current bids are available.',kind:'empty_listing'}]};
+  assert.equal(validateInterpretation(empty,emptyReview).status,'reviewed_no_results');
   const wrong=structuredClone(result(packet));wrong.findings[0].evidence[0].run_id=id(8);
   assert.throws(()=>validateInterpretation(packet,wrong),/saved run/);
   const partialContext=context();partialContext.job.state='partial';
   const partial=makeInterpretationPacket(partialContext);
-  assert.throws(()=>validateInterpretation(partial,{...no,packet_hash:partial.packet_hash}),/Incomplete/);
+  assert.throws(()=>validateInterpretation(partial,{...emptyReview,packet_hash:partial.packet_hash}),/Incomplete/);
   const unresolved={...no,unresolved:[{reason:'Linked PDF was not captured',evidence:[{run_id:id(5),locator:'row 1 link',excerpt:'Bid PDF'}]}]};
-  assert.throws(()=>validateInterpretation(packet,unresolved),/Unresolved/);
+  assert.throws(()=>validateInterpretation(empty,{...unresolved,packet_hash:empty.packet_hash,zero_basis:emptyReview.zero_basis}),/Unresolved/);
   const entry=context();entry.task.kind='source_entry';
   assert.throws(()=>makeInterpretationPacket(entry),/Entry-only/);
 });

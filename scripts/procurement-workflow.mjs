@@ -4,7 +4,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath,pathToFileURL } from 'node:url';
 import {createHash} from 'node:crypto';
 import { planReviewedBatch,hash,validateReview,collectRuns } from './lib/reviewed-batch.mjs';
-import { awardDate,awardPayload } from './lib/sam-normalize.mjs';
+import { samIntakeRows } from './lib/sam-intake.mjs';
 import { reconciliationSql } from './lib/intake-reconcile.mjs';
 import { verifyBatch } from './lib/batch-verification.mjs';
 import { project } from './lib/supabase-admin.mjs';
@@ -152,26 +152,7 @@ async function main() {
       const group=observationGroups.get(`${sourceId}/${identity}`);
       return routedCapture(identity,group,row,priorEvidence.get(`${sourceId}/${identity}`));
     };
-    const items=[];
-    for(const [identity,g] of collection.awards) {
-      const row=[...g.actions.values()].sort((a,b)=>awardDate(b).localeCompare(awardDate(a))||
-        (b.awardDetails?.transactionData?.lastModifiedDate||'').localeCompare(a.awardDetails?.transactionData?.lastModifiedDate||''))[0];
-      const routed=routeRecord(source('sam-awards'),identity,row);if(!routed)continue;
-      items.push({source_id:source('sam-awards'),external_id:routed.external_id,status:'pending',review_reason:'Captured SAM contract actions; service, geography, identity and promotion require review.',
-        payload:{...awardPayload(row,`https://api.sam.gov/contract-awards/v1/search?piid=${encodeURIComponent(row.contractId.piid)}`),
-          ...routed.metadata,
-          sam_api_evidence:{contract_identity:identity,latest_action:row,action_ids:[...g.actions.keys()].sort(),capture_run_ids:[...g.run_ids].sort(),search_queries:[...g.queries].sort()}}});
-    }
-    for(const [id,g] of collection.notices) {
-      const n=g.row,loc=n.placeOfPerformance||{};
-      const routed=routeRecord(source('sam'),id,n);if(!routed)continue;
-      items.push({source_id:source('sam'),external_id:routed.external_id,status:'pending',review_reason:'Captured SAM notice; Active does not prove open. Review deadline, service, geography and relationships.',
-        payload:{title:n.title,source_url:`https://sam.gov/opp/${id}/view`,bid_type:n.award?'award':'opportunity',business_category:'other_public',
-          ...routed.metadata,
-          contracting_entity_geo_level:'federal',agency:n.fullParentPathName,solicitation_id:n.solicitationNumber,naics:n.naicsCode,deadline:n.responseDeadLine||null,
-          work_performance_locations:[{city_name:loc.city?.name||null,state_code:loc.state?.code||null,evidence:loc.streetAddress||'SAM placeOfPerformance; not contracting office'}],
-          sam_notice_evidence:{record:n,capture_run_ids:[...g.run_ids].sort(),search_queries:[...g.queries].sort()}}});
-    }
+    const items=samIntakeRows(collection,source,routeRecord);
     if(!items.length) {save(receipt,{status:'staged',inserted:0,existing_preserved:0,partial:collection.partial});console.log('No captured records; no intake write needed.');return;}
     // One request is transactional. ignoreDuplicates preserves processed/ignored/pending originals alike.
     const result=await db.from('procurement_intake_items').upsert(items,{onConflict:'source_id,external_id',ignoreDuplicates:true,count:'exact'}).select('id');
