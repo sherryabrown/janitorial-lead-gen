@@ -20,17 +20,18 @@ Scope: one saved official public method gap; no signup/sign-in, frontend, schedu
 | Registration | One inserted and two updated registry rows; existing source identity retained. |
 | Native rehearsal | PostgreSQL 17.4; rollback/readback/replay/cleanup passed; 5,974 ms, 1,358 copied rows / 844,880 bytes, local peak process 120.4 MiB. No hosted container measurement yet. |
 | Usage | Zero paid search calls, inference calls, input/output tokens or AI cost for research/registration. |
-| Leads | No candidates or lead imports from this pilot yet. Listing review found no routine-janitorial bid in the saved October 6, 2026–October 5, 2027 deadline window. |
-| Worker | Discovery job `098a7fbc-f8d2-4622-8db1-5b02310e098e` at `discovery_collect`; await deployment for hosted continuation. |
+| Leads | Zero eligible candidates or imports; all 15 listing rows reviewed and excluded. Interpretation `01fa47a2-b67d-4107-87d5-580825a80617` persisted as `reviewed_no_results`. This applies only to the captured opportunity listing and requested bounds. |
+| Worker | Discovery job `098a7fbc-f8d2-4622-8db1-5b02310e098e` succeeded at `discovery_collected`. Hosted category capture run `c58b3cf7-4a09-480a-8f95-d0b15cb69b41`; separate entry run is not lead coverage. Collection stage 2,089 ms; sampled container peak 119,328,768 bytes (113.8 MiB), process RSS 172,195,840 bytes. |
+| Deployment | Commit `917a03fb051555cc44698e1db87a1af8f02183e4`, Render Free deployment `dep-db36b6hsrm7s73c0p8q0` live; refreshed signed-in token verified HTTP flow. No Netlify changes. |
+| Second request | `c529face-61d8-47dc-aefd-4b73dee2a665`, October 7, 2026–October 5, 2027; shared geography/collection services reused capability `ba397df6-c4c8-503b-abad-e4638ba6a021`. No discovery job/research or application inference. One category capture plus a distinct entry check. Source leads unchanged; interpretation `49a14cb5-ca41-4d92-8b66-417a59330c1b` persisted with 15 exclusions and no candidates. Local collection 3,678 ms, RSS 112,463,872 bytes. Other planned sources were not run. |
 
-Private receipts: `outputs/deployment/20261007000600/` and `outputs/deployment/render/discovery-pilot-*.json`; remain ignored. The previous benchmark environment update omitted the validator connection due to pagination. Its existing value was restored, all prior variables preserved and read back; a new deployment must load the restored configuration.
+Private receipts: `outputs/deployment/20261007000600/` and `outputs/deployment/render/discovery-*.json`; remain ignored. The previous benchmark environment update omitted the validator connection due to pagination. Its existing value was restored, all prior variables preserved and read back; the new deployment loads the restored configuration.
 
 ## Remaining acceptance
 
-1. Deploy the tested backend batch to the existing Render Free service after explicit commit permission; finish hosted collection, interpretation and resource measurement.
-2. Prove a second bounded request reuses the saved method without research or location-specific code; no duplicate leads.
-3. Prepare an eligible real candidate through the common reviewed import path. No qualifying candidate exists in this pilot window; historical pilot bounds require the pending user decision. Present any exact live import batch for approval.
+1. Prepare an eligible real candidate through the common reviewed import path. The user approved a bounded historical pilot, but this listing has no qualifying janitorial evidence. Saved DHS solicitation 710-25-028 has an unverified amended deadline; official PDF retrieval returned 403 on October 7. Do not promote the attributed deadline or substitute the superseded original deadline. Exact next action: retrieve the official amendment and verify its deadline and work site, or use another saved official candidate with verified qualifying dates. Do not count this blocked retrieval as coverage. A later exact import batch still requires approval.
+2. Secure signup/sign-in continuation remains outside this batch and unfinished in the parent plan.
 
 Focused verification: 37 discovery, native rehearsal, hosted workflow and registry regression tests passed, plus the new handoff replay regression passed separately. Both original SQL suites passed, including rollback, replay, concurrent edits and protected fields. Lint and whitespace checks passed. Keep the parent plan in todo. This report does not claim complete discovery acceptance or authenticated access execution.
 
-Suggested commit message: `feat: enable bounded official-source discovery`.
+Implementation commit message: `feat: enable bounded official-source discovery`. Acceptance documentation commit message: `docs: record public discovery and reuse checks`.
