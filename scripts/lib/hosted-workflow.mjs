@@ -13,7 +13,7 @@ import { recordAccessEvent } from './source-access-store.mjs';
 import { supportingCapture } from './supporting-capture.mjs';
 import {packetLink} from './api-record-links.mjs';
 
-export function validateFindingBounds(packet,result) {
+export function validateFindingBounds(packet,result,{verifiedSupporting=false}={}) {
   const basis=packet.query_window.date_basis??'published';
   const fields={published:['published_date','posted_date'],publication:['published_date','posted_date'],deadline:['deadline'],
     expected_solicitation:['expected_solicitation_date'],expected_solicitation_date:['expected_solicitation_date'],
@@ -23,7 +23,7 @@ export function validateFindingBounds(packet,result) {
     const dates=fields.map(k=>f.payload[k]).filter(Boolean).map(d=>new Date(d).toISOString().slice(0,10));
     if(!dates.some(d=>d>=packet.query_window.from && d<=packet.query_window.to))throw new Error('Finding lacks a qualifying date for this request');
     const locations=f.payload.work_performance_locations??[{city_name:f.payload.work_city,county_name:f.payload.work_county,state_code:f.payload.work_state}];
-    const quoted=f.evidence.map(e=>e.excerpt).join(' ').toLowerCase();
+    const quoted=[...f.evidence,...(verifiedSupporting?f.supporting_evidence??[]:[])].map(e=>e.excerpt).join(' ').toLowerCase();
     const areas=packet.request_scope.requested_search_areas;
     const equal=(a,b)=>a&&b&&a.toLowerCase()===b.toLowerCase();
     if(!locations.some(l=>l.state_code==='AR' && areas.some(a=>a.state_code==='AR' &&
@@ -85,7 +85,8 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
         city_name:f.payload.work_city,county_name:f.payload.work_county,evidence:f.work_location_basis}]}:{})} }))};
     const ctx=await context(requestId,taskId);
     validateInterpretation(p,reviewed,{verifiedSupporting:true});
-    await verifyEvidenceSpans(p,reviewed,{loadSupporting:e=>supporting.load(ctx,p,e)});validateFindingBounds(p,reviewed);
+    await verifyEvidenceSpans(p,reviewed,{loadSupporting:e=>supporting.load(ctx,p,e)});
+    validateFindingBounds(p,reviewed,{verifiedSupporting:true});
     const receipt=await persistInterpretation(db,p,reviewed,stage,{verifiedSupporting:true});
     if(reviewed.findings.length) {
       const ctx=await context(requestId,taskId),key=extractionKey(p,ctx.capability.method_spec);

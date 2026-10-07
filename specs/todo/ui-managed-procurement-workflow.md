@@ -1,4 +1,4 @@
-API-link repair completion: six corrections preserved; approved hosted evidence import/readback/replay and user project-name click verified. Snapshot fix `15e0869` is live on Render Free; saved SAM notice native preparation passed at 160.9 MiB peak container memory. SAM package awaits its separate import approval; stale award evidence remains correctly blocked. Repair owner: `specs/done/api-procurement-lead-links.md`. Earlier continuation notes below are historical checkpoints.
+API-link repair completion: six corrections preserved; approved hosted evidence import/readback/replay and user project-name click verified. Snapshot fix `15e0869` is live on Render Free. The saved SAM notice package is now approved, imported and reconciled; stale award evidence remains correctly blocked. Repair owner: `specs/done/api-procurement-lead-links.md`. Earlier continuation notes below are historical checkpoints.
 
 # UI-managed Arkansas procurement workflow
 
@@ -22,9 +22,9 @@ Authoritative current state (October 7); older continuation observations below a
 - [x] Second bounded request reuses registered methods without source research; prepared package matches existing identity with zero new leads/evidence updates.
 - [x] Render recorded restart; durable status/packet/private package recovered and approved application/replay succeeded afterward.
 - [ ] Live extraction-cache reuse with zero model calls. Pilot made one inference call per request; user chose to retain default AI behavior. Do not equate method reuse with cache acceptance.
-- [ ] Non-API structured public positive-candidate acceptance; automatic ambiguous-evidence interpretation remains blocked at exact-quotation validation, with manual review available.
+- [ ] Non-API structured public positive-candidate acceptance: registered NLR capture, verified shared interpretation, persistence and approved hosted import/readback/replay completed. Deploy the approved supporting-geography fix and replay the saved review through the hosted interpretation endpoint to finish this check. Other captured rows remain unreviewed.
 - [ ] In-flight interrupted-worker/lease recovery, timed idle cold start and actual Chromium/PDF memory fit; native SQL fit is already verified.
-- [ ] Separate statewide SAM approved live import/reconciliation. Staging/public links and native notice preparation are verified in the completed link plan; stale award evidence remains blocked.
+- [x] Separate statewide SAM approved live import/reconciliation: saved award notice job `f4136bb3-cf68-4f85-a581-8583e889ffb4` imported, independent readback and no-write exact-approval replay passed. Specific public link and protected fields preserved. This is notice-path verification; stale Contract Awards evidence remains blocked.
 - [ ] Bounded official discovery/search accounting, guarded registration and second-request reuse (outside current batch).
 - [ ] Secure browser/session and signup/sign-in continuation/capture wiring (outside current batch).
 - [x] Sanitized needs-attention API uses existing states; offline regression passed. No notification delivery or screens.

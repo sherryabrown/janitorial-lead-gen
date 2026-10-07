@@ -7,6 +7,7 @@ import { verifyEvidenceSpans,cacheReviewedFacts } from '../scripts/lib/hosted-in
 import { context,result } from './helpers/known-workflow.mjs';
 import { intakeBefore } from './helpers/known-workflow.mjs';
 import { planInterpretationIntake } from '../scripts/lib/interpretation-intake.mjs';
+import { validateFindingBounds } from '../scripts/lib/hosted-workflow.mjs';
 
 function fixture(fetcher=async()=>new Response('{"award_date":"2026-10-03"}',{headers:{'Content-Type':'application/json'}})) {
   const ctx=context();
@@ -44,6 +45,25 @@ test('official supporting evidence binds date, bytes and exact request; it is no
   f.saved.set(evidence.local_path,Buffer.from('changed'));
   await assert.rejects(f.service.load(f.ctx,f.packet,evidence),/hash/);
 });
+test('verified supporting work-site evidence qualifies the requested city without trusting unchecked evidence',async()=>{
+  const body='{"site":"Texarkana","deadline":"2026-10-30"}';
+  const f=fixture(async()=>new Response(body,{headers:{'Content-Type':'application/json'}}));
+  f.ctx.request.requested_search_areas=[{area_type:'city',city_name:'Texarkana',state_code:'AR'}];
+  f.ctx.task.query_window={from:'2026-10-01',to:'2026-10-31',date_basis:'deadline'};
+  f.packet=makeInterpretationPacket(f.ctx);
+  const captured=await f.service.capture(f.ctx,f.packet,{packet_hash:f.packet.packet_hash,url:'https://example.gov/detail'},'reviewer');
+  const review=result(f.packet);
+  review.findings[0].supporting_evidence=[{...captured,locator:'saved document',excerpt:body}];
+  assert.throws(()=>validateFindingBounds(f.packet,review),/location/);
+  await verifyEvidenceSpans(f.packet,review,{loadSupporting:e=>f.service.load(f.ctx,f.packet,e)});
+  validateFindingBounds(f.packet,review,{verifiedSupporting:true});
+  f.packet.request_scope.requested_search_areas=[{area_type:'city',city_name:'Little Rock',state_code:'AR'}];
+  assert.throws(()=>validateFindingBounds(f.packet,review,{verifiedSupporting:true}),/location/);
+  f.packet.request_scope.requested_search_areas=[{area_type:'city',city_name:'Texarkana',state_code:'AR'}];
+  f.packet.query_window.to='2026-10-04';
+  assert.throws(()=>validateFindingBounds(f.packet,review,{verifiedSupporting:true}),/qualifying date/);
+});
+
 test('forged private receipts, unreviewed URLs, expired methods and blocked redirects cannot become evidence',async()=>{
   const f=fixture();
   for(const url of ['https://evil.gov/detail','https://127.0.0.1/','https://example.gov/detail?token=secret'])
