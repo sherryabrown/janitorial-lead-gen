@@ -5,7 +5,7 @@ import { createHmac,timingSafeEqual } from 'node:crypto';
 import { hash } from './reviewed-batch.mjs';
 
 // Supporting evidence supplements a saved category capture; it never establishes coverage.
-export function supportingCapture({artifacts,serverKey,fetcher=fetch}) {
+export function supportingCapture({artifacts,serverKey,loadReviewedIntake,fetcher=fetch}) {
   const signature=receipt=>{
     const key=typeof serverKey==='function'?serverKey():serverKey;
     if(!key)throw new Error('Private supporting evidence signing key required');
@@ -34,6 +34,18 @@ export function supportingCapture({artifacts,serverKey,fetcher=fetch}) {
     if(bytes.length>spec.max_bytes || sha(bytes)!==receipt.content_sha256)
       throw new Error('Supporting document hash or bound changed');
     return bytes;
+  }
+  async function reviewedDocument(origin,sourceId,url) {
+    if(!loadReviewedIntake || !/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(origin?.intake_id??'') || !/^[a-f0-9]{64}$/.test(origin?.content_sha256??''))
+      throw new Error('Reviewed saved-document provenance required');
+    const item=await loadReviewedIntake(origin.intake_id);
+    const manual=item?.payload?.manual_capture;
+    const evidence=manual?.evidence?.find(e=>e.url===url&&e.content_sha256===origin.content_sha256);
+    if(item?.source_id!==sourceId || item.status!=='processed' || manual?.confidence!=='primary' ||
+        item.reviewed_lead_ids?.length!==1 || !evidence?.retrieved_at || !Number.isFinite(Date.parse(evidence.retrieved_at)) ||
+        origin.intake_hash&&hash(item.payload)!==origin.intake_hash)
+      throw new Error('Saved document is not from matching processed primary evidence');
+    return {item,evidence};
   }
   return {
     async portable(context,packet,evidence) {
@@ -68,6 +80,21 @@ export function supportingCapture({artifacts,serverKey,fetcher=fetch}) {
       const intent={kind:'supporting-capture-intent-v1',...identity(packet),actor,url:input.url,
         created_at:new Date().toISOString(),method_hash:hash(context.capability.method_spec)};
       const intent_path=await artifacts.put({...intent,signature:signature(intent)});
+      if(input.reuse_intake_id || input.content_sha256) {
+        const origin={intake_id:input.reuse_intake_id,content_sha256:input.content_sha256};
+        const {item,evidence}=await reviewedDocument(origin,packet.source_id,input.url);
+        const local_path=`artifacts/${origin.content_sha256}`;
+        const body=await document({local_path,content_sha256:origin.content_sha256},spec);
+        if(!body.subarray(0,5).equals(Buffer.from('%PDF-')))throw new Error('Saved supporting document must be a PDF');
+        const receipt={kind:'supporting-capture-v1',...identity(packet),actor,intent_path,
+          method_hash:hash(context.capability.method_spec),state:'captured',capture_mode:'reviewed_saved_document',
+          upstream_status:null,requested_url:input.url,final_url:input.url,content_type:'application/pdf',local_path,
+          content_sha256:origin.content_sha256,retrieved_at:evidence.retrieved_at,
+          saved_document_origin:{...origin,intake_hash:hash(item.payload)},reused_at:new Date().toISOString()};
+        const capture_receipt=await artifacts.put({...receipt,signature:signature(receipt)});
+        return {state:'captured',lead_coverage:false,fresh_capture:false,capture_receipt,url:input.url,
+          content_sha256:receipt.content_sha256,content_type:receipt.content_type,retrieved_at:receipt.retrieved_at,local_path};
+      }
       const outcome=await fetchPublicCheck(spec,input.url,fetcher);
       const {body,...audit}=outcome;
       const receipt={kind:'supporting-capture-v1',...identity(packet),actor,retrieved_at:new Date().toISOString(),
@@ -81,7 +108,14 @@ export function supportingCapture({artifacts,serverKey,fetcher=fetch}) {
     async load(context,packet,evidence) {
       const spec=contract(context);
       const receipt=await signed(evidence.capture_receipt);
-      if(receipt.kind!=='supporting-capture-v1' || receipt.state!=='captured' || receipt.upstream_status!==200 ||
+      const reused=receipt.capture_mode==='reviewed_saved_document';
+      if(reused) {
+        const {evidence:original}=await reviewedDocument(receipt.saved_document_origin,packet.source_id,receipt.final_url);
+        if(receipt.content_sha256!==receipt.saved_document_origin.content_sha256 || receipt.retrieved_at!==original.retrieved_at ||
+            receipt.local_path!==`artifacts/${receipt.content_sha256}`)
+          throw new Error('Saved document provenance changed');
+      }
+      if(receipt.kind!=='supporting-capture-v1' || receipt.state!=='captured' || (!reused&&receipt.upstream_status!==200) ||
           Object.entries(identity(packet)).some(([key,value])=>receipt[key]!==value) ||
           receipt.method_hash!==hash(context.capability.method_spec) ||
           !safePublicUrl(receipt.requested_url,spec.allowed_hosts) || !safePublicUrl(receipt.final_url,spec.allowed_hosts) ||

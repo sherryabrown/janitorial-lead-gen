@@ -20,6 +20,27 @@ function fixture(fetcher=async()=>new Response('{"award_date":"2026-10-03"}',{he
   const service=supportingCapture({artifacts,serverKey:()=> 'private-test-key',fetcher});
   return {ctx,packet,saved,artifacts,service};
 }
+
+test('processed primary PDF reuse preserves retrieval time, binds provenance and sends no fetch',async()=>{
+ const f=fixture(),body=Buffer.from('%PDF- retained official document'),digest=sha(body),id='00000000-0000-4000-8000-000000000099';
+ await f.artifacts.put(body);let fetches=0;
+ const item={source_id:f.packet.source_id,status:'processed',reviewed_lead_ids:['lead'],payload:{manual_capture:{confidence:'primary',evidence:[{url:'https://example.gov/detail',content_sha256:digest,retrieved_at:'2024-12-06T00:00:00Z'}]}}};
+ const service=supportingCapture({artifacts:f.artifacts,serverKey:'private-test-key',loadReviewedIntake:async()=>item,fetcher:()=>{fetches++;throw Error('no fetch');}});
+ const input={packet_hash:f.packet.packet_hash,url:'https://example.gov/detail',reuse_intake_id:id,content_sha256:digest};
+ const capture=await service.capture(f.ctx,f.packet,input,'reviewer');
+ assert.equal(capture.fresh_capture,false);assert.equal(capture.lead_coverage,false);assert.equal(capture.retrieved_at,'2024-12-06T00:00:00Z');
+ assert.deepEqual(await service.load(f.ctx,f.packet,capture),body);assert.equal(fetches,0);
+ const portable=await service.portable(f.ctx,f.packet,capture),later={...f.packet,request_id:'later-request',task_id:'later-task',packet_hash:'later-hash'};
+ const rebound=await service.rebind(f.ctx,later,portable);
+ assert.deepEqual(await service.load(f.ctx,later,rebound),body);assert.equal(rebound.retrieved_at,capture.retrieved_at);assert.equal(fetches,0);
+ item.payload.manual_capture.note='changed';await assert.rejects(service.load(f.ctx,later,rebound),/primary evidence/);delete item.payload.manual_capture.note;
+ await assert.rejects(service.load(f.ctx,{...f.packet,task_id:'foreign'},capture),/provenance/);
+ item.payload.manual_capture.confidence='secondary';await assert.rejects(service.load(f.ctx,f.packet,capture),/primary evidence/);
+ item.payload.manual_capture.confidence='primary';item.status='pending';await assert.rejects(service.capture(f.ctx,f.packet,input,'reviewer'),/primary evidence/);
+ item.status='processed';item.source_id='foreign';await assert.rejects(service.capture(f.ctx,f.packet,input,'reviewer'),/primary evidence/);
+ item.source_id=f.packet.source_id;item.reviewed_lead_ids=[];await assert.rejects(service.capture(f.ctx,f.packet,input,'reviewer'),/primary evidence/);
+ item.reviewed_lead_ids=['lead'];f.saved.set(capture.local_path,Buffer.from('tampered'));await assert.rejects(service.load(f.ctx,f.packet,capture),/hash/);
+});
 test('official supporting evidence binds date, bytes and exact request; it is not cached as reusable coverage',async()=>{
   const f=fixture(),capture=await f.service.capture(f.ctx,f.packet,{packet_hash:f.packet.packet_hash,url:'https://example.gov/detail'},'reviewer');
   assert.equal(capture.lead_coverage,false);

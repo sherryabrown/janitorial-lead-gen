@@ -33,7 +33,12 @@ export function validateFindingBounds(packet,result,{verifiedSupporting=false}={
   }
 }
 export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=boundedInterpretation,processJob}) {
-  const supporting=supportingCapture({artifacts,serverKey});
+  const supporting=supportingCapture({artifacts,serverKey,loadReviewedIntake:async id=>{
+    const item=await one(db,'procurement_intake_items',id);
+    if(!item)return null;
+    const links=await rows(db,'procurement_intake_leads',q=>q.eq('intake_id',id));
+    return {...item,reviewed_lead_ids:[...new Set(links.map(l=>l.lead_id))]};
+  }});
   const rpc=async(name,args)=>checked(await db.rpc(name,args));
   async function submit(input,actor,key) {
     const categories=validateRequestScope(input);

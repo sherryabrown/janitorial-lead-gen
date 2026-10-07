@@ -29,6 +29,19 @@ Private receipts: `outputs/deployment/20261007000600/` and `outputs/deployment/r
 
 ## Remaining acceptance
 
+### Positive-candidate continuation — Camden historical publication pilot
+
+User approved a December 1–31, 2024 publication window for Camden DHS solicitation 710-25-028. Eligibility uses its verified December 6 publication and Camden work site; no disputed amended deadline is used or changed.
+
+- Request `336d103a-c3ed-4c50-b5b0-4f62a56552cf`; registered DHS category task `38d782a6-3099-4285-abe4-80218f3ddcde`; live index capture `43b077a1-639f-48b9-8502-b87301ab7b74`. Only DHS collected. Shared-code collection took 3,238 ms, process RSS 160,165,888 bytes.
+- Hosted signed-in supporting capture retrieved the specific official notice at `https://humanservices.arkansas.gov/announcements/710-25-028-janitorial-services-multiple-locations/`. Its publication date is verified. Preserve this public project page separately from index evidence.
+- Original 21-page PDF bytes remain locally retained and match SHA-256 `806046fed396cefd76857d420b97f5cdd3502fd07ae875b471dfa8c0e76248fd` in processed primary intake `36976c1f-94ce-5315-a6af-be34a4f04293`, linked to existing historical lead `a53079cb-b47d-5fd6-a1dc-2133bd25ef32`. Independent extraction confirms December 6, 2024 and the Camden work site. No new canonical lead is proposed from this identity.
+- Fresh hosted PDF request did not return a usable receipt. Render recorded a health-check timeout/restart at 15:47:54 UTC and became available again at 15:48:10 UTC; do not relabel this as a successful PDF capture or an OOM. No blind retry sent. Thirteen 30-second memory samples peaked at 215,515,140 bytes (205.5 MiB); this is a sampled peak, not instantaneous.
+- Application usage ledger: zero calls, input/output tokens and cost. No new interpretation/candidate or import batch is prepared yet; no live import occurred.
+- Exact blocker: supporting-evidence API accepts fresh fetches or its own signed portable receipts, but cannot adopt this earlier processed, hash-verified manual document. User decision requested for a focused saved-document reuse option that preserves original retrieval time, checks processed primary provenance/source/hash/current method and request bounds, and leaves default fresh fetching unchanged. Alternative: another eligible saved candidate.
+
+Private continuation receipts use `outputs/deployment/render/positive-discovery-*` and `positive-dhs-*`. Suggested documentation commit message: `docs: record historical discovery pilot blocker`. No commit permission supplied for this continuation yet.
+
 1. Prepare an eligible real candidate through the common reviewed import path. The user approved a bounded historical pilot, but this listing has no qualifying janitorial evidence. Saved DHS solicitation 710-25-028 has an unverified amended deadline; official PDF retrieval returned 403 on October 7. Do not promote the attributed deadline or substitute the superseded original deadline. Exact next action: retrieve the official amendment and verify its deadline and work site, or use another saved official candidate with verified qualifying dates. Do not count this blocked retrieval as coverage. A later exact import batch still requires approval.
 2. Secure signup/sign-in continuation remains outside this batch and unfinished in the parent plan.
 
