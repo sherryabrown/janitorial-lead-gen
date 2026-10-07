@@ -32,7 +32,7 @@ export function validateFindingBounds(packet,result,{verifiedSupporting=false}={
       throw new Error('Finding actual work location is unverified or outside requested geography');
   }
 }
-export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=boundedInterpretation,processJob}) {
+export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=boundedInterpretation,processJob,captureBrowser}) {
   const supporting=supportingCapture({artifacts,serverKey,loadReviewedIntake:async id=>{
     const item=await one(db,'procurement_intake_items',id);
     if(!item)return null;
@@ -162,6 +162,11 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
       } else if(checkpoint.stage==='collect') {
         const result=await executeKnownSources({db,project,serverKey,command:'run',requestId:request.id,maxJobs:1,retryPartial:false,
           cancelled:async()=>!!(await one(db,'procurement_search_requests',request.id)).workflow_control.cancelled});
+        const browserRoute=result.routes.find(r=>r.state==='awaiting_browser_capture');
+        if(browserRoute&&captureBrowser) {
+          const captured=await captureBrowser(browserRoute.job_id,request.initiated_by);
+          if(captured.receipt)checkpoint.browser_task_ids=[...new Set([...(checkpoint.browser_task_ids??[]),browserRoute.task_id])];
+        }
         const jobs=await rows(db,'procurement_jobs',q=>q.eq('search_request_id',request.id).eq('kind','collect'));
         const browserIds=new Set(result.routes.filter(r=>r.state==='awaiting_browser_capture').map(r=>r.job_id));
         // Blocked/browser/partial jobs need explicit continuation, not an automatic polling loop.
@@ -170,7 +175,8 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
         await save('pending');
       } else if(checkpoint.stage==='interpret') {
         const data=await status(request.id),done=new Set(checkpoint.interpreted_task_ids??[]);
-        const task=data.tasks.find(t=>t.category!=='source_entry'&&t.state==='needs_interpretation'&&!done.has(t.id));
+        const task=data.tasks.find(t=>t.category!=='source_entry'&&!done.has(t.id)&&
+          (t.state==='needs_interpretation'||t.state==='partial'&&checkpoint.browser_task_ids?.includes(t.id)));
         if(!task){checkpoint.next_action=data.next_action;await save('blocked');return true;}
         const p=await packet(request.id,task.id),ctx=await context(request.id,task.id),key=extractionKey(p,ctx.capability.method_spec);
         let cached=checked(await db.from('procurement_extraction_cache').select('*').eq('cache_key',key).maybeSingle());

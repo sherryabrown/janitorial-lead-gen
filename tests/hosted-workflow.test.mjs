@@ -18,6 +18,17 @@ async function call(server,path,{method='GET',headers={},input}={}) {
     end(text){resolve({status:this.status,headers:this.headers,data:JSON.parse(text)});}}));
 }
 const actor=id(88),auth={authorization:'Bearer valid-session','content-type':'application/json'};
+test('private portal session and capture routes require sign-in, bind actor/handoff, and never return submitted state',async()=>{
+ let recorded,kicks=0;const server=workflowServer({authenticate:async()=>({id:actor}),workflow:{},kick:()=>{kicks++;},browser:{
+ adoptSession:async(...a)=>{recorded=a;return {state:'signed_in',lead_coverage:false};},
+ capture:async(...a)=>{recorded=a;return {state:'partial'};}}});
+ const session=`/v1/access/${id(1)}/session`,input={storage_state:{cookies:[{value:'secret-cookie'}]}};
+ assert.equal((await call(server,session,{method:'POST',input})).status,401);
+ const r=await call(server,session,{method:'POST',headers:auth,input});assert.equal(r.status,200);assert.deepEqual(recorded,[id(1),input,actor]);
+ assert.equal(JSON.stringify(r.data).includes('secret-cookie'),false);
+ await call(server,`/v1/access/${id(1)}/capture/${id(3)}`,{method:'POST',headers:auth,input:{}});
+ assert.deepEqual(recorded,[id(3),actor,id(1)]);assert.equal(kicks,0);server.close();
+});
 test('supporting capture endpoint requires sign-in, records actor and does not wake unrelated collection',async()=>{
   let kicks=0,recorded;
   const server=workflowServer({authenticate:async()=>({id:actor}),kick:()=>{kicks++;},workflow:{

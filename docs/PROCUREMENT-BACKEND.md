@@ -122,6 +122,15 @@ Render environment operations must read all pages of `/env-vars` before replacin
 
 ## Reviewed deployment checklist
 
+### Portal access continuation API (local implementation)
+
+- `POST /v1/access/:handoff/continue`: use the private reviewed recipe and server-only credential references or encrypted saved session; return a sanitized next action when blocked.
+- `POST /v1/access/:handoff/session`: accept `{storage_state}` privately, validate host/bounds and independently verify authentication before encrypted retention. No session data in responses.
+- `POST /v1/access/:handoff/capture/:job`: collect through the existing authenticated category method; requires matching handoff/job, lease, current verified sign-in and method.
+- `POST /v1/access/:handoff/capture/:job/reconcile`: check the interrupted attempt's persisted run IDs before retry; live leases and conflicting audits block continuation.
+
+All routes require a signed-in Supabase user and record actor identity. Client requests cannot choose browser commands, signup recipes, URLs or secret names. Configure `PROCUREMENT_SESSION_ENCRYPTION_KEY` privately as a 32-byte base64 key. Portal credential references are dedicated `PROCUREMENT_*_EMAIL` and `PROCUREMENT_*_PASSWORD` names; optional private `PROCUREMENT_BUSINESS_PROFILE` supplies only authorized signup fields. Never place these in Netlify client variables. Worker collection resumes supported authenticated methods automatically; session/access/collection outcomes remain separate from lead coverage. Shared worker exclusivity prevents overlapping browser and import stages. See [SOURCE-ACCESS.md](SOURCE-ACCESS.md) for human gates and receipt semantics. Local tests are not live acceptance.
+
 1. Review/apply supabase/migrations/20261007000100_hosted_procurement_workflow.sql through the existing reviewed deployment process. It adds private storage/cache/usage and service-only submission/lease/budget RPCs. Applied and recorded as version 20261007000100; live private-bucket/RLS/service-only grants verified.
 2. Configure server-only SUPABASE_URL (pinned project) and SUPABASE_SERVICE_ROLE_KEY. Never place these in VITE_ variables or Netlify client assets. Configure PROCUREMENT_ALLOWED_ORIGINS with the **verified existing** Netlify site origin (no guessed site ID).
 3. Reviewed imports require PROCUREMENT_DATABASE_URL with strict TLS and the restricted server login. Provisioning, grants/RLS and denial checks are verified. Keep credentials server-only. Complete the lightweight validation revision and exact approved live import/readback; permission verification alone does not establish import acceptance.

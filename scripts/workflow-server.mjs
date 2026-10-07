@@ -32,7 +32,8 @@ const sam=statewideSam({db,project,serverKey:()=>env.SUPABASE_SERVICE_ROLE_KEY,a
 const imports=importJobs({db,project,transport,artifacts,samSavedRuns:sam.savedRuns,
   rehearse:rehearsalPool?nativeRehearsal(rehearsalPool):null});
 const workflow=hostedWorkflow({db,project,serverKey:()=>env.SUPABASE_SERVICE_ROLE_KEY,artifacts,aiConfig,processJob:(job,c,save)=>
-  c.stage.startsWith('discovery_')?discovery.step(job,c,save):c.stage.startsWith('sam_')?sam.step(job,c,save):imports.step(job,c,save)});
+  c.stage.startsWith('discovery_')?discovery.step(job,c,save):c.stage.startsWith('sam_')?sam.step(job,c,save):imports.step(job,c,save),
+  captureBrowser:(id,actor)=>browser.captureWorker(id,actor)});
 let running=false;
 let benchmarking=Boolean(env.PROCUREMENT_BROWSER_BENCHMARK_ID);
 function kick() {
@@ -48,7 +49,11 @@ function kick() {
 const discovery=discoveryService({db,project,artifacts,transport,rehearse:rehearsalPool?nativeRehearsal(rehearsalPool):null,
   collect:({requestId,sourceCode,planOnly})=>executeKnownSources({db,project,serverKey:()=>env.SUPABASE_SERVICE_ROLE_KEY,
     command:planOnly?'plan':'run',requestId,selectedSourceCode:sourceCode,maxJobs:4,retryPartial:false})});
-const browser=browserService({db,artifacts,sessionKey:env.PROCUREMENT_SESSION_ENCRYPTION_KEY});
+const browser=browserService({db,artifacts,sessionKey:env.PROCUREMENT_SESSION_ENCRYPTION_KEY,
+  profile:env.PROCUREMENT_BUSINESS_PROFILE?JSON.parse(env.PROCUREMENT_BUSINESS_PROFILE):{},exclusive:async operation=>{
+  if(running||benchmarking)throw Error('Worker is busy; resume this bounded browser action after the active stage');
+  running=true;try{return await operation();}finally{running=false;}
+}});
 const server=workflowServer({workflow,imports,discovery,kick,
   attention:attentionService(db),
   browser,

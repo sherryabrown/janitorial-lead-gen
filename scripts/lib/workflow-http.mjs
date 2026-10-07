@@ -79,6 +79,15 @@ export function workflowServer({authenticate,workflow,imports,discovery,sam,samP
         else if(request.method==='POST'&&segments.length===4&&segments[3]==='continue') {
           if(!browser)throw new HttpError(503,'Browser continuation not configured');
           result=await browser.continueAccess(segments[2],actor);
+        } else if(request.method==='POST'&&segments.length===4&&segments[3]==='session') {
+          if(!browser)throw new HttpError(503,'Browser continuation not configured');
+          result=await browser.adoptSession(segments[2],input,actor);
+        } else if(request.method==='POST'&&segments.length===5&&segments[3]==='capture'&&uuid.test(segments[4])) {
+          if(!browser)throw new HttpError(503,'Browser continuation not configured');
+          result=await browser.capture(segments[4],actor,segments[2]);
+        } else if(request.method==='POST'&&segments.length===6&&segments[3]==='capture'&&uuid.test(segments[4])&&segments[5]==='reconcile') {
+          if(!browser)throw new HttpError(503,'Browser continuation not configured');
+          result=await browser.reconcileCapture(segments[2],segments[4],actor);
         }
       } else if(request.method==='GET'&&segments.length===5&&segments[1]==='sam'&&segments[2]==='requests'&&uuid.test(segments[3])&&segments[4]==='packet') {
         result=await samPacket(segments[3]);
