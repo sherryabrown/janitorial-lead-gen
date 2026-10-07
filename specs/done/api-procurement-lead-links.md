@@ -12,18 +12,18 @@
 - [x] Six legacy Little Rock checks performed; original capture missing. User explicitly accepts keeping origins unresolved unless original evidence becomes available. Preserve current links; no inference or repeated research. Exact records/actions remain in report.
 - [x] Approved migration `20261007000500_api_record_link_state.sql` applied and recorded through reviewed transaction, after rollback preflight. Constraint/history readback and repeat-in-rollback passed. Live native unresolved-link rehearsal passed rollback/readback/replay/cleanup; all 333 production leads/history/relationships and six corrected links unchanged. No persistent test objects.
 - [x] User released deployment hold. Render Free and existing Netlify app deployed at committed code `d26c059`; live backend health/auth and frontend bundle parity verified; approved temporary Netlify unlock followed by verified lock restoration.
-- [ ] Hosted import application/readback/replay: rehearsed job `6174642e-6dcc-4f8d-951b-097f20ab5486`, exact approval `1f98e6590749d48bbd705022f6bc65b07756ed161601bad5a93eded86393d7d9`; zero new leads, one existing-lead intake evidence update. Awaiting user approval.
-- [ ] Actual live project-name click: browser tool could not initialize; user asked to verify the Millwood award link in the signed-in app.
+- [x] User approved job `6174642e-6dcc-4f8d-951b-097f20ab5486`, exact approval `1f98e6590749d48bbd705022f6bc65b07756ed161601bad5a93eded86393d7d9`. Hosted application/readback/replay passed: zero new leads, one evidence update, one intake link, one processed intake and one history event. Repeat snapshot unchanged.
+- [x] User confirmed the live Millwood project-name link opens its expected public award page. All six Millwood award links match their distinct full award identities; the seventh Millwood entry is a forecast PDF.
 - [x] Nonempty separate hosted SAM notice/award staging verified using one-day dates from saved records (October 2 notice / September 11 award). One record each; public link/full identity/hash verified, API evidence separate. No imports or AI inference. Earlier October 6 zero-result checks only verified isolation/bounds.
-- [ ] Prepare SAM reviewed packages from these saved nonempty captures; temporary token expired (401 before job creation), refresh requested. No repeated source search required.
+- [x] User committed/pushed snapshot-parent fix `15e0869`; Render Free deployment `dep-db2tj7p42hec73fs8bm0` is live. Hosted SAM notice preparation job `f4136bb3-cf68-4f85-a581-8583e889ffb4` passed native rollback/readback/replay/cleanup: 1,399 copied rows, 2.40 seconds, 151.5 MiB process / 160.9 MiB container. Exact package awaits separate approval; no SAM import sent. Stale award evidence correctly remains blocked.
 
-Hosted continuation evidence: `docs/reviews/2026-10-07-api-link-hosted-verification.md`. Deployment hold released; six original corrections and applied migration preserved. Keep plan in todo for the named pending checks.
+Hosted continuation evidence: `docs/reviews/2026-10-07-api-link-hosted-verification.md`. Deployment hold released; six original corrections and applied migration preserved. Required repair acceptance checks are evidenced; move this plan to done. Normal SAM import approval remains separate.
 
-Preserve in todo. Rehearsal counts are proposed counts, never actual production corrections. Earlier planning audit below is historical evidence.
+Completed plan. Rehearsal counts are proposed counts, never actual production corrections. Earlier planning audit below is historical evidence.
 
-October 7, 2026 · One implementation phase · Six-row correction and migration verified; TASD provenance resolved. Deployment hold released and both services deployed. Hosted import approval/UI confirmation remain pending; six legacy origins explicitly remain unresolved without repeat research.
+October 7, 2026 · Six-row correction, migration, hosted approved evidence import and live project-name click verified. Snapshot fix deployed and hosted SAM notice preparation verified. Six legacy origins explicitly remain unresolved without repeat research.
 
-Continuation verification: 10 focused regression tests passed. Native post-migration rehearsal: 3,197 copied rows, 5.58 MB snapshot, 6.55 seconds, 156.1 MB peak process memory. Private migration receipts: `outputs/deployment/20261007000500/`; private durable provenance receipt: `outputs/api-links/2026-10-07-post-apply/provenance-review.json`. Reconciled totals: 273 confirmed API, 54 confirmed non-API, six ambiguous, 333 total. Actual corrected count remains **6**. Keep this plan in todo.
+Continuation verification: 10 focused regression tests passed. Native post-migration rehearsal: 3,197 copied rows, 5.58 MB snapshot, 6.55 seconds, 156.1 MB peak process memory. Private migration receipts: `outputs/deployment/20261007000500/`; private durable provenance receipt: `outputs/api-links/2026-10-07-post-apply/provenance-review.json`. Reconciled totals: 273 confirmed API, 54 confirmed non-API, six ambiguous, 333 total. Actual corrected count remains **6**. Required acceptance is complete.
 
 ## Initiating request
 
@@ -35,7 +35,7 @@ Every API-derived canonical lead has either a verified record-specific public li
 
 **In scope:** read-only inventory of every canonical lead; API provenance classification, including older/routed/manual API imports; USAspending, SAM notices and SAM contract awards plus any other API provenance found; shared normalization/validation, reviewed existing-lead backfill, link metadata, existing UI mapping, tests and bounded verification. Verify each supported record/category independently. SAM retains its separate statewide collection path.
 
-**Out of scope:** repairing confirmed non-API leads, adding sources, source research unrelated to locating an existing record, new screens, signup, schedules, general cleanup, changes to lead eligibility/geography/date rules, business fields or import approvals. No new registry/table is planned. Retain the current Render deployment hold. Implementation may prepare a dry-run/live test-schema package; live corrections require explicit approval of that exact package, independently of the already-completed Ashdown insertion approval.
+**Out of scope:** repairing confirmed non-API leads, adding sources, source research unrelated to locating an existing record, new screens, signup, schedules, general cleanup, changes to lead eligibility/geography/date rules, business fields or import approvals. No new registry/table is planned. The original deployment hold was released by the user; deployments are verified above. Implementation may prepare a dry-run/live test-schema package; live corrections require explicit approval of that exact package, independently of the already-completed Ashdown insertion approval.
 
 ## Read-only planning audit
 
@@ -89,4 +89,4 @@ Acceptance: every existing lead inventoried; every confirmed API-origin lead acc
 
 ## Reconcile existing work
 
-This plan alone owns API user-facing-link resolution/backfill. `ui-managed-procurement-workflow.md` retains its remaining shared workflow milestones, completed Ashdown import and user-held supporting-evidence deployment. Link to this repair from that plan and backend docs; do not reopen completed insertion tests or duplicate source/discovery/access batches. Preserve all prior plans/evidence and current uncommitted documentation. The completed Ashdown import approval does not authorize this new repair package. New screens remain deferred.
+This plan alone owns API user-facing-link resolution/backfill. `ui-managed-procurement-workflow.md` retains its remaining shared workflow milestones, completed Ashdown import and deployed supporting-evidence changes. Link to this repair from that plan and backend docs; do not reopen completed insertion tests or duplicate source/discovery/access batches. Preserve all prior plans/evidence and current uncommitted documentation. The completed Ashdown import approval does not authorize this new repair package. New screens remain deferred.

@@ -1,3 +1,5 @@
+API-link repair completion: six corrections preserved; approved hosted evidence import/readback/replay and user project-name click verified. Snapshot fix `15e0869` is live on Render Free; saved SAM notice native preparation passed at 160.9 MiB peak container memory. SAM package awaits its separate import approval; stale award evidence remains correctly blocked. Repair owner: `specs/done/api-procurement-lead-links.md`. Earlier continuation notes below are historical checkpoints.
+
 # Procurement backend API (v1)
 
 ## API lead-link repair — October 7
@@ -14,7 +16,7 @@ Status: backend implementation in progress; no frontend was added. Existing Netl
 
 ## Client contract
 
-Planned API lead-link repair: `specs/todo/api-procurement-lead-links.md` owns verified record-specific public links, separate API evidence and reviewed idempotent backfill for existing/future API leads, including SAM. Read-only planning inventory checked 333 leads, found five displayed API endpoints, and corrected zero. No link repair or deployment has occurred during planning.
+Planned API lead-link repair: `specs/done/api-procurement-lead-links.md` owns verified record-specific public links, separate API evidence and reviewed idempotent backfill for existing/future API leads, including SAM. Read-only planning inventory checked 333 leads, found five displayed API endpoints, and corrected zero. No link repair or deployment has occurred during planning.
 
 ### Current deployment and planned import revision
 

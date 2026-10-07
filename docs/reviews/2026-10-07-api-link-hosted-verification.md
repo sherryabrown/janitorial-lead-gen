@@ -4,7 +4,7 @@
 
 - User released the code deployment hold. Render Free service `srv-db2q9mmi0phs738v7f80`: deployment `dep-db2t9nom7kps73c8d6rg` is live at commit `d26c059a9e741c7c1a4a2cfb1ffbca2e0d6fd65a`. Health 200; anonymous request 401; refreshed signed-in token succeeds.
 - Existing Netlify site `425d7e19-1179-4ca3-b187-0bcbb8c332b1`: deployment `6ac5d5ccd335cb187b94a25a` published to https://spin.aptimap.tools. User approved temporary unlock; production lock restored and verified. Served `/assets/index-DHQ5zILa.js` matches the approved local build, SHA-256 `a1b04a393271164eceb562fe9d86218b69d5dfa2d5eeddd214c292c1b3c62533`.
-- No code edits, new tables, further migration, paid hosting or AI inference were needed. Six corrected links remain the cumulative repair count. Six Bonfire legacy origins remain explicitly unresolved under the user's instruction; no repeat source research.
+- Initial deployment needed no further migration, paid hosting or AI inference. Subsequent SAM preparation identified a focused snapshot fix described below, now deployed and verified below. Six corrected links remain the cumulative repair count. Six Bonfire legacy origins remain explicitly unresolved under the user's instruction; no repeat source research.
 
 ## Hosted capture → interpretation → reviewed package
 
@@ -17,7 +17,7 @@ The existing-review guard correctly rejected replacement without a superseded ID
 - Verified record-link metadata and original manual capture evidence retained.
 - Coverage remains partial; one saved award review does not cover remaining listing rows/categories/geographies.
 
-## Exact verification batch — application approval pending
+## Exact verification batch — approved and verified
 
 Job `6174642e-6dcc-4f8d-951b-097f20ab5486`.
 
@@ -25,7 +25,9 @@ Approval SHA-256: `1f98e6590749d48bbd705022f6bc65b07756ed161601bad5a93eded86393d
 
 It matches existing lead `481f45a4-56e5-53e0-a8f7-75c628f4b945` (Millwood Tri-Lakes office janitorial award W9127S26PA069). **Zero new leads.** Only changed canonical payload key: `intake_source_evidence`. Public URL, title, dates, amounts, user business fields and identities remain protected. Adds/processes the new reviewed intake and its lead link; legitimate evidence-update history appended once.
 
-Hosted native rehearsal passed rollback/readback/replay/cleanup against PostgreSQL 17.4; 2,595 copied rows, 3.81 MB snapshot, 7.30 seconds, 226.0 MB peak process / 203.6 MB peak container. Package is awaiting exact approval; no import approval or application sent yet. Private package/receipts: `outputs/deployment/render/api-links-import-*.json`.
+Hosted native rehearsal passed rollback/readback/replay/cleanup against PostgreSQL 17.4; 2,595 copied rows, 3.81 MB snapshot, 7.30 seconds, 226.0 MB peak process / 203.6 MB peak container. User approved this exact job; hosted application and independent readback passed with zero errors: zero new leads, one evidence update, one new intake link, one processed intake and one history event. Repeated approval left the snapshot unchanged. Receipt artifact: `artifacts/719982ae9192baca5cff6e70028e5f5736e8098338a38662f86a9ae23a5fe9da`. Private receipts: `outputs/deployment/render/api-links-import-*.json`.
+
+User confirmed the live Millwood project-name click. Saved official identity evidence verifies six Millwood award URLs against six distinct award IDs; different destinations represent different awards. The other Millwood entry is a USACE forecast PDF. No additional URL correction was required.
 
 ## Separate statewide SAM
 
@@ -38,7 +40,9 @@ Nonempty verification followed using **dates already present in saved records**,
 
 Each completed one page/one record, persisted one immutable candidate, and retained API evidence separately. Authenticated packet and private intake hashes matched; notice/award record proof recomputed successfully, including full award parent/agency identity. No SAM import sent. Private readback: `outputs/deployment/render/api-links-sam-nonempty-verification.json`. Seventeen focused resolver/mapping/hosted-SAM regression tests passed; production build passed.
 
-Attempt to prepare SAM reviewed packages returned 401 because the temporary test token expired. No SAM preparation job or approval was created by that failed attempt. User asked to reload the signed-in app and refresh the private test token; this is an authentication action, not a source-method failure.
+After token refresh, opportunity preparation job `ace74a04-c135-450e-8282-de4f25f3f502` found a missing foreign-key parent in its rehearsal snapshot: an older processed source intake links to a canonical lead belonging to another source. `scripts/lib/hosted-import.mjs` now includes only missing referenced lead parents and their existing related context. The regression in `tests/hosted-import.test.mjs` and live isolated native rehearsal passed (seven baseline leads, one matched notice, zero new leads, one proposed intake link). User committed and pushed the fix as `15e08694dcda9967d1e3a1db77dd949c8338d672`; Render Free deployment `dep-db2tj7p42hec73fs8bm0` is live. No tables, eligibility rules or production lead fields changed.
+
+Award preparation job `05e8cb14-6659-4169-89d2-b2c5bac388b9` correctly rejected an older capture that would replace newer award evidence. Preserve this safety guard; no award import was sent. No additional SAM source searches are needed for the remaining notice check.
 
 Two explicit one-day publication/modification checks, October 6, 2026:
 
@@ -49,10 +53,8 @@ Two explicit one-day publication/modification checks, October 6, 2026:
 
 Both report statewide SAM separate from geography coverage. No captures were counted as nonempty link verification or imported leads. Shared SAM notice/award resolver regressions and prior exact-identity audit remain evidence for those paths; this live zero-result check alone does not prove nonempty SAM staging.
 
-## Remaining acceptance
+## Final hosted acceptance
 
-1. User approval of the exact verification batch, then hosted application/readback/replay. If it changes before approval, reconcile and reapprove.
-2. Live project-name anchor check. Browser tool failed during Windows sandbox initialization; user asked to click the Millwood award in the signed-in live app and confirm the public award URL. Served-build parity and mapper regression are verified; actual UI click remains unconfirmed.
-3. SAM reviewed-package preparation using the two nonempty captures, after refreshing the expired temporary token. Nonempty notice/award link staging is verified above; no fresh searches are needed.
+Saved notice retry job `f4136bb3-cf68-4f85-a581-8583e889ffb4` reached `import_awaiting_approval` with `native_tests_passed`. Rollback, readback, replay and cleanup all passed: 1,399 copied rows, 969,195 serialized bytes, 2,403 ms, 158,851,072 peak process bytes and 168,734,720 peak container bytes, within Render Free's 512 MiB. Proposed package: zero new leads, one matched notice, one intake link and one processed intake. No approval or production application was sent for this SAM package.
 
-Plan remains in `specs/todo/` while required checks remain. No extra signups, new source methods, schedules or UI screens.
+All required API-link repair acceptance checks are evidenced. Six historical Bonfire origins remain explicitly unresolved as authorized; original evidence is needed to resolve them. Older SAM award evidence remains correctly rejected. These truthful states do not require repeating discovery or weakening import guards. Plan moved to `specs/done/api-procurement-lead-links.md`. No further Netlify deployment was needed for the backend-only snapshot fix. Cumulative corrected links: **6**.

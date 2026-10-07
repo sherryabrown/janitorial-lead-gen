@@ -1,8 +1,10 @@
+API-link repair completion: six corrections preserved; approved hosted evidence import/readback/replay and user project-name click verified. Snapshot fix `15e0869` is live on Render Free; saved SAM notice native preparation passed at 160.9 MiB peak container memory. SAM package awaits its separate import approval; stale award evidence remains correctly blocked. Repair owner: `specs/done/api-procurement-lead-links.md`. Earlier continuation notes below are historical checkpoints.
+
 # UI-managed Arkansas procurement workflow
 
 API-link deployment continuation: user released hold; Render Free and existing Netlify app are live at `d26c059`, Netlify lock restored. Hosted saved-evidence interpretation and native existing-lead rehearsal passed; exact application approval/UI confirmation still pending. See `docs/reviews/2026-10-07-api-link-hosted-verification.md`. Six corrections and approved migration remain intact; legacy Bonfire origins stay unresolved without repeat research.
 
-Latest API-link continuation: approved unresolved-link migration `20261007000500` applied and verified without lead changes; TASD origin verified from saved public PDF. Counts now 273 API / 54 non-API / six ambiguous out of 333; actual corrections remain six. Original Little Rock capture evidence requested. Deployment and hosted acceptance remain held. Owner: `specs/todo/api-procurement-lead-links.md`.
+Latest API-link continuation: approved unresolved-link migration `20261007000500` applied and verified without lead changes; TASD origin verified from saved public PDF. Counts now 273 API / 54 non-API / six ambiguous out of 333; actual corrections remain six. Original Little Rock capture evidence requested. Deployment and hosted acceptance remain held. Owner: `specs/done/api-procurement-lead-links.md`.
 
 API public-record-link repair: user-approved six-row live correction, readback and no-write replay complete; actual corrections **6**. All 273 confirmed API links verify; six provenance questions remain. See `docs/reviews/2026-10-07-api-lead-link-correction-batch.md`. Migration is applied; code deployment remains held. Do not duplicate this repair in shared workflow milestones.
 
@@ -10,7 +12,7 @@ October 6, 2026. **Backend continuation in progress; frontend deferred by the us
 
 ## Current acceptance checklist
 
-API user-facing link correction is owned solely by [api-procurement-lead-links.md](api-procurement-lead-links.md), planned October 7: inventory all leads, repair API-origin public record links (including SAM), preserve capture evidence and reviewed backfill. Do not duplicate that work here or reopen the completed Ashdown insertion. Code deployment remains held; link backfill requires its own exact approval.
+API user-facing link correction is owned solely by [api-procurement-lead-links.md](../done/api-procurement-lead-links.md), planned October 7: inventory all leads, repair API-origin public record links (including SAM), preserve capture evidence and reviewed backfill. Do not duplicate that work here or reopen the completed Ashdown insertion. Code deployment remains held; link backfill requires its own exact approval.
 
 Completed evidence:
 
