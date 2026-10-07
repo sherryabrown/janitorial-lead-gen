@@ -6,6 +6,15 @@ import { execFileSync } from 'node:child_process';
 const compile=async p=>import('data:text/javascript;base64,'+Buffer.from(ts.transpileModule(readFileSync(p,'utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText).toString('base64'));
 const {mapProcurementLead,mapProcurementSource}=await compile('src/lib/procurement.ts');
 const {matchesContractFilters,getDefaultContractFilters}=await compile('src/features/contracts/contract-utils.ts');
+test('API endpoints and unresolved fallback links are not project-name links',()=>{
+ const lead={id:'link',source_id:'source',payload:{title:'Project',source_url:'https://api.usaspending.gov/search'},source_url:'https://api.usaspending.gov/search'};
+ assert.equal(mapProcurementLead(lead).sourceUrl,undefined);
+ lead.source_url='https://www.usaspending.gov/award/full-id';lead.payload.source_url=lead.source_url;
+ assert.equal(mapProcurementLead(lead).sourceUrl,lead.source_url);
+ lead.payload.source_link={status:'unresolved',next_action:'Verify official record'};
+ assert.equal(mapProcurementLead(lead).sourceUrl,undefined);
+ assert.equal(mapProcurementLead(lead).projectName,'Project');
+});
 
 test('calendar dates remain stable in Arkansas, New York and UTC across DST',()=>{
  const compiled=ts.transpileModule(readFileSync('src/features/contracts/contract-utils.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText;

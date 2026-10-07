@@ -1,12 +1,24 @@
 # Procurement backend API (v1)
 
+## API lead-link repair — October 7
+
+Shared deterministic record-link resolution and reviewed operator backfill are implemented locally. Exact batch/counts/evidence: `docs/reviews/2026-10-07-api-lead-link-correction-batch.md`. All 333 leads inspected; **six live corrections applied and verified** under exact user approval, with no-write replay. All 273 confirmed API links now verify; seven provenance questions remain. Code deployment and forward migration remain held.
+
+Operator commands: `node --env-file=.env scripts/api-lead-links.mjs audit PRIVATE_DIRECTORY`, then `prepare PRIVATE_DIRECTORY`, then **only with exact approval** `apply PRIVATE_DIRECTORY APPROVAL_SHA256`. Use ignored `outputs/api-links/` directories. Audit resumes in bounded groups of 50; cached matching official evidence lasts seven days. Preparation refuses baseline drift; application binds schema, baseline, proof, SQL and native rehearsal. It uses existing private artifacts and restricted import transport; no admin patch or new tables. Actual correction counts require verified live readback.
+
+Forward migration `20261007000500_api_record_link_state.sql` changes the existing URL constraint to accept only explicit unresolved-link metadata with null URL, reason and next action. Tested but unapplied; needed before future unresolved-link imports. The six currently proposed verified-link corrections require no migration. Test-schema clones disappear on rollback.
+
 Status: backend implementation in progress; no frontend was added. Existing Netlify UI and CLI remain available. The forward migration is **applied and verified** on the existing Supabase project; Render Free backend **deployed; health and access-denial checks verified**. No frontend was added. Authenticated workflow, discovery/access continuation, reviewed import and free-host browser/memory acceptance remain outstanding.
 
 ## Client contract
 
+Planned API lead-link repair: `specs/todo/api-procurement-lead-links.md` owns verified record-specific public links, separate API evidence and reviewed idempotent backfill for existing/future API leads, including SAM. Read-only planning inventory checked 333 leads, found five displayed API endpoints, and corrected zero. No link repair or deployment has occurred during planning.
+
 ### Current deployment and planned import revision
 
-Authoritative October 6 status: commit `8e220a4` is deployed on Render Free as `dep-db2rahcs728c73ac915g`. Restricted Supabase connection configuration is active and verified. The optimized hosted PGlite rehearsal still exceeded 512 MiB; its defer-only test is blocked and no production import was sent. Earlier deployment entries below are historical observations.
+Authoritative October 6 status: native-rehearsal commit `c4da80e` is live on Render Free as `dep-db2rl6942hec73flkkq0`. Test-schema rehearsal and exact approved existing/new-lead production imports are verified. Supporting-evidence fix `54be460` is committed/pushed, but its code deployment is held by the user. Earlier entries below retain historical observations.
+
+New-lead verification: approved job `c9b4d861-c464-42c9-86ec-07c4d8f5c1da` succeeded as `import_verified`, inserting Ashdown Army office-janitorial award `W9127S26PA069` (lead `481f45a4-56e5-53e0-a8f7-75c628f4b945`). Independent readback confirms one lead, processed intake, intake link, request link, event and version; prior protected fields/history/relationships unchanged. Repeated approval returned its saved receipt with the full relevant snapshot unchanged. Native preparation passed rollback/readback/replay/cleanup in 7.415 seconds, peak container about 217 MiB. Supporting detail capture/staging ran through the shared code locally; hosted capture route deployment remains held. Existing request link retains `needs_location_review` despite cited Ashdown evidence. No AI calls or SAM runs. Private readback/repeat receipts are under ignored `outputs/deployment/render/new-award-*`; broader acceptance remains open.
 
 **Native rehearsal implementation (October 6):** the backend now rehearses each prepared batch in private `procurement_test` in the same Supabase database. Migration `20261007000400` is applied/recorded; `procurement_rehearsal_backend` is activated privately. Six live denial checks passed. Strict-TLS native rehearsal of the actual saved batch passed rollback/readback/replay/cleanup with 2,585 copied rows, about 3.8 MB serialized input and about six seconds execution. Production snapshots were unchanged. This local process measurement does not establish Render container fit or a production import. User-pushed commit `c4da80e` is deploying as `dep-db2rl6942hec73flkkq0`; live host acceptance remains pending.
 

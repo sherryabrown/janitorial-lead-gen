@@ -22,6 +22,7 @@ outputs/skill-drafts/
 # Private procurement source, account/API access evidence and alert receipts.
 outputs/procurement-access/
 outputs/deployment/
+outputs/api-links/
 /sql-validation-template.tar.gz
 
 # Local Netlify folder

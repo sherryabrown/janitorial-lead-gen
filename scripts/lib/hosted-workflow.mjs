@@ -11,6 +11,7 @@ import { boundedInterpretation } from './hosted-ai.mjs';
 import { accessNext } from './source-access.mjs';
 import { recordAccessEvent } from './source-access-store.mjs';
 import { supportingCapture } from './supporting-capture.mjs';
+import {packetLink} from './api-record-links.mjs';
 
 export function validateFindingBounds(packet,result) {
   const basis=packet.query_window.date_basis??'published';
@@ -79,6 +80,7 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
   async function interpret(requestId,taskId,result,actor) {
     const p=await packet(requestId,taskId);
     const reviewed={...result,reviewed_by:actor,findings:result.findings.map(f=>({ ...f,payload:{...f.payload,
+      ...(packetLink(p,f)??{}),
       ...(f.payload.work_city||f.payload.work_county?{work_performance_locations:[{state_code:f.payload.work_state,
         city_name:f.payload.work_city,county_name:f.payload.work_county,evidence:f.work_location_basis}]}:{})} }))};
     const ctx=await context(requestId,taskId);

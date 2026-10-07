@@ -2,6 +2,7 @@ import { hash,collectRuns } from './reviewed-batch.mjs';
 import { checked,one,rows } from './hosted-store.mjs';
 import { samIntakeRows } from './sam-intake.mjs';
 import { inspectSamCapture } from './known-source-execution.mjs';
+import {resolveSamAwardLinks} from './api-record-links.mjs';
 export function statewideSam({db,project,serverKey,artifacts,fetcher=fetch}) {
   async function packet(requestId) {
     const jobs=await rows(db,'procurement_jobs',q=>q.eq('search_request_id',requestId));
@@ -39,8 +40,10 @@ export function statewideSam({db,project,serverKey,artifacts,fetcher=fetch}) {
     const runs=await savedRuns(c),collection=collectRuns(runs,c.run_ids,{allow_partial:!c.terminal_confirmed});
     const sources=await rows(db,'procurement_sources',q=>q.in('code',['sam','sam-awards']));
     const source=code=>{const match=sources.find(s=>s.code===code);if(!match)throw new Error('SAM registry missing');return match.id;};
+    if(collection.awards.size&&!c.link_artifact)c.link_artifact=await artifacts.put(await resolveSamAwardLinks(collection,{fetcher}));
+    const awardLinks=c.link_artifact?JSON.parse((await artifacts.get(c.link_artifact)).toString()):{};
     const items=samIntakeRows(collection,source,(sourceId,identity,row)=>({
-      external_id:`${identity}@${hash({row,run_ids:c.run_ids}).slice(0,24)}`,metadata:{routed_capture:{record_identity:identity}}}));
+      external_id:`${identity}@${hash({row,run_ids:c.run_ids}).slice(0,24)}`,metadata:{routed_capture:{record_identity:identity}}}),awardLinks);
     const ids=[];
     for(const item of items) {
       checked(await db.from('procurement_intake_items').upsert(item,{onConflict:'source_id,external_id',ignoreDuplicates:true}));

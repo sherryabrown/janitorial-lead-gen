@@ -1,5 +1,6 @@
 import {hash} from './reviewed-batch.mjs';
 import {same} from './sam-normalize.mjs';
+import {validLinkState} from './api-record-links.mjs';
 const need=(ok,message)=>{if(!ok)throw new Error(message);};
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 export const stableId=value=>{const h=hash(value);return `${h.slice(0,8)}-${h.slice(8,12)}-5${h.slice(13,16)}-a${h.slice(17,20)}-${h.slice(20,32)}`;};
@@ -110,7 +111,7 @@ export function planManual(spec,before){
       before.procurement_request_targets?.some(target=>target.id===t.target_id&&target.search_request_id===id))),
     'Source is not registered for the reviewed geographic request');
   need(f.external_id&&!f.external_id.startsWith('page:')&&f.payload?.title&&f.review_reason,'Record identity/title/review reason required');
-  need(['primary','secondary'].includes(f.confidence),'Evidence confidence required');publicUrl(f.payload.source_url);safeMetadata(f.payload);
+  need(['primary','secondary'].includes(f.confidence),'Evidence confidence required');if(!validLinkState(f.payload))publicUrl(f.payload.source_url);safeMetadata(f.payload);
   need(f.evidence?.length&&f.evidence.every(e=>{publicUrl(e.url);return /^[a-f0-9]{64}$/.test(e.content_sha256)&&e.excerpt?.trim()&&e.retrieved_at&&e.locator;}),'Evidence URL/hash/excerpt/time/page required');
   const evidenceKeys = new Set(['url','content_sha256','excerpt','retrieved_at','locator','local_path','capture_kind']);
   need(f.evidence.every(e=>Object.keys(e).every(k=>evidenceKeys.has(k))),'Unsupported evidence metadata field');

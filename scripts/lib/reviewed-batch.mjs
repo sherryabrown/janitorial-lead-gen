@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { awardIdentity,actionIdentity,awardDate,awardPayload,responseSummary,same,stable } from './sam-normalize.mjs';
 import { exactAwards } from './intake-reconcile.mjs';
+import {validLinkState,awardRecordLink} from './api-record-links.mjs';
 
 export const hash=value=>createHash('sha256').update(typeof value==='string'?value:JSON.stringify(stable(value))).digest('hex');
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
@@ -75,6 +76,11 @@ function evidenceFor(i,collection) {
       (b.awardDetails?.transactionData?.lastModifiedDate||'').localeCompare(a.awardDetails?.transactionData?.lastModifiedDate||''));
     const row=rows[0],identity=awardIdentity(row);
     const payload=awardPayload(row,`https://api.sam.gov/contract-awards/v1/search?piid=${encodeURIComponent(row.contractId.piid)}`);
+    if(i.payload.api_link_detail && i.payload.source_link?.status==='verified') {
+      const verified=awardRecordLink(i.payload.api_link_detail,`CONT_AWD_${identity}`,i.payload.api_capture_url,i.payload.source_link.verified_at);
+      need(verified.source_url===i.payload.source_url&&verified.source_link.record_sha256===i.payload.source_link.record_sha256,'SAM public link lacks exact official award crosswalk');
+      Object.assign(payload,verified,{api_link_detail:i.payload.api_link_detail,api_link_detail_evidence:i.payload.api_link_detail_evidence});
+    }
     return {kind:'award',identity,payload,queries:[...award.queries].sort(),evidence:{contract_identity:identity,latest_action:row,
       action_ids:[...award.actions.keys()].sort(),reconciliation_note:'Latest signed action within the reviewed search window, not guaranteed all-time latest; canonical conflicts require separate review.'}};
   }
@@ -204,7 +210,7 @@ export function planReviewedBatch(snapshot,review,runs) {
         status_note:i.payload.status_note};
     }
     if(!old) {
-      need(patch.title&&/^https:\/\//.test(patch.source_url||'')&&['award','contract','forecast','opportunity','historical_opportunity','intent_to_award'].includes(patch.bid_type),'New lead must have verified source URL, title, and valid classification');
+      need(patch.title&&(/^https:\/\//.test(patch.source_url||'')||validLinkState(patch))&&['award','contract','forecast','opportunity','historical_opportunity','intent_to_award'].includes(patch.bid_type),'New lead must have verified source URL or explicit unresolved link, title, and valid classification');
       need(Array.isArray(patch.work_performance_locations)&&patch.work_performance_locations.length,'Work-location evidence required');
       const knownStates=patch.work_performance_locations.map(l=>l.state_code).filter(Boolean);
       need(!knownStates.length||knownStates.includes(review.work_state),'Explicit out-of-state work cannot be imported through location uncertainty');

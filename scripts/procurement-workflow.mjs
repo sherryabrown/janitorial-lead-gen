@@ -5,6 +5,7 @@ import { fileURLToPath,pathToFileURL } from 'node:url';
 import {createHash} from 'node:crypto';
 import { planReviewedBatch,hash,validateReview,collectRuns } from './lib/reviewed-batch.mjs';
 import { samIntakeRows } from './lib/sam-intake.mjs';
+import {resolveSamAwardLinks} from './lib/api-record-links.mjs';
 import { reconciliationSql } from './lib/intake-reconcile.mjs';
 import { verifyBatch } from './lib/batch-verification.mjs';
 import { project } from './lib/supabase-admin.mjs';
@@ -152,7 +153,10 @@ async function main() {
       const group=observationGroups.get(`${sourceId}/${identity}`);
       return routedCapture(identity,group,row,priorEvidence.get(`${sourceId}/${identity}`));
     };
-    const items=samIntakeRows(collection,source,routeRecord);
+    const linkFile=`${receipt}.links.json`;
+    const awardLinks=existsSync(linkFile)?load(linkFile):await resolveSamAwardLinks(collection);
+    if(!existsSync(linkFile))save(linkFile,awardLinks);
+    const items=samIntakeRows(collection,source,routeRecord,awardLinks);
     if(!items.length) {save(receipt,{status:'staged',inserted:0,existing_preserved:0,partial:collection.partial});console.log('No captured records; no intake write needed.');return;}
     // One request is transactional. ignoreDuplicates preserves processed/ignored/pending originals alike.
     const result=await db.from('procurement_intake_items').upsert(items,{onConflict:'source_id,external_id',ignoreDuplicates:true,count:'exact'}).select('id');

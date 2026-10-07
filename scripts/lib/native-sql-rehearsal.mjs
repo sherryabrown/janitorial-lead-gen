@@ -4,6 +4,8 @@ import {hash} from './reviewed-batch.mjs';
 import {same} from './sam-normalize.mjs';
 import {verifyBatch} from './batch-verification.mjs';
 import {reconciliationSql} from './intake-reconcile.mjs';
+import {linkRepairSql,verifyLinkRepair} from './api-link-repair.mjs';
+const generatedSql=(m,options)=>m.kind==='api-link-repair'?linkRepairSql(m,options):reconciliationSql(m,options);
 
 export const rehearsalPolicy=contract.version;
 export const rehearsalTables=['procurement_sources','procurement_leads','procurement_intake_items','procurement_intake_leads',
@@ -71,7 +73,7 @@ export function rehearsalBlueprint(before,schema,manifest) {
     if(!schema.triggers.some(t=>t.includes(`EXECUTE FUNCTION ${required}(`)||t.includes(`EXECUTE FUNCTION public.${required}(`)))
       throw new Error('Required lead trigger missing');
   return {tables,tableDdl:ddl.slice(0,tables.length),constraintDdl:ddl.slice(tables.length),functionDdl,triggerDdl,
-    sql:reconciliationSql(manifest,{schema:'procurement_test',transaction:false}),copied_rows:count,copied_bytes:bytes};
+    sql:generatedSql(manifest,{schema:'procurement_test',transaction:false}),copied_rows:count,copied_bytes:bytes};
 }
 const objects=`select (select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='procurement_test')+
  (select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='procurement_test')+
@@ -79,7 +81,7 @@ const objects=`select (select count(*) from pg_class c join pg_namespace n on n.
 
 export function nativeRehearsal(pool) {
   return async ({before,schema,manifest,sql})=>{
-    if(sql!==reconciliationSql(manifest))throw new Error('Production rehearsal SQL mismatch');
+    if(sql!==generatedSql(manifest))throw new Error('Production rehearsal SQL mismatch');
     const b=rehearsalBlueprint(before,schema,manifest),started=Date.now();
     let peakRss=process.memoryUsage().rss,peakContainer=0,released=false,client;
     const sample=async()=>{peakRss=Math.max(peakRss,process.memoryUsage().rss);
@@ -120,10 +122,12 @@ export function nativeRehearsal(pool) {
       await client.query('rollback to savepoint fault_check');
       if(!injected||!same(initial,await snapshot()))throw new Error('Native rollback test failed');
       await client.query(b.sql);
-      const after=await snapshot(),verification=verifyBatch(initial,after,manifest);
-      if(!verification.verified)throw new Error('Native readback did not verify');
+      const after=await snapshot(),verification=manifest.kind==='api-link-repair'?verifyLinkRepair(initial,after,manifest):verifyBatch(initial,after,manifest);
+      if(!verification.verified)throw new Error(`Native readback did not verify: ${verification.errors.join('; ')}`);
       // Temporary generator tables live until outer rollback, so remove only those fixed names before replay.
-      await client.query('drop table pg_temp.reconciliation_manifest,pg_temp.lead_delta,pg_temp.intake_delta,pg_temp.canonical_columns_before');
+      await client.query(manifest.kind==='api-link-repair'?
+        'drop table pg_temp.link_repair_manifest,pg_temp.link_repair_delta,pg_temp.link_repair_changed':
+        'drop table pg_temp.reconciliation_manifest,pg_temp.lead_delta,pg_temp.intake_delta,pg_temp.canonical_columns_before');
       await client.query(b.sql);
       if(!same(after,await snapshot()))throw new Error('Native replay changed records or history');
       await client.query('rollback');

@@ -3,6 +3,7 @@ import { captureReview } from './source-review.mjs';
 import { hash } from './reviewed-batch.mjs';
 import { safeMetadata, publicUrl } from './research-persistence.mjs';
 import { zeroEvidence, validateZeroBasis } from './interpretation-evidence.mjs';
+import {verifyPacketLink,validLinkState,packetLink} from './api-record-links.mjs';
 
 const sha = /^[a-f0-9]{64}$/;
 const need = (condition, message) => { if (!condition) throw new Error(message); };
@@ -99,10 +100,11 @@ export function validateInterpretation(packet, result, {verifiedSupporting=false
     need(!identities.has(f.record_id), 'Duplicate finding identity');
     identities.add(f.record_id);
     need(text(f.work_location_basis), 'Work-location basis must be explicit');
-    need(f.payload.title === f.title &&
-      publicUrl(f.payload.source_url) === f.payload.source_url,
+    const apiLink=validLinkState(f.payload)&&verifyPacketLink(packet,f);
+    need(f.payload.title === f.title && (apiLink ||
+      publicUrl(f.payload.source_url) === f.payload.source_url),
     'Finding title and official HTTPS URL required');
-    need(packet.pages.some(page=>page.url===f.payload.source_url ||
+    need(apiLink || packet.pages.some(page=>page.url===f.payload.source_url ||
       page.review?.includes(f.payload.source_url) ||
       f.supporting_evidence?.some(e => e.url===f.payload.source_url &&
         savedLink(page, f.payload.source_url))),
@@ -134,7 +136,7 @@ export function manualSpecFromInterpretation(packet, result, projectRef, evidenc
     authorization: `Chat-initiated known-source request ${packet.request_id}; interpreted by ${result.reviewed_by}; packet ${packet.packet_hash}`,
     findings: result.findings.map(f => ({ source_id: packet.source_id,
       request_ids: [packet.request_id], external_id: f.record_id,
-      payload: { ...f.payload, title: f.title, bid_type: f.classification,
+      payload: { ...f.payload, ...(packetLink(packet,f)??{}),title: f.title, bid_type: f.classification,
         known_source_interpretation: { packet_hash: packet.packet_hash,
           result_hash: interpretationDigest(result),
           finding_hash: hash({request_id:packet.request_id, finding:f}),

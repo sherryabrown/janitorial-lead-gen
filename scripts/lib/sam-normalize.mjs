@@ -1,3 +1,4 @@
+import {unresolvedLink} from './api-record-links.mjs';
 export function awardIdentity(row) {
   const c = row.contractId;
   if (!c?.piid || !c?.subtier?.code) throw new Error('Missing award identity');
@@ -23,7 +24,7 @@ export function awardPayload(row, queryUrl) {
     title: a.productOrServiceInformation?.descriptionOfContractRequirement || `Contract ${row.contractId.piid}`,
     agency: org.contractingDepartment?.name || row.contractId.subtier.name,
     subagency: org.contractingSubtier?.name || row.contractId.subtier.name,
-    source_url: queryUrl, award_id: row.contractId.piid,
+    ...unresolvedLink(awardIdentity(row),'SAM award requires a verified public detail link or exact crosswalk',queryUrl), award_id: row.contractId.piid,
     solicitation_id: core.solicitationId || null, bid_type: 'award', business_category: 'other_public',
     contracting_entity_geo_level: 'federal',
     work_performance_locations: [{ city_name: loc.city?.name || null, state_code: loc.state?.code || null,

@@ -148,7 +148,10 @@ export function mapProcurementLead(lead: ProcurementLead, source?: ProcurementSo
   const location = formatDedicatedLocation(lead) ?? formatLocation(payload.work_performance_locations);
   const title = firstString(lead.title, payload.title, payload.project_name, payload.name) ?? 'Procurement opportunity';
   const agency = firstString(lead.agency, payload.agency, payload.agency_name) ?? source?.name ?? 'Agency pending';
-  const sourceUrl = firstString(lead.source_url, payload.source_url);
+  const linkState = isRecord(payload.source_link) ? payload.source_link : {};
+  const storedUrl = firstString(lead.source_url, payload.source_url);
+  const apiUrl = storedUrl && /^https:\/\/api\./i.test(storedUrl);
+  const sourceUrl = linkState.status === 'unresolved' || apiUrl ? undefined : storedUrl;
   const addedAt = lead.created_at ?? '';
   const updatedAt = lead.updated_at ?? '';
 
@@ -172,7 +175,7 @@ export function mapProcurementLead(lead: ProcurementLead, source?: ProcurementSo
     addedAt,
     updatedAt,
     contractLastUpdatedAt: lead.detected_change_at ?? undefined,
-    nextAction: firstString(lead.next_action, payload.next_action) ?? 'Review lead',
+    nextAction: firstString(lead.next_action, payload.next_action, linkState.next_action) ?? 'Review lead',
     notes: lead.notes ? [lead.notes] : [],
     researchNotes: [...new Set([firstString(payload.status_note), firstString(payload.verification_notes)].filter((note): note is string => Boolean(note)))],
     stageReason: lead.stage_reason ?? undefined,

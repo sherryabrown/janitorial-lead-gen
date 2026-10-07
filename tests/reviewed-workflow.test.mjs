@@ -207,7 +207,7 @@ test('CLI prepares offline; rejects wrong approval and edited packages before ac
   const altered=spawnSync(process.execPath,[cli,'status',out],{encoding:'utf8'});
   assert.equal(altered.status,1);assert.match(altered.stderr,/Package changed/);
 });
-test('batch CLI uses local PGlite for schema/history, rollback and replay tests', () => {
+test('batch CLI uses local PGlite for schema/history, rollback and replay tests', async () => {
   const temp = mkdtempSync(join(tmpdir(), 'procurement-local-engine-'));
   const reviewFile = join(temp, 'review.json');
   const snapshotFile = join(temp, 'before.json');
@@ -215,7 +215,10 @@ test('batch CLI uses local PGlite for schema/history, rollback and replay tests'
   const cli = resolve('scripts/procurement-workflow.mjs');
   writeFileSync(reviewFile, JSON.stringify(reviewFor()));
   writeFileSync(snapshotFile, JSON.stringify(before));
-  execFileSync(process.execPath, [cli, 'prepare', reviewFile, snapshotFile, dir, join(dir, 'intake-schema.json'), out], { stdio: 'pipe' });
+  const {linkReadySchema}=await import('./helpers/api-link-schema.mjs');
+  const schemaFile=join(temp,'link-schema.json');
+  writeFileSync(schemaFile,JSON.stringify(linkReadySchema(JSON.parse(readFileSync(join(dir,'intake-schema.json'))))));
+  execFileSync(process.execPath, [cli, 'prepare', reviewFile, snapshotFile, dir, schemaFile, out], { stdio: 'pipe' });
   // No external module path or credentials; the inherited guard forbids network.
   execFileSync(process.execPath, [cli, 'test', out], { stdio: 'pipe' });
   const receipt = JSON.parse(readFileSync(join(out, 'offline-test.json'), 'utf8'));
