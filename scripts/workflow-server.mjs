@@ -11,6 +11,7 @@ import { postgresTransport } from './lib/hosted-import.mjs';
 import { workflowServer } from './lib/workflow-http.mjs';
 import { discoveryService } from './lib/hosted-discovery.mjs';
 import { browserService } from './lib/hosted-browser.mjs';
+import { startupBrowserBenchmark } from './lib/browser-feasibility.mjs';
 const project='zreplhkoxswtzxlchtjf';
 const env=process.env;
 if(env.SUPABASE_URL!==`https://${project}.supabase.co` || !env.SUPABASE_SERVICE_ROLE_KEY)
@@ -31,8 +32,9 @@ const imports=importJobs({db,project,transport,artifacts,samSavedRuns:sam.savedR
   rehearse:rehearsalPool?nativeRehearsal(rehearsalPool):null});
 const workflow=hostedWorkflow({db,project,serverKey:()=>env.SUPABASE_SERVICE_ROLE_KEY,artifacts,aiConfig,processJob:(job,c,save)=>c.stage.startsWith('sam_')?sam.step(job,c,save):imports.step(job,c,save)});
 let running=false;
+let benchmarking=Boolean(env.PROCUREMENT_BROWSER_BENCHMARK_ID);
 function kick() {
-  if(running)return;running=true;
+  if(running||benchmarking)return;running=true;
   // Actual requests wake the worker; no keepalive/scheduler. Each claim persists one bounded stage.
   setImmediate(async()=>{
     const started=Date.now();
@@ -51,4 +53,8 @@ const server=workflowServer({workflow,imports,discovery,kick,
   sam:sam.submit,samPacket:sam.packet});
 server.requestTimeout=15000;server.headersTimeout=10000;
 server.listen(Number(env.PORT??8080),'0.0.0.0',()=>console.log('Procurement backend listening; frontend unchanged.'));
+if(benchmarking)void startupBrowserBenchmark({db,artifacts,id:env.PROCUREMENT_BROWSER_BENCHMARK_ID})
+  .then(result=>console.log(`Public browser benchmark: ${result.status}; private receipt saved.`))
+  .catch(()=>console.error('Public browser benchmark blocked; inspect private evidence.'))
+  .finally(()=>{benchmarking=false;});
 process.on('SIGTERM',()=>{server.close();pool?.end();rehearsalPool?.end();});
