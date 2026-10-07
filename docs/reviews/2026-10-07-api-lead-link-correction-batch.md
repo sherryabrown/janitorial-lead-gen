@@ -1,5 +1,16 @@
 # API lead-link correction batch — applied and verified
 
+Current deployment continuation: user released the hold; Render Free and Netlify are live at `d26c059`, and Netlify's lock is restored. See `docs/reviews/2026-10-07-api-link-hosted-verification.md` for hosted staging, rehearsed application approval and UI confirmation. Actual corrected-link count remains **6**. Earlier hold/migration/provenance checkpoints below are historical.
+
+## Latest continuation — migration verified; six provenance questions remain
+
+- User-approved `20261007000500_api_record_link_state.sql` applied and recorded after rollback preflight. Live constraint/history verification and repeated migration inside rollback passed. Native unresolved-link rehearsal passed rollback/readback/replay/cleanup. Ten focused regression tests passed.
+- Independent final readback: 333 leads and all existing history/relationships unchanged; six completed corrections preserved; zero persistent test tables/views. No code deployment, new leads or further URL corrections.
+- **TASD resolved as non-API.** Saved September 30 retrieval log maps `https://aptg.co/xGPxsC` to the May 19 board-minutes PDF at `files-backend.assets.thrillshare.com`. Saved bytes have a PDF header; extracted pages contain the matching SSC custodial decision. Original retrieval script reads official board links, downloads PDFs and extracts pages; it is not an API capture. PDF/log/script hashes retained privately and review saved in existing private storage.
+- **Six Little Rock origins remain unresolved.** Records 172620, 179263, 183632, 226524, 179683 and 169158 were imported together September 11. Searches of saved code, documents, capture files and earlier snapshots recovered only generic discovery prose and copied lead data, not original responses that identify collection method. Responsible party: user/original operator. Exact next action: supply original September 11 capture/export or contemporaneous collection details distinguishing API from public portal/web research. A fresh portal check cannot prove historical origin. Current links preserved.
+- Updated totals: **273 confirmed API, 54 non-API, six ambiguous = 333. Actual corrected total: 6.** Earlier seven-ambiguous counts below are historical.
+- Private receipts: `outputs/deployment/20261007000500/` and `outputs/api-links/2026-10-07-post-apply/provenance-review.json`. Code deployment and hosted acceptance remain held; plan remains in todo for six missing original captures and hosted acceptance.
+
 October 7, 2026. **333 inspected; 6 live links corrected and verified.** Code deployment remains held.
 
 ## Approved application result

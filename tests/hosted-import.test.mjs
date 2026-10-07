@@ -78,6 +78,22 @@ test('native rehearsal is mandatory and failed/interrupted validation cannot pro
   await assert.rejects(prepareImport({...f,rehearse:async()=>{throw new Error('interrupted');}}),/interrupted/);
   await assert.rejects(prepareImport({...f,rehearse:async()=>({status:'native_tests_passed'})}),/receipt/);
 });
+
+test('native snapshot retains cross-source lead parents of older processed intake links',async()=>{
+  const f=setup(),otherRequest={...f.before.procurement_search_requests[0],id:id(91)};
+  const oldLead={...baseline.procurement_leads[0],id:id(92)};
+  assert.notEqual(oldLead.source_id,f.item.source_id);
+  const oldIntake={...f.item,id:id(93),external_id:'older-processed-observation',status:'processed'};
+  f.before.procurement_search_requests.push(otherRequest);
+  f.before.procurement_leads=[oldLead];
+  f.before.procurement_intake_items.push(oldIntake);
+  f.before.procurement_intake_leads=[{id:id(94),intake_id:oldIntake.id,lead_id:oldLead.id}];
+  f.before.procurement_request_leads=[{...baseline.procurement_request_leads[0],search_request_id:otherRequest.id,lead_id:oldLead.id}];
+  const prepared=await prepareImport(f),p=JSON.parse((await f.artifacts.get(prepared.artifact)).toString());
+  assert.ok(p.before.procurement_leads.some(l=>l.id===oldLead.id));
+  assert.ok(p.before.procurement_search_requests.some(r=>r.id===otherRequest.id));
+  assert.equal(prepared.test.readback,true);assert.equal(prepared.test.replay,true);
+});
 test('an interrupted hosted import checkpoints reconciliation before SQL and never blindly resends',async()=>{
   const f=setup(),prepared=await prepareImport(f),jobs=importJobs(f);
   const checkpoint={stage:'import_apply',package_artifact:prepared.artifact,approval_sha256:prepared.approval_sha256};

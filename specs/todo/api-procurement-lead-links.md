@@ -8,13 +8,22 @@
 - [x] 58 targeted tests, original SQL suites, changed-file lint/typecheck and whitespace check passed.
 - [x] Exact corrections/counts: `docs/reviews/2026-10-07-api-lead-link-correction-batch.md`; private package/evidence ignored and saved in existing private storage.
 - [x] User approved exact package `c7a5b491f2de7fa754faa1a7c9af48b27abc2e6c7d9c03a8388bd5b8e7e99c7e`; application, live protected-field/history/link readback and no-write replay passed. **6 actually corrected** (USAspending 1, SAM awards 4, SAM notice 1). Post-audit: all 273 confirmed API links verified, zero remaining defects; 53 non-API and seven ambiguous unchanged. Preparation counts below are historical.
-- [ ] Trace six legacy Little Rock capture paths and one TASD board capture; precise operator actions in report. Do not guess origin or repair blind.
-- [ ] Review/apply tested `20261007000500_api_record_link_state.sql` for explicit unresolved links; existing constraint incompatibility proved, no new tables. Unapplied; current six corrections do not require it.
-- [ ] Code deployment and hosted future-import/display acceptance after user releases deployment hold.
+- [x] TASD provenance resolved from saved successful short-link retrieval, PDF bytes and SSC custodial passage: public board-minutes PDF, non-API. Evidence hashes and review persisted in existing private storage; no lead changes.
+- [x] Six legacy Little Rock checks performed; original capture missing. User explicitly accepts keeping origins unresolved unless original evidence becomes available. Preserve current links; no inference or repeated research. Exact records/actions remain in report.
+- [x] Approved migration `20261007000500_api_record_link_state.sql` applied and recorded through reviewed transaction, after rollback preflight. Constraint/history readback and repeat-in-rollback passed. Live native unresolved-link rehearsal passed rollback/readback/replay/cleanup; all 333 production leads/history/relationships and six corrected links unchanged. No persistent test objects.
+- [x] User released deployment hold. Render Free and existing Netlify app deployed at committed code `d26c059`; live backend health/auth and frontend bundle parity verified; approved temporary Netlify unlock followed by verified lock restoration.
+- [ ] Hosted import application/readback/replay: rehearsed job `6174642e-6dcc-4f8d-951b-097f20ab5486`, exact approval `1f98e6590749d48bbd705022f6bc65b07756ed161601bad5a93eded86393d7d9`; zero new leads, one existing-lead intake evidence update. Awaiting user approval.
+- [ ] Actual live project-name click: browser tool could not initialize; user asked to verify the Millwood award link in the signed-in app.
+- [x] Nonempty separate hosted SAM notice/award staging verified using one-day dates from saved records (October 2 notice / September 11 award). One record each; public link/full identity/hash verified, API evidence separate. No imports or AI inference. Earlier October 6 zero-result checks only verified isolation/bounds.
+- [ ] Prepare SAM reviewed packages from these saved nonempty captures; temporary token expired (401 before job creation), refresh requested. No repeated source search required.
+
+Hosted continuation evidence: `docs/reviews/2026-10-07-api-link-hosted-verification.md`. Deployment hold released; six original corrections and applied migration preserved. Keep plan in todo for the named pending checks.
 
 Preserve in todo. Rehearsal counts are proposed counts, never actual production corrections. Earlier planning audit below is historical evidence.
 
-October 7, 2026 · One implementation phase · Six-row live correction and verification complete. Migration, provenance questions and hosted acceptance remain open. Code deployment held.
+October 7, 2026 · One implementation phase · Six-row correction and migration verified; TASD provenance resolved. Deployment hold released and both services deployed. Hosted import approval/UI confirmation remain pending; six legacy origins explicitly remain unresolved without repeat research.
+
+Continuation verification: 10 focused regression tests passed. Native post-migration rehearsal: 3,197 copied rows, 5.58 MB snapshot, 6.55 seconds, 156.1 MB peak process memory. Private migration receipts: `outputs/deployment/20261007000500/`; private durable provenance receipt: `outputs/api-links/2026-10-07-post-apply/provenance-review.json`. Reconciled totals: 273 confirmed API, 54 confirmed non-API, six ambiguous, 333 total. Actual corrected count remains **6**. Keep this plan in todo.
 
 ## Initiating request
 

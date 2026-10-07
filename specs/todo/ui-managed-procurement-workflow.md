@@ -1,6 +1,10 @@
 # UI-managed Arkansas procurement workflow
 
-API public-record-link repair: user-approved six-row live correction, readback and no-write replay complete; actual corrections **6**. All 273 confirmed API links verify; seven provenance questions remain. See `docs/reviews/2026-10-07-api-lead-link-correction-batch.md` and owner plan `specs/todo/api-procurement-lead-links.md`. The unresolved-link migration and code deployment remain held. Do not duplicate this repair in shared workflow milestones.
+API-link deployment continuation: user released hold; Render Free and existing Netlify app are live at `d26c059`, Netlify lock restored. Hosted saved-evidence interpretation and native existing-lead rehearsal passed; exact application approval/UI confirmation still pending. See `docs/reviews/2026-10-07-api-link-hosted-verification.md`. Six corrections and approved migration remain intact; legacy Bonfire origins stay unresolved without repeat research.
+
+Latest API-link continuation: approved unresolved-link migration `20261007000500` applied and verified without lead changes; TASD origin verified from saved public PDF. Counts now 273 API / 54 non-API / six ambiguous out of 333; actual corrections remain six. Original Little Rock capture evidence requested. Deployment and hosted acceptance remain held. Owner: `specs/todo/api-procurement-lead-links.md`.
+
+API public-record-link repair: user-approved six-row live correction, readback and no-write replay complete; actual corrections **6**. All 273 confirmed API links verify; six provenance questions remain. See `docs/reviews/2026-10-07-api-lead-link-correction-batch.md`. Migration is applied; code deployment remains held. Do not duplicate this repair in shared workflow milestones.
 
 October 6, 2026. **Backend continuation in progress; frontend deferred by the user.** Retain the existing Netlify site and Supabase project. Render Free deployment, reviewed forward migration and selected-model configuration are complete. Paid AI and bounded official web search are approved under $1/request and $10/month shared caps; no paid hosting upgrade or aggregator signup is authorized.
 

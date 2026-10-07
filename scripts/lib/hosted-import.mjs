@@ -34,8 +34,15 @@ export async function importSnapshot(db,project,review,manifest) {
   const scopedSources=[...new Set([...sourceIds,...targets.map(t=>sources.find(s=>s.code===t.source_code)?.id).filter(Boolean)])];
   const sourceIntakes=scopedSources.length?await rows(db,'procurement_intake_items',q=>q.in('source_id',scopedSources)):[];
   const leads=scopedSources.length?await rows(db,'procurement_leads',q=>q.in('source_id',scopedSources)):[];
-  const leadIds=[...new Set([...leads.map(l=>l.id),...(manifest?.records??[]).map(r=>r.id)])];
   const allIntakeIds=sourceIntakes.map(i=>i.id);
+  const intakeLinks=allIntakeIds.length?await rows(db,'procurement_intake_leads',q=>q.in('intake_id',allIntakeIds)):[];
+  // Processed intakes can point to canonical leads owned by a different source.
+  // Keep those actual FK parents in the bounded rehearsal/readback snapshot.
+  const existingIds=new Set(leads.map(l=>l.id));
+  const relatedIds=[...new Set(intakeLinks.map(l=>l.lead_id))].filter(id=>!existingIds.has(id));
+  if(relatedIds.length)leads.push(...await rows(db,'procurement_leads',q=>q.in('id',relatedIds)));
+  leads.sort((a,b)=>a.id.localeCompare(b.id));
+  const leadIds=[...new Set([...leads.map(l=>l.id),...(manifest?.records??[]).map(r=>r.id)])];
   const requestLinks=leadIds.length?await rows(db,'procurement_request_leads',q=>q.in('lead_id',leadIds)):[];
   // Existing relevant leads can be linked to earlier requests. Their actual FK
   // targets belong in the bounded validation baseline, not just this request.
@@ -44,7 +51,7 @@ export async function importSnapshot(db,project,review,manifest) {
     if(table==='procurement_sources')snapshot[table]=sources;
     else if(table==='procurement_intake_items')snapshot[table]=sourceIntakes;
     else if(table==='procurement_leads')snapshot[table]=leads;
-    else if(table==='procurement_intake_leads')snapshot[table]=allIntakeIds.length?await rows(db,table,q=>q.in('intake_id',allIntakeIds)):[];
+    else if(table==='procurement_intake_leads')snapshot[table]=intakeLinks;
     else if(table==='procurement_request_leads')snapshot[table]=requestLinks;
     else if(['procurement_events','procurement_versions'].includes(table))
       snapshot[table]=leadIds.length?await rows(db,table,q=>q.in('lead_id',leadIds)):[];
