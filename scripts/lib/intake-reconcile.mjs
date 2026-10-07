@@ -109,15 +109,16 @@ export function reconcile(snapshot,runs) {
 }
 
 const literal=v=>`'${JSON.stringify(v).replaceAll("'","''")}'::jsonb`;
-export function reconciliationSql(m) {
+export function reconciliationSql(m,{schema='public',transaction=true}={}) {
+  if(!['public','procurement_test'].includes(schema)||typeof transaction!=='boolean')throw new Error('Unsupported reconciliation target');
   // Existing dedicated columns may intentionally differ from older payload facts. Evidence-only merges must not resync them.
   const preserved=['title','agency','source_url','solicitation_number','award_number','publication_date','response_deadline',
     'planned_advertisement_period','contract_start_date','contract_current_end_date','contract_potential_end_date','work_performance_city','work_performance_state'];
   return `-- Approved intake reconciliation. No UI changes or new API requests. Replay-safe guarded transaction.
-begin;
+${transaction?'begin;':''}
 set local lock_timeout='10s';
 set local statement_timeout='90s';
-lock table public.procurement_leads,public.procurement_intake_items,public.procurement_intake_leads,public.procurement_request_leads in share row exclusive mode;
+lock table ${schema}.procurement_leads,${schema}.procurement_intake_items,${schema}.procurement_intake_leads,${schema}.procurement_request_leads in share row exclusive mode;
 create temporary table reconciliation_manifest on commit drop as select ${literal(m)} as data;
 create temporary table lead_delta on commit drop as select * from jsonb_to_recordset((select data->'records' from reconciliation_manifest))
  as x(id uuid,source_id uuid,external_id text,expected_payload jsonb,expected_search_term text,payload jsonb,search_term_used text,identity text,piid text);
@@ -125,59 +126,60 @@ create temporary table intake_delta on commit drop as select * from jsonb_to_rec
  as x(intake jsonb,lead_id uuid,source_id uuid,external_id text,basis text,expected_links jsonb,request_reason text,expected_request jsonb);
 do $guard$
 begin
- if not exists(select 1 from public.procurement_search_requests where id='${m.request_id}') then raise exception 'Missing pilot request'; end if;
+ if not exists(select 1 from ${schema}.procurement_search_requests where id='${m.request_id}') then raise exception 'Missing pilot request'; end if;
  if exists(select 1 from jsonb_each_text((select data->'sources' from reconciliation_manifest)) s
-   where not exists(select 1 from public.procurement_sources p where p.id=s.value::uuid and p.code=s.key)) then raise exception 'Source registry changed'; end if;
- if exists(select 1 from lead_delta d left join public.procurement_leads l using(source_id,external_id)
+   where not exists(select 1 from ${schema}.procurement_sources p where p.id=s.value::uuid and p.code=s.key)) then raise exception 'Source registry changed'; end if;
+ if exists(select 1 from lead_delta d left join ${schema}.procurement_leads l using(source_id,external_id)
    where (l.id is null and d.expected_payload is not null) or (l.id is not null and (l.id<>d.id or not (
      (l.payload is not distinct from d.expected_payload and l.search_term_used is not distinct from d.expected_search_term)
      or (l.payload=d.payload and l.search_term_used is not distinct from d.search_term_used))))) then raise exception 'Canonical baseline changed'; end if;
- if exists(select 1 from lead_delta d join public.procurement_leads l on l.id<>d.id
+ if exists(select 1 from lead_delta d join ${schema}.procurement_leads l on l.id<>d.id
    and ((l.source_id='${m.sources.usaspending}' and l.external_id='CONT_AWD_'||d.identity)
      or (l.source_id='${m.sources['sam-awards']}' and l.external_id=d.identity)
      or (d.expected_payload is null and l.payload->>'award_id'=d.piid))
    where d.identity is not null) then raise exception 'Cross-source contract conflict'; end if;
- if exists(select 1 from intake_delta d left join public.procurement_intake_items i on i.id=(d.intake->>'id')::uuid
+ if exists(select 1 from intake_delta d left join ${schema}.procurement_intake_items i on i.id=(d.intake->>'id')::uuid
    where i.id is null or (to_jsonb(i)-'status'-'updated_at')<>(d.intake-'status'-'updated_at')
      or not ((i.status=d.intake->>'status' and i.updated_at=(d.intake->>'updated_at')::timestamptz)
-       or (i.status='processed' and exists(select 1 from public.procurement_intake_leads k where k.intake_id=i.id and k.lead_id=d.lead_id)
-         and exists(select 1 from public.procurement_leads l join lead_delta x on l.id=x.id where l.id=d.lead_id and l.payload=x.payload
+       or (i.status='processed' and exists(select 1 from ${schema}.procurement_intake_leads k where k.intake_id=i.id and k.lead_id=d.lead_id)
+         and exists(select 1 from ${schema}.procurement_leads l join lead_delta x on l.id=x.id where l.id=d.lead_id and l.payload=x.payload
            and l.search_term_used is not distinct from x.search_term_used)))) then raise exception 'Intake baseline changed'; end if;
- if exists(select 1 from intake_delta d join public.procurement_intake_leads k on k.intake_id=(d.intake->>'id')::uuid
+ if exists(select 1 from intake_delta d join ${schema}.procurement_intake_leads k on k.intake_id=(d.intake->>'id')::uuid
    where k.lead_id<>d.lead_id or (jsonb_array_length(d.expected_links)>0 and not d.expected_links @> jsonb_build_array(to_jsonb(k))))
    or exists(select 1 from intake_delta d cross join lateral jsonb_array_elements(d.expected_links) k
-     where not exists(select 1 from public.procurement_intake_leads l where to_jsonb(l)=k)) then raise exception 'Intake links changed'; end if;
+     where not exists(select 1 from ${schema}.procurement_intake_leads l where to_jsonb(l)=k)) then raise exception 'Intake links changed'; end if;
  if exists(select 1 from intake_delta d where d.request_reason is not null and d.expected_request is not null
-   and not exists(select 1 from public.procurement_request_leads r where to_jsonb(r)=d.expected_request)) then raise exception 'Request classification changed'; end if;
- if exists(select 1 from intake_delta d join public.procurement_request_leads r on r.lead_id=d.lead_id and r.search_request_id='${m.request_id}'
+   and not exists(select 1 from ${schema}.procurement_request_leads r where to_jsonb(r)=d.expected_request)) then raise exception 'Request classification changed'; end if;
+ if exists(select 1 from intake_delta d join ${schema}.procurement_request_leads r on r.lead_id=d.lead_id and r.search_request_id='${m.request_id}'
    where d.request_reason is not null and d.expected_request is null and (r.match_status<>'needs_location_review' or r.match_reason<>d.request_reason)) then raise exception 'New conflicting request classification'; end if;
 end $guard$;
 create temporary table canonical_columns_before on commit drop as
-select l.id,${preserved.map(k=>`l.${k}`).join(',')} from public.procurement_leads l join lead_delta d on d.id=l.id;
-insert into public.procurement_leads(id,source_id,external_id,payload,search_term_used)
+select l.id,${preserved.map(k=>`l.${k}`).join(',')} from ${schema}.procurement_leads l join lead_delta d on d.id=l.id;
+insert into ${schema}.procurement_leads(id,source_id,external_id,payload,search_term_used)
 select id,source_id,external_id,payload,search_term_used from lead_delta
 on conflict(source_id,external_id) do update set payload=excluded.payload,search_term_used=excluded.search_term_used,updated_at=now(),
  detected_change_at=case when procurement_leads.payload is distinct from excluded.payload then now() else procurement_leads.detected_change_at end
 where procurement_leads.payload is distinct from excluded.payload or procurement_leads.search_term_used is distinct from excluded.search_term_used;
 -- The existing payload trigger resynchronizes dedicated fields. Restore existing values in this same transaction;
 -- this non-payload update generates no source-change event and leaves newly inserted award fields intact.
-update public.procurement_leads l set ${preserved.map(k=>`${k}=b.${k}`).join(',')}
+update ${schema}.procurement_leads l set ${preserved.map(k=>`${k}=b.${k}`).join(',')}
 from canonical_columns_before b where l.id=b.id and row(${preserved.map(k=>`l.${k}`).join(',')}) is distinct from row(${preserved.map(k=>`b.${k}`).join(',')});
 -- AFTER_CANONICAL_UPSERT: offline fault-injection point.
-insert into public.procurement_intake_leads(intake_id,lead_id)
+insert into ${schema}.procurement_intake_leads(intake_id,lead_id)
 select (intake->>'id')::uuid,lead_id from intake_delta on conflict(intake_id,lead_id) do nothing;
-insert into public.procurement_request_leads(search_request_id,lead_id,match_status,match_reason)
+insert into ${schema}.procurement_request_leads(search_request_id,lead_id,match_status,match_reason)
 select '${m.request_id}',lead_id,'needs_location_review',request_reason from intake_delta where request_reason is not null
 on conflict(search_request_id,lead_id) do nothing;
-update public.procurement_intake_items i set status='processed',updated_at=now()
+update ${schema}.procurement_intake_items i set status='processed',updated_at=now()
 from intake_delta d where i.id=(d.intake->>'id')::uuid and i.status<>'processed';
 do $verify$
 begin
- if exists(select 1 from intake_delta d left join public.procurement_intake_items i on i.id=(d.intake->>'id')::uuid
-   where i.status is distinct from 'processed' or not exists(select 1 from public.procurement_intake_leads k where k.intake_id=i.id and k.lead_id=d.lead_id))
-   or exists(select 1 from lead_delta d left join public.procurement_leads l on l.id=d.id where l.payload is distinct from d.payload
+ if exists(select 1 from intake_delta d left join ${schema}.procurement_intake_items i on i.id=(d.intake->>'id')::uuid
+   where i.status is distinct from 'processed' or not exists(select 1 from ${schema}.procurement_intake_leads k where k.intake_id=i.id and k.lead_id=d.lead_id))
+   or exists(select 1 from lead_delta d left join ${schema}.procurement_leads l on l.id=d.id where l.payload is distinct from d.payload
      or l.search_term_used is distinct from d.search_term_used) then raise exception 'Reconciliation postcondition failed'; end if;
 end $verify$;
-commit;
+${transaction?'commit;':''}
 `;
 }
+

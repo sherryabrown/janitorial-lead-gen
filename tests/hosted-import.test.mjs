@@ -7,7 +7,7 @@ import { makeInterpretationPacket } from '../scripts/lib/known-source-workflow.m
 import { planInterpretationIntake } from '../scripts/lib/interpretation-intake.mjs';
 import { hash,planReviewedBatch,collectRuns } from '../scripts/lib/reviewed-batch.mjs';
 import { samIntakeRows } from '../scripts/lib/sam-intake.mjs';
-import { validateHostedSql } from '../scripts/lib/hosted-sql-validation.mjs';
+import {offlineNativeRehearsal} from './helpers/native-rehearsal.mjs';
 import { context,result,id } from './helpers/known-workflow.mjs';
 const baseline=JSON.parse(readFileSync('tests/fixtures/sam/intake-before.json','utf8'));
 const schema=JSON.parse(readFileSync('tests/fixtures/sam/intake-schema.json','utf8'));
@@ -25,6 +25,7 @@ function setup() {
   const item=planInterpretationIntake(packet,r,before,{[id(5)]:'private-evidence'}).manifest.rows[0].row;
   item.updated_at='2026-10-01T00:00:00Z';
   before.procurement_intake_items=[item];
+  before.procurement_interpretations=[{request_id:request.id,is_current:true,staging_receipt:{intake_ids:[item.id]}}];
   const review={version:1,batch:'hosted-import-test',project_ref:before.project_ref,request_id:request.id,work_state:'AR',
     scope:'Arkansas janitorial fixture',limitations:'Offline fixture only',reviewed_by:'test',run_ids:[],allow_partial:false,
     decisions:[{intake_id:item.id,intake_hash:hash(item.payload),action:'process',approve_new:true,
@@ -34,7 +35,7 @@ function setup() {
     in(field,values){predicates.push(r=>values.includes(r[field]));return q;},order(){return q;},
     range(a,b){offset=a;end=b;return q;},then(resolve){resolve({data:(before[table]??[]).filter(r=>predicates.every(p=>p(r))).slice(offset,end+1)});}};return q;}};
   const files=new Map(),artifacts={async put(value){const data=Buffer.from(JSON.stringify(value)),path=`artifacts/${hash(data.toString())}`;files.set(path,data);return path;},async get(path){return files.get(path);}};
-  return {db,project:before.project_ref,transport:{schema:async()=>schema,apply:async()=>{}},artifacts,review,actor:id(80),before,item};
+  return {db,project:before.project_ref,transport:{schema:async()=>schema,apply:async()=>{}},artifacts,review,actor:id(80),before,item,rehearse:offlineNativeRehearsal};
 }
 
 test('separate SAM import packages bind actual captured runs and pass the existing SQL safeguards',async()=>{
@@ -42,6 +43,7 @@ test('separate SAM import packages bind actual captured runs and pass the existi
   const sources=f.before.procurement_sources;
   const candidate=samIntakeRows(collectRuns([capture],[capture.run_id]),code=>sources.find(s=>s.code===code).id)[0];
   f.before.procurement_intake_items=[{...f.item,...candidate}];
+  f.before.procurement_jobs=[{search_request_id:f.review.request_id,dedupe_key:'api-sam:test',checkpoint:{stage:'sam_review',run_ids:[capture.run_id],intake_ids:[candidate.id]}}];
   f.review={...f.review,run_ids:[capture.run_id],decisions:[{...f.review.decisions[0],new_bid_type:'historical_opportunity',intake_hash:hash(candidate.payload)}]};
   await assert.rejects(prepareImport(f),/separate statewide SAM/);
   const prepared=await prepareImport({...f,runs:[capture]});
@@ -70,9 +72,11 @@ test('real FK validation retains earlier requests referenced by existing relevan
   assert.equal(prepared.test.rollback,true);assert.equal(prepared.test.replay,true);
 });
 
-test('isolated SQL validation has a bounded timeout and cannot return an approval on interruption',async()=>{
-  const f=setup(),manifest=planReviewedBatch(f.before,f.review,[]);
-  await assert.rejects(validateHostedSql({before:f.before,schema,manifest,sql:''},{timeoutMs:1}),/time limit reached/);
+test('native rehearsal is mandatory and failed/interrupted validation cannot produce an approval',async()=>{
+  const f=setup();
+  await assert.rejects(prepareImport({...f,rehearse:null}),/native SQL rehearsal transport/);
+  await assert.rejects(prepareImport({...f,rehearse:async()=>{throw new Error('interrupted');}}),/interrupted/);
+  await assert.rejects(prepareImport({...f,rehearse:async()=>({status:'native_tests_passed'})}),/receipt/);
 });
 test('an interrupted hosted import checkpoints reconciliation before SQL and never blindly resends',async()=>{
   const f=setup(),prepared=await prepareImport(f),jobs=importJobs(f);
@@ -96,4 +100,19 @@ test('unchanged source facts in a new request create provenance links without a 
   const manifest=planReviewedBatch(f.before,review,[]);
   assert.equal(manifest.summary.new_leads,0);assert.equal(manifest.summary.evidence_updates,0);
   assert.deepEqual(manifest.records[0].payload,lead.payload);assert.equal(manifest.summary.links_to_create,1);
+});
+
+test('approval binds all package inputs and native receipt; outdated or no longer current candidates cannot write',async()=>{
+  const f=setup(),prepared=await prepareImport(f),p=JSON.parse((await f.artifacts.get(prepared.artifact)).toString());
+  let writes=0;f.transport.apply=async()=>{writes++;};
+  for(const mutate of [
+    q=>{q.version=1;},q=>{q.policy='unknown';},q=>{q.test.cleanup=false;},q=>{q.test.resources.copied_rows++;},
+    q=>{q.before.captured_at='changed';},q=>{q.review.reviewed_by=id(81);},q=>{q.sql+='select 1;';},
+  ]){
+    const altered=structuredClone(p);mutate(altered);
+    await assert.rejects(applyImport({...f,packageData:altered,approval:prepared.approval_sha256}));
+  }
+  f.before.procurement_interpretations[0].is_current=false;
+  await assert.rejects(applyImport({...f,packageData:p,approval:prepared.approval_sha256}),/Current request candidate/);
+  assert.equal(writes,0);
 });

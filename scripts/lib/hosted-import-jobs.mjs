@@ -2,13 +2,14 @@ import { checked,rows,one } from './hosted-store.mjs';
 import { hash } from './reviewed-batch.mjs';
 import { prepareImport,applyImport,importSnapshot } from './hosted-import.mjs';
 import { verifyBatch } from './batch-verification.mjs';
-export function importJobs({db,project,transport,artifacts,samSavedRuns}) {
+import {rehearsalPolicy} from './native-sql-rehearsal.mjs';
+export function importJobs({db,project,transport,artifacts,samSavedRuns,rehearse}) {
   async function lookup(id) {
     const job=await one(db,'procurement_jobs',id);
     if(!job?.dedupe_key.startsWith('api-import:'))throw new Error('Import job required');return job;
   }
   async function prepare(requestId,review,actor) {
-    if(!transport)throw new Error('Reviewed PostgreSQL import transport not configured');
+    if(!transport||!rehearse)throw new Error('Reviewed PostgreSQL import and native rehearsal transports required');
     if(review.request_id!==requestId || review.project_ref!==project)throw new Error('Review request/project mismatch');
     const interpretations=await rows(db,'procurement_interpretations',q=>q.eq('request_id',requestId).eq('is_current',true));
     const eligible=new Set(interpretations.flatMap(i=>i.staging_receipt?.intake_ids??[]));
@@ -22,7 +23,7 @@ export function importJobs({db,project,transport,artifacts,samSavedRuns}) {
       runs=await samSavedRuns(samJob.checkpoint);
     }
     if(!review.decisions?.length || review.decisions.some(d=>!eligible.has(d.intake_id)))throw new Error('Review must select persisted current candidates for this request');
-    const dedupe=`api-import:${requestId}:${hash({...review,reviewed_by:actor})}`;
+    const dedupe=`api-import:${requestId}:${hash({...review,reviewed_by:actor,validation_policy:rehearsalPolicy})}`;
     checked(await db.from('procurement_jobs').upsert({search_request_id:requestId,dedupe_key:dedupe,kind:'process',
       checkpoint:{stage:'import_prepare',actor_id:actor,review,runs_artifact:runs.length?await artifacts.put(runs):null}},{onConflict:'dedupe_key',ignoreDuplicates:true}));
     const job=(await rows(db,'procurement_jobs',q=>q.eq('dedupe_key',dedupe)))[0];
@@ -38,6 +39,8 @@ export function importJobs({db,project,transport,artifacts,samSavedRuns}) {
     const job=await lookup(id),c=job.checkpoint;
     if(c.stage==='import_verified')return status(id);
     if(c.stage!=='import_awaiting_approval' || input.approval_sha256!==c.approval_sha256)throw new Error('Exact tested approval required');
+    const p=JSON.parse((await artifacts.get(c.package_artifact)).toString());
+    if(p.version!==2||p.policy!==rehearsalPolicy)throw new Error('Reprepare this batch under the native rehearsal policy before approving');
     const changed=checked(await db.from('procurement_jobs').update({state:'pending',checkpoint:{...c,stage:'import_apply',approved_by:actor,
       approved_at:new Date().toISOString()}}).eq('id',id).eq('updated_at',job.updated_at).eq('state','blocked').select('id'));
     if(changed.length!==1)throw new Error('Import approval changed concurrently; reread status');
@@ -56,7 +59,7 @@ export function importJobs({db,project,transport,artifacts,samSavedRuns}) {
   async function step(job,c,save) {
     if(c.stage==='import_prepare') {
       const runs=c.runs_artifact?JSON.parse((await artifacts.get(c.runs_artifact)).toString()):[];
-      Object.assign(c,await prepareImport({db,project,transport,artifacts,review:c.review,actor:c.actor_id,runs}));
+      Object.assign(c,await prepareImport({db,project,transport,artifacts,review:c.review,actor:c.actor_id,runs,rehearse}));
       c.package_artifact=c.artifact;delete c.artifact;delete c.review;
       c.stage='import_awaiting_approval';c.next_action='Approve the exact tested batch hash';await save('blocked');
     } else if(c.stage==='import_apply') {

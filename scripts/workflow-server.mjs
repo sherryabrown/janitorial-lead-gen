@@ -3,6 +3,7 @@ import { attentionService } from './lib/hosted-attention.mjs';
 import { createClient } from '@supabase/supabase-js';
 import pg from 'pg';
 import { restrictedImportPoolOptions } from './lib/restricted-import-connection.mjs';
+import {nativeRehearsal} from './lib/native-sql-rehearsal.mjs';
 import { artifactStore } from './lib/hosted-store.mjs';
 import { hostedWorkflow } from './lib/hosted-workflow.mjs';
 import { importJobs } from './lib/hosted-import-jobs.mjs';
@@ -18,13 +19,16 @@ const db=createClient(env.SUPABASE_URL,env.SUPABASE_SERVICE_ROLE_KEY,{auth:{pers
 const artifacts=artifactStore(db);
 const poolOptions=restrictedImportPoolOptions(env,project);
 const pool=poolOptions?new pg.Pool(poolOptions):null;
+const rehearsalOptions=restrictedImportPoolOptions(env,project,{rehearsal:true});
+const rehearsalPool=rehearsalOptions?new pg.Pool(rehearsalOptions):null;
 const transport=pool?postgresTransport(pool,project):null;
 const provider=name=>({key:env[`${name}_API_KEY`],model:env[`${name}_MODEL`],rateVersion:env[`${name}_RATE_VERSION`],
   inputUsdPerMillion:Number(env[`${name}_INPUT_USD_PER_MILLION`]),outputUsdPerMillion:Number(env[`${name}_OUTPUT_USD_PER_MILLION`])});
 const aiConfig={enabled:env.PROCUREMENT_AI_ENABLED==='true',monthlyUsd:Number(env.PROCUREMENT_MONTHLY_AI_USD??0),
   openai:provider('OPENAI'),anthropic:provider('ANTHROPIC')};
 const sam=statewideSam({db,project,serverKey:()=>env.SUPABASE_SERVICE_ROLE_KEY,artifacts});
-const imports=importJobs({db,project,transport,artifacts,samSavedRuns:sam.savedRuns});
+const imports=importJobs({db,project,transport,artifacts,samSavedRuns:sam.savedRuns,
+  rehearse:rehearsalPool?nativeRehearsal(rehearsalPool):null});
 const workflow=hostedWorkflow({db,project,serverKey:()=>env.SUPABASE_SERVICE_ROLE_KEY,artifacts,aiConfig,processJob:(job,c,save)=>c.stage.startsWith('sam_')?sam.step(job,c,save):imports.step(job,c,save)});
 let running=false;
 function kick() {
@@ -47,4 +51,4 @@ const server=workflowServer({workflow,imports,discovery,kick,
   sam:sam.submit,samPacket:sam.packet});
 server.requestTimeout=15000;server.headersTimeout=10000;
 server.listen(Number(env.PORT??8080),'0.0.0.0',()=>console.log('Procurement backend listening; frontend unchanged.'));
-process.on('SIGTERM',()=>{server.close();pool?.end();});
+process.on('SIGTERM',()=>{server.close();pool?.end();rehearsalPool?.end();});

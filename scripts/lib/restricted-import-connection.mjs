@@ -1,9 +1,10 @@
 import {X509Certificate} from 'node:crypto';
 
-export function restrictedImportPoolOptions(env,project) {
-  if(!env.PROCUREMENT_DATABASE_URL)return null;
-  const url=new URL(env.PROCUREMENT_DATABASE_URL);
-  const role='procurement_import_backend';
+export function restrictedImportPoolOptions(env,project,{rehearsal=false}={}) {
+  const connection=env[rehearsal?'PROCUREMENT_REHEARSAL_DATABASE_URL':'PROCUREMENT_DATABASE_URL'];
+  if(!connection)return null;
+  const url=new URL(connection);
+  const role=rehearsal?'procurement_rehearsal_backend':'procurement_import_backend';
   const pooler=url.hostname.endsWith('.pooler.supabase.com');
   if(!['postgres:','postgresql:'].includes(url.protocol)||url.pathname!=='/postgres'||
     !(pooler||url.hostname===`db.${project}.supabase.co`)||

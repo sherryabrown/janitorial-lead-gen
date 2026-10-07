@@ -4,7 +4,6 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --ignore-scripts --no-audit
 COPY scripts ./scripts
 COPY supabase/functions/_shared ./supabase/functions/_shared
-RUN node scripts/create-sql-validation-template.mjs
 ENV NODE_ENV=production
 ENV PORT=8080
 USER pwuser

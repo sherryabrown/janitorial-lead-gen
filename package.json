@@ -11,7 +11,7 @@
     "test": "npm run test:app && npm run test:workflow && npm run test:sql",
     "preview": "vite preview --host 127.0.0.1",
     "test:app": "vitest run",
-    "test:workflow": "node scripts/create-sql-validation-template.mjs && node --import ./tests/offline-only.mjs --test tests/*.test.mjs",
+    "test:workflow": "node --import ./tests/offline-only.mjs --test tests/*.test.mjs",
     "test:sql": "node --import ./tests/offline-only.mjs tests/intake-processing-sql.mjs && node --import ./tests/offline-only.mjs tests/sam-upsert-sql.mjs",
     "typecheck": "tsc -b",
     "check": "npm run lint && npm test && npm run build",
