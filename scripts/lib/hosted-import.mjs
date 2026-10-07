@@ -1,6 +1,6 @@
 import { hash,planReviewedBatch } from './reviewed-batch.mjs';
 import { reconciliationSql } from './intake-reconcile.mjs';
-import { testBatchSql } from './batch-sql-test.mjs';
+import { validateHostedSql } from './hosted-sql-validation.mjs';
 import { verifyBatch } from './batch-verification.mjs';
 import { procurementSchemaQuery } from './schema-query.mjs';
 import { rows } from './hosted-store.mjs';
@@ -24,14 +24,19 @@ export async function importSnapshot(db,project,review,manifest) {
   const leads=scopedSources.length?await rows(db,'procurement_leads',q=>q.in('source_id',scopedSources)):[];
   const leadIds=[...new Set([...leads.map(l=>l.id),...(manifest?.records??[]).map(r=>r.id)])];
   const allIntakeIds=sourceIntakes.map(i=>i.id);
+  const requestLinks=leadIds.length?await rows(db,'procurement_request_leads',q=>q.in('lead_id',leadIds)):[];
+  // Existing relevant leads can be linked to earlier requests. Their actual FK
+  // targets belong in the bounded validation baseline, not just this request.
+  const requestIds=[...new Set([review.request_id,...requestLinks.map(r=>r.search_request_id)])];
   for(const table of tables) {
     if(table==='procurement_sources')snapshot[table]=sources;
     else if(table==='procurement_intake_items')snapshot[table]=sourceIntakes;
     else if(table==='procurement_leads')snapshot[table]=leads;
     else if(table==='procurement_intake_leads')snapshot[table]=allIntakeIds.length?await rows(db,table,q=>q.in('intake_id',allIntakeIds)):[];
-    else if(['procurement_events','procurement_versions','procurement_request_leads'].includes(table))
+    else if(table==='procurement_request_leads')snapshot[table]=requestLinks;
+    else if(['procurement_events','procurement_versions'].includes(table))
       snapshot[table]=leadIds.length?await rows(db,table,q=>q.in('lead_id',leadIds)):[];
-    else if(table==='procurement_search_requests')snapshot[table]=await rows(db,table,q=>q.eq('id',review.request_id));
+    else if(table==='procurement_search_requests')snapshot[table]=await rows(db,table,q=>q.in('id',requestIds));
     else if(table==='procurement_request_sources')snapshot[table]=await rows(db,table,q=>q.eq('search_request_id',review.request_id));
     else snapshot[table]=await rows(db,table);
   }
@@ -47,24 +52,23 @@ export function postgresTransport(pool,project) {
     }, project,
   };
 }
-export async function prepareImport({db,project,transport,artifacts,review,actor}) {
+export async function prepareImport({db,project,transport,artifacts,review,actor,runs=[]}) {
   if(!review.decisions?.length)throw new Error('Explicit reviewed decisions required');
   // Hosted geography imports must bind their own persisted candidates; SAM has its own path.
-  if(review.run_ids?.length)throw new Error('Use separate statewide SAM import path');
+  if(review.run_ids?.length&&!runs.length)throw new Error('Use separate statewide SAM import path');
   const before=await importSnapshot(db,project,review);
-  const manifest=planReviewedBatch(before,{...review,reviewed_by:actor},[]);
+  const manifest=planReviewedBatch(before,{...review,reviewed_by:actor},runs);
   const schema=await transport.schema(),sql=reconciliationSql(manifest);
-  const packageData={version:1,review:{...review,reviewed_by:actor},before,schema,manifest,sql,
+  const packageData={version:1,review:{...review,reviewed_by:actor},runs,before,schema,manifest,sql,
     schema_sha256:schemaHash(schema),sql_sha256:hash(sql)};
   packageData.approval_sha256=hash({manifest,sql_sha256:packageData.sql_sha256,schema_sha256:packageData.schema_sha256});
-  const {PGlite}=await import('@electric-sql/pglite');
-  packageData.test=await testBatchSql(PGlite,before,schema,manifest,sql);
+  packageData.test=await validateHostedSql({before,schema,manifest,sql});
   const artifact=await artifacts.put(packageData);
   return {artifact,approval_sha256:packageData.approval_sha256,summary:manifest.summary,test:packageData.test};
 }
 export async function applyImport({db,project,transport,artifacts,packageData,approval}) {
   const p=packageData;
-  const rebuilt=planReviewedBatch(p.before,p.review,[]),sql=reconciliationSql(rebuilt);
+  const rebuilt=planReviewedBatch(p.before,p.review,p.runs??[]),sql=reconciliationSql(rebuilt);
   if(p.test?.status!=='offline_tests_passed' || hash(rebuilt)!==hash(p.manifest) || hash(sql)!==p.sql_sha256 ||
      p.review.project_ref!==project || schemaHash(p.schema)!==p.schema_sha256 ||
      hash({manifest:rebuilt,sql_sha256:hash(sql),schema_sha256:p.schema_sha256})!==approval)

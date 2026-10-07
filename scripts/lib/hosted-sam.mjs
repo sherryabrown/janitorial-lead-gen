@@ -1,7 +1,55 @@
-import { hash } from './reviewed-batch.mjs';
-import { checked,one } from './hosted-store.mjs';
+import { hash,collectRuns } from './reviewed-batch.mjs';
+import { checked,one,rows } from './hosted-store.mjs';
+import { samIntakeRows } from './sam-intake.mjs';
 import { inspectSamCapture } from './known-source-execution.mjs';
 export function statewideSam({db,project,serverKey,artifacts,fetcher=fetch}) {
+  async function packet(requestId) {
+    const jobs=await rows(db,'procurement_jobs',q=>q.eq('search_request_id',requestId));
+    const job=jobs.find(j=>j.dedupe_key===`api-sam:${requestId}`&&j.checkpoint?.stage==='sam_review');
+    if(!job)throw new Error('Persisted separate SAM review candidates required');
+    const c=job.checkpoint,runs=await savedRuns(c);
+    const ids=c.intake_ids??[];
+    const candidates=ids.length?await rows(db,'procurement_intake_items',q=>q.in('id',ids)):[];
+    if(candidates.length!==ids.length)throw new Error('SAM candidate readback incomplete');
+    return {request_id:requestId,run_ids:c.run_ids,terminal_confirmed:c.terminal_confirmed,
+      partial:!c.terminal_confirmed,canonical_writes:0,
+      candidates:candidates.map(i=>({intake_id:i.id,intake_hash:hash(i.payload),status:i.status,
+        source_id:i.source_id,title:i.payload.title,agency:i.payload.agency,bid_type:i.payload.bid_type,
+        source_url:i.payload.source_url,deadline:i.payload.deadline,contract_start:i.payload.contract_start,
+        contract_end:i.payload.contract_end,work_performance_locations:i.payload.work_performance_locations,
+        notice:i.payload.sam_notice_evidence?.record,award:i.payload.sam_api_evidence?.latest_action})),
+      captures:runs.map(r=>({run_id:r.run_id,kind:r.kind,filters:r.filters,query_url:r.query_url})),
+      next_action:'Review service, Arkansas work location, dates and notice classification; prepare the exact reviewed import package'};
+  }
+  async function savedRuns(c) {
+    if(!c.capture_artifacts?.length)throw new Error('Saved SAM page evidence required');
+    const runs=[];
+    for(const artifact of c.capture_artifacts) {
+      const capture=JSON.parse((await artifacts.get(artifact)).toString());
+      const audit=await one(db,'procurement_runs',capture.run_id);
+      if(!audit||!c.run_ids.includes(audit.id)||hash(audit.detail.response)!==hash(capture.response)||
+        audit.detail.collector!=='sam-search'||audit.detail.kind!==capture.kind||audit.detail.upstream_status!==200||
+        audit.detail.query_url!==capture.query_url||hash(audit.detail.filters)!==hash(capture.filters))
+        throw new Error('SAM capture does not match its saved audit');
+      runs.push(capture);
+    }
+    collectRuns(runs,c.run_ids,{allow_partial:!c.terminal_confirmed});return runs;
+  }
+  async function stage(c) {
+    const runs=await savedRuns(c),collection=collectRuns(runs,c.run_ids,{allow_partial:!c.terminal_confirmed});
+    const sources=await rows(db,'procurement_sources',q=>q.in('code',['sam','sam-awards']));
+    const source=code=>{const match=sources.find(s=>s.code===code);if(!match)throw new Error('SAM registry missing');return match.id;};
+    const items=samIntakeRows(collection,source,(sourceId,identity,row)=>({
+      external_id:`${identity}@${hash({row,run_ids:c.run_ids}).slice(0,24)}`,metadata:{routed_capture:{record_identity:identity}}}));
+    const ids=[];
+    for(const item of items) {
+      checked(await db.from('procurement_intake_items').upsert(item,{onConflict:'source_id,external_id',ignoreDuplicates:true}));
+      const saved=(await rows(db,'procurement_intake_items',q=>q.eq('source_id',item.source_id).eq('external_id',item.external_id)))[0];
+      if(!saved||hash(saved.payload)!==hash(item.payload))throw new Error('SAM candidate differs from immutable saved evidence; review existing intake');
+      ids.push(saved.id);
+    }
+    c.intake_ids=ids;c.stage='sam_review';c.next_action='Review persisted statewide SAM candidates and prepare an exact import package';
+  }
   async function submit(input,actor,key) {
     if(!['opportunity','award'].includes(input.category) || !/^[A-Za-z0-9_-]{8,100}$/.test(key??''))
       throw new Error('Separate opportunity/award SAM request and idempotency key required; forecasts use agency sources');
@@ -18,6 +66,7 @@ export function statewideSam({db,project,serverKey,artifacts,fetcher=fetch}) {
   }
   async function step(job,c,save) {
     if(c.stage==='sam_review') {await save('blocked');return;}
+    if(c.stage==='sam_stage') {await stage(c);await save('blocked');return;}
     if(!['sam_collect','sam_reconcile'].includes(c.stage))throw new Error('Unknown SAM checkpoint');
     if(c.stage==='sam_reconcile') {c.next_action='Inspect SAM audit runs for this saved attempt before resending';await save('outcome_unknown');return;}
     c.stage='sam_reconcile';c.attempted_at=new Date().toISOString();await save('running');
@@ -34,6 +83,7 @@ export function statewideSam({db,project,serverKey,artifacts,fetcher=fetch}) {
       const run=await one(db,'procurement_runs',data.run_id);
       if(!run || run.detail?.collector!=='sam-search')throw new Error('SAM audit readback failed');
       c.run_ids=[...(c.run_ids??[]),data.run_id];c.capture_artifact=await artifacts.put(data);
+      c.capture_artifacts=[...(c.capture_artifacts??[]),c.capture_artifact];
     }
     const assessment=inspectSamCapture(data,c.kind==='award'?'awards':'opportunities',100,c.filters.offset);
     if(!response.ok || ['partial','blocked','outcome_unknown'].includes(assessment.state)) {
@@ -43,10 +93,10 @@ export function statewideSam({db,project,serverKey,artifacts,fetcher=fetch}) {
     if(assessment.state==='next_page' && c.pages<10) {
       c.filters={...c.filters,offset:c.filters.offset+1};c.stage='sam_collect';await save('pending');return;
     }
-    c.stage='sam_review';c.terminal_confirmed=assessment.state==='complete';
+    c.stage='sam_stage';c.terminal_confirmed=assessment.state==='complete';
     c.next_action=c.terminal_confirmed?'Review saved statewide SAM captures, stage eligible records and use the existing reviewed import workflow':
       'SAM page bound reached; partial capture is not complete statewide coverage';
-    await save('blocked');
+    await save('pending');
   }
-  return {submit,step};
+  return {submit,step,savedRuns,packet};
 }

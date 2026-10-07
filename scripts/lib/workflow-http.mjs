@@ -9,7 +9,7 @@ async function body(request) {
   }
   try {return JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{throw new HttpError(400,'Invalid JSON');}
 }
-export function workflowServer({authenticate,workflow,imports,discovery,sam,browser,kick=()=>{},allowedOrigins=[]}) {
+export function workflowServer({authenticate,workflow,imports,discovery,sam,samPacket,browser,attention,kick=()=>{},allowedOrigins=[]}) {
   return createServer(async(request,response)=>{
     response.setHeader('Content-Type','application/json');response.setHeader('Cache-Control','no-store');
     response.setHeader('X-Content-Type-Options','nosniff');
@@ -43,6 +43,10 @@ export function workflowServer({authenticate,workflow,imports,discovery,sam,brow
           const offset=Number(url.searchParams.get('offset')??0),limit=Number(url.searchParams.get('limit')??50);
           if(!Number.isInteger(offset)||offset<0||!Number.isInteger(limit)||limit<1||limit>100)throw new HttpError(400,'Invalid pagination');
           result=await workflow.status(id,{offset,limit});kick();
+        } else if(request.method==='GET'&&segments.length===4&&segments[3]==='attention') {
+          const offset=Number(url.searchParams.get('offset')??0),limit=Number(url.searchParams.get('limit')??50);
+          if(!Number.isInteger(offset)||offset<0||!Number.isInteger(limit)||limit<1||limit>100)throw new HttpError(400,'Invalid pagination');
+          result=await attention(id,{offset,limit});
         } else if(request.method==='POST'&&segments.length===4&&['cancel','resume'].includes(segments[3])) {
           result=await workflow.control(id,segments[3],actor);kick();
         } else if(segments[3]==='tasks'&&uuid.test(segments[4]??'')) {
@@ -68,6 +72,8 @@ export function workflowServer({authenticate,workflow,imports,discovery,sam,brow
           if(!browser)throw new HttpError(503,'Browser continuation not configured');
           result=await browser.continueAccess(segments[2],actor);
         }
+      } else if(request.method==='GET'&&segments.length===5&&segments[1]==='sam'&&segments[2]==='requests'&&uuid.test(segments[3])&&segments[4]==='packet') {
+        result=await samPacket(segments[3]);
       } else if(request.method==='POST'&&url.pathname==='/v1/sam/requests') {
         result=await sam(input,actor,request.headers['idempotency-key']);kick();send(202,result);return;
       }

@@ -2,7 +2,7 @@ import { checked,rows,one } from './hosted-store.mjs';
 import { hash } from './reviewed-batch.mjs';
 import { prepareImport,applyImport,importSnapshot } from './hosted-import.mjs';
 import { verifyBatch } from './batch-verification.mjs';
-export function importJobs({db,project,transport,artifacts}) {
+export function importJobs({db,project,transport,artifacts,samSavedRuns}) {
   async function lookup(id) {
     const job=await one(db,'procurement_jobs',id);
     if(!job?.dedupe_key.startsWith('api-import:'))throw new Error('Import job required');return job;
@@ -12,10 +12,19 @@ export function importJobs({db,project,transport,artifacts}) {
     if(review.request_id!==requestId || review.project_ref!==project)throw new Error('Review request/project mismatch');
     const interpretations=await rows(db,'procurement_interpretations',q=>q.eq('request_id',requestId).eq('is_current',true));
     const eligible=new Set(interpretations.flatMap(i=>i.staging_receipt?.intake_ids??[]));
+    let runs=[];
+    if(review.run_ids?.length) {
+      const samJobs=await rows(db,'procurement_jobs',q=>q.eq('search_request_id',requestId));
+      const samJob=samJobs.find(j=>j.dedupe_key?.startsWith('api-sam:')&&j.checkpoint?.stage==='sam_review');
+      if(!samJob||!samSavedRuns||hash([...review.run_ids].sort())!==hash([...(samJob.checkpoint.run_ids??[])].sort()))
+        throw new Error('Review must bind this separate statewide SAM request and its exact saved runs');
+      for(const id of samJob.checkpoint.intake_ids??[])eligible.add(id);
+      runs=await samSavedRuns(samJob.checkpoint);
+    }
     if(!review.decisions?.length || review.decisions.some(d=>!eligible.has(d.intake_id)))throw new Error('Review must select persisted current candidates for this request');
     const dedupe=`api-import:${requestId}:${hash({...review,reviewed_by:actor})}`;
     checked(await db.from('procurement_jobs').upsert({search_request_id:requestId,dedupe_key:dedupe,kind:'process',
-      checkpoint:{stage:'import_prepare',actor_id:actor,review}},{onConflict:'dedupe_key',ignoreDuplicates:true}));
+      checkpoint:{stage:'import_prepare',actor_id:actor,review,runs_artifact:runs.length?await artifacts.put(runs):null}},{onConflict:'dedupe_key',ignoreDuplicates:true}));
     const job=(await rows(db,'procurement_jobs',q=>q.eq('dedupe_key',dedupe)))[0];
     return {job_id:job.id,state:job.state,next_action:'Read import job status; approve the exact tested hash when ready'};
   }
@@ -46,7 +55,8 @@ export function importJobs({db,project,transport,artifacts}) {
   }
   async function step(job,c,save) {
     if(c.stage==='import_prepare') {
-      Object.assign(c,await prepareImport({db,project,transport,artifacts,review:c.review,actor:c.actor_id}));
+      const runs=c.runs_artifact?JSON.parse((await artifacts.get(c.runs_artifact)).toString()):[];
+      Object.assign(c,await prepareImport({db,project,transport,artifacts,review:c.review,actor:c.actor_id,runs}));
       c.package_artifact=c.artifact;delete c.artifact;delete c.review;
       c.stage='import_awaiting_approval';c.next_action='Approve the exact tested batch hash';await save('blocked');
     } else if(c.stage==='import_apply') {

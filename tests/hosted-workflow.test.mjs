@@ -33,6 +33,18 @@ test('HTTP contract validates sessions, denies origins/anonymous callers, preser
   assert.equal((await call(server,`/v1/requests/${id(1)}?limit=500`,{headers:auth})).status,400);
   server.close();
 });
+test('attention and separate SAM review endpoints require sign-in and do not wake collection',async()=>{
+  let kicks=0;
+  const server=workflowServer({authenticate:async()=>({id:actor}),workflow:{},kick:()=>{kicks++;},
+    attention:async(request_id,paging)=>({request_id,...paging,items:[]}),
+    samPacket:async request_id=>({request_id,canonical_writes:0})});
+  assert.equal((await call(server,`/v1/requests/${id(1)}/attention`)).status,401);
+  const attention=await call(server,`/v1/requests/${id(1)}/attention?offset=2&limit=3`,{headers:auth});
+  assert.equal(attention.data.offset,2);assert.equal(attention.data.limit,3);
+  assert.equal((await call(server,`/v1/requests/${id(1)}/attention?limit=101`,{headers:auth})).status,400);
+  assert.equal((await call(server,`/v1/sam/requests/${id(1)}/packet`,{headers:auth})).data.canonical_writes,0);
+  assert.equal(kicks,0);server.close();
+});
 test('selected category scope has strict date bases and retains legacy all-category behavior',()=>{
   assert.deepEqual(requestedCategories({}),['forecast','opportunity','award']);
   const input={requested_categories:['opportunity'],service_scope:{service:'janitorial'},

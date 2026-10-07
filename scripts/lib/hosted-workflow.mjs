@@ -96,7 +96,8 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
       targets.length?rows(db,'procurement_coverage_tasks',q=>q.in('target_id',targets.map(t=>t.id))):[],
       rows(db,'procurement_interpretations',q=>q.eq('request_id',requestId)),rows(db,'procurement_jobs',q=>q.eq('search_request_id',requestId)),
       rows(db,'procurement_usage_ledger',q=>q.eq('request_id',requestId))]);
-    const ids=[...new Set(interpretations.filter(i=>i.is_current!==false).flatMap(i=>i.staging_receipt?.intake_ids??[]))];
+    const ids=[...new Set([...interpretations.filter(i=>i.is_current!==false).flatMap(i=>i.staging_receipt?.intake_ids??[]),
+      ...jobs.filter(j=>j.dedupe_key?.startsWith('api-sam:')&&j.checkpoint?.stage==='sam_review').flatMap(j=>j.checkpoint.intake_ids??[])])];
     const selected=ids.slice(offset,offset+limit),intakes=selected.length?await rows(db,'procurement_intake_items',q=>q.in('id',selected)):[];
     const links=selected.length?await rows(db,'procurement_intake_leads',q=>q.in('intake_id',selected)):[];
     const leadIds=[...new Set(links.map(l=>l.lead_id))];

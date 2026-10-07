@@ -1,8 +1,8 @@
 import { same } from './sam-normalize.mjs';
 import { verifyBatch } from './batch-verification.mjs';
 
-export async function testBatchSql(PGlite,before,schema,manifest,sql,{verify=verifyBatch}={}) {
-  const db=new PGlite(),tables=[...new Set(schema.columns.map(c=>c.table))];
+export async function testBatchSql(PGlite,before,schema,manifest,sql,{verify=verifyBatch,engineOptions={}}={}) {
+  const db=new PGlite(engineOptions),tables=[...new Set(schema.columns.map(c=>c.table))];
   const quote=s=>'"'+s.replaceAll('"','""')+'"';
   const constraints=[...schema.constraints].sort((a,b)=>Number(a.definition.startsWith('FOREIGN KEY'))-Number(b.definition.startsWith('FOREIGN KEY')));
   const snapshot=async()=>({project_ref:manifest.project_ref,...Object.fromEntries(await Promise.all(tables.map(async t=>[t,

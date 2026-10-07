@@ -5,7 +5,9 @@ import { prepareImport,applyImport } from '../scripts/lib/hosted-import.mjs';
 import { importJobs } from '../scripts/lib/hosted-import-jobs.mjs';
 import { makeInterpretationPacket } from '../scripts/lib/known-source-workflow.mjs';
 import { planInterpretationIntake } from '../scripts/lib/interpretation-intake.mjs';
-import { hash,planReviewedBatch } from '../scripts/lib/reviewed-batch.mjs';
+import { hash,planReviewedBatch,collectRuns } from '../scripts/lib/reviewed-batch.mjs';
+import { samIntakeRows } from '../scripts/lib/sam-intake.mjs';
+import { validateHostedSql } from '../scripts/lib/hosted-sql-validation.mjs';
 import { context,result,id } from './helpers/known-workflow.mjs';
 const baseline=JSON.parse(readFileSync('tests/fixtures/sam/intake-before.json','utf8'));
 const schema=JSON.parse(readFileSync('tests/fixtures/sam/intake-schema.json','utf8'));
@@ -34,6 +36,21 @@ function setup() {
   const files=new Map(),artifacts={async put(value){const data=Buffer.from(JSON.stringify(value)),path=`artifacts/${hash(data.toString())}`;files.set(path,data);return path;},async get(path){return files.get(path);}};
   return {db,project:before.project_ref,transport:{schema:async()=>schema,apply:async()=>{}},artifacts,review,actor:id(80),before,item};
 }
+
+test('separate SAM import packages bind actual captured runs and pass the existing SQL safeguards',async()=>{
+  const f=setup(),capture=JSON.parse(readFileSync('tests/fixtures/sam/20bc470d-bfd8-4bd7-a4e0-926cdcd3696d.json','utf8'));
+  const sources=f.before.procurement_sources;
+  const candidate=samIntakeRows(collectRuns([capture],[capture.run_id]),code=>sources.find(s=>s.code===code).id)[0];
+  f.before.procurement_intake_items=[{...f.item,...candidate}];
+  f.review={...f.review,run_ids:[capture.run_id],decisions:[{...f.review.decisions[0],new_bid_type:'historical_opportunity',intake_hash:hash(candidate.payload)}]};
+  await assert.rejects(prepareImport(f),/separate statewide SAM/);
+  const prepared=await prepareImport({...f,runs:[capture]});
+  assert.equal(prepared.test.rollback,true);assert.equal(prepared.test.replay,true);
+  assert.equal(prepared.summary.new_leads,1);
+  const p=JSON.parse((await f.artifacts.get(prepared.artifact)).toString());
+  p.runs[0].response.opportunitiesData[0].title='Tampered capture';
+  await assert.rejects(applyImport({...f,packageData:p,approval:prepared.approval_sha256}));
+});
 test('hosted preparation shares real SQL rollback/readback/replay checks and rejects changed approval/schema before sending an import',async()=>{
   const f=setup(),prepared=await prepareImport(f),p=JSON.parse((await f.artifacts.get(prepared.artifact)).toString());
   assert.equal(prepared.test.rollback,true);assert.equal(prepared.test.replay,true);assert.equal(prepared.summary.new_leads,1);
@@ -41,6 +58,21 @@ test('hosted preparation shares real SQL rollback/readback/replay checks and rej
   await assert.rejects(applyImport({...f,packageData:p,approval:'0'.repeat(64)}),/approval/);
   f.transport.schema=async()=>({...schema,columns:[...schema.columns,{table:'procurement_leads',name:'drift',type:'text'}]});
   await assert.rejects(applyImport({...f,packageData:p,approval:prepared.approval_sha256}),/drift/);assert.equal(sent,0);
+});
+
+test('real FK validation retains earlier requests referenced by existing relevant leads',async()=>{
+  const f=setup(),otherRequest={...f.before.procurement_search_requests[0],id:id(91)};
+  const oldLead={...baseline.procurement_leads[0],id:id(92),source_id:f.item.source_id,external_id:'previous-linked-lead'};
+  f.before.procurement_search_requests.push(otherRequest);f.before.procurement_leads=[oldLead];
+  f.before.procurement_request_leads=[{...baseline.procurement_request_leads[0],search_request_id:otherRequest.id,lead_id:oldLead.id}];
+  const prepared=await prepareImport(f),p=JSON.parse((await f.artifacts.get(prepared.artifact)).toString());
+  assert.ok(p.before.procurement_search_requests.some(r=>r.id===otherRequest.id));
+  assert.equal(prepared.test.rollback,true);assert.equal(prepared.test.replay,true);
+});
+
+test('isolated SQL validation has a bounded timeout and cannot return an approval on interruption',async()=>{
+  const f=setup(),manifest=planReviewedBatch(f.before,f.review,[]);
+  await assert.rejects(validateHostedSql({before:f.before,schema,manifest,sql:''},{timeoutMs:1}),/time limit reached/);
 });
 test('an interrupted hosted import checkpoints reconciliation before SQL and never blindly resends',async()=>{
   const f=setup(),prepared=await prepareImport(f),jobs=importJobs(f);

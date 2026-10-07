@@ -1,6 +1,40 @@
 # UI-managed Arkansas procurement workflow
 
-October 6, 2026. **Two milestones; planning only.** Based on `docs/reviews/2026-10-06-ui-workflow-readiness-review.md` and current code. User confirmed the same Netlify site/Supabase, signup behavior per existing account instructions, OpenAI primary/Anthropic backup, and workflow controls for every signed-in user. User selected Render Free for the initial prototype; hosting limits and acceptance checks are below. The $1/request limits are recommended for the initial pilot; the user asked whether they are sensible, not to activate paid services. No purchasing/deployment approval is implied.
+October 6, 2026. **Backend continuation in progress; frontend deferred by the user.** Retain the existing Netlify site and Supabase project. Render Free deployment, reviewed forward migration and selected-model configuration are complete. Paid AI and bounded official web search are approved under $1/request and $10/month shared caps; no paid hosting upgrade or aggregator signup is authorized.
+
+## Current acceptance checklist
+
+Completed evidence:
+
+- [x] Supabase migration 20261007000100 applied and recorded; private bucket/RLS/service-only RPCs verified.
+- [x] Render Free backend deployed at https://janitorial-procurement-backend.onrender.com; automatic deploys off. Health 200, anonymous/invalid sessions 401, unapproved origins 403.
+- [x] OpenAI gpt-5.4-mini and Anthropic claude-haiku-4-5-20251001 keys/model token-count access verified and configuration deployed. Budget $1/request, $10/month, four inference calls, existing token limits.
+- [x] Initial offline HTTP/cache/PDF/SQL/recovery tests (165 workflow, 15 app; original SQL suites) passed.
+
+Remaining implementation/verification:
+
+- [ ] Dedicated PostgreSQL reviewed-import role/transport, private credentials and live grants/RLS verification.
+  - Migrations `20261007000200`/`20261007000300` applied and recorded. User-approved helper restriction preserves existing roles. Restricted credentials activated privately; actual role/TLS/transaction-lock/temp-table and denial checks passed. Render Free connection/CA configuration deployed; hosted preparation was killed at 512 MiB and its test job is blocked. Remaining: deploy/verify the memory fix and evidence a reviewed production import.
+- [ ] Complete separate statewide SAM staging/review/import/reconciliation using existing normalization and safeguards.
+- [ ] Bounded official-source researcher, search-cost reservations, verified generic registration and second-request reuse.
+- [ ] Secure browser/session adoption, saved authorized recipes, signup/sign-in lifecycle continuation and capture wiring. Human-only challenges remain handoffs.
+- [x] Local sanitized needs-attention API from existing job/access/task states; no notification UI or delivery. Authentication, projection and pagination regression tests passed; deployment/readback still required below.
+- [ ] Live authenticated known-source/API capture -> verified interpretation -> persisted candidates -> exact reviewed import/readback and unchanged second-request reuse.
+- [ ] Render Free cold-start/restart/private-artifact recovery and measured browser/PDF/PGlite memory fit.
+
+Frontend components/tests above are deferred; no application screen or notifications will be added in this build. Exact reviewed production batch approval remains required. Historical progress below retains prior observations; this checklist owns current status.
+
+### Current local continuation evidence
+
+SAM page artifacts now bind to saved run audits, stage immutable intake observations and feed the existing tested reviewed-import package. Separate request status and a SAM review packet expose the candidates. Hosted import preparation binds the exact saved SAM run set and candidate IDs; package rebuild and SQL rollback/replay safeguards are preserved. Nineteen focused tests passed. These local changes have not been pushed/deployed or verified with a live import, so the SAM acceptance item stays open.
+
+Temporary user JWT setup instructions were provided for authenticated live verification; the eventual frontend uses the existing Supabase refreshed session. The backend PostgreSQL connection targets the same existing database and uses separate private credentials. Restricted-login provisioning is awaiting the user's decision; no new database/tables or owner-password request was introduced.
+
+Authenticated deployment check October 6, 2026: the locally saved user token successfully called the deployed `POST /v1/geographies/preview` for North Little Rock (HTTP 200). No token was displayed or persisted in tracked evidence. This verifies signed-in API access only; no collection, inference or reviewed import was initiated by that check.
+
+Restricted connection continuation: user approved helper grant changes and supplied the official CA. Configuration deployment `dep-db2r0l67bikc73am3ifg` is live. Signed-in import preparation accepted the existing-candidate/defer-only test, but Render reported an OOM kill at 512 MiB. No import approval or canonical transaction was sent. The test is blocked before automatic replay. User requested reducing memory on Free first.
+
+Memory repair is ready for source deployment: fresh, empty build-time PGlite template + disposable validation process + reduced buffers and bounded timeout. Same actual saved data passed local rollback/readback/replay with ~251 MiB validator peak, versus ~572 MiB before the template. No safeguards were removed. A real baseline FK issue was repaired by including earlier requests referenced by existing relevant lead links. Regression tests cover that dependency and interruption. Render fit remains open until a new code deployment is tested; commit/push permission has been requested per build-code.
 
 ## Initiating prompt
 
@@ -8,7 +42,7 @@ Use `docs/reviews/2026-10-06-ui-workflow-readiness-review.md` to create one conc
 
 ## Outcome and scope
 
-UI request → confirmed geography/categories/date bases → saved method → bounded capture → verified interpretation → persisted candidates → reviewed import → live verified leads. Discovery/access continuation feeds this same path.
+Authenticated API/chat request → confirmed geography/categories/date bases → saved method → bounded capture → verified interpretation → persisted candidates → reviewed import → live verified leads. Discovery/access continuation feeds this same path.
 
 **In scope:** Arkansas city/county requests, county municipality confirmation every request, city/county/state resources and independent agencies; separate manually initiated statewide SAM; durable progress, private evidence, usage and exact next actions; reusable methods/facts; reviewed import; bounded official-source discovery and private account/API lifecycle.
 
@@ -107,11 +141,11 @@ Evidence: offline authenticated HTTP/denial tests, actual PDF quote validation, 
 
 **Remaining acceptance checks (keep in todo):**
 
-- Hosting/migration review remains pending. AI and bounded OpenAI web search are approved at $1/request and $10/month combined. Runtime stays disabled until configured and verified; approval is not evidence of deployment or active calls.
+- Hosting, migration and AI configuration are completed as checked above. Live inference and workflow acceptance remain required.
 - Complete/configure bounded official researcher and search-cost accounting; wire and validate guarded discovered-method registration/reuse through the HTTP workflow. Current discovery route persists a truthful blocked handoff.
 - Complete secure browser-session adoption/human verification and authorized machine-readable signup/sign-in continuation, tenant-specific retrieval, and common capture wiring. Current continue route records a truthful blocker; it does not sign up or log in.
 - Finish hosted statewide SAM reviewed-intake/import API continuation; existing separate CLI path remains intact.
-- Provision/verify scoped PostgreSQL import credentials and production grants/RLS; apply reviewed migration, validate exact existing Netlify origin and deploy only with authorization.
+- Provision/verify scoped PostgreSQL import credentials and grants/RLS; verify existing Netlify origin for the future client. Migration/deployment are already completed.
 - Live complete geography capture/review/import, second-request reuse, source-method discovery/access continuation and separate SAM acceptance evidence.
 - Render Free cold start/restart/local-file-loss and measured Chromium/PDF/PGlite memory feasibility. No hosted-memory or browser-access success is claimed.
 
@@ -122,3 +156,11 @@ Final local verification: 164 workflow tests in the full offline run plus one se
 User decision update: approved paid AI ($1/request, $10/month, prior token/call caps) and bounded OpenAI official-source web search under those shared caps. Supabase migration and Render deployment approved by the user after table-reuse and Docker explanation. There is no Render database migration; the proposed SQL applies only to Supabase.
 
 Deployment progress: approved 20261007000100_hosted_procurement_workflow.sql applied and recorded in Supabase migration history; live readback verified tables, RLS, private bucket and service-only RPC grants. Local private receipt: outputs/deployment/2026-10-07T01-27-02-447Z/readback.json. First wrapper attempt failed atomically and was reconciled before corrected application. Render user signed in with GitHub; browser runtime fails to initialize, so API authorization/manual deployment and repository push permission are requested. No Render service is claimed deployed.
+
+Render deployment continuation: user pushed backend commit dc4ca46 and supplied a private Render API key. Created Free web service srv-db2q9mmi0phs738v7f80 in My Workspace; automatic deployments disabled, Dockerfile.workflow selected, initial deployment dep-db2q9n6i0phs738v7h6g. Build/live verification pending. Runtime AI disabled pending provider credentials; monthly cap configured to approved $10. Reviewed PostgreSQL import transport still unconfigured.
+
+Render deployment verified October 6, 2026 (America/New_York): dep-db2q9n6i0phs738v7h6g is live at https://janitorial-procurement-backend.onrender.com on the confirmed Free plan. Health 200; anonymous/invalid token 401; unapproved origin 403. Supabase migration and Render deployment are complete. No live authenticated workflow/import or Chromium/PGlite memory-fit acceptance is claimed. Provider credentials requested immediately; runtime AI remains disabled until supplied/configured. Keep this plan in todo for the named remaining shared functionality and acceptance checks.
+
+AI activation continuation October 6, 2026: user supplied OPENAI_API_KEY and ANTHROPIC_API_KEY in private .env. Both model token-count checks returned 200 without paid inference. Render provider keys, selected models/versioned rates, enabled flag and approved $10 monthly cap privately read back. Configuration activation deploy dep-db2qfi49v7es739t7nog pending live verification; $1/request, four calls and existing token caps unchanged. Discovery/search integration and restricted PostgreSQL import transport still unfinished; this does not satisfy full workflow acceptance.
+
+AI configuration deployment readback: dep-db2qfi49v7es739t7nog live; health 200; anonymous workflow request 401. Provider configuration step complete. No paid inference/source collection/import was sent during setup. Remaining workflow checks above remain open.
