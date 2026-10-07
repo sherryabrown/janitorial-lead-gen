@@ -39,6 +39,8 @@ export async function evidenceText(page) {
   return [{locator:'saved document',text:clean(page.body.toString('utf8'))}];
 }
 export async function verifyEvidenceSpans(packet,result,{loadSupporting}={}) {
+  if([...result.findings,...result.exclusions,...result.unresolved].reduce((n,item)=>n+(item.supporting_evidence?.length??0),0)>5)
+    throw new Error('Supporting document bound exceeded');
   const texts=new Map(await Promise.all(packet.pages.map(async p=>[p.run_id,await evidenceText(p)])));
   for(const item of [...result.findings,...result.exclusions,...result.unresolved]) {
     for(const evidence of item.supporting_evidence??[]) {
@@ -148,6 +150,8 @@ export function cacheReviewedFacts(extraction,packet,result) {
   // scope conclusion or unresolved outcome as reusable coverage.
   const facts=[...extraction.facts];
   for(const finding of result.findings) {
+    // Supporting receipts bind to a request packet, not to a reusable scope conclusion.
+    if(finding.supporting_evidence?.length)continue;
     const index=packet.pages.findIndex(p=>p.run_id===finding.evidence[0].run_id);
     const evidence=finding.evidence.map(({run_id,...e})=>({...e,page_index:packet.pages.findIndex(p=>p.run_id===run_id)}));
     const saved={...finding,evidence};delete saved.supporting_evidence;

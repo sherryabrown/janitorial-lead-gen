@@ -10,6 +10,7 @@ import { extractFacts,evaluateFacts,extractionKey,verifyEvidenceSpans,cacheRevie
 import { boundedInterpretation } from './hosted-ai.mjs';
 import { accessNext } from './source-access.mjs';
 import { recordAccessEvent } from './source-access-store.mjs';
+import { supportingCapture } from './supporting-capture.mjs';
 
 export function validateFindingBounds(packet,result) {
   const basis=packet.query_window.date_basis??'published';
@@ -31,6 +32,7 @@ export function validateFindingBounds(packet,result) {
   }
 }
 export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=boundedInterpretation,processJob}) {
+  const supporting=supportingCapture({artifacts,serverKey});
   const rpc=async(name,args)=>checked(await db.rpc(name,args));
   async function submit(input,actor,key) {
     const categories=validateRequestScope(input);
@@ -53,6 +55,10 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
     return {request,task,job:jobs[0],source,capability,runs:runIds.map(id=>runs.find(r=>r.id===id)),captures:runIds.map(id=>captures.find(c=>c.run_id===id))};
   }
   async function packet(requestId,taskId) {return makeInterpretationPacket(await context(requestId,taskId));}
+  async function captureSupporting(requestId,taskId,input,actor) {
+    const ctx=await context(requestId,taskId);
+    return supporting.capture(ctx,makeInterpretationPacket(ctx),input,actor);
+  }
   async function stage(packet,result) {
     if(!result.findings.length)return {inserted:0,existing_preserved:0,intake_ids:[]};
     const [sources,requests,associations,targets,tasks,intakes]=await Promise.all([
@@ -62,7 +68,7 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
     const before={project_ref:project,procurement_sources:sources,procurement_search_requests:requests,
       procurement_request_sources:associations,procurement_request_targets:targets,procurement_coverage_tasks:tasks,procurement_intake_items:intakes};
     const paths=Object.fromEntries(await Promise.all(packet.pages.map(async p=>[p.run_id,await artifacts.put(p.body)])));
-    const {manifest,receipt}=planInterpretationIntake(packet,result,before,paths);
+    const {manifest,receipt}=planInterpretationIntake(packet,result,before,paths,{verifiedSupporting:true});
     const items=manifest.rows.map(d=>d.row);
     if(!items.length)return receipt;
     checked(await db.from('procurement_intake_items').upsert(items,{onConflict:'source_id,external_id',ignoreDuplicates:true}));
@@ -75,8 +81,10 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
     const reviewed={...result,reviewed_by:actor,findings:result.findings.map(f=>({ ...f,payload:{...f.payload,
       ...(f.payload.work_city||f.payload.work_county?{work_performance_locations:[{state_code:f.payload.work_state,
         city_name:f.payload.work_city,county_name:f.payload.work_county,evidence:f.work_location_basis}]}:{})} }))};
-    validateInterpretation(p,reviewed);await verifyEvidenceSpans(p,reviewed);validateFindingBounds(p,reviewed);
-    const receipt=await persistInterpretation(db,p,reviewed,stage);
+    const ctx=await context(requestId,taskId);
+    validateInterpretation(p,reviewed,{verifiedSupporting:true});
+    await verifyEvidenceSpans(p,reviewed,{loadSupporting:e=>supporting.load(ctx,p,e)});validateFindingBounds(p,reviewed);
+    const receipt=await persistInterpretation(db,p,reviewed,stage,{verifiedSupporting:true});
     if(reviewed.findings.length) {
       const ctx=await context(requestId,taskId),key=extractionKey(p,ctx.capability.method_spec);
       const cached=checked(await db.from('procurement_extraction_cache').select('*').eq('cache_key',key).maybeSingle());
@@ -196,5 +204,5 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
     await recordAccessEvent(db,h,{...event,next_action:`${event.next_action} (recorded by ${actor})`});
     return access(id);
   }
-  return {submit,preview:input=>geographyRequest(db,'preview',input),context,packet,interpret,status,control,step,access,accessEvent};
+  return {submit,preview:input=>geographyRequest(db,'preview',input),context,packet,captureSupporting,interpret,status,control,step,access,accessEvent};
 }

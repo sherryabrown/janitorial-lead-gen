@@ -1,8 +1,8 @@
 import { manualSpecFromInterpretation } from './known-source-workflow.mjs';
 import { planManual } from './research-persistence.mjs';
 
-export function planInterpretationIntake(packet,result,before,evidencePaths) {
-  const spec=manualSpecFromInterpretation(packet,result,before.project_ref,evidencePaths);
+export function planInterpretationIntake(packet,result,before,evidencePaths,options={}) {
+  const spec=manualSpecFromInterpretation(packet,result,before.project_ref,evidencePaths,options);
   const receipt={inserted:0,existing_preserved:0,intake_ids:[]};
   const findings=[];
   for(const f of spec.findings) {

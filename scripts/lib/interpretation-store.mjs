@@ -1,8 +1,8 @@
 import { interpretationDigest, validateInterpretation } from './known-source-workflow.mjs';
 
 // Production and integration tests share this orchestration; stage must be idempotent.
-export async function persistInterpretation(db, packet, result, stage) {
-  const summary=validateInterpretation(packet,result);
+export async function persistInterpretation(db, packet, result, stage, options={}) {
+  const summary=validateInterpretation(packet,result,options);
   const check=response=>{ if(response.error)throw new Error(response.error.message);return response.data; };
   const saved=check(await db.rpc('reserve_procurement_interpretation',{
     p_request:packet.request_id,p_task:packet.task_id,p_packet:packet.packet_hash,

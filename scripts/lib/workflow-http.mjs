@@ -53,7 +53,9 @@ export function workflowServer({authenticate,workflow,imports,discovery,sam,samP
           if(request.method==='GET'&&segments.length===6&&segments[5]==='packet') {
             const packet=await workflow.packet(id,segments[4]);
             result={...packet,pages:packet.pages.map(({body,extension,raw_file,content_base64,...page})=>page)};
-          } else if(request.method==='POST'&&segments.length===6&&segments[5]==='interpret')
+          } else if(request.method==='POST'&&segments.length===6&&segments[5]==='supporting-captures')
+            result=await workflow.captureSupporting(id,segments[4],input,actor);
+          else if(request.method==='POST'&&segments.length===6&&segments[5]==='interpret')
             result=await workflow.interpret(id,segments[4],input,actor);
         } else if(request.method==='POST'&&segments.length===5&&segments[3]==='imports'&&segments[4]==='prepare') {
           result=await imports.prepare(id,input,actor);kick();send(202,result);return;

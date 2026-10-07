@@ -39,7 +39,9 @@ export async function fetchPublicCheck(contract, requestedUrl, fetcher = fetch) 
   for (let hop = 0; hop <= 2; hop++) {
     let response;
     try {
-      response = await fetcher(url, { redirect: 'manual', headers: { Accept: 'text/html,application/pdf,text/plain,application/xml' },
+      response = await fetcher(url, { redirect: 'manual', headers: { Accept:
+        contract.response_format==='supporting-document-v1' ? 'application/json,text/html,application/pdf,text/plain,application/xml' :
+          'text/html,application/pdf,text/plain,application/xml' },
         signal: AbortSignal.timeout(30000) });
     } catch {
       return { state: 'outcome_unknown', reason: 'Network request failed or timed out', requested_url: requestedUrl,
@@ -61,7 +63,7 @@ export async function fetchPublicCheck(contract, requestedUrl, fetcher = fetch) 
       requested_url: requestedUrl, final_url: url, redirects, upstream_status: response.status };
     const contentType = response.headers.get('content-type') || '';
     if (!acceptable.test(contentType) &&
-        !(['bonfire-projects-v1', 'bonfire-contracts-v1'].includes(contract.response_format) &&
+        !(['bonfire-projects-v1', 'bonfire-contracts-v1', 'supporting-document-v1'].includes(contract.response_format) &&
           /^application\/json(;|$)/i.test(contentType)))
       return { state: 'partial', reason: `Unsupported content type: ${contentType || 'missing'}`,
       requested_url: requestedUrl, final_url: url, redirects, upstream_status: 200 };
