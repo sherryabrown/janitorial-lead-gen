@@ -114,8 +114,12 @@ test('signed supporting facts rebind across requests without fetching and rechec
   f.ctx.capability.method_spec=spec;
   const forged=await f.artifacts.put({kind:'supporting-fact-v1',signature:'0'.repeat(64)});
   await assert.rejects(f.service.rebind(f.ctx,later,{...portable,reusable_receipt:forged}),/signature/);
+  const unsigned=await f.artifacts.put({kind:'supporting-fact-v1'});
+  await assert.rejects(f.service.rebind(f.ctx,later,{...portable,reusable_receipt:unsigned}),/signature/);
   f.saved.set(portable.local_path,Buffer.from('changed'));
   await assert.rejects(f.service.rebind(f.ctx,later,portable),/hash/);
+  f.saved.delete(portable.local_path);
+  await assert.rejects(f.service.rebind(f.ctx,later,portable),/Missing artifact/);
   f.ctx.capability.verified_until='2020-01-01';
   await assert.rejects(f.service.rebind(f.ctx,later,portable),/expired/);
 });
@@ -163,9 +167,13 @@ test('the worker reuses a signed cached positive without AI, stages once and pre
     throw Error('Unexpected fixture RPC');
   }};
   const workflow=hostedWorkflow({db,project:'zreplhkoxswtzxlchtjf',serverKey:()=> 'private-test-key',artifacts:f.artifacts,
-    aiConfig:{enabled:true},ai:async()=>{aiCalls++;throw Error('Verified fact should not need AI');}});
+    aiConfig:{enabled:true},ai:async()=>{aiCalls++;throw Error('Ambiguous row requires AI review');}});
   assert.equal(await workflow.step(),true);
   assert.equal(aiCalls,0);assert.equal(worker.state,'pending');assert.equal(worker.checkpoint.cache_hits,1);
   assert.deepEqual(worker.checkpoint.interpreted_task_ids,[f.ctx.task.id]);assert.equal(tables.procurement_intake_items.length,1);
   assert.equal(await workflow.step(),false);assert.equal(tables.procurement_intake_items.length,1);
+  tables.procurement_extraction_cache[0].facts.facts.push({page_index:0,locator:'unstructured',unstructured:true,excerpt:'Unknown maintenance',title:''});
+  claim=true;worker.checkpoint={stage:'interpret'};
+  await workflow.step();assert.equal(aiCalls,1);assert.equal(worker.state,'blocked');
+  assert.equal(worker.checkpoint.next_action,'Ambiguous row requires AI review');assert.equal(tables.procurement_intake_items.length,1);
 });
