@@ -182,7 +182,7 @@ export function planReviewedBatch(snapshot,review,runs) {
       }
     } else {
       const provenance={intake_id:i.id,content_hash:hash(i.payload),reason:d.reason};
-      const sourceFacts=p=>Object.fromEntries(Object.entries(p).filter(([k])=>!['manual_capture','intake_source_evidence'].includes(k)));
+      const sourceFacts=p=>Object.fromEntries(Object.entries(p).filter(([k])=>!['manual_capture','intake_source_evidence','known_source_interpretation'].includes(k)));
       const parent=manual?.amends_intake_id?snapshot.procurement_intake_items.find(x=>x.id===manual.amends_intake_id):null;
       // Retrieval/scope-only observations get intake links, without a business-change event.
       const unchangedObservation=parent&&same(sourceFacts(parent.payload),sourceFacts(i.payload));

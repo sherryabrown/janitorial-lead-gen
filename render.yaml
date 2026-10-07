@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: janitorial-procurement-backend
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile.workflow
+    autoDeploy: false
+    healthCheckPath: /health
+    envVars:
+      - key: SUPABASE_URL
+        value: https://zreplhkoxswtzxlchtjf.supabase.co
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: PROCUREMENT_DATABASE_URL
+        sync: false
+      - key: PROCUREMENT_ALLOWED_ORIGINS
+        sync: false
+      - key: PROCUREMENT_AI_ENABLED
+        value: "false"
+      - key: PROCUREMENT_MONTHLY_AI_USD
+        value: "0"

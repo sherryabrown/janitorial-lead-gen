@@ -1,0 +1,10 @@
+.git
+.env
+.env.*
+outputs
+node_modules
+.agents
+.codex
+.netlify
+dist
+tests

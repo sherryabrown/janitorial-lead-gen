@@ -1,5 +1,7 @@
 # Texarkana and Miller County known-source methods
 
+> Shared UI/discovery execution is owned by [UI-managed procurement workflow](ui-managed-procurement-workflow.md). The source-specific evidence and unresolved checks here remain valid gaps, not a separate prerequisite build.
+
 Shared login/API activation is owned by [Arkansas source access activation and reuse](arkansas-source-access-activation-and-reuse.md). This plan retains its source/category-method checks; it does not require a separate signup implementation.
 
 Scope: audit official forecast, opportunity, and award channels for the Texarkana city and Miller County routes. Register only methods supported by current official evidence. Preserve unresolved categories as gaps. Keep SAM on its separate Arkansas-wide path.

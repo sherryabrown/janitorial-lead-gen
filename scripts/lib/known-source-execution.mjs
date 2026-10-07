@@ -1,3 +1,4 @@
+import { requestedCategories } from './request-scope.mjs';
 import { createHash } from 'node:crypto';
 import { awardIdentity, actionIdentity, responseSummary, stable } from './sam-normalize.mjs';
 import { validateApiContract } from '../../supabase/functions/_shared/source-api.mjs';
@@ -199,7 +200,7 @@ export function buildKnownSourcePlan(request, targets, geographies, capabilities
     Number(a.checkpoint?.route_order ?? 0) - Number(b.checkpoint?.route_order ?? 0))) {
     const geography = geographyById.get(target.geography_id);
     if (!geography || !geography.source_active) fail(`Inactive route geography: ${target.geography_id}`);
-    for (const [categoryIndex, kind] of categories.entries()) {
+    for (const [categoryIndex, kind] of requestedCategories(request).entries()) {
       const attached = capabilities.filter(c => c.route_geography_id === geography.id && c.kind === kind);
       const verified = attached.filter(c => c.availability === 'active' &&
         c.verified_at && c.verified_until &&

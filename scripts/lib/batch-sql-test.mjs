@@ -8,6 +8,13 @@ export async function testBatchSql(PGlite,before,schema,manifest,sql,{verify=ver
   const snapshot=async()=>({project_ref:manifest.project_ref,...Object.fromEntries(await Promise.all(tables.map(async t=>[t,
     (await db.query(`select to_jsonb(t) as row from ${quote(t)} t order by id`)).rows.map(r=>r.row)])))});
   try {
+    // Hosted requests reference real authenticated actors. The offline engine models
+    // only those actor identities, not Supabase authentication/permissions.
+    if(constraints.some(c=>c.definition.includes('REFERENCES auth.users'))) {
+      await db.exec('create schema auth; create table auth.users(id uuid primary key);');
+      for(const id of new Set((before.procurement_search_requests??[]).map(r=>r.initiated_by).filter(Boolean)))
+        await db.query('insert into auth.users(id) values($1) on conflict do nothing',[id]);
+    }
     for(const table of tables) {
       const cols=schema.columns.filter(c=>c.table===table);
       await db.exec(`create table ${quote(table)} (${cols.map(c=>`${quote(c.name)} ${c.type}${c.generated?` generated always as (${c.default}) stored`:c.default?` default ${c.default}`:''}${c.required?' not null':''}`).join(',')});`);

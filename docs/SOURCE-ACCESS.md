@@ -2,6 +2,8 @@
 
 This is the maintained access contract. Chat initiates work; the agent executes supported CLI/browser steps and asks immediately for a required human action. Signup tracking alone is not usable access or lead coverage.
 
+The backend-only HTTP build is documented in [PROCUREMENT-BACKEND.md](PROCUREMENT-BACKEND.md). Existing CLI access remains authoritative while hosted session adoption/signup continuation and deployment acceptance are unfinished. No application screen was added.
+
 **Geography → saved source → private access checkpoint → verified method → bounded capture → interpretation → immutable intake → reviewed import/readback.** SAM uses its separate manual statewide runner.
 
 ## Ownership

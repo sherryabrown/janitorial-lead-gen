@@ -1,5 +1,7 @@
 # Arkansas source access activation and reuse
 
+> Shared UI/execution integration is planned in [UI-managed procurement workflow](ui-managed-procurement-workflow.md). Preserve the completed activation implementation/evidence below; provider-specific operational continuation remains in its existing plan.
+
 > Continuation owner: `specs/todo/registered-source-access-onboarding-and-collection.md`. The shared implementation and evidence below are preserved. That plan carries the remaining authenticated portal retrieval/reuse checks and the user-requested rollout to all captured eligible providers; do not rebuild this phase or run both as competing plans.
 
 ## Initiating request

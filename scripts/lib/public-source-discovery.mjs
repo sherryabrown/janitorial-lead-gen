@@ -1,3 +1,4 @@
+import { requestedCategories } from './request-scope.mjs';
 import { buildKnownSourcePlan } from './known-source-execution.mjs';
 import { publicUrl, safeMetadata } from './research-persistence.mjs';
 
@@ -15,7 +16,7 @@ export function discoveryView(request, targets, geographies, capabilities, sourc
   for (const target of [...targets].sort((a,b) =>
     Number(a.checkpoint?.route_order ?? 0)-Number(b.checkpoint?.route_order ?? 0))) {
     const route = geography.get(target.geography_id);
-    for (const category of ['forecast','opportunity','award']) {
+    for (const category of requestedCategories(request)) {
       const tasks = plan.tasks.filter(task => task.target_id === target.id && task.kind === category);
       const verified_methods = tasks.filter(task => task.state === 'unchecked').map(task => ({
         source_code: source.get(task.source_id)?.code, capability_id: task.capability_id }));

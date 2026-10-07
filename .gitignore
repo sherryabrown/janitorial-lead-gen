@@ -21,6 +21,7 @@ outputs/skill-drafts/
 
 # Private procurement source, account/API access evidence and alert receipts.
 outputs/procurement-access/
+outputs/deployment/
 
 # Local Netlify folder
 .netlify

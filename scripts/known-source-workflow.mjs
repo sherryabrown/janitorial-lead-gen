@@ -1,8 +1,10 @@
+import { hostedWorkflow } from './lib/hosted-workflow.mjs';
+import { verifyEvidenceSpans } from './lib/hosted-interpretation.mjs';
+import { executeKnownSources } from './lib/known-source-collection.mjs';
 import { createHash } from 'node:crypto';
-import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve, join } from 'node:path';
-import { adminClient, project } from './lib/supabase-admin.mjs';
+import { adminClient, project, serverKey } from './lib/supabase-admin.mjs';
 import { makeInterpretationPacket, validateInterpretation } from './lib/known-source-workflow.mjs';
 import { persistInterpretation } from './lib/interpretation-store.mjs';
 import { workflowStatus } from './lib/workflow-status.mjs';
@@ -48,28 +50,7 @@ function writeOnce(file, value) {
   }
   writeFileSync(file, bytes, { flag: 'wx' });
 }
-async function context(requestId, taskId) {
-  const request = await one('procurement_search_requests', requestId);
-  const task = await one('procurement_coverage_tasks', taskId);
-  const target = task && await one('procurement_request_targets', task.target_id);
-  if (!request || !task || target?.search_request_id !== requestId)
-    throw new Error('Task does not belong to this confirmed request');
-  const job = (await rows('procurement_jobs', '*', q => q.eq('task_id', taskId)))[0];
-  const [source, capability] = await Promise.all([
-    one('procurement_sources', task.source_id), one('procurement_source_capabilities', task.capability_id),
-  ]);
-  if (!job || !source || !capability) throw new Error('No verified runnable source for task');
-  const runIds = task.evidence?.run_ids ?? [];
-  if (!runIds.length) throw new Error('Task has no confirmed captures');
-  const [runs, captures] = await Promise.all([
-    rows('procurement_runs', '*', q => q.in('id', runIds)),
-    rows('procurement_public_captures', '*', q => q.in('run_id', runIds)),
-  ]);
-  const runById = new Map(runs.map(r => [r.id, r]));
-  const captureById = new Map(captures.map(c => [c.run_id, c]));
-  return { request, task, job, source, capability,
-    runs: runIds.map(id => runById.get(id)), captures: runIds.map(id => captureById.get(id)) };
-}
+const context = hostedWorkflow({db,project}).context;
 async function createPacket(requestId, taskId) {
   const packet = makeInterpretationPacket(await context(requestId, taskId));
   const directory = resolve('outputs','known-source',requestId,`packet-${packet.packet_hash}`);
@@ -152,6 +133,15 @@ async function interpret(packetFile, resultFile) {
   const verifiedPacket={...fresh,pages:fresh.pages.map((page,index)=>
     ({...page,raw_file:packet.pages[index].raw_file}))};
   validateInterpretation(verifiedPacket,result);
+  await verifyEvidenceSpans({...verifiedPacket,pages:verifiedPacket.pages.map(page=>{
+    const body=readFileSync(page.raw_file);
+    if(createHash('sha256').update(body).digest('hex')!==page.content_sha256)throw new Error('Capture hash changed');
+    return {...page,body};
+  })},result,{loadSupporting:async evidence=>{
+    const body=readFileSync(evidence.local_path);
+    if(createHash('sha256').update(body).digest('hex')!==evidence.content_sha256)throw new Error('Supporting evidence hash changed');
+    return body;
+  }});
   const receipt=await persistInterpretation(db,verifiedPacket,result,stage);
   console.log(JSON.stringify({packet_hash:packet.packet_hash,...receipt,
     next:receipt.intake_ids.length
@@ -242,10 +232,8 @@ if (command==='run') {
   if (['--source=sam','--source=sam-awards'].includes(args[1]))
     throw new Error('SAM is separate from geography refreshes. Use scripts/sam-search.mjs for an Arkansas-wide manual check.');
   for (const subcommand of ['plan','run']) {
-    const output=execFileSync(process.execPath,
-      ['scripts/known-source-run.mjs',subcommand,args[0],...(subcommand==='run'&&args[1]?[args[1]]:[])],
-      {cwd:resolve('.'),encoding:'utf8',maxBuffer:8_000_000,windowsHide:true});
-    const result=JSON.parse(output);
+    const result=await executeKnownSources({db,project,serverKey,command:subcommand,requestId:args[0],
+      selectedSourceCode:subcommand==='run'&&args[1]?args[1].slice(9):undefined});
     console.log(JSON.stringify(subcommand==='plan'
       ? {step:'plan',known:result.known,entry_checks:result.entry_checks,
         source_gaps:result.source_gaps,blocked:result.blocked,

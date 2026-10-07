@@ -1,5 +1,7 @@
 # Registered-source access onboarding and collection
 
+> Shared UI/execution integration is owned by [UI-managed procurement workflow](ui-managed-procurement-workflow.md). This file retains provider-specific pending actions and evidence. Its UI exclusion applies to this operational continuation; do not rebuild completed infrastructure or treat provider batches as prerequisites for the new UI workflow.
+
 ## Initiating request
 
 > Continue source-access activation using the existing implementation and saved records. Start with **Little Rock Bonfire and Faulkner County Central Bidding and all sources that have been captured as needing a sign in or where an API is available**.
