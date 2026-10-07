@@ -3,11 +3,11 @@ import assert from 'node:assert/strict';
 import { supportingCapture } from '../scripts/lib/supporting-capture.mjs';
 import { sha } from '../scripts/lib/hosted-store.mjs';
 import { makeInterpretationPacket,validateInterpretation } from '../scripts/lib/known-source-workflow.mjs';
-import { verifyEvidenceSpans,cacheReviewedFacts } from '../scripts/lib/hosted-interpretation.mjs';
+import { verifyEvidenceSpans,cacheReviewedFacts,evaluateFacts,extractionKey } from '../scripts/lib/hosted-interpretation.mjs';
 import { context,result } from './helpers/known-workflow.mjs';
 import { intakeBefore } from './helpers/known-workflow.mjs';
 import { planInterpretationIntake } from '../scripts/lib/interpretation-intake.mjs';
-import { validateFindingBounds } from '../scripts/lib/hosted-workflow.mjs';
+import { validateFindingBounds,hostedWorkflow } from '../scripts/lib/hosted-workflow.mjs';
 
 function fixture(fetcher=async()=>new Response('{"award_date":"2026-10-03"}',{headers:{'Content-Type':'application/json'}})) {
   const ctx=context();
@@ -77,4 +77,95 @@ test('forged private receipts, unreviewed URLs, expired methods and blocked redi
   const receipt=await blocked.service.capture(blocked.ctx,blocked.packet,{packet_hash:blocked.packet.packet_hash,url:'https://example.gov/detail'},'reviewer');
   assert.equal(receipt.state,'blocked');assert.equal(receipt.lead_coverage,false);
   await assert.rejects(blocked.service.load(blocked.ctx,blocked.packet,receipt),/provenance/);
+});
+
+test('signed supporting facts rebind across requests without fetching and recheck document, listing, method and bounds',async()=>{
+  let fetches=0;
+  const f=fixture(async()=>{fetches++;return new Response('{"city":"Texarkana","deadline":"2026-10-30"}',{headers:{'Content-Type':'application/json'}});});
+  const capture=await f.service.capture(f.ctx,f.packet,{packet_hash:f.packet.packet_hash,url:'https://example.gov/detail'},'reviewer');
+  const evidence={...capture,locator:'saved document',excerpt:'{"city":"Texarkana","deadline":"2026-10-30"}'};
+  const review=result(f.packet);review.findings[0].supporting_evidence=[evidence];
+  await verifyEvidenceSpans(f.packet,review,{loadSupporting:e=>f.service.load(f.ctx,f.packet,e)});
+  const portable=await f.service.portable(f.ctx,f.packet,evidence);
+  const cached=cacheReviewedFacts({facts:[]},f.packet,review,{portableSupporting:new Map([['24-17',[portable]]])});
+  const later={...f.packet,request_id:'later-request',task_id:'later-task',packet_hash:'b'.repeat(64),
+    query_window:{from:'2026-10-01',to:'2026-11-01',date_basis:'deadline'},
+    pages:f.packet.pages.map(page=>({...page,run_id:'later-run'}))};
+  assert.equal(extractionKey(later,f.ctx.capability.method_spec),extractionKey(f.packet,f.ctx.capability.method_spec));
+  const reused=evaluateFacts(later,cached),finding=reused.findings[0];
+  finding.supporting_evidence=await Promise.all(finding.supporting_evidence.map(e=>f.service.rebind(f.ctx,later,e)));
+  assert.equal(finding.evidence[0].run_id,'later-run');
+  assert.equal(finding.supporting_evidence[0].retrieved_at,capture.retrieved_at);
+  await verifyEvidenceSpans(later,reused,{loadSupporting:e=>f.service.load(f.ctx,later,e)});
+  validateFindingBounds(later,reused,{verifiedSupporting:true});
+  assert.equal(fetches,1);
+  await assert.rejects(f.service.load(f.ctx,f.packet,finding.supporting_evidence[0]),/provenance/);
+  later.query_window.from='2027-01-01';later.query_window.to='2027-12-31';
+  assert.throws(()=>validateFindingBounds(later,reused,{verifiedSupporting:true}),/qualifying date/);
+  later.request_scope={...later.request_scope,requested_search_areas:[{area_type:'city',city_name:'Little Rock',state_code:'AR'}]};
+  later.query_window={from:'2026-10-01',to:'2026-11-01',date_basis:'deadline'};
+  assert.throws(()=>validateFindingBounds(later,reused,{verifiedSupporting:true}),/location/);
+  for(const changed of [{...later,source_id:'other-source'},{...later,method_version:'changed'},
+    {...later,pages:later.pages.map(p=>({...p,content_sha256:'c'.repeat(64)}))}])
+    await assert.rejects(f.service.rebind(f.ctx,changed,portable),/current listing and method/);
+  const spec=f.ctx.capability.method_spec;
+  f.ctx.capability.method_spec={...spec,check_instructions:'Changed method'};
+  await assert.rejects(f.service.rebind(f.ctx,later,portable),/current listing and method/);
+  f.ctx.capability.method_spec=spec;
+  const forged=await f.artifacts.put({kind:'supporting-fact-v1',signature:'0'.repeat(64)});
+  await assert.rejects(f.service.rebind(f.ctx,later,{...portable,reusable_receipt:forged}),/signature/);
+  f.saved.set(portable.local_path,Buffer.from('changed'));
+  await assert.rejects(f.service.rebind(f.ctx,later,portable),/hash/);
+  f.ctx.capability.verified_until='2020-01-01';
+  await assert.rejects(f.service.rebind(f.ctx,later,portable),/expired/);
+});
+
+test('an exactly reviewed structured row is replaced rather than left as an ambiguous duplicate',()=>{
+  const f=fixture(),review=result(f.packet),record={Description:'Janitorial services',generated_internal_id:'24-17'};
+  const excerpt=JSON.stringify(record);review.findings[0].evidence[0].excerpt=excerpt;
+  const cached=cacheReviewedFacts({version:1,facts:[{page_index:0,record,title:'',excerpt,locator:'row 1'}]},f.packet,review);
+  const reused=evaluateFacts(f.packet,cached);
+  assert.equal(cached.facts.length,1);assert.equal(reused.findings.length,1);assert.equal(reused.unresolved.length,0);
+  const other=cacheReviewedFacts({version:1,facts:[{page_index:0,record,title:'',excerpt:excerpt+' unrelated',locator:'row 1'}]},f.packet,review);
+  assert.equal(evaluateFacts(f.packet,other).unresolved.length,1);
+});
+
+test('the worker reuses a signed cached positive without AI, stages once and preserves lease checkpoints',async()=>{
+  let aiCalls=0;
+  const f=fixture(async()=>new Response('{"site":"Texarkana","deadline":"2026-10-30"}',{headers:{'Content-Type':'application/json'}}));
+  const capture=await f.service.capture(f.ctx,f.packet,{packet_hash:f.packet.packet_hash,url:'https://example.gov/detail'},'reviewer');
+  const review=result(f.packet);review.findings[0].supporting_evidence=[{...capture,locator:'saved document',excerpt:'{"site":"Texarkana","deadline":"2026-10-30"}'}];
+  const portable=await f.service.portable(f.ctx,f.packet,review.findings[0].supporting_evidence[0]);
+  f.ctx.request.search_windows.opportunity={from:'2026-10-01',to:'2026-11-01',date_basis:'deadline'};
+  f.ctx.request.workflow_control={};f.ctx.request.initiated_by='reviewer';
+  f.ctx.task.query_window=f.ctx.request.search_windows.opportunity;f.ctx.task.state='needs_interpretation';
+  const later=makeInterpretationPacket(f.ctx),cached=cacheReviewedFacts({version:1,facts:[]},f.packet,review,{portableSupporting:new Map([['24-17',[portable]]])});
+  const worker={id:'worker',search_request_id:f.ctx.request.id,state:'running',lease_token:'lease',checkpoint:{stage:'interpret'}};
+  const tables={procurement_search_requests:[f.ctx.request],procurement_request_targets:[{id:f.ctx.task.target_id,search_request_id:f.ctx.request.id}],
+    procurement_coverage_tasks:[f.ctx.task],procurement_jobs:[f.ctx.job,worker],procurement_sources:[f.ctx.source],
+    procurement_source_capabilities:[f.ctx.capability],procurement_runs:f.ctx.runs,procurement_public_captures:f.ctx.captures,
+    procurement_extraction_cache:[{cache_key:extractionKey(later,f.ctx.capability.method_spec),facts:cached}],
+    procurement_interpretations:[],procurement_intake_items:[],procurement_request_sources:[],procurement_usage_ledger:[],procurement_intake_leads:[]};
+  let claim=true,savedInterpretation;
+  const db={from(table){
+    const filters=[];let single=false,operation;
+    const query={select(){return this;},eq(k,v){filters.push(r=>r[k]===v);return this;},in(k,v){filters.push(r=>v.includes(r[k]));return this;},
+      order(){return this;},range(){return this;},maybeSingle(){single=true;return this;},
+      upsert(value){operation=()=>{for(const row of [].concat(value))if(!tables[table].some(r=>r.id===row.id))tables[table].push(row);};return this;},
+      then(resolve,reject){return Promise.resolve().then(()=>{operation?.();const data=(tables[table]??[]).filter(r=>filters.every(fn=>fn(r)));return {data:single?data[0]??null:data};}).then(resolve,reject);}};
+    return query;
+  },async rpc(name,args){
+    if(name==='claim_procurement_workflow_job'){const data=claim?worker:null;claim=false;return {data};}
+    if(name==='checkpoint_procurement_workflow'){assert.equal(args.p_lease,'lease');worker.checkpoint=args.p_checkpoint;worker.state=args.p_state;return {data:true};}
+    if(name==='reserve_procurement_interpretation'){savedInterpretation={id:'interpretation',revision:1};return {data:savedInterpretation};}
+    if(name==='finalize_procurement_interpretation'){savedInterpretation.staging_receipt=args.p_receipt;return {data:savedInterpretation};}
+    if(name==='refine_procurement_extraction'){tables.procurement_extraction_cache[0].facts=args.p_facts;return {data:true};}
+    throw Error('Unexpected fixture RPC');
+  }};
+  const workflow=hostedWorkflow({db,project:'zreplhkoxswtzxlchtjf',serverKey:()=> 'private-test-key',artifacts:f.artifacts,
+    aiConfig:{enabled:true},ai:async()=>{aiCalls++;throw Error('Verified fact should not need AI');}});
+  assert.equal(await workflow.step(),true);
+  assert.equal(aiCalls,0);assert.equal(worker.state,'pending');assert.equal(worker.checkpoint.cache_hits,1);
+  assert.deepEqual(worker.checkpoint.interpreted_task_ids,[f.ctx.task.id]);assert.equal(tables.procurement_intake_items.length,1);
+  assert.equal(await workflow.step(),false);assert.equal(tables.procurement_intake_items.length,1);
 });

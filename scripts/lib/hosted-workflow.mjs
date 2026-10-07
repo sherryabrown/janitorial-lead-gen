@@ -92,7 +92,10 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
       const ctx=await context(requestId,taskId),key=extractionKey(p,ctx.capability.method_spec);
       const cached=checked(await db.from('procurement_extraction_cache').select('*').eq('cache_key',key).maybeSingle());
       const original=cached?.facts??await extractFacts(p,ctx.capability.method_spec);
-      const refined=cacheReviewedFacts(original,p,reviewed);
+      const portableSupporting=new Map();
+      for(const finding of reviewed.findings)if(finding.supporting_evidence?.length)
+        portableSupporting.set(finding.record_id,await Promise.all(finding.supporting_evidence.map(e=>supporting.portable(ctx,p,e))));
+      const refined=cacheReviewedFacts(original,p,reviewed,{portableSupporting});
       if(!cached)checked(await db.from('procurement_extraction_cache').upsert({cache_key:key,source_id:p.source_id,facts:refined},{onConflict:'cache_key',ignoreDuplicates:true}));
       else if(!await rpc('refine_procurement_extraction',{p_key:key,p_expected:cached.facts,p_facts:refined}))
         throw new Error('Reviewed findings persisted; concurrent cache refinement needs reconciliation');
@@ -176,7 +179,13 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
         // never decides coverage for a different geography or date window.
         const eligible=[];
         for(const finding of result.findings) {
-          try {validateFindingBounds(p,{findings:[finding]});eligible.push(finding);}
+          try {
+            if(finding.supporting_evidence?.length) {
+              finding.supporting_evidence=await Promise.all(finding.supporting_evidence.map(e=>supporting.rebind(ctx,p,e)));
+              await verifyEvidenceSpans(p,{findings:[finding],exclusions:[],unresolved:[]},{loadSupporting:e=>supporting.load(ctx,p,e)});
+            }
+            validateFindingBounds(p,{findings:[finding]},{verifiedSupporting:!!finding.supporting_evidence?.length});eligible.push(finding);
+          }
           catch {result.unresolved.push({reason:'Cached source fact does not establish this request scope/date; review before exclusion',evidence:finding.evidence});}
         }
         result.findings=eligible;

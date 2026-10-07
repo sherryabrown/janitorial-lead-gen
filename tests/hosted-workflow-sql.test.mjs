@@ -36,10 +36,15 @@ test('request submission is atomic/idempotent, conflicting input rejected, and a
     assert.equal(request.initiated_by,id(1));assert.deepEqual(request.requested_categories,['opportunity']);
     const job=(await db.query('select claim_procurement_workflow_job() as job')).rows[0].job;
     assert.equal((await db.query('select claim_procurement_workflow_job() as job')).rows[0].job,null);
+    const checkpoint={stage:'interpret',interpreted_task_ids:[id(71)],cache_hits:2,artifact:'artifacts/'+ 'a'.repeat(64)};
+    assert.equal((await db.query('select checkpoint_procurement_workflow($1,$2,$3,$4) as saved',
+      [job.id,job.lease_token,'running',checkpoint])).rows[0].saved,true);
     await db.query("update procurement_jobs set lease_until=now()-interval '1 second' where id=$1",[job.id]);
     const resumed=(await db.query('select claim_procurement_workflow_job() as job')).rows[0].job;
     assert.equal(resumed.id,job.id);assert.notEqual(resumed.lease_token,job.lease_token);
+    assert.deepEqual(resumed.checkpoint,checkpoint);assert.equal(resumed.attempts,job.attempts+1);
     assert.equal((await db.query('select checkpoint_procurement_workflow($1,$2,$3,$4) as saved',[job.id,job.lease_token,'succeeded',{stage:'bad'}])).rows[0].saved,false);
+    assert.deepEqual((await db.query('select checkpoint from procurement_jobs where id=$1',[job.id])).rows[0].checkpoint,checkpoint);
     assert.equal((await db.query('select checkpoint_procurement_workflow($1,$2,$3,$4) as saved',[job.id,resumed.lease_token,'blocked',{stage:'interpret',next_action:'Review exact evidence'}])).rows[0].saved,true);
   }finally{await db.close();}
 });

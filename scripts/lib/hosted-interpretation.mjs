@@ -145,19 +145,22 @@ export function evaluateFacts(packet,extraction) {
   return result;
 }
 
-export function cacheReviewedFacts(extraction,packet,result) {
+export function cacheReviewedFacts(extraction,packet,result,{portableSupporting=new Map()}={}) {
   // Save only verified positive source facts; never cache a request's zero, exclusion,
   // scope conclusion or unresolved outcome as reusable coverage.
   const facts=[...extraction.facts];
   for(const finding of result.findings) {
-    // Supporting receipts bind to a request packet, not to a reusable scope conclusion.
-    if(finding.supporting_evidence?.length)continue;
+    // Unsigned/client-provided supporting evidence never becomes portable.
+    const supporting=portableSupporting.get(finding.record_id);
+    if(finding.supporting_evidence?.length && !supporting)continue;
     const index=packet.pages.findIndex(p=>p.run_id===finding.evidence[0].run_id);
     const evidence=finding.evidence.map(({run_id,...e})=>({...e,page_index:packet.pages.findIndex(p=>p.run_id===run_id)}));
     const saved={...finding,evidence};delete saved.supporting_evidence;
+    if(supporting)saved.supporting_evidence=supporting;
     const identity=finding.record_id;
     const matching=facts.findIndex(f=>f.verified_finding?.record_id===identity ||
-      f.page_index===index && (f.record?.id===identity || f.title===finding.title));
+      f.page_index===index && (f.record?.id===identity || f.title===finding.title ||
+        f.record && finding.evidence.some(e=>clean(e.excerpt)===f.excerpt)));
     const fact={page_index:index,locator:evidence[0].locator,title:finding.title,record:null,excerpt:evidence[0].excerpt,verified_finding:saved};
     if(matching>=0)facts[matching]=fact;else facts.push(fact);
   }
