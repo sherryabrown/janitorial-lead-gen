@@ -138,10 +138,12 @@ export function planManual(spec,before){
 }
 const literal=v=>`'${JSON.stringify(v).replaceAll("'","''")}'::jsonb`;
 const quote=k=>{need(/^[a-z_]+$/.test(k),'Invalid SQL identifier');return '"'+k+'"';};
-export function persistenceSql(m){
+export function persistenceSql(m,{schema='public',transaction=true}={}){
+ need(['public','procurement_test'].includes(schema),'Unsupported persistence target');
+ const prefix=schema+'.';
  const allowed=['procurement_sources','procurement_search_requests','procurement_intake_items','procurement_source_capabilities','procurement_request_sources'];
  const statements=m.rows.map(d=>{
-  need(allowed.includes(d.table)&&uuid.test(d.row.id),'Invalid persistence target');const keys=Object.keys(d.row),table='public.'+quote(d.table),json=literal(d.row),before=literal(d.before);
+  need(allowed.includes(d.table)&&uuid.test(d.row.id),'Invalid persistence target');const keys=Object.keys(d.row),table=prefix+quote(d.table),json=literal(d.row),before=literal(d.before);
   const projection=keys.map(k=>`'${k}',to_jsonb(t)->'${k}'`).join(',');
   const expected=`(select jsonb_build_object(${keys.map(k=>`'${k}',to_jsonb(x)->'${k}'`).join(',')}) from jsonb_populate_record(null::${table},${json}) x)`;
   return `do $guard$ begin
@@ -150,11 +152,13 @@ export function persistenceSql(m){
  end $guard$;
  ${d.before?`update ${table} t set ${keys.filter(k=>k!=='id').map(k=>`${quote(k)}=x.${quote(k)}`).join(',')},updated_at=now() from jsonb_populate_record(null::${table},${json}) x where t.id=x.id and jsonb_build_object(${projection})<>${expected};`:`insert into ${table} (${keys.map(quote).join(',')}) select ${keys.map(quote).join(',')} from jsonb_populate_record(null::${table},${json}) on conflict(id) do nothing;`}`;
  }).join('\n');
- return `begin; set local lock_timeout='10s'; set local statement_timeout='90s';
-lock table public.procurement_sources,public.procurement_search_requests,public.procurement_intake_items${m.rows.some(r=>r.table==='procurement_source_capabilities')?',public.procurement_source_capabilities':''}${m.rows.some(r=>r.table==='procurement_request_sources')?',public.procurement_request_sources':''} in share row exclusive mode;
+ const locks=m.kind==='registry'?[...new Set(m.rows.map(r=>r.table))]:['procurement_sources','procurement_search_requests','procurement_intake_items'];
+ if(m.kind!=='registry')for(const t of ['procurement_source_capabilities','procurement_request_sources'])if(m.rows.some(r=>r.table===t))locks.push(t);
+ return `${transaction?'begin; ':''}set local lock_timeout='10s'; set local statement_timeout='90s';
+${locks.length?'lock table '+locks.map(t=>prefix+quote(t)).join(',')+' in share row exclusive mode;':''}
 ${statements}
 -- AFTER_CANONICAL_UPSERT: offline fault-injection point.
-commit;\n`;
+${transaction?'commit;':''}\n`;
 }
 export function verifyPersistence(before,after,m){
  const errors=[];if(before.project_ref!==m.project_ref||after.project_ref!==m.project_ref)errors.push('Project mismatch');

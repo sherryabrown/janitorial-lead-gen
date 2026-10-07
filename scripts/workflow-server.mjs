@@ -12,6 +12,7 @@ import { workflowServer } from './lib/workflow-http.mjs';
 import { discoveryService } from './lib/hosted-discovery.mjs';
 import { browserService } from './lib/hosted-browser.mjs';
 import { startupBrowserBenchmark } from './lib/browser-feasibility.mjs';
+import {executeKnownSources} from './lib/known-source-collection.mjs';
 const project='zreplhkoxswtzxlchtjf';
 const env=process.env;
 if(env.SUPABASE_URL!==`https://${project}.supabase.co` || !env.SUPABASE_SERVICE_ROLE_KEY)
@@ -30,7 +31,8 @@ const aiConfig={enabled:env.PROCUREMENT_AI_ENABLED==='true',monthlyUsd:Number(en
 const sam=statewideSam({db,project,serverKey:()=>env.SUPABASE_SERVICE_ROLE_KEY,artifacts});
 const imports=importJobs({db,project,transport,artifacts,samSavedRuns:sam.savedRuns,
   rehearse:rehearsalPool?nativeRehearsal(rehearsalPool):null});
-const workflow=hostedWorkflow({db,project,serverKey:()=>env.SUPABASE_SERVICE_ROLE_KEY,artifacts,aiConfig,processJob:(job,c,save)=>c.stage.startsWith('sam_')?sam.step(job,c,save):imports.step(job,c,save)});
+const workflow=hostedWorkflow({db,project,serverKey:()=>env.SUPABASE_SERVICE_ROLE_KEY,artifacts,aiConfig,processJob:(job,c,save)=>
+  c.stage.startsWith('discovery_')?discovery.step(job,c,save):c.stage.startsWith('sam_')?sam.step(job,c,save):imports.step(job,c,save)});
 let running=false;
 let benchmarking=Boolean(env.PROCUREMENT_BROWSER_BENCHMARK_ID);
 function kick() {
@@ -43,7 +45,9 @@ function kick() {
     finally {running=false;}
   });
 }
-const discovery=discoveryService({db,project,artifacts});
+const discovery=discoveryService({db,project,artifacts,transport,rehearse:rehearsalPool?nativeRehearsal(rehearsalPool):null,
+  collect:({requestId,sourceCode,planOnly})=>executeKnownSources({db,project,serverKey:()=>env.SUPABASE_SERVICE_ROLE_KEY,
+    command:planOnly?'plan':'run',requestId,selectedSourceCode:sourceCode,maxJobs:4,retryPartial:false})});
 const browser=browserService({db,artifacts,sessionKey:env.PROCUREMENT_SESSION_ENCRYPTION_KEY});
 const server=workflowServer({workflow,imports,discovery,kick,
   attention:attentionService(db),

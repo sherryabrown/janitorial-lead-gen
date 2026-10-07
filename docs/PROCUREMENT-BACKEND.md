@@ -72,7 +72,10 @@ Requests use Idempotency-Key (8–100 letters, digits, underscores or hyphens). 
 | GET /v1/imports/:job | Read tested summary, approval hash and next action; private SQL/package excluded. |
 | POST /v1/imports/:job/approve | Body contains approval_sha256 matching the exact tested package. Applies guarded SQL and verifies readback. |
 | POST /v1/imports/:job/reconcile | Verify unknown transaction against saved baseline; never automatically resend. |
-| POST /v1/requests/:id/discover | Persist selected-category gaps and exact research handoff. Automatic researcher is **not configured yet**. |
+| POST /v1/requests/:id/discover | With task_id, queue one saved gap's bounded official-link research; optional seed_source_id must be associated with the request. Without task_id, return gap selection. No paid search, signup or coverage claim. |
+| GET /v1/requests/:id/discovery/tasks/:task/packet | Read the sanitized saved research packet and exact packet hash; no raw bytes, credentials or SQL. |
+| POST /v1/requests/:id/discover/review | Bind task_id, packet_hash, reviewed sourceSpec/capability, category_evidence, check_instructions, terminal_instruction and portal/API handoffs. Queue native rehearsal, guarded registration/readback and existing source collection. |
+| POST /v1/requests/:id/discover/resume | Resume a corrected blocked stage by task_id without resetting saved progress. Unknown fetch or transaction outcomes require reconciliation before retry. |
 | GET /v1/access/:handoff | Sanitized existing access status. |
 | POST /v1/access/:handoff/events | Existing lifecycle/CAS events; credentials excluded. |
 | POST /v1/access/:handoff/continue | Save exact secure-session/recipe blocker. Hosted signup/sign-in continuation is **not operational yet**. |
@@ -105,7 +108,17 @@ scripts/workflow-server.mjs is the Node entry point (npm run workflow:server). w
 
 Durable procurement_jobs carry stage/checkpoint/lease. Supabase private Storage bucket procurement-private holds immutable content-addressed packages and encrypted session artifacts. Only two new private tables: procurement_extraction_cache and procurement_usage_ledger. Existing source/access/capture/intake/lead registries are reused. Cache source facts, then reapply each request's scope/dates; never reuse another request's zero/coverage conclusion. Entry checks, failed fetches and successful login do not establish lead coverage.
 
-Paid AI defaults **off**. Enabling requires an approved monthly limit, configured model/key and versioned rates. Database reservations enforce $1/request, four total inference calls, 32,000/8,000 total input/output tokens and 8,000/2,000 per call. Input token counting precedes inference. Confirmed primary credit/quota rejection alone permits Anthropic fallback; unknown calls retain reservations. Reported costs represent hosted provider calls, **not historical Codex chat costs**. Automatic discovery's search-tool accounting is still outstanding and must precede enabling it.
+Paid AI defaults **off**. Enabling requires an approved monthly limit, configured model/key and versioned rates. Database reservations enforce $1/request, four total inference calls, 32,000/8,000 total input/output tokens and 8,000/2,000 per call. Input token counting precedes inference. Confirmed primary credit/quota rejection alone permits Anthropic fallback; unknown calls retain reservations. Reported costs represent hosted provider calls, **not historical Codex chat costs**. October 7 user decision: preserve the strict cap and follow official-site links first. Discovery sends zero inference/search calls; paid hosted search remains disabled because added tool context cannot be prebounded to the per-call cap. When the saved official entry and ten same-host pages are insufficient, persist a specific research handoff rather than raise limits.
+
+### Bounded official-link discovery
+
+Shared `official-link-discovery.mjs` uses existing jobs/global leases, runs/captures and private content-addressed artifacts. One page per checkpoint, at most ten pages and 2 MB/page; HTTPS on the registered official host only. External portal/developer links are recorded for review, never automatically trusted or used for signup. Saved uncertain fetches are not replayed. Registered sources retain their identity/config/history; new sources require an already-associated official seed and captured identity. Evidence-backed public-fetch methods are versioned and rechecked after 30 days. Arbitrary URLs, SQL or browser commands are not callable through this contract.
+
+The method review uses literal saved category evidence and captured destinations; entry retrieval alone does not activate category coverage. Portal and API assessments remain private in existing handoffs. Existing lifecycle/account progress is preserved. Native registry rehearsal reuses `procurement_test` rollback/readback/replay/cleanup; production SQL locks only mutated registry tables, without granting request writes. Approved migration `20261007000600` adds INSERT/UPDATE permission and RLS policies for the existing backend login on sources, capabilities and source/request associations only; no new tables/login/delete permission.
+
+After method registration, the same runner performs a fresh bounded category capture. Review/interpretation, immutable candidate staging, exact import preparation and approval are the existing endpoints above. Research jobs do not invoke the geography worker's AI loop or import leads automatically. Subsequent requests route the saved capability without discovery. A zero eligible result is not evidence of positive-candidate/import acceptance.
+
+Render environment operations must read all pages of `/env-vars` before replacing settings and verify every prior key/value afterward. The temporary Chromium benchmark omitted the final validator variable from the default page; its previously approved connection was restored October 7. Code deployment is needed to instantiate that restored validator pool.
 
 ## Reviewed deployment checklist
 

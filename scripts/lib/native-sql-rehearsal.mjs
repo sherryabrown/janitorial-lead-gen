@@ -5,7 +5,8 @@ import {same} from './sam-normalize.mjs';
 import {verifyBatch} from './batch-verification.mjs';
 import {reconciliationSql} from './intake-reconcile.mjs';
 import {linkRepairSql,verifyLinkRepair} from './api-link-repair.mjs';
-const generatedSql=(m,options)=>m.kind==='api-link-repair'?linkRepairSql(m,options):reconciliationSql(m,options);
+import {persistenceSql,verifyPersistence} from './research-persistence.mjs';
+const generatedSql=(m,options)=>m.kind==='registry'?persistenceSql(m,options):m.kind==='api-link-repair'?linkRepairSql(m,options):reconciliationSql(m,options);
 
 export const rehearsalPolicy=contract.version;
 export const rehearsalTables=['procurement_sources','procurement_leads','procurement_intake_items','procurement_intake_leads',
@@ -122,10 +123,10 @@ export function nativeRehearsal(pool) {
       await client.query('rollback to savepoint fault_check');
       if(!injected||!same(initial,await snapshot()))throw new Error('Native rollback test failed');
       await client.query(b.sql);
-      const after=await snapshot(),verification=manifest.kind==='api-link-repair'?verifyLinkRepair(initial,after,manifest):verifyBatch(initial,after,manifest);
+      const after=await snapshot(),verification=manifest.kind==='registry'?verifyPersistence(initial,after,manifest):manifest.kind==='api-link-repair'?verifyLinkRepair(initial,after,manifest):verifyBatch(initial,after,manifest);
       if(!verification.verified)throw new Error(`Native readback did not verify: ${verification.errors.join('; ')}`);
       // Temporary generator tables live until outer rollback, so remove only those fixed names before replay.
-      await client.query(manifest.kind==='api-link-repair'?
+      if(manifest.kind!=='registry')await client.query(manifest.kind==='api-link-repair'?
         'drop table pg_temp.link_repair_manifest,pg_temp.link_repair_delta,pg_temp.link_repair_changed':
         'drop table pg_temp.reconciliation_manifest,pg_temp.lead_delta,pg_temp.intake_delta,pg_temp.canonical_columns_before');
       await client.query(b.sql);

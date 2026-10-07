@@ -149,7 +149,7 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
     if(request.workflow_control.cancelled){await save('cancelled');return true;}
     const timer=setInterval(()=>save('running').catch(()=>{}),60000);timer.unref();
     try {
-      if((checkpoint.stage.startsWith('import_')||checkpoint.stage.startsWith('sam_'))) {
+      if((checkpoint.stage.startsWith('import_')||checkpoint.stage.startsWith('sam_')||checkpoint.stage.startsWith('discovery_'))) {
         await processJob(job,checkpoint,save);
       } else if(checkpoint.stage==='plan') {
         await executeKnownSources({db,project,serverKey,command:'plan',requestId:request.id});

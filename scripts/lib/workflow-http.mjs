@@ -61,6 +61,12 @@ export function workflowServer({authenticate,workflow,imports,discovery,sam,samP
           result=await imports.prepare(id,input,actor);kick();send(202,result);return;
         } else if(request.method==='POST'&&segments.length===4&&segments[3]==='discover') {
           result=await discovery(id,input,actor);kick();send(202,result);return;
+        } else if(request.method==='POST'&&segments.length===5&&segments[3]==='discover'&&segments[4]==='review') {
+          result=await discovery.review(id,input,actor);kick();send(202,result);return;
+        } else if(request.method==='POST'&&segments.length===5&&segments[3]==='discover'&&segments[4]==='resume') {
+          result=await discovery.resume(id,input,actor);kick();send(202,result);return;
+        } else if(request.method==='GET'&&segments.length===7&&segments[3]==='discovery'&&segments[4]==='tasks'&&uuid.test(segments[5])&&segments[6]==='packet') {
+          result=await discovery.packet(id,segments[5]);
         }
       } else if(segments[1]==='imports'&&uuid.test(segments[2]??'')) {
         if(request.method==='GET'&&segments.length===3) {result=await imports.status(segments[2]);kick();}
