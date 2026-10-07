@@ -12,29 +12,28 @@ October 6, 2026. **Backend continuation in progress; frontend deferred by the us
 
 ## Current acceptance checklist
 
-API user-facing link correction is owned solely by [api-procurement-lead-links.md](../done/api-procurement-lead-links.md), planned October 7: inventory all leads, repair API-origin public record links (including SAM), preserve capture evidence and reviewed backfill. Do not duplicate that work here or reopen the completed Ashdown insertion. Code deployment remains held; link backfill requires its own exact approval.
+Authoritative current state (October 7); older continuation observations below are historical. API-link repair is complete in `specs/done/api-procurement-lead-links.md`; six corrected links and approved migration are preserved. Render Free snapshot fix `15e0869` and existing Netlify app are deployed; no deployment hold remains. Hosted supporting-evidence route, exact approved import and live project-name click are verified.
 
-Completed evidence:
+- [x] Supabase migrations, restricted import/rehearsal roles, private storage/RLS, strict TLS and denial checks.
+- [x] Existing Render Free backend, authenticated HTTP contract and existing Netlify origin; no frontend added.
+- [x] OpenAI/Anthropic configuration and approved $1/request, $10/month, four-call/token caps; actual pilot usage recorded.
+- [x] Native per-batch rehearsal fits Render Free; approved existing/new-lead import/readback/replay evidenced.
+- [x] One live known API geography request: bounded capture → manual verified interpretation → persisted candidate → exact approved import/readback/replay. Ashdown pilot report below; this is not full geography coverage.
+- [x] Second bounded request reuses registered methods without source research; prepared package matches existing identity with zero new leads/evidence updates.
+- [x] Render recorded restart; durable status/packet/private package recovered and approved application/replay succeeded afterward.
+- [ ] Live extraction-cache reuse with zero model calls. Pilot made one inference call per request; user chose to retain default AI behavior. Do not equate method reuse with cache acceptance.
+- [ ] Non-API structured public positive-candidate acceptance; automatic ambiguous-evidence interpretation remains blocked at exact-quotation validation, with manual review available.
+- [ ] In-flight interrupted-worker/lease recovery, timed idle cold start and actual Chromium/PDF memory fit; native SQL fit is already verified.
+- [ ] Separate statewide SAM approved live import/reconciliation. Staging/public links and native notice preparation are verified in the completed link plan; stale award evidence remains blocked.
+- [ ] Bounded official discovery/search accounting, guarded registration and second-request reuse (outside current batch).
+- [ ] Secure browser/session and signup/sign-in continuation/capture wiring (outside current batch).
+- [x] Sanitized needs-attention API uses existing states; offline regression passed. No notification delivery or screens.
 
-- [x] Supabase migration 20261007000100 applied and recorded; private bucket/RLS/service-only RPCs verified.
-- [x] Render Free backend deployed at https://janitorial-procurement-backend.onrender.com; automatic deploys off. Health 200, anonymous/invalid sessions 401, unapproved origins 403.
-- [x] OpenAI gpt-5.4-mini and Anthropic claude-haiku-4-5-20251001 keys/model token-count access verified and configuration deployed. Budget $1/request, $10/month, four inference calls, existing token limits.
-- [x] Initial offline HTTP/cache/PDF/SQL/recovery tests (165 workflow, 15 app; original SQL suites) passed.
+Latest batch evidence: `docs/reviews/2026-10-07-known-source-backend-acceptance.md`. Approved job `ec51d498-6379-4da9-bd15-ecd99865416b` verified zero new leads and one existing-lead evidence/provenance update; no-write replay passed. Second package `b3a8500a-6949-4eac-8f6a-54f4ba4f1f3e` awaits its own approval; no second live import sent. Twenty focused tests passed. Combined live inference $0.01090125. No source research, SAM, frontend, access work or code changes in this batch. Keep plan in todo for named remaining checks.
 
-Remaining implementation/verification:
+### Historical local continuation evidence
 
-- [x] Dedicated PostgreSQL reviewed-import role/transport, private credentials and live grants/RLS verification.
-  - Migrations `20261007000200`/`20261007000300` applied and recorded. Restricted login, grants/RLS, strict TLS and denial checks passed. Native test-schema rehearsal replaced hosted PGlite after its recorded OOM; exact approved existing/new-lead production import/readback/replay are evidenced below.
-- [ ] Complete separate statewide SAM staging/review/import/reconciliation using existing normalization and safeguards.
-- [ ] Bounded official-source researcher, search-cost reservations, verified generic registration and second-request reuse.
-- [ ] Secure browser/session adoption, saved authorized recipes, signup/sign-in lifecycle continuation and capture wiring. Human-only challenges remain handoffs.
-- [x] Local sanitized needs-attention API from existing job/access/task states; no notification UI or delivery. Authentication, projection and pagination regression tests passed; deployment/readback still required below.
-- [ ] Live authenticated known-source/API capture -> verified interpretation -> persisted candidates -> exact reviewed import/readback and unchanged second-request reuse.
-- [ ] Render Free cold-start/restart/private-artifact recovery and measured browser/PDF/native-rehearsal import memory fit. Per-batch rehearsal runs in procurement_test; offline PGlite suites remain release verification.
 
-Frontend components/tests above are deferred; no application screen or notifications will be added in this build. Exact reviewed production batch approval remains required. Historical progress below retains prior observations; this checklist owns current status.
-
-### Current local continuation evidence
 
 SAM page artifacts now bind to saved run audits, stage immutable intake observations and feed the existing tested reviewed-import package. Separate request status and a SAM review packet expose the candidates. Hosted import preparation binds the exact saved SAM run set and candidate IDs; package rebuild and SQL rollback/replay safeguards are preserved. Nineteen focused tests passed. These local changes have not been pushed/deployed or verified with a live import, so the SAM acceptance item stays open.
 
@@ -206,7 +205,7 @@ Prepared: authenticated v1 HTTP contract, shared CLI/host geography and collecti
 
 Evidence: offline authenticated HTTP/denial tests, actual PDF quote validation, cached-fact date revalidation, SQL idempotency/lease/budget/privacy/SAM separation, and original reviewed SQL rollback/readback/replay/import recovery tests. Full test counts are recorded after final verification. No paid provider calls or production reviewed import were sent.
 
-**Remaining acceptance checks (keep in todo):**
+**Historical initial acceptance snapshot (current checklist above is authoritative):**
 
 - Hosting, migration and AI configuration are completed as checked above. Live inference and workflow acceptance remain required.
 - Complete/configure bounded official researcher and search-cost accounting; wire and validate guarded discovered-method registration/reuse through the HTTP workflow. Current discovery route persists a truthful blocked handoff.

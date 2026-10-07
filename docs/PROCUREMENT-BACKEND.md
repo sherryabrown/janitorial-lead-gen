@@ -1,3 +1,5 @@
+Known-source backend acceptance (October 7): authenticated Ashdown API capture, manual verified interpretation, candidate persistence, exact approved evidence import/readback and no-write replay passed. Second bounded request reused methods; its prepared package proposes zero new leads/evidence updates. Render restart/private package recovery verified. Zero-AI repeat did not pass; user retained current default AI behavior. See `docs/reviews/2026-10-07-known-source-backend-acceptance.md` for exact IDs, usage and outstanding checks. No code/frontend/source-method changes. Earlier notes below are historical checkpoints.
+
 API-link repair completion: six corrections preserved; approved hosted evidence import/readback/replay and user project-name click verified. Snapshot fix `15e0869` is live on Render Free; saved SAM notice native preparation passed at 160.9 MiB peak container memory. SAM package awaits its separate import approval; stale award evidence remains correctly blocked. Repair owner: `specs/done/api-procurement-lead-links.md`. Earlier continuation notes below are historical checkpoints.
 
 # Procurement backend API (v1)
