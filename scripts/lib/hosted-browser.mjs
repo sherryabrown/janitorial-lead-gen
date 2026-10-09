@@ -196,8 +196,9 @@ export function browserService({db,sessionKey,artifacts=artifactStore(db),secret
     const audited=checked(await db.from('procurement_jobs').update({checkpoint:intent}).eq('id',job.id).eq('lease_token',job.lease_token).select('id'));
     if(audited.length!==1)throw new Error('Browser request intent could not be saved; no navigation sent');
     const state=validateSessionState(JSON.parse(decryptSession(await artifacts.get(session.artifact),sessionKey,sessionIdentity(handoff)).toString()),recipe.allowed_hosts);
-    const browser=await launch();
+    let browser,failureCode='browser_launch_failed';
     try {
+      browser=await launch();failureCode='tenant_session_unverified';
       const context=await browser.newContext({storageState:state,acceptDownloads:false,serviceWorkers:'block'});
       await guardPortalContext(context,[...new Set([...spec.allowed_hosts,...recipe.allowed_hosts])]);
       const page=await context.newPage();
@@ -205,6 +206,7 @@ export function browserService({db,sessionKey,artifacts=artifactStore(db),secret
       const bodies=[],pages=[];
       if(spec.urls.length>2)throw Error('Hosted browser page bound exceeded; narrow the saved method before collection');
       for(const url of spec.urls) {
+        failureCode='document_retrieval_failed';
         if(new URL(url).pathname.toLowerCase().endsWith('.pdf')) {
           const fetched=await fetchPublicCheck({...spec,runner_id:'public-fetch'},url,async(target,options)=>{
             const cookies=await context.cookies(target);
@@ -216,11 +218,17 @@ export function browserService({db,sessionKey,artifacts=artifactStore(db),secret
           pages.push({run_id,url,content_type:'application/pdf',content_sha256:sha(fetched.body),retrieved_at:new Date().toISOString()});
           continue;
         }
+        failureCode='navigation_failed';
         const response=await page.goto(url,{waitUntil:'domcontentloaded',timeout:30000});
+        failureCode='upstream_access_denied';
+        if(/just a moment|security verification|captcha/i.test(await page.title())) {
+          failureCode='human_verification_required';throw Error('Human source verification required');
+        }
         if(response?.status()!==200 || !safePublicUrl(page.url(),spec.allowed_hosts) ||
           await page.locator('input[type="password"]').count() || /login|log in|sign in|captcha|access denied|forbidden/i.test(await page.title()))
           throw new Error('Sign-in/challenge/access page encountered; user action required');
         // Capture sanitized rendered evidence. Session material is retained only as encrypted private state.
+        failureCode='capture_validation_failed';
         const raw=await page.content();if(Buffer.byteLength(raw)>spec.max_bytes)throw Error('Raw rendered capture exceeds saved byte bound');
         const bytes=sanitizeBrowserDocument(raw);
         if(bytes.length>spec.max_bytes)throw new Error('Rendered browser capture exceeds saved byte bound');
@@ -233,6 +241,7 @@ export function browserService({db,sessionKey,artifacts=artifactStore(db),secret
       const input={method_hash:accessHash(cap.method_spec),pages,terminal_confirmed:false,
         terminal_evidence:'Saved bounded rendered pages; terminal pagination has not been verified'};
       const savedPages=validateBrowserPages(input,cap.method_spec,bodies);
+      failureCode='capture_persistence_uncertain';
       const receipt=checked(await db.rpc('record_procurement_browser_capture',{p_handoff_id:handoff.id,p_job_id:job.id,
         p_lease_token:job.lease_token,p_method_spec:cap.method_spec,p_kind:cap.kind,p_pages:savedPages,
         p_terminal:false,p_terminal_evidence:input.terminal_evidence}));
@@ -247,7 +256,27 @@ export function browserService({db,sessionKey,artifacts=artifactStore(db),secret
       await event(savedHandoff,actor,{type:'stage',stage:`${cap.kind}_access`,state:'accessible',run_id:pages[0].run_id,
         verified_until:session.verified_until,next_action:'Review bounded saved category evidence; access proof is not complete lead coverage'});
       return {receipt,actor_id:actor,state:'partial',resources,next_action:'Review captured evidence and verify the terminal method before claiming category coverage'};
-    }finally{await browser.close();resources.browser_closed=!browser.isConnected();resources.kernel_peak_after=await memory('peak');resources.finished_at=new Date().toISOString();
+    }catch {
+      resources.failure_code=failureCode;
+      await browser?.close();resources.browser_closed=!browser||!browser.isConnected();
+      // Only a completed, closed attempt with no saved audit may release its lease.
+      // Partial writes and uncertain persistence always retain reconciliation guards.
+      const [runs,captures,current]=await Promise.all([
+        rows(db,'procurement_runs',q=>q.in('id',intent.hosted_browser_attempt.run_ids)),
+        rows(db,'procurement_public_captures',q=>q.in('run_id',intent.hosted_browser_attempt.run_ids),'*',{order:'run_id'}),
+        one(db,'procurement_jobs',job.id)]);
+      if(resources.browser_closed&&!runs.length&&!captures.length&&failureCode!=='capture_persistence_uncertain'&&
+        current?.lease_token===job.lease_token) {
+        const next_action=failureCode==='human_verification_required'?'Complete official source verification through the secure browser handoff; do not retry automatically':
+          'Inspect the saved failure code and source/session state before explicitly resuming; no capture was saved';
+        const changed=checked(await db.from('procurement_jobs').update({state:'blocked',lease_token:null,lease_until:null,
+          checkpoint:{...current.checkpoint,next_action,hosted_browser_attempt:{...intent.hosted_browser_attempt,
+            state:'not_saved',failure_code:failureCode,browser_closed:true,finished_at:new Date().toISOString()}}})
+          .eq('id',job.id).eq('lease_token',job.lease_token).eq('updated_at',current.updated_at).select('id'));
+        if(changed.length===1)return {state:'blocked',lead_coverage:false,failure_code:failureCode,next_action,resources};
+      }
+      throw Error('Capture outcome requires saved-audit reconciliation before retry');
+    }finally{await browser?.close();resources.browser_closed=!browser||!browser.isConnected();resources.kernel_peak_after=await memory('peak');resources.finished_at=new Date().toISOString();
       resources.receipt_path=await artifacts.put({job_id:jobId,actor_id:actor,operation:'portal_capture',...resources});}
   }
   async function reconcileCapture(handoffId,jobId) {

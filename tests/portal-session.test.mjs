@@ -11,7 +11,7 @@ const recipe=()=>({version:1,official_portal:true,verified_at:'2026-10-01',verif
  authenticated_selector:'a[href="/logout"]',login_steps:[{action:'fill',selector:'#email',secret:'PROCUREMENT_PORTAL_EMAIL'},
  {action:'fill',selector:'#password',secret:'PROCUREMENT_PORTAL_PASSWORD'},{action:'click',selector:'#login'}]});
 const state=()=>({cookies:[{name:'auth',value:'private-fixture',domain:'agency.example.gov',path:'/',expires:-1,secure:true,httpOnly:true,sameSite:'Lax'}],origins:[]});
-function fixture({credentials=true,documentFetch,redirectRequired=false,completionFails=false,intermediate=false,insecureCookies=false,secureRestoreFails=false}={}){
+function fixture({credentials=true,documentFetch,redirectRequired=false,completionFails=false,intermediate=false,insecureCookies=false,secureRestoreFails=false,challenge=false,persistenceFails=false}={}){
  let handoff={id,source_id:'source',channel:'portal',tenant:'agency.example.gov',updated_at:'2026-10-01T00:00:00Z',lifecycle_revision:0,
  lifecycle:{version:1,stages:{registration:{state:'submitted',provenance:'user_reported'}},attempts:[],events:[],
  account:{kind:'existing_account',provider:'agency.example.gov',reference:'existing'}},details:{hosted_access_recipe:recipe()}};
@@ -28,15 +28,16 @@ function fixture({credentials=true,documentFetch,redirectRequired=false,completi
   tables.procurement_runs=a.p_pages.map(p=>({id:p.run_id,source_id:'source',job_id:job.id,started_at:p.retrieved_at,coverage_task_id:'task',detail:{
    state:'content_saved',collector:'authenticated-browser',upstream_status:200,access_handoff_id:id,kind:'opportunity',method_spec:a.p_method_spec,content_sha256:p.content_sha256}}));
   tables.procurement_coverage_tasks=[{id:'task',kind:'opportunity'}];tables.procurement_public_captures=a.p_pages.map(p=>({...p,source_id:'source'}));
+  if(persistenceFails)throw Error('private provider failure text must not persist');
   return {data:{run_ids:a.p_pages.map(p=>p.run_id)}};
  }
  assert.equal(a.p_expected_revision,handoff.lifecycle_revision);handoff.lifecycle=a.p_lifecycle;handoff.lifecycle_revision++;return {data:{status:'saved'}};}};
  const artifacts={async put(value){const b=Buffer.isBuffer(value)?value:Buffer.from(JSON.stringify(value)),path=`artifacts/${sha(b)}`;saved.set(path,b);return path;},async get(path){return saved.get(path);}};
- const launch=async()=>{stats.launches++;let connected=true;return {isConnected:()=>connected,async close(){connected=false;stats.closed++;},
+ const launch=async()=>{stats.launches++;let connected=true;return {isConnected:()=>connected,async close(){if(connected)stats.closed++;connected=false;},
  async newContext(options){stats.contexts++;let signed=!!options.storageState&&!secureRestoreFails,redirectPending=false,current=recipe().verify_url;
  return {async close(){},async route(){},async cookies(){return [{name:'auth',value:'private-fixture'}];},async storageState(){const s=state();if(insecureCookies)s.cookies.push({...s.cookies[0],name:'optional',secure:false});return s;},async newPage(){return {async goto(url){if(redirectPending)throw Error('Login interrupted by navigation');current=url;return {status:()=>200};},url:()=>current,
  async waitForURL(predicate){stats.redirectWaits++;assert.equal(predicate(new URL('https://foreign.gov/portal')),false);assert.equal(predicate(new URL(recipe().verify_url+'?tab=open')),true);if(completionFails)throw Error('Login completion timeout');if(intermediate){current='https://agency.example.gov/registration';assert.equal(predicate(new URL(current)),true);}redirectPending=false;},
- async title(){return 'Contract opportunities';},async content(){return '<html><title>Contracts</title><main>Janitorial work</main></html>';},
+ async title(){return challenge?'Just a moment...':'Contract opportunities';},async content(){return '<html><title>Contracts</title><main>Janitorial work</main></html>';},
  locator(_selector){return {first(){return this;},async count(){return 0;},async isVisible(){return false;},async waitFor(){if(!signed)throw Error('Not authenticated');},
  async fill(){stats.fills++;},async click(){signed=true;redirectPending=redirectRequired;}};}};}};}};};
  const key=Buffer.alloc(32,7).toString('base64');
@@ -132,6 +133,29 @@ test('authenticated collection persists partial audited evidence and category pr
  assert.equal(f.stats.fills,2);assert.equal(f.stats.closed,2);
  await assert.rejects(f.service.capture('job',actor,'foreign-handoff'),/another access/);
 });
+test('closed challenge capture releases only an unsaved attempt; uncertain persistence retains reconciliation',async()=>{
+ const setup=async options=>{
+  const f=fixture(options);await f.service.continueAccess(id,actor);
+  const spec={version:1,runner_id:'authenticated-browser',check_when:'each_request',access_handoff_id:id,
+   urls:[recipe().verify_url],allowed_hosts:['agency.example.gov'],max_bytes:10000,check_instructions:'Read category',terminal_instruction:'Partial'};
+  f.tables.procurement_source_capabilities=[{id:'cap',source_id:'source',kind:'opportunity',method:'browser',parser_version:'v1',availability:'active',
+   verified_at:'2026-10-01',verified_until:'2099-01-01',verification_evidence:{official:true},method_spec:spec}];
+  f.tables.procurement_sources=[{id:'source'}];f.tables.procurement_jobs=[{id:'job',capability_id:'cap',state:'pending',checkpoint:{},updated_at:'2026-10-01'}];
+  return f;
+ };
+ const blocked=await setup({challenge:true}),result=await blocked.service.capture('job',actor,id);
+ assert.equal(result.state,'blocked');assert.equal(result.failure_code,'human_verification_required');assert.equal(result.lead_coverage,false);
+ assert.equal(blocked.tables.procurement_jobs[0].state,'blocked');assert.equal(blocked.tables.procurement_jobs[0].lease_token,null);
+ assert.equal(blocked.tables.procurement_jobs[0].checkpoint.hosted_browser_attempt.state,'not_saved');assert.equal(result.resources.browser_closed,true);
+ assert.equal(blocked.tables.procurement_runs,undefined);
+ const uncertain=await setup({persistenceFails:true});
+ await assert.rejects(uncertain.service.capture('job',actor,id),/reconciliation/);
+ assert.equal(uncertain.tables.procurement_jobs[0].lease_token,'lease');
+ assert.equal(uncertain.tables.procurement_jobs[0].checkpoint.hosted_browser_attempt.state,'request_pending');
+ assert.equal(uncertain.tables.procurement_runs.length,1);assert.equal(uncertain.stats.closed,2);
+ assert.equal(JSON.stringify(uncertain.tables).includes('private provider failure text'),false);
+});
+
 test('expired interrupted read reconciles absent audit before retry and refuses an active lease',async()=>{
  const f=fixture(),spec={access_handoff_id:id};f.tables.procurement_source_capabilities=[{id:'cap',method_spec:spec,source_id:'source'}];
  f.tables.procurement_jobs=[{id:'job',capability_id:'cap',state:'running',lease_until:'2099-01-01',updated_at:'2026-10-01',
