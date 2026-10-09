@@ -2,6 +2,14 @@
 
 ## Latest continuation (supersedes earlier blockers below)
 
+**User correction and current next action:** the user confirms the saved business email/password work and that Bonfire presents business-details setup after login. Select **Portal** instead of completing registration. The earlier credential-error diagnostic below is historical evidence, not a confirmed current credential blocker. Observe the actual post-login state, adapt the reviewed completion path if needed, then finish authenticated capture/import, session reuse and memory verification. Do not request another account or replacement password based on the earlier diagnostic. Shared public/API/discovery/SAM import, cache and recovery acceptance is already complete and must not be replayed for this continuation. The parent plan's October 8 authoritative reconciliation names the implementation and evidence for each completed path.
+
+**Current blocker:** the official provider explicitly returned “Incorrect email or password. Please try again.” in an isolated shared-code diagnostic test. This is now the established blocker; the earlier redirect race was a suspected failure mode, not proof that supplied credentials were valid. Login retries are stopped to avoid account lockout. The user has been asked to correct the existing credentials privately, without a new signup. Refreshed caller authentication is accepted and the in-app project's security verification has cleared; neither needs repeating now.
+
+Approved completion-wait fix committed/pushed as `1bc108138ddb57017b2a39650d19820e09af39c5`, message `fix: wait for portal sign-in completion`; deployment `dep-db4491rtqb8s73e0uu6g` is live on existing Render Free. Ten focused portal tests and lint passed. The fix does not claim successful sign-in.
+
+Current-first review inspected seven open opportunity titles and the three published public contracts; none shows routine janitorial service. These public observations are not authenticated coverage or a complete market search. January 2025 notice 3002 remains the authorized fallback, retaining closed/historical status and its existing canonical identity. No authenticated category method has yet been activated, no candidate/import batch has been prepared, and no live lead has changed in this continuation. After corrected credentials are supplied, privately reprovision them, run one hosted sign-in check, then continue capture/import and second-request reuse.
+
 The user refreshed the caller token, reported security verification completed, and authorized the January 2025 notice only if no current match is available. Hosted access now accepts the caller (HTTP 200), but tenant authentication was not verified. Browser cleanup succeeded; cgroup peak was 480,948,224 bytes (458.7 MiB), below the 512 MiB limit. This is a failed-sign-in memory observation, not positive authenticated document acceptance.
 
 The user approved a focused completion fix: a private recipe may specify a reviewed tenant completion route; the sign-in runner waits for that route and authenticated selector before navigating for tenant verification. Foreign completion destinations and completion timeout fail closed. Ten focused portal tests and lint pass. The observed tenant `/login` entry is now saved so the provider returns to the correct tenant. Hosted verification of this fix remains pending.
@@ -33,4 +41,4 @@ After caller-token refresh, resume the existing hosted handoff and inspect its a
 
 This continuation: zero new sources/accounts/signup submissions, zero persisted candidates, zero prepared import batches, zero imported or updated leads; zero inference calls, zero input/output tokens, $0 application inference cost. No authenticated Render peak-memory measurement was obtained because caller authentication failed first. Parent plan remains in todo with access and broader-memory acceptance unchecked.
 
-Suggested documentation commit: `docs: record authenticated access acceptance blockers`.
+Suggested continuation documentation commit: `docs: record Bonfire credential rejection`.
