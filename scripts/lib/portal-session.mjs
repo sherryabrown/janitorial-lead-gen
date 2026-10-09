@@ -15,6 +15,8 @@ export function portalRecipe(handoff) {
     'Observed authenticated-page predicate required');
   need(!r.sign_in_complete_url||safePublicUrl(r.sign_in_complete_url,[handoff.tenant]),
     'Sign-in completion must use the reviewed tenant');
+  need(!r.sign_in_intermediate_url||r.sign_in_complete_url&&safePublicUrl(r.sign_in_intermediate_url,[handoff.tenant]),
+    'Sign-in intermediate route must use the reviewed tenant and completion condition');
   need(!r.login_steps||Array.isArray(r.login_steps)&&r.login_steps.length<=6&&r.login_steps.every(s=>
     ['fill','click'].includes(s.action)&&typeof s.selector==='string'&&s.selector.length<300&&s.selector.trim()&&
     (s.action!=='fill'||/^PROCUREMENT_[A-Z0-9_]+_(EMAIL|PASSWORD)$/.test(s.secret))), 'Bounded sign-in steps required');

@@ -11,7 +11,7 @@ const recipe=()=>({version:1,official_portal:true,verified_at:'2026-10-01',verif
  authenticated_selector:'a[href="/logout"]',login_steps:[{action:'fill',selector:'#email',secret:'PROCUREMENT_PORTAL_EMAIL'},
  {action:'fill',selector:'#password',secret:'PROCUREMENT_PORTAL_PASSWORD'},{action:'click',selector:'#login'}]});
 const state=()=>({cookies:[{name:'auth',value:'private-fixture',domain:'agency.example.gov',path:'/',expires:-1,secure:true,httpOnly:true,sameSite:'Lax'}],origins:[]});
-function fixture({credentials=true,documentFetch,redirectRequired=false,completionFails=false}={}){
+function fixture({credentials=true,documentFetch,redirectRequired=false,completionFails=false,intermediate=false}={}){
  let handoff={id,source_id:'source',channel:'portal',tenant:'agency.example.gov',updated_at:'2026-10-01T00:00:00Z',lifecycle_revision:0,
  lifecycle:{version:1,stages:{registration:{state:'submitted',provenance:'user_reported'}},attempts:[],events:[],
  account:{kind:'existing_account',provider:'agency.example.gov',reference:'existing'}},details:{hosted_access_recipe:recipe()}};
@@ -33,9 +33,9 @@ function fixture({credentials=true,documentFetch,redirectRequired=false,completi
  assert.equal(a.p_expected_revision,handoff.lifecycle_revision);handoff.lifecycle=a.p_lifecycle;handoff.lifecycle_revision++;return {data:{status:'saved'}};}};
  const artifacts={async put(value){const b=Buffer.isBuffer(value)?value:Buffer.from(JSON.stringify(value)),path=`artifacts/${sha(b)}`;saved.set(path,b);return path;},async get(path){return saved.get(path);}};
  const launch=async()=>{stats.launches++;let connected=true;return {isConnected:()=>connected,async close(){connected=false;stats.closed++;},
- async newContext(options){let signed=!!options.storageState,redirectPending=false;
- return {async close(){},async route(){},async cookies(){return [{name:'auth',value:'private-fixture'}];},async storageState(){return state();},async newPage(){return {async goto(){if(redirectPending)throw Error('Login interrupted by navigation');return {status:()=>200};},url:()=>recipe().verify_url,
- async waitForURL(predicate){stats.redirectWaits++;assert.equal(predicate(new URL('https://foreign.gov/portal')),false);assert.equal(predicate(new URL(recipe().verify_url+'?tab=open')),true);if(completionFails)throw Error('Login completion timeout');redirectPending=false;},
+ async newContext(options){let signed=!!options.storageState,redirectPending=false,current=recipe().verify_url;
+ return {async close(){},async route(){},async cookies(){return [{name:'auth',value:'private-fixture'}];},async storageState(){return state();},async newPage(){return {async goto(url){if(redirectPending)throw Error('Login interrupted by navigation');current=url;return {status:()=>200};},url:()=>current,
+ async waitForURL(predicate){stats.redirectWaits++;assert.equal(predicate(new URL('https://foreign.gov/portal')),false);assert.equal(predicate(new URL(recipe().verify_url+'?tab=open')),true);if(completionFails)throw Error('Login completion timeout');if(intermediate){current='https://agency.example.gov/registration';assert.equal(predicate(new URL(current)),true);}redirectPending=false;},
  async title(){return 'Contract opportunities';},async content(){return '<html><title>Contracts</title><main>Janitorial work</main></html>';},
  locator(_selector){return {first(){return this;},async count(){return 0;},async isVisible(){return false;},async waitFor(){if(!signed)throw Error('Not authenticated');},
  async fill(){stats.fills++;},async click(){signed=true;redirectPending=redirectRequired;}};}};}};}};};
@@ -74,6 +74,19 @@ test('reviewed sign-in completion waits for the tenant redirect before verificat
  assert.equal(blocked.handoff.details.hosted_session,undefined);assert.equal(blocked.handoff.lifecycle.stages.registration.state,'submitted');
  assert.throws(()=>portalRecipe({...f.handoff,details:{hosted_access_recipe:{...recipe(),sign_in_complete_url:'https://foreign.gov/portal'}}}),/reviewed tenant/);
 });
+test('reviewed post-login setup route follows Portal without submitting business registration',async()=>{
+ const f=fixture({redirectRequired:true,intermediate:true});
+ Object.assign(f.handoff.details.hosted_access_recipe,{sign_in_complete_url:recipe().verify_url,
+  sign_in_intermediate_url:'https://agency.example.gov/registration'});
+ const result=await f.service.continueAccess(id,actor);
+ assert.equal(result.state,'signed_in');assert.equal(f.stats.fills,2);assert.equal(f.stats.redirectWaits,1);
+ assert.equal(f.handoff.lifecycle.stages.registration.state,'submitted');assert.equal(f.stats.closed,1);
+ assert.throws(()=>portalRecipe({...f.handoff,details:{hosted_access_recipe:{...recipe(),
+  sign_in_complete_url:recipe().verify_url,sign_in_intermediate_url:'https://foreign.gov/registration'}}}),/reviewed tenant/);
+ assert.throws(()=>portalRecipe({...f.handoff,details:{hosted_access_recipe:{...recipe(),
+  sign_in_intermediate_url:'https://agency.example.gov/registration'}}}),/completion condition/);
+});
+
 test('missing credentials and unresolved signup preserve exact handoff without duplicate external actions',async()=>{
  const f=fixture({credentials:false});const r=await f.service.continueAccess(id,actor);
  assert.equal(r.state,'needs_attention');assert.match(r.next_action,/existing account/);assert.equal(f.stats.launches,0);

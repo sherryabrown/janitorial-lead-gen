@@ -109,11 +109,17 @@ export function browserService({db,sessionKey,artifacts=artifactStore(db),secret
         }
         if(recipe.sign_in_complete_url) {
           const destination=new URL(recipe.sign_in_complete_url);
+          const intermediate=recipe.sign_in_intermediate_url&&new URL(recipe.sign_in_intermediate_url);
+          const matches=(url,target)=>target&&url.origin===target.origin&&
+            url.pathname.replace(/\/$/,'')===target.pathname.replace(/\/$/,'');
           // Do not interrupt an asynchronous provider login with tenant navigation.
           // Query strings may carry transient provider state; match only the reviewed route.
-          await page.waitForURL(url=>url.origin===destination.origin&&
-            url.pathname.replace(/\/$/,'')===destination.pathname.replace(/\/$/,''),
+          await page.waitForURL(url=>!!(matches(url,destination)||matches(url,intermediate)),
           {waitUntil:'domcontentloaded',timeout:30000});
+          // A reviewed post-login setup page is not access proof. Follow the saved
+          // Portal destination without entering or submitting business registration.
+          if(matches(new URL(page.url()),intermediate))
+            await page.goto(recipe.verify_url,{waitUntil:'domcontentloaded',timeout:30000});
           await page.locator(recipe.authenticated_selector).waitFor({state:'visible',timeout:15000});
         }
       };
