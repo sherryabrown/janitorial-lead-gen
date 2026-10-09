@@ -6,7 +6,7 @@ import { safePublicUrl,adapterContract } from './known-source-execution.mjs';
 import { accessHash,accessNext } from './source-access.mjs';
 import { validateBrowserPages } from './authenticated-browser.mjs';
 import { recordAccessEvent } from './source-access-store.mjs';
-import {portalRecipe,sessionIdentity,validateSessionState,matchingSession,guardPortalContext,verifyPortalPage} from './portal-session.mjs';
+import {portalRecipe,sessionIdentity,validateSessionState,secureSessionState,matchingSession,guardPortalContext,verifyPortalPage} from './portal-session.mjs';
 import {readFile} from 'node:fs/promises';
 import {fetchPublicCheck} from './public-source-check.mjs';
 
@@ -26,6 +26,18 @@ export function sanitizeBrowserDocument(html) {
 export function browserService({db,sessionKey,artifacts=artifactStore(db),secrets=name=>process.env[name],profile={},documentFetch=fetch,
   exclusive=operation=>operation(),launch=()=>chromium.launch({headless:true,timeout:30000}),
   memory=async name=>{try{return Number(await readFile(`/sys/fs/cgroup/memory.${name}`,'utf8'));}catch{return null;}}}) {
+  async function retainedSession(browser,context,recipe) {
+    const raw=await context.storageState(),retained=secureSessionState(raw,recipe.allowed_hosts);
+    if(retained.cookies.length===raw.cookies.length)return retained;
+    // Prove that removed provider cookies are unnecessary; never persist a weaker session.
+    await context.close();
+    const verified=await browser.newContext({storageState:retained,acceptDownloads:false,serviceWorkers:'block'});
+    try {
+      await guardPortalContext(verified,recipe.allowed_hosts);
+      await verifyPortalPage(await verified.newPage(),recipe);
+      return secureSessionState(await verified.storageState(),recipe.allowed_hosts);
+    }finally{await verified.close();}
+  }
   async function saveDetails(h,details) {
     const saved=checked(await db.from('procurement_access_handoffs').update({details,updated_at:new Date().toISOString()})
       .eq('id',h.id).eq('updated_at',h.updated_at).select('id'));
@@ -133,7 +145,7 @@ export function browserService({db,sessionKey,artifacts=artifactStore(db),secret
         await signIn();await verifyPortalPage(page,recipe);
       }
       const verified_until=new Date(Date.now()+Math.min(recipe.session_hours??8,24)*3600000).toISOString();
-      const retained=validateSessionState(await context.storageState(),recipe.allowed_hosts);
+      const retained=await retainedSession(browser,context,recipe);
       const artifact=await artifacts.put(encryptSession(Buffer.from(JSON.stringify(retained)),sessionKey,sessionIdentity(h)));
       h=await saveDetails(h,{...h.details,hosted_session:{artifact,identity:sessionIdentity(h),recipe_hash:accessHash(recipe),verified_until},
         hosted_access_attempt:{...h.details.hosted_access_attempt,state:'verified',finished_at:new Date().toISOString()}});
@@ -229,7 +241,7 @@ export function browserService({db,sessionKey,artifacts=artifactStore(db),secret
         hosted_browser_attempt:{...intent.hosted_browser_attempt,state:'captured',run_ids:pages.map(p=>p.run_id)}}})
         .eq('id',job.id).eq('updated_at',current.updated_at).select('id'));
       if(completed.length!==1)throw Error('Capture saved; reconcile checkpoint before another navigation');
-      const encrypted=encryptSession(Buffer.from(JSON.stringify(validateSessionState(await context.storageState(),recipe.allowed_hosts))),sessionKey,sessionIdentity(handoff));
+      const encrypted=encryptSession(Buffer.from(JSON.stringify(await retainedSession(browser,context,recipe))),sessionKey,sessionIdentity(handoff));
       const artifact=await artifacts.put(encrypted);
       const savedHandoff=await saveDetails(handoff,{...handoff.details,hosted_session:{...session,artifact}});
       await event(savedHandoff,actor,{type:'stage',stage:`${cap.kind}_access`,state:'accessible',run_id:pages[0].run_id,

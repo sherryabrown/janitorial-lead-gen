@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {portalRecipe,validateSessionState,sessionIdentity,guardPortalContext} from '../scripts/lib/portal-session.mjs';
+import {portalRecipe,validateSessionState,secureSessionState,sessionIdentity,guardPortalContext} from '../scripts/lib/portal-session.mjs';
 import {accessHash} from '../scripts/lib/source-access.mjs';
 import {browserService,sanitizeBrowserDocument} from '../scripts/lib/hosted-browser.mjs';
 import {sha,decryptSession} from '../scripts/lib/hosted-store.mjs';
@@ -11,11 +11,11 @@ const recipe=()=>({version:1,official_portal:true,verified_at:'2026-10-01',verif
  authenticated_selector:'a[href="/logout"]',login_steps:[{action:'fill',selector:'#email',secret:'PROCUREMENT_PORTAL_EMAIL'},
  {action:'fill',selector:'#password',secret:'PROCUREMENT_PORTAL_PASSWORD'},{action:'click',selector:'#login'}]});
 const state=()=>({cookies:[{name:'auth',value:'private-fixture',domain:'agency.example.gov',path:'/',expires:-1,secure:true,httpOnly:true,sameSite:'Lax'}],origins:[]});
-function fixture({credentials=true,documentFetch,redirectRequired=false,completionFails=false,intermediate=false}={}){
+function fixture({credentials=true,documentFetch,redirectRequired=false,completionFails=false,intermediate=false,insecureCookies=false,secureRestoreFails=false}={}){
  let handoff={id,source_id:'source',channel:'portal',tenant:'agency.example.gov',updated_at:'2026-10-01T00:00:00Z',lifecycle_revision:0,
  lifecycle:{version:1,stages:{registration:{state:'submitted',provenance:'user_reported'}},attempts:[],events:[],
  account:{kind:'existing_account',provider:'agency.example.gov',reference:'existing'}},details:{hosted_access_recipe:recipe()}};
- const saved=new Map(),stats={launches:0,closed:0,fills:0,redirectWaits:0};
+ const saved=new Map(),stats={launches:0,closed:0,fills:0,redirectWaits:0,contexts:0};
  const tables={};
  const db={from(table){let filters=[],updates,single=false;
  const q={select(){return this;},eq(k,v){filters.push(h=>h[k]===v);return this;},in(k,v){filters.push(h=>v.includes(h[k]));return this;},order(){return this;},range(){return this;},maybeSingle(){single=true;return this;},
@@ -33,8 +33,8 @@ function fixture({credentials=true,documentFetch,redirectRequired=false,completi
  assert.equal(a.p_expected_revision,handoff.lifecycle_revision);handoff.lifecycle=a.p_lifecycle;handoff.lifecycle_revision++;return {data:{status:'saved'}};}};
  const artifacts={async put(value){const b=Buffer.isBuffer(value)?value:Buffer.from(JSON.stringify(value)),path=`artifacts/${sha(b)}`;saved.set(path,b);return path;},async get(path){return saved.get(path);}};
  const launch=async()=>{stats.launches++;let connected=true;return {isConnected:()=>connected,async close(){connected=false;stats.closed++;},
- async newContext(options){let signed=!!options.storageState,redirectPending=false,current=recipe().verify_url;
- return {async close(){},async route(){},async cookies(){return [{name:'auth',value:'private-fixture'}];},async storageState(){return state();},async newPage(){return {async goto(url){if(redirectPending)throw Error('Login interrupted by navigation');current=url;return {status:()=>200};},url:()=>current,
+ async newContext(options){stats.contexts++;let signed=!!options.storageState&&!secureRestoreFails,redirectPending=false,current=recipe().verify_url;
+ return {async close(){},async route(){},async cookies(){return [{name:'auth',value:'private-fixture'}];},async storageState(){const s=state();if(insecureCookies)s.cookies.push({...s.cookies[0],name:'optional',secure:false});return s;},async newPage(){return {async goto(url){if(redirectPending)throw Error('Login interrupted by navigation');current=url;return {status:()=>200};},url:()=>current,
  async waitForURL(predicate){stats.redirectWaits++;assert.equal(predicate(new URL('https://foreign.gov/portal')),false);assert.equal(predicate(new URL(recipe().verify_url+'?tab=open')),true);if(completionFails)throw Error('Login completion timeout');if(intermediate){current='https://agency.example.gov/registration';assert.equal(predicate(new URL(current)),true);}redirectPending=false;},
  async title(){return 'Contract opportunities';},async content(){return '<html><title>Contracts</title><main>Janitorial work</main></html>';},
  locator(_selector){return {first(){return this;},async count(){return 0;},async isVisible(){return false;},async waitFor(){if(!signed)throw Error('Not authenticated');},
@@ -85,6 +85,19 @@ test('reviewed post-login setup route follows Portal without submitting business
   sign_in_complete_url:recipe().verify_url,sign_in_intermediate_url:'https://foreign.gov/registration'}}}),/reviewed tenant/);
  assert.throws(()=>portalRecipe({...f.handoff,details:{hosted_access_recipe:{...recipe(),
   sign_in_intermediate_url:'https://agency.example.gov/registration'}}}),/completion condition/);
+});
+
+test('non-Secure provider cookies are discarded only with successful fresh-context tenant verification',async()=>{
+ const f=fixture({insecureCookies:true});
+ const result=await f.service.continueAccess(id,actor);assert.equal(result.state,'signed_in');assert.equal(f.stats.contexts,2);
+ const stored=JSON.parse(decryptSession(f.saved.get(f.handoff.details.hosted_session.artifact),f.key,sessionIdentity(f.handoff)));
+ assert.equal(stored.cookies.length,1);assert.equal(stored.cookies[0].secure,true);assert.equal(f.stats.fills,2);
+ const blocked=fixture({insecureCookies:true,secureRestoreFails:true});
+ assert.equal((await blocked.service.continueAccess(id,actor)).state,'needs_attention');
+ assert.equal(blocked.handoff.details.hosted_session,undefined);assert.equal(blocked.stats.closed,1);
+ const foreign=state();foreign.cookies.push({...foreign.cookies[0],domain:'foreign.gov',secure:false});
+ assert.throws(()=>secureSessionState(foreign,recipe().allowed_hosts),/reviewed hosts/);
+ assert.throws(()=>validateSessionState({...state(),cookies:[{...state().cookies[0],secure:false}]},recipe().allowed_hosts),/reviewed hosts/);
 });
 
 test('missing credentials and unresolved signup preserve exact handoff without duplicate external actions',async()=>{

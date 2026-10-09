@@ -40,6 +40,11 @@ export function validateSessionState(state,hosts) {
     Array.isArray(origin.localStorage),'Session storage is outside reviewed hosts');
   return state;
 }
+export function secureSessionState(state,hosts) {
+  // Validate every host and the original size/count bounds before discarding anything.
+  validateSessionState({...state,cookies:state?.cookies?.map(c=>({...c,secure:true}))},hosts);
+  return validateSessionState({...state,cookies:state.cookies.filter(c=>c.secure===true)},hosts);
+}
 export function matchingSession(handoff,recipe) {
   const s=handoff.details?.hosted_session;
   return s?.identity===sessionIdentity(handoff)&&s.recipe_hash===accessHash(recipe)&&
