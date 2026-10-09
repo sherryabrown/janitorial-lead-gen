@@ -2,7 +2,7 @@
 
 This is the maintained access contract. Chat initiates work; the agent executes supported CLI/browser steps and asks immediately for a required human action. Signup tracking alone is not usable access or lead coverage.
 
-The backend-only HTTP build is documented in [PROCUREMENT-BACKEND.md](PROCUREMENT-BACKEND.md). Existing CLI access remains authoritative while hosted session adoption/signup continuation and deployment acceptance are unfinished. No application screen was added.
+The backend-only HTTP build is documented in [PROCUREMENT-BACKEND.md](PROCUREMENT-BACKEND.md). Hosted sign-in, encrypted session retention/reuse and authenticated capture routes are deployed; the CLI also supports verified human-assisted captures. Bonfire's actual assisted import and SPIN link check passed. Automated hosted project/document collection is blocked by provider security verification; it is not lead coverage. See the [supported-access handoff](reviews/2026-10-09-bonfire-supported-access-handoff.md) for the exact user action and resume gate. No application screen was added.
 
 **Geography → saved source → private access checkpoint → verified method → bounded capture → interpretation → immutable intake → reviewed import/readback.** SAM uses its separate manual statewide runner.
 
@@ -56,7 +56,7 @@ Routine free signup may submit only an explicitly reviewed recipe with complete 
 
 Authenticated capture uses the existing category method, job lease, run/capture transaction and interpretation/intake/import services. Read navigation is restricted to reviewed HTTPS hosts; unreviewed destinations, writes and costly media are blocked. Evidence removes account navigation, forms, hidden/session fields and email addresses. Browser and worker heavy stages are serialized. A partial authenticated capture can enter interpretation while retaining partial coverage; login alone never establishes category coverage. Interrupted reads reconcile saved run IDs before retry. Native rehearsal and reviewed transaction/readback remain required; the task's explicit import authority governs application, not mere account access.
 
-This implementation still requires live deployment, a verified portal recipe and credentials/session, hosted memory measurement and actual authenticated-source import/reuse evidence before its acceptance can be marked complete.
+Deployment, verified Bonfire sign-in/session reuse and assisted actual import/readback are evidenced. Successful automated authenticated project/document capture and its memory/reuse checks remain outstanding. The current headless worker has no interactive same-session verification surface; adopting an unrelated browser's state does not establish transferable Cloudflare clearance. Do not automatically retry a challenge or ask the user to verify in an unrelated browser. Preserve the blocker and seek the official supported route in the handoff above.
 
 - `authenticated-browser`: saved URLs/hosts, byte bounds, check instructions, terminal instructions and handoff ID. The agent follows these in an authorized browser; this is not universal browser-form automation.
 - `api-bounded`: documented GET/POST read endpoint, immutable query defaults, explicit date-field paths/basis, page/limit paths, expected records/envelope, explicit terminal flag/page number, page/byte bounds and handoff ID. Wrong date basis, empty nonterminal page or changed response shape stays partial.

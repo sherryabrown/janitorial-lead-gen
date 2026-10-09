@@ -6,6 +6,8 @@ API-link repair completion: six corrections preserved; approved hosted evidence 
 
 This section supersedes the dated continuation snapshots below. They are historical evidence, not instructions to repeat completed work. Frontend workflow controls remain deferred; the existing app already reads canonical `procurement_leads` and renders project-name links.
 
+**October 9 wrap-up decision:** supported-access investigation is complete; authenticated automation remains blocked. Cloudflare documents automated challenge-solving browsers as unsupported and clearance as visitor/device-bound. Do not transfer in-app clearance or build an unproven remote viewer for the current Playwright worker. The user will submit the prepared Euna inquiry for an official vendor API or approved read-access procedure. No request has been sent yet. Exact message, evidence, owner and resume gate: [Bonfire supported-access handoff](../../docs/reviews/2026-10-09-bonfire-supported-access-handoff.md). Keep this plan in todo; resume only after a supported route is confirmed. Successful authenticated document capture/memory and second-request collection reuse remain the only acceptance checks in this batch. No completed import or app check is reopened.
+
 | Capability | Current implementation and acceptance | Remaining work |
 |---|---|---|
 | Known-source requests through reviewed import | **Complete:** `hosted-workflow.mjs`, known-source execution, `hosted-import.mjs` / `hosted-import-jobs.mjs`; Ashdown API and NLR public pilots passed actual import, protected-field/readback and duplicate replay. | None for shared-path acceptance. Individual source gaps remain truthful coverage gaps. |

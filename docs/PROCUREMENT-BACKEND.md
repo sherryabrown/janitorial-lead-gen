@@ -78,7 +78,7 @@ Requests use Idempotency-Key (8–100 letters, digits, underscores or hyphens). 
 | POST /v1/requests/:id/discover/resume | Resume a corrected blocked stage by task_id without resetting saved progress. Unknown fetch or transaction outcomes require reconciliation before retry. |
 | GET /v1/access/:handoff | Sanitized existing access status. |
 | POST /v1/access/:handoff/events | Existing lifecycle/CAS events; credentials excluded. |
-| POST /v1/access/:handoff/continue | Save exact secure-session/recipe blocker. Hosted signup/sign-in continuation is **not operational yet**. |
+| POST /v1/access/:handoff/continue | Resume the private reviewed signup/sign-in recipe or verified encrypted session; persist exact human-action blockers. Bonfire sign-in/session reuse passed; hosted project collection remains provider-blocked. See `docs/reviews/2026-10-09-bonfire-supported-access-handoff.md`. |
 | POST /v1/sam/requests | Separate manual statewide opportunity or award collection; publication_window required. Forecasts use agency sources. Hosted SAM review/import continuation remains outstanding; existing CLI import is preserved. |
 
 Example city request body:
