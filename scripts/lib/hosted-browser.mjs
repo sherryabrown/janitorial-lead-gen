@@ -107,6 +107,15 @@ export function browserService({db,sessionKey,artifacts=artifactStore(db),secret
           if(step.action==='fill')await locator.fill(secrets(step.secret),{timeout:15000});
           else await locator.click({timeout:15000});
         }
+        if(recipe.sign_in_complete_url) {
+          const destination=new URL(recipe.sign_in_complete_url);
+          // Do not interrupt an asynchronous provider login with tenant navigation.
+          // Query strings may carry transient provider state; match only the reviewed route.
+          await page.waitForURL(url=>url.origin===destination.origin&&
+            url.pathname.replace(/\/$/,'')===destination.pathname.replace(/\/$/,''),
+          {waitUntil:'domcontentloaded',timeout:30000});
+          await page.locator(recipe.authenticated_selector).waitFor({state:'visible',timeout:15000});
+        }
       };
       if(!state)await signIn();
       try{await verifyPortalPage(page,recipe);}

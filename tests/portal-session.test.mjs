@@ -11,11 +11,11 @@ const recipe=()=>({version:1,official_portal:true,verified_at:'2026-10-01',verif
  authenticated_selector:'a[href="/logout"]',login_steps:[{action:'fill',selector:'#email',secret:'PROCUREMENT_PORTAL_EMAIL'},
  {action:'fill',selector:'#password',secret:'PROCUREMENT_PORTAL_PASSWORD'},{action:'click',selector:'#login'}]});
 const state=()=>({cookies:[{name:'auth',value:'private-fixture',domain:'agency.example.gov',path:'/',expires:-1,secure:true,httpOnly:true,sameSite:'Lax'}],origins:[]});
-function fixture({credentials=true,documentFetch}={}){
+function fixture({credentials=true,documentFetch,redirectRequired=false,completionFails=false}={}){
  let handoff={id,source_id:'source',channel:'portal',tenant:'agency.example.gov',updated_at:'2026-10-01T00:00:00Z',lifecycle_revision:0,
  lifecycle:{version:1,stages:{registration:{state:'submitted',provenance:'user_reported'}},attempts:[],events:[],
  account:{kind:'existing_account',provider:'agency.example.gov',reference:'existing'}},details:{hosted_access_recipe:recipe()}};
- const saved=new Map(),stats={launches:0,closed:0,fills:0};
+ const saved=new Map(),stats={launches:0,closed:0,fills:0,redirectWaits:0};
  const tables={};
  const db={from(table){let filters=[],updates,single=false;
  const q={select(){return this;},eq(k,v){filters.push(h=>h[k]===v);return this;},in(k,v){filters.push(h=>v.includes(h[k]));return this;},order(){return this;},range(){return this;},maybeSingle(){single=true;return this;},
@@ -33,11 +33,12 @@ function fixture({credentials=true,documentFetch}={}){
  assert.equal(a.p_expected_revision,handoff.lifecycle_revision);handoff.lifecycle=a.p_lifecycle;handoff.lifecycle_revision++;return {data:{status:'saved'}};}};
  const artifacts={async put(value){const b=Buffer.isBuffer(value)?value:Buffer.from(JSON.stringify(value)),path=`artifacts/${sha(b)}`;saved.set(path,b);return path;},async get(path){return saved.get(path);}};
  const launch=async()=>{stats.launches++;let connected=true;return {isConnected:()=>connected,async close(){connected=false;stats.closed++;},
- async newContext(options){let signed=!!options.storageState;
- return {async close(){},async route(){},async cookies(){return [{name:'auth',value:'private-fixture'}];},async storageState(){return state();},async newPage(){return {async goto(){return {status:()=>200};},url:()=>recipe().verify_url,
+ async newContext(options){let signed=!!options.storageState,redirectPending=false;
+ return {async close(){},async route(){},async cookies(){return [{name:'auth',value:'private-fixture'}];},async storageState(){return state();},async newPage(){return {async goto(){if(redirectPending)throw Error('Login interrupted by navigation');return {status:()=>200};},url:()=>recipe().verify_url,
+ async waitForURL(predicate){stats.redirectWaits++;assert.equal(predicate(new URL('https://foreign.gov/portal')),false);assert.equal(predicate(new URL(recipe().verify_url+'?tab=open')),true);if(completionFails)throw Error('Login completion timeout');redirectPending=false;},
  async title(){return 'Contract opportunities';},async content(){return '<html><title>Contracts</title><main>Janitorial work</main></html>';},
  locator(_selector){return {first(){return this;},async count(){return 0;},async isVisible(){return false;},async waitFor(){if(!signed)throw Error('Not authenticated');},
- async fill(){stats.fills++;},async click(){signed=true;}};}};}};}};};
+ async fill(){stats.fills++;},async click(){signed=true;redirectPending=redirectRequired;}};}};}};}};};
  const key=Buffer.alloc(32,7).toString('base64');
  const service=browserService({db,artifacts,sessionKey:key,launch,documentFetch,secrets:()=>credentials?'private-value':undefined,memory:async n=>n==='max'?536870912:300000000});
  return {service,stats,saved,key,tables,get handoff(){return handoff;},set handoff(h){handoff=h;}};
@@ -62,6 +63,16 @@ test('credential sign-in encrypts isolated state, preserves signup history and r
  assert.equal(f.handoff.lifecycle.stages.sign_in.provenance,'observed');
  result=await f.service.continueAccess(id,actor);assert.equal(result.session_reused,true);assert.equal(f.stats.fills,2);assert.equal(f.stats.closed,2);
  assert.equal(JSON.stringify(result).includes('private-fixture'),false);
+});
+
+test('reviewed sign-in completion waits for the tenant redirect before verification and fails closed on timeout',async()=>{
+ const f=fixture({redirectRequired:true});f.handoff.details.hosted_access_recipe.sign_in_complete_url=recipe().verify_url;
+ const result=await f.service.continueAccess(id,actor);assert.equal(result.state,'signed_in');assert.equal(f.stats.redirectWaits,1);
+ assert.equal(f.stats.closed,1);
+ const blocked=fixture({redirectRequired:true,completionFails:true});blocked.handoff.details.hosted_access_recipe.sign_in_complete_url=recipe().verify_url;
+ const failure=await blocked.service.continueAccess(id,actor);assert.equal(failure.state,'needs_attention');assert.equal(blocked.stats.closed,1);
+ assert.equal(blocked.handoff.details.hosted_session,undefined);assert.equal(blocked.handoff.lifecycle.stages.registration.state,'submitted');
+ assert.throws(()=>portalRecipe({...f.handoff,details:{hosted_access_recipe:{...recipe(),sign_in_complete_url:'https://foreign.gov/portal'}}}),/reviewed tenant/);
 });
 test('missing credentials and unresolved signup preserve exact handoff without duplicate external actions',async()=>{
  const f=fixture({credentials:false});const r=await f.service.continueAccess(id,actor);

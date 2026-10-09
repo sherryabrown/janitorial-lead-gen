@@ -13,6 +13,8 @@ export function portalRecipe(handoff) {
     safePublicUrl(r.entry_url,r.allowed_hosts)&&safePublicUrl(r.verify_url,[handoff.tenant]),'Reviewed tenant destinations required');
   need(typeof r.authenticated_selector==='string'&&r.authenticated_selector.length<300&&r.authenticated_selector.trim(),
     'Observed authenticated-page predicate required');
+  need(!r.sign_in_complete_url||safePublicUrl(r.sign_in_complete_url,[handoff.tenant]),
+    'Sign-in completion must use the reviewed tenant');
   need(!r.login_steps||Array.isArray(r.login_steps)&&r.login_steps.length<=6&&r.login_steps.every(s=>
     ['fill','click'].includes(s.action)&&typeof s.selector==='string'&&s.selector.length<300&&s.selector.trim()&&
     (s.action!=='fill'||/^PROCUREMENT_[A-Z0-9_]+_(EMAIL|PASSWORD)$/.test(s.secret))), 'Bounded sign-in steps required');
