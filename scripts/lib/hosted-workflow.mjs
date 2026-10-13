@@ -1,3 +1,4 @@
+import { auditPhase,usageSummary } from './workflow-audit.mjs';
 import { hash } from './reviewed-batch.mjs';
 import { checked,rows,one,publicJobAction } from './hosted-store.mjs';
 import { randomUUID } from 'node:crypto';
@@ -33,7 +34,7 @@ export function validateFindingBounds(packet,result,{verifiedSupporting=false}={
       throw new Error('Finding actual work location is unverified or outside requested geography');
   }
 }
-export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=boundedInterpretation,processJob,captureBrowser,reportError=(id,error)=>console.error('Workflow stage failed',id,error)}) {
+export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=boundedInterpretation,processJob,captureBrowser,audit,reportError=(id,error)=>console.error('Workflow stage failed',id,error)}) {
   const supporting=supportingCapture({artifacts,serverKey,loadReviewedIntake:async id=>{
     const item=await one(db,'procurement_intake_items',id);
     if(!item)return null;
@@ -132,7 +133,7 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
         next_action:publicJobAction(j),error_code:j.checkpoint?.error_code??null,diagnostic_id:j.checkpoint?.diagnostic_id??null})),
       tasks:tasks.map(t=>({id:t.id,source_id:t.source_id,category:t.kind,state:t.state,reason:t.reason,pages:t.pages_reviewed})),
       candidates,total_candidates:ids.length,next_offset:offset+limit<ids.length?offset+limit:null,
-      usage:{calls:usage.filter(u=>u.kind==='inference'&&u.state!=='not_sent').length,
+      usage:request.workflow_control?.admin_trigger_id?usageSummary(usage):{calls:usage.filter(u=>u.kind==='inference'&&u.state!=='not_sent').length,
         input_tokens:usage.reduce((n,u)=>n+(u.usage?.input_tokens??u.input_tokens),0),
         output_tokens:usage.reduce((n,u)=>n+(u.usage?.output_tokens??u.output_tokens),0),
         reserved_usd:usage.filter(u=>['reserved','outcome_unknown'].includes(u.state)).reduce((n,u)=>n+Number(u.reserved_usd),0),
@@ -153,6 +154,7 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
       throw new Error('Workflow lease expired; saved evidence must be reconciled');};
     const request=await one(db,'procurement_search_requests',job.search_request_id);
     if(request.workflow_control.cancelled){await save('cancelled');return true;}
+    const execute=async()=>{
     const timer=setInterval(()=>save('running').catch(()=>{}),60000);timer.unref();
     try {
       delete checkpoint.error_code;delete checkpoint.diagnostic_id;
@@ -160,12 +162,12 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
         await processJob(job,checkpoint,save);
       } else if(checkpoint.stage==='plan') {
         await executeKnownSources({db,project,serverKey,command:'plan',requestId:request.id});
-        checkpoint.stage='collect';await save('pending');
+        checkpoint.stage=request.workflow_control?.check_updates===false?'interpret':'collect';await save('pending');
       } else if(checkpoint.stage==='collect') {
         const result=await executeKnownSources({db,project,serverKey,command:'run',requestId:request.id,maxJobs:1,retryPartial:false,
           cancelled:async()=>!!(await one(db,'procurement_search_requests',request.id)).workflow_control.cancelled});
         const browserRoute=result.routes.find(r=>r.state==='awaiting_browser_capture');
-        if(browserRoute&&captureBrowser) {
+        if(browserRoute&&captureBrowser&&!request.workflow_control?.admin_trigger_id) {
           const captured=await captureBrowser(browserRoute.job_id,request.initiated_by);
           if(captured.receipt)checkpoint.browser_task_ids=[...new Set([...(checkpoint.browser_task_ids??[]),browserRoute.task_id])];
         }
@@ -182,8 +184,9 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
         if(!task){checkpoint.next_action=data.next_action;await save('blocked');return true;}
         const p=await packet(request.id,task.id),ctx=await context(request.id,task.id),key=extractionKey(p,ctx.capability.method_spec);
         let cached=checked(await db.from('procurement_extraction_cache').select('*').eq('cache_key',key).maybeSingle());
+        const cacheUsed=Boolean(cached);
         if(!cached) {
-          const facts=await extractFacts(p,ctx.capability.method_spec);
+          const facts=await auditPhase('extract',()=>extractFacts(p,ctx.capability.method_spec),{task_id:task.id,source_id:p.source_id});
           checked(await db.from('procurement_extraction_cache').upsert({cache_key:key,source_id:p.source_id,facts},{onConflict:'cache_key',ignoreDuplicates:true}));
           cached={facts};
         } else checkpoint.cache_hits=(checkpoint.cache_hits??0)+1;
@@ -203,10 +206,10 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
         }
         result.findings=eligible;
         if(result.unresolved.length && aiConfig?.enabled) {
-          const response=await ai({db,requestId:request.id,actor:request.initiated_by,packet:p,config:aiConfig});
+          const response=await auditPhase('ai_interpretation',()=>ai({db,requestId:request.id,actor:request.initiated_by,packet:p,config:aiConfig}),{task_id:task.id,source_id:p.source_id,reason:'provider'});
           result={...result,...response,coverage:'partial'};
         }
-        await interpret(request.id,task.id,result,`worker:${request.initiated_by}`);
+        await auditPhase('stage',()=>interpret(request.id,task.id,result,`worker:${request.initiated_by}`),{task_id:task.id,source_id:p.source_id,reason:cacheUsed?'cache':'deterministic'});
         checkpoint.interpreted_task_ids=[...done,task.id];await save('pending');
       } else throw new Error('Unsupported saved workflow stage');
     } catch(error) {
@@ -218,6 +221,8 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
       await save('blocked');
     } finally {clearInterval(timer);}
     return true;
+    };
+    return audit?audit.run(request.id,checkpoint.stage,execute,{job_id:job.id,job_attempt:job.attempts,outcome:()=>checkpoint.error_code?'failed':'completed',diagnostic:()=>checkpoint.diagnostic_id,summary:()=>checkpoint}):execute();
   }
   async function access(id) {
     const h=await one(db,'procurement_access_handoffs',id);

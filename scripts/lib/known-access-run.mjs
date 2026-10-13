@@ -1,3 +1,4 @@
+import { auditPhase } from './workflow-audit.mjs';
 import { randomUUID } from 'node:crypto';
 import { accessHash, usableAccess } from './source-access.mjs';
 import { accessRows, recordAccessEvent } from './source-access-store.mjs';
@@ -14,9 +15,9 @@ export async function collectKnownApi(db,{job,task,capability,source,project,ser
     if(run && run.detail.state!=='content_saved')return {...result,job_state:'outcome_unknown',reason:'Previous API request outcome unknown; reconcile saved audit before retry'};
     if(!run) {
       const runId=randomUUID();let response;
-      try {response=await fetcher(`https://${project}.supabase.co/functions/v1/source-api`,{method:'POST',
+      try {response=await auditPhase('fetch_api_page',()=>fetcher(`https://${project}.supabase.co/functions/v1/source-api`,{method:'POST',
         headers:{apikey:serverAuthorization(),'Content-Type':'application/json'},
-        body:JSON.stringify({run_id:runId,job_id:job.id,lease_token:job.lease_token,capability_id:capability.id,page_index:page}),signal:AbortSignal.timeout(60000)});
+        body:JSON.stringify({run_id:runId,job_id:job.id,lease_token:job.lease_token,capability_id:capability.id,page_index:page}),signal:AbortSignal.timeout(60000)}),{source_id:source.id,task_id:task.id});
         await response.json();}catch {return {...result,job_state:'outcome_unknown',reason:'API function outcome unknown; inspect saved run audit'};}
       run=(await accessRows(db,'procurement_runs',q=>q.eq('id',runId)))[0];
       if(!run)return {...result,job_state:response.status===409?'blocked':'outcome_unknown',

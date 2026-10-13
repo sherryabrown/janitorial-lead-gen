@@ -1,3 +1,4 @@
+import { auditPhase } from './workflow-audit.mjs';
 import { hash,planReviewedBatch } from './reviewed-batch.mjs';
 import { reconciliationSql } from './intake-reconcile.mjs';
 import {rehearsalBlueprint,rehearsalPolicy} from './native-sql-rehearsal.mjs';
@@ -82,7 +83,7 @@ export async function prepareImport({db,project,transport,artifacts,review,actor
   const schema=await transport.schema(),sql=reconciliationSql(manifest);
   const packageData={version:2,policy:rehearsalPolicy,review:{...review,reviewed_by:actor},runs,before,schema,manifest,sql,
     schema_sha256:schemaHash(schema),sql_sha256:hash(sql)};
-  packageData.test=await rehearse({before,schema,manifest,sql});
+  packageData.test=await auditPhase('test_import',()=>rehearse({before,schema,manifest,sql}));
   if(packageData.test?.status!=='native_tests_passed'||packageData.test.policy!==rehearsalPolicy||
     !['rollback','readback','replay','cleanup'].every(k=>packageData.test[k]===true)||
     packageData.test.rehearsal_sql_sha256!==hash(rehearsalBlueprint(before,schema,manifest).sql))
@@ -110,8 +111,8 @@ export async function applyImport({db,project,transport,artifacts,packageData,ap
   const before=await importSnapshot(db,project,p.review,p.manifest);
   // Intent is durable before a transaction is sent. Caller must also checkpoint its action lease.
   const intent=await artifacts.put({status:'applying',approval,at:new Date().toISOString()});
-  await transport.apply(sql);
-  const after=await importSnapshot(db,project,p.review,p.manifest),receipt=verifyBatch(before,after,p.manifest);
+  await auditPhase('apply_import',()=>transport.apply(sql));
+  const {receipt}=await auditPhase('readback',async()=>{const after=await importSnapshot(db,project,p.review,p.manifest);return {after,receipt:verifyBatch(before,after,p.manifest)};});
   const artifact=await artifacts.put({...receipt,approval,intent,at:new Date().toISOString()});
   if(!receipt.verified)throw new Error('Import readback did not verify; reconcile before retry');
   return {artifact,...receipt};

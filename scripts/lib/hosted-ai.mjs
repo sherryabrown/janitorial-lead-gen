@@ -1,3 +1,4 @@
+import { currentAudit } from './workflow-audit.mjs';
 import { randomUUID } from 'node:crypto';
 import { checked } from './hosted-store.mjs';
 const object=properties=>({type:'object',properties,required:Object.keys(properties),additionalProperties:false});
@@ -52,7 +53,7 @@ export async function boundedInterpretation({db,requestId,actor,packet,config,fe
     if(!Number.isInteger(count) || count<1 || count>8000)throw new Error('Input token limit exceeded');
     const id=randomUUID(),reserved=(count*c.inputUsdPerMillion+2000*c.outputUsdPerMillion)/1e6;
     checked(await db.rpc('reserve_procurement_usage',{p_monthly_usd:config.monthlyUsd,p_entry:{id,request_id:requestId,
-      actor_id:actor,kind:'inference',provider,model:c.model,rate_version:c.rateVersion,input_tokens:count,output_tokens:2000,reserved_usd:reserved}}));
+      step_id:currentAudit()?.stepId??null,actor_id:actor,kind:'inference',provider,model:c.model,rate_version:c.rateVersion,input_tokens:count,output_tokens:2000,reserved_usd:reserved}}));
     let response,data;
     try {
       response=await fetcher(provider==='openai'?'https://api.openai.com/v1/responses':'https://api.anthropic.com/v1/messages',{

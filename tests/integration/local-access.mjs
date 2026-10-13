@@ -1,5 +1,6 @@
 // Real PostgreSQL + PostgREST/JWT integration. No production connection is used.
 import assert from 'node:assert/strict';
+import { adminMigrations } from '../helpers/admin-trigger-db.mjs';
 import { execFileSync, spawn } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { createHmac, randomBytes, randomUUID } from 'node:crypto';
@@ -42,6 +43,8 @@ try {
     grant execute on function auth.uid() to anon,authenticated,service_role;`);
   for(const path of ['supabase/baselines/20260930_public_procurement.sql','supabase/migrations/20260930000100_authenticated_procurement_reads.sql','supabase/migrations/20260930000200_procurement_queue_pages.sql','supabase/migrations/20261001000100_queue_bounds_and_historical_dates.sql',
     'supabase/migrations/20261005000700_public_source_access_handoffs.sql','supabase/migrations/20261006000100_source_access_lifecycle.sql']) sql(readFileSync(path,'utf8'));
+  sql('create schema storage; create table storage.buckets(id text primary key,name text,public boolean);');
+  for(const name of adminMigrations)sql(readFileSync('supabase/migrations/'+name,'utf8'));
   const fixtures=JSON.parse(readFileSync('tests/fixtures/research/mapping.json','utf8'));
   const source=fixtures.procurement_sources[0],payload=fixtures.procurement_leads[1].payload;
   sql(`insert into auth.users values('${first}'),('${second}'); insert into procurement_members(user_id) values('${second}');
@@ -81,7 +84,32 @@ try {
   const intakeBody={p_source_id:sourceId,p_external_id:'isolated-server-intake',p_payload:payload,p_review_reason:'Isolated server-ingestion regression'};
   assert.ok((await api('rpc/ingest_procurement_intake',nonMember,intakeBody)).status>=400,'Browser role cannot import');
   assert.equal((await api('rpc/ingest_procurement_intake',token('service_role'),intakeBody)).status,200,'Authorized server ingestion remains available');
-  console.log(JSON.stringify({status:'passed',engine:'PostgreSQL 15 + PostgREST',checks:['anonymous reads/RPC denial','member and non-member reads/stages','signed expired and invalid JWT HTTP rejection','note ownership','atomic actor history','1005-row paged queue','service workflow access'],production_contacted:false},null,2));
+  // New Admin persistence stays server-only, while any authenticated user can use the HTTP management layer.
+  const serverToken=token('service_role');
+  for(const table of ['procurement_triggers','procurement_trigger_requests','procurement_county_state_research','procurement_state_trigger_associations','procurement_workflow_steps']) {
+    for(const jwt of [undefined,nonMember,member])assert.ok([401,403].includes((await api(table+'?select=*&limit=1',jwt)).status),'Private Admin table denied');
+    assert.equal((await api(table+'?select=id&limit=1',serverToken)).status,200);
+  }
+  const adminConfig={target_kind:'county_scope',counties:[{id:'05001',name:'Arkansas County',city_ids:[],cities:[],selection_token:'fixture'}],
+    county_ids:['05001'],maintain_sources:true,check_updates:true,requested_categories:['opportunity'],search_windows:{opportunity:{from:'2026-10-13',to:'2027-10-13',date_basis:'deadline'}}};
+  sql("insert into procurement_geographies(id,kind,name,dataset_url,dataset_version,dataset_hash) values('05','state','Arkansas','fixture','1','state'),('05001','county','Arkansas County','fixture','1','county');");
+  assert.ok([401,403].includes((await api('rpc/procurement_state_trigger_status',nonMember,{})).status),'State-target summary is server-only');
+  const submission={p_actor:first,p_key:'isolated-admin-key',p_hash:'a'.repeat(64),p_config:adminConfig};
+  assert.ok([401,403].includes((await api('rpc/submit_procurement_trigger',nonMember,submission)).status));
+  const admin=await api('rpc/submit_procurement_trigger',serverToken,submission);assert.equal(admin.status,200);
+  assert.equal((await api('rpc/submit_procurement_trigger',serverToken,submission)).body,admin.body);
+  const children=(await api('procurement_trigger_requests?trigger_id=eq.'+admin.body+'&select=request_id',serverToken)).body;
+  assert.equal(children.length,2);
+  const stepIds=[];
+  for(const child of children) {const r=await api('rpc/begin_procurement_step',serverToken,{p_input:{trigger_id:admin.body,request_id:child.request_id,phase:'ai_interpretation',attempt_key:randomUUID(),actor_id:first,origin:'manual'}});assert.equal(r.status,200);stepIds.push(r.body);}
+  const reserve=(index)=>api('rpc/reserve_procurement_usage',serverToken,{p_monthly_usd:10,p_entry:{id:randomUUID(),request_id:children[index].request_id,step_id:stepIds[index],actor_id:first,kind:'inference',provider:'fixture',model:'fixture',rate_version:'fixture',input_tokens:100,output_tokens:100,reserved_usd:0.1}});
+  const concurrent=await Promise.all([reserve(0),reserve(1)]);assert.equal(concurrent.filter(r=>r.status===200).length,1,'Shared parent budget serializes concurrent children');
+  assert.equal(concurrent.filter(r=>r.status>=400).length,1,'Unknown earlier outcome blocks second child');
+  assert.ok((await api('rpc/control_procurement_trigger',serverToken,{p_id:admin.body,p_actor:first,p_action:'resume'})).status>=400,'Reconcile held usage before resume');
+  sql("update procurement_usage_ledger set state='completed',actual_usd=0,usage='{\"input_tokens\":100,\"output_tokens\":10}' where trigger_id='"+admin.body+"';");
+  for(let n=0;n<3;n++){assert.equal((await reserve(n%2)).status,200);sql("update procurement_usage_ledger set state='completed',actual_usd=0,usage='{\"input_tokens\":100,\"output_tokens\":10}' where trigger_id='"+admin.body+"';");}
+  assert.ok((await reserve(1)).status>=400,'Four calls apply across all children');
+  console.log(JSON.stringify({status:'passed',engine:'PostgreSQL 15 + PostgREST',checks:['anonymous reads/RPC denial','member and non-member reads/stages','signed expired and invalid JWT HTTP rejection','note ownership','atomic actor history','1005-row paged queue','service workflow access','Admin private table/RPC denial','Admin atomic replay','concurrent parent AI reservations and four-call cap'],production_contacted:false},null,2));
 } finally {
   if(server && server.exitCode===null && server.signalCode===null) {server.kill();await new Promise(r=>server.once('exit',r));}
   if(started) execFileSync(exe('pg_ctl'),['-D',data,'-m','fast','-w','stop'],options);

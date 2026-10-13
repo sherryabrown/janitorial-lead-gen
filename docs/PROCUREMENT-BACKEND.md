@@ -10,6 +10,10 @@ The existing app reads canonical leads through Supabase queue/detail RPCs and pe
 
 Request submissions require `Idempotency-Key` (8–100 letters, digits, underscores or hyphens). Retry interrupted submission with the same key/input; changed input needs a new key. Submission returns 202 and a request/job identifier; read saved status to advance work. A request is not approval of a generated import package. Never send service keys, database passwords or provider secrets through workflow routes. The session-adoption route is the explicit private exception for bounded browser storage state, which is independently verified and encrypted; it never echoes the supplied state.
 
+## Admin execution addition — October 13
+
+[Admin trigger API](ADMIN-TRIGGERS.md) adds multi-county/state-source execution, private step auditing and shared parent budgets. Its migration and backend changes are local; no Admin frontend or scheduler is included yet. Existing standalone routes below retain their contract. Admin child usage reports actual provider consumption rather than reservation estimates.
+
 ## Routes
 
 | Method / path | Purpose and next action |

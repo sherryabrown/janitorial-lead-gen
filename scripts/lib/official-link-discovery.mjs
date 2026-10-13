@@ -1,3 +1,4 @@
+import {auditPhase} from './workflow-audit.mjs';
 import {readFile} from 'node:fs/promises';
 import {JSDOM} from 'jsdom';
 import {checked,rows,one,sha} from './hosted-store.mjs';
@@ -127,7 +128,7 @@ export function publicDiscovery({db,artifacts,persist,reconcileHandoffs,collect,
       run=checked(await db.from('procurement_runs').insert({source_id:source.id,job_id:job.id,coverage_task_id:c.task_id,page_index:c.visited.length,
         page_attempt:1,started_at:new Date().toISOString(),status:'partial',record_count:0,
         detail:{collector:'official-link-discovery',scope:'research_only',state:'request_pending',requested_url:url}}).select('*').single());
-      const capture=await fetchPublicCheck({runner_id:'public-fetch',allowed_hosts:[host],max_bytes:2000000},url,fetcher);
+      const capture=await auditPhase('research_fetch',()=>fetchPublicCheck({runner_id:'public-fetch',allowed_hosts:[host],max_bytes:2000000},url,fetcher),{source_id:source.id,task_id:c.task_id});
       if(capture.state!=='captured') {
         checked(await db.from('procurement_runs').update({status:'blocked',finished_at:new Date().toISOString(),detail:{collector:'official-link-discovery',
           scope:'research_only',state:capture.state,reason:capture.reason,requested_url:url}}).eq('id',run.id));

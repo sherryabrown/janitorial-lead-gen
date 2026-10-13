@@ -9,11 +9,12 @@ async function body(request) {
   }
   try {return JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{throw new HttpError(400,'Invalid JSON');}
 }
-export function workflowServer({authenticate,workflow,imports,discovery,sam,samPacket,browser,attention,kick=()=>{},allowedOrigins=[]}) {
+export function workflowServer({authenticate,workflow,imports,discovery,sam,samPacket,browser,attention,triggers,audit,db,kick=()=>{},allowedOrigins=[]}) {
   return createServer(async(request,response)=>{
     response.setHeader('Content-Type','application/json');response.setHeader('Cache-Control','no-store');
     response.setHeader('X-Content-Type-Options','nosniff');
-    const send=(status,data)=>{response.writeHead(status);response.end(JSON.stringify(data));};
+    let bufferResponse=false,pendingResponse;
+    const send=(status,data)=>{if(bufferResponse){pendingResponse={status,data};return;}response.writeHead(status);response.end(JSON.stringify(data));};
     try {
       const origin=request.headers.origin;
       if(origin&&!allowedOrigins.includes(origin))throw new HttpError(403,'Origin not allowed');
@@ -33,10 +34,27 @@ export function workflowServer({authenticate,workflow,imports,discovery,sam,samP
       const segments=url.pathname.split('/').filter(Boolean);
       if(segments[0]!=='v1')throw new HttpError(404,'Endpoint not found');
       const input=request.method==='POST'?await body(request):null;
+      bufferResponse=Boolean(audit&&request.method==='POST'&&['requests','imports'].includes(segments[1])&&uuid.test(segments[2]??''));
+      const wakeRelated=async()=>{if(triggers&&segments[1]==='requests'&&uuid.test(segments[2]??''))await triggers.wake(segments[2]);};
       let result;
-      if(request.method==='POST'&&url.pathname==='/v1/geographies/preview')result=await workflow.preview(input);
+      const execute=async()=>{
+      if(triggers&&segments[1]==='counties'&&segments.length===2&&request.method==='GET')result=await triggers.counties();
+      else if(triggers&&segments[1]==='state-triggers'&&segments.length===2&&request.method==='GET')result=await triggers.stateSources();
+      else if(triggers&&segments[1]==='triggers') {
+        const limit=Number(url.searchParams.get('limit')??50),offset=Number(url.searchParams.get('offset')??0);
+        if(!Number.isInteger(limit)||limit<1||limit>100||!Number.isInteger(offset)||offset<0)throw new HttpError(400,'Invalid pagination');
+        if(segments.length===3&&segments[2]==='preview'&&request.method==='POST')result=await triggers.preview(input);
+        else if(segments.length===2&&request.method==='POST'){result=await triggers.submit(input,actor,request.headers['idempotency-key']);await wakeRelated();kick();send(202,result);return;}
+        else if(segments.length===2&&request.method==='GET')result=await triggers.list({offset,limit});
+        else if(uuid.test(segments[2]??'')) {
+          if(segments.length===3&&request.method==='GET'){result=await triggers.status(segments[2]);kick();}
+          else if(segments.length===4&&segments[3]==='steps'&&request.method==='GET')result=await triggers.steps(segments[2],{cursor:url.searchParams.get('cursor'),limit});
+          else if(segments.length===4&&['cancel','resume'].includes(segments[3])&&request.method==='POST'){result=await triggers.control(segments[2],segments[3],actor);kick();}
+        }
+      }
+      else if(request.method==='POST'&&url.pathname==='/v1/geographies/preview')result=await workflow.preview(input);
       else if(request.method==='POST'&&url.pathname==='/v1/requests') {
-        result=await workflow.submit(input,actor,request.headers['idempotency-key']);kick();send(202,result);return;
+        result=await workflow.submit(input,actor,request.headers['idempotency-key']);await wakeRelated();kick();send(202,result);return;
       } else if(segments[1]==='requests'&&uuid.test(segments[2]??'')) {
         const id=segments[2];
         if(request.method==='GET'&&segments.length===3) {
@@ -58,13 +76,13 @@ export function workflowServer({authenticate,workflow,imports,discovery,sam,samP
           else if(request.method==='POST'&&segments.length===6&&segments[5]==='interpret')
             result=await workflow.interpret(id,segments[4],input,actor);
         } else if(request.method==='POST'&&segments.length===5&&segments[3]==='imports'&&segments[4]==='prepare') {
-          result=await imports.prepare(id,input,actor);kick();send(202,result);return;
+          result=await imports.prepare(id,input,actor);await wakeRelated();kick();send(202,result);return;
         } else if(request.method==='POST'&&segments.length===4&&segments[3]==='discover') {
-          result=await discovery(id,input,actor);kick();send(202,result);return;
+          result=await discovery(id,input,actor);await wakeRelated();kick();send(202,result);return;
         } else if(request.method==='POST'&&segments.length===5&&segments[3]==='discover'&&segments[4]==='review') {
-          result=await discovery.review(id,input,actor);kick();send(202,result);return;
+          result=await discovery.review(id,input,actor);await wakeRelated();kick();send(202,result);return;
         } else if(request.method==='POST'&&segments.length===5&&segments[3]==='discover'&&segments[4]==='resume') {
-          result=await discovery.resume(id,input,actor);kick();send(202,result);return;
+          result=await discovery.resume(id,input,actor);await wakeRelated();kick();send(202,result);return;
         } else if(request.method==='GET'&&segments.length===7&&segments[3]==='discovery'&&segments[4]==='tasks'&&uuid.test(segments[5])&&segments[6]==='packet') {
           result=await discovery.packet(id,segments[5]);
         }
@@ -92,11 +110,24 @@ export function workflowServer({authenticate,workflow,imports,discovery,sam,samP
       } else if(request.method==='GET'&&segments.length===5&&segments[1]==='sam'&&segments[2]==='requests'&&uuid.test(segments[3])&&segments[4]==='packet') {
         result=await samPacket(segments[3]);
       } else if(request.method==='POST'&&url.pathname==='/v1/sam/requests') {
-        result=await sam(input,actor,request.headers['idempotency-key']);kick();send(202,result);return;
+        result=await sam(input,actor,request.headers['idempotency-key']);await wakeRelated();kick();send(202,result);return;
       }
       if(result===undefined)throw new HttpError(404,'Endpoint not found');
+      if(request.method==='POST')await wakeRelated();
       send(200,result);
+      };
+      // Audit mutations for linked child requests; reads and legacy standalone requests keep their contract.
+      if(audit&&request.method==='POST'&&segments[1]==='requests'&&uuid.test(segments[2]??''))
+        await audit.run(segments[2],segments[3]==='tasks'?segments.at(-1):segments[3]??'request_action',execute,{reason:'manual',actor_id:actor});
+      else if(audit&&db&&request.method==='POST'&&segments[1]==='imports'&&uuid.test(segments[2]??'')) {
+        const {data:job}=await db.from('procurement_jobs').select('search_request_id').eq('id',segments[2]).maybeSingle();
+        if(!job)throw new HttpError(404,'Import job not found');
+        await audit.run(job.search_request_id,segments[3],execute,{reason:'manual'});
+      } else await execute();
+      bufferResponse=false;
+      if(pendingResponse)send(pendingResponse.status,pendingResponse.data);
     } catch(error) {
+      bufferResponse=false;
       // Only intentional HTTP errors cross the boundary. DB/provider errors may contain private details.
       send(error instanceof HttpError?error.status:422,{error:error instanceof HttpError?error.message:
         'Action could not complete. Check saved job status or server configuration; no success was confirmed.'});

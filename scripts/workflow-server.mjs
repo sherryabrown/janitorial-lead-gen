@@ -1,3 +1,6 @@
+import { countyTriggers } from './lib/county-triggers.mjs';
+import { workflowAudit } from './lib/workflow-audit.mjs';
+import { one } from './lib/hosted-store.mjs';
 import { statewideSam } from './lib/hosted-sam.mjs';
 import { attentionService } from './lib/hosted-attention.mjs';
 import { createClient } from '@supabase/supabase-js';
@@ -19,6 +22,7 @@ if(env.SUPABASE_URL!==`https://${project}.supabase.co` || !env.SUPABASE_SERVICE_
   throw new Error('Pinned Supabase URL and server-only service key required');
 const db=createClient(env.SUPABASE_URL,env.SUPABASE_SERVICE_ROLE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
 const artifacts=artifactStore(db);
+const audit=workflowAudit(db);
 const poolOptions=restrictedImportPoolOptions(env,project);
 const pool=poolOptions?new pg.Pool(poolOptions):null;
 const rehearsalOptions=restrictedImportPoolOptions(env,project,{rehearsal:true});
@@ -31,7 +35,7 @@ const aiConfig={enabled:env.PROCUREMENT_AI_ENABLED==='true',monthlyUsd:Number(en
 const sam=statewideSam({db,project,serverKey:()=>env.SUPABASE_SERVICE_ROLE_KEY,artifacts});
 const imports=importJobs({db,project,transport,artifacts,samSavedRuns:sam.savedRuns,
   rehearse:rehearsalPool?nativeRehearsal(rehearsalPool):null});
-const workflow=hostedWorkflow({db,project,serverKey:()=>env.SUPABASE_SERVICE_ROLE_KEY,artifacts,aiConfig,processJob:(job,c,save)=>
+const workflow=hostedWorkflow({db,project,serverKey:()=>env.SUPABASE_SERVICE_ROLE_KEY,artifacts,aiConfig,audit,processJob:(job,c,save)=>
   c.stage.startsWith('discovery_')?discovery.step(job,c,save):c.stage.startsWith('sam_')?sam.step(job,c,save):imports.step(job,c,save),
   captureBrowser:(id,actor)=>browser.captureWorker(id,actor)});
 let running=false;
@@ -41,20 +45,24 @@ function kick() {
   // Actual requests wake the worker; no keepalive/scheduler. Each claim persists one bounded stage.
   setImmediate(async()=>{
     const started=Date.now();
-    try {while(Date.now()-started<120000 && await workflow.step()) { /* persisted boundary */ }}
+    try {while(Date.now()-started<120000 && (await workflow.step() || await triggers.step())) { /* persisted boundary */ }}
     catch {console.error('Workflow stage interrupted; inspect saved status before retry.');}
     finally {running=false;}
   });
 }
 const discovery=discoveryService({db,project,artifacts,transport,rehearse:rehearsalPool?nativeRehearsal(rehearsalPool):null,
-  collect:({requestId,sourceCode,planOnly})=>executeKnownSources({db,project,serverKey:()=>env.SUPABASE_SERVICE_ROLE_KEY,
-    command:planOnly?'plan':'run',requestId,selectedSourceCode:sourceCode,maxJobs:4,retryPartial:false})});
+  collect:async({requestId,sourceCode,planOnly})=>{
+    const request=await one(db,'procurement_search_requests',requestId);
+    return executeKnownSources({db,project,serverKey:()=>env.SUPABASE_SERVICE_ROLE_KEY,
+      command:planOnly||request.workflow_control?.check_updates===false?'plan':'run',requestId,selectedSourceCode:sourceCode,maxJobs:4,retryPartial:false});
+  }});
 const browser=browserService({db,artifacts,sessionKey:env.PROCUREMENT_SESSION_ENCRYPTION_KEY,
   profile:env.PROCUREMENT_BUSINESS_PROFILE?JSON.parse(env.PROCUREMENT_BUSINESS_PROFILE):{},exclusive:async operation=>{
   if(running||benchmarking)throw Error('Worker is busy; resume this bounded browser action after the active stage');
   running=true;try{return await operation();}finally{running=false;}
 }});
-const server=workflowServer({workflow,imports,discovery,kick,
+const triggers=countyTriggers({db,discovery,workflow,audit});
+const server=workflowServer({workflow,imports,discovery,kick,triggers,audit,db,
   attention:attentionService(db),
   browser,
   authenticate:async token=>{const {data,error}=await db.auth.getUser(token);return error?null:data.user;},

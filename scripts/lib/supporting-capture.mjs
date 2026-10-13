@@ -1,4 +1,5 @@
 import { adapterContract,safePublicUrl } from './known-source-execution.mjs';
+import { auditPhase } from './workflow-audit.mjs';
 import { fetchPublicCheck } from './public-source-check.mjs';
 import { sha } from './hosted-store.mjs';
 import { createHmac,timingSafeEqual } from 'node:crypto';
@@ -95,7 +96,7 @@ export function supportingCapture({artifacts,serverKey,loadReviewedIntake,fetche
         return {state:'captured',lead_coverage:false,fresh_capture:false,capture_receipt,url:input.url,
           content_sha256:receipt.content_sha256,content_type:receipt.content_type,retrieved_at:receipt.retrieved_at,local_path};
       }
-      const outcome=await fetchPublicCheck(spec,input.url,fetcher);
+      const outcome=await auditPhase('fetch_document',()=>fetchPublicCheck(spec,input.url,fetcher),{source_id:context.source.id,task_id:context.task.id});
       const {body,...audit}=outcome;
       const receipt={kind:'supporting-capture-v1',...identity(packet),actor,retrieved_at:new Date().toISOString(),
         intent_path,method_hash:hash(context.capability.method_spec),...audit,...(body?{local_path:await artifacts.put(body)}:{})};

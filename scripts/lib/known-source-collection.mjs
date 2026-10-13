@@ -1,8 +1,10 @@
+import { adminSourcePlan } from './county-triggers.mjs';
+import { auditPhase } from './workflow-audit.mjs';
 import { rows as scopedRows } from './hosted-store.mjs';
 import { savedContentChange } from './source-change.mjs';
 import { mkdirSync, writeFileSync, existsSync } from 'node:fs';
 import { resolve, join } from 'node:path';
-import { buildKnownSourcePlan, adapterContract, registeredEntryContract, samFilters, inspectSamCapture, samObservations, geographyJobs } from './known-source-execution.mjs';
+import { adapterContract, registeredEntryContract, samFilters, inspectSamCapture, samObservations, geographyJobs } from './known-source-execution.mjs';
 import { inspectPublicJsonListing } from './public-json-listing.mjs';
 import { inspectPublicHtmlTable } from './public-html-table.mjs';
 import { inspectPublicBonfireProjects, inspectPublicBonfireContracts } from './public-bonfire-projects.mjs';
@@ -32,8 +34,12 @@ if (!targets.length || targets.some(t => !t.geography_id || t.state === 'needs_r
 const [geographies, capabilities, sources] = await Promise.all([
   rows('procurement_geographies'), rows('procurement_source_capabilities'), rows('procurement_sources'),
 ]);
-const plan = buildKnownSourcePlan(request, targets, geographies, capabilities, sources);
+const plan = adminSourcePlan(request, targets, geographies, capabilities, sources);
 if (command === 'plan') {
+  if(request.workflow_control?.admin_policy&&!plan.tasks.length) {
+    return {known:0,entry_checks:0,gaps:0,blocked:0,reused_methods:plan.known,
+      next:'Registered methods reused; no collection requested'};
+  }
   const persisted = await rpc('create_procurement_known_plan', { p_request_id: requestId, p_tasks: plan.tasks });
   const reconciled = await rpc('reconcile_procurement_known_gaps', { p_request_id: requestId, p_tasks: plan.tasks });
   const sourceReconciled = await rpc('reconcile_procurement_source_gaps', { p_request_id: requestId, p_tasks: plan.tasks });
@@ -120,7 +126,7 @@ if (command === 'plan') {
           if (inserted.error || !inserted.data)
             throw new Error(`Cannot audit public request; no fetch sent: ${inserted.error?.message ?? 'no row returned'}`);
           run = inserted.data;
-          const capture = await fetchPublicCheck(contract, url);
+          const capture = await auditPhase('fetch_page',()=>fetchPublicCheck(contract, url),{source_id:source.id,task_id:task.id});
           if (capture.state === 'captured') {
             let listing = null, listingError = null;
             if (contract.response_format) {
@@ -133,7 +139,7 @@ if (command === 'plan') {
                     : inspectPublicBonfireContracts(capture.body, contract); }
               catch (error) { listingError = error.message; }
             }
-            const semanticHash = semanticPublicHash(source.code, capture.body);
+            const semanticHash = await auditPhase('compare',async()=>semanticPublicHash(source.code, capture.body),{source_id:source.id,task_id:task.id});
             const changeType = semanticSources.has(source.code)
               ? await savedContentChange(db, 'procurement_runs', q => q.eq('source_id', source.id)
                 .eq('status', 'review_required').eq('detail->>final_url', capture.final_url)
@@ -242,7 +248,7 @@ if (command === 'plan') {
                 allowed_hosts: contract.allowed_hosts, max_bytes: contract.max_bytes }, contract.entry_url);
               entry = inspectArdotEntry(entryCapture);
             }
-            capture = await fetchArdotPage(entry, page, contract.page_size);
+            capture = await auditPhase('fetch_page',()=>fetchArdotPage(entry, page, contract.page_size),{source_id:source.id,task_id:task.id});
           } catch (error) {
             capture = { state: 'outcome_unknown', reason: error.message };
           }
