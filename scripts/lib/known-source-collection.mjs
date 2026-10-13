@@ -1,10 +1,12 @@
+import { rows as scopedRows } from './hosted-store.mjs';
+import { savedContentChange } from './source-change.mjs';
 import { mkdirSync, writeFileSync, existsSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { buildKnownSourcePlan, adapterContract, registeredEntryContract, samFilters, inspectSamCapture, samObservations, geographyJobs } from './known-source-execution.mjs';
 import { inspectPublicJsonListing } from './public-json-listing.mjs';
 import { inspectPublicHtmlTable } from './public-html-table.mjs';
 import { inspectPublicBonfireProjects, inspectPublicBonfireContracts } from './public-bonfire-projects.mjs';
-import { fetchPublicCheck, contentChangeType, semanticPublicHash, semanticSources } from './public-source-check.mjs';
+import { fetchPublicCheck, semanticPublicHash, semanticSources } from './public-source-check.mjs';
 import { inspectArdotEntry, fetchArdotPage } from './ardot-table.mjs';
 import { collectKnownApi } from './known-access-run.mjs';
 
@@ -13,16 +15,9 @@ import { collectKnownApi } from './known-access-run.mjs';
 export async function executeKnownSources({db, project, serverKey, command, requestId, selectedSourceCode, maxJobs=Infinity, cancelled=async()=>false, retryPartial=true}) {
 if (!['plan','run'].includes(command)) throw new Error('Invalid collection command');
 if (['sam','sam-awards'].includes(selectedSourceCode)) throw new Error('Use separate statewide SAM');
-async function rows(table, columns = '*', filter = null) {
-  const result = [];
-  for (let offset = 0; ; offset += 1000) {
-    let query = db.from(table).select(columns);
-    if (filter) query = filter(query);
-    const { data, error } = await query.range(offset, offset + 999);
-    if (error) throw new Error(`${table}: ${error.message}`);
-    result.push(...data);
-    if (data.length < 1000) return result;
-  }
+function rows(table, columns = '*', filter = null) {
+  return scopedRows(db, table, filter ?? (query => query), columns,
+    { order: table === 'procurement_public_captures' ? 'run_id' : 'id' });
 }
 async function rpc(name, args) {
   const { data, error } = await db.rpc(name, args);
@@ -138,17 +133,13 @@ if (command === 'plan') {
                     : inspectPublicBonfireContracts(capture.body, contract); }
               catch (error) { listingError = error.message; }
             }
-            const previous = await rows('procurement_public_captures', 'content_sha256', q =>
-              q.eq('source_id', source.id).eq('final_url', capture.final_url)
-            );
             const semanticHash = semanticPublicHash(source.code, capture.body);
-            const previousSemantic = semanticSources.has(source.code)
-              ? await rows('procurement_runs', 'detail', q => q.eq('source_id', source.id)
-                .eq('status', 'review_required')) : [];
-            const priorHashes = semanticSources.has(source.code)
-              ? previousSemantic.filter(r => r.detail?.final_url === capture.final_url)
-                .map(r => r.detail?.semantic_sha256).filter(Boolean)
-              : previous.map(p => p.content_sha256);
+            const changeType = semanticSources.has(source.code)
+              ? await savedContentChange(db, 'procurement_runs', q => q.eq('source_id', source.id)
+                .eq('status', 'review_required').eq('detail->>final_url', capture.final_url)
+                .not('detail->>semantic_sha256', 'is', null).neq('detail->>semantic_sha256', ''), 'detail->>semantic_sha256', semanticHash)
+              : await savedContentChange(db, 'procurement_public_captures', q => q.eq('source_id', source.id)
+                .eq('final_url', capture.final_url), 'content_sha256', semanticHash, 'run_id');
             const stored = await db.from('procurement_public_captures').insert({
               run_id: run.id, source_id: source.id, requested_url: url,
               final_url: capture.final_url, content_type: capture.content_type,
@@ -166,7 +157,7 @@ if (command === 'plan') {
                 listing_count: listing?.records.length ?? null,
                 listing_terminal: listing?.terminal === true,
                 listing_reason: listingError ?? listing?.reason ?? null } : {}),
-              change_type: contentChangeType(priorHashes, semanticHash),
+              change_type: changeType,
               parser_version: contract.parser_version, check_when: contract.check_when,
               query_window: task.query_window, interpretation: 'pending' };
             const updated = await db.from('procurement_runs').update({ status: 'review_required',
@@ -256,8 +247,10 @@ if (command === 'plan') {
             capture = { state: 'outcome_unknown', reason: error.message };
           }
           if (capture.state === 'captured') {
-            const prior = await rows('procurement_runs', 'detail,page_index', q =>
-              q.eq('source_id', source.id).eq('status', 'review_required').eq('page_index', page));
+            const changeType = await savedContentChange(db, 'procurement_runs', q =>
+              q.eq('source_id', source.id).eq('status', 'review_required').eq('page_index', page)
+                .not('detail->>content_sha256', 'is', null).neq('detail->>content_sha256', ''),
+              'detail->>content_sha256', capture.content_sha256);
             const stored = await db.from('procurement_public_captures').insert({
               run_id: run.id, source_id: source.id, requested_url: contract.ajax_url,
               final_url: contract.ajax_url, content_type: 'application/json',
@@ -268,8 +261,7 @@ if (command === 'plan') {
               entry_url: contract.entry_url, entry_sha256: entry.entry_sha256,
               ajax_url: contract.ajax_url, page_index: page, page_size: contract.page_size,
               upstream_status: 200, content_sha256: capture.content_sha256,
-              change_type: contentChangeType(prior.map(r => r.detail?.content_sha256).filter(Boolean),
-                capture.content_sha256),
+              change_type: changeType,
               records_total: capture.total, rows: capture.rows, terminal: capture.terminal,
               parser_version: contract.parser_version, query_window: task.query_window,
               interpretation: 'pending' };

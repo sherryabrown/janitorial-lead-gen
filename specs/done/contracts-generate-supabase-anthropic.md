@@ -1,5 +1,7 @@
 # Contracts Generate Tab With Supabase And Anthropic
 
+> Historical plan: duplicate root prompt removed October 13, 2026; retained canonical prompt is `supabase/functions/spin_generate_contracts/prompts/procurement-bid-site-finder.md`. Generate remains disabled; this is not the current collection API.
+
 ## Problem
 
 The Contracts view needs a new `Generate` entry point that starts real contract monitoring for Arkansas cities, ZIP codes, or counties. This is the first real integration pass: the UI should call Supabase, use the existing `spin_geography` table to resolve geography, maintain procurement source URLs, verify/fill missing URLs, and capture bid/contract opportunities. Anthropic should be used only when deterministic checks are not enough, and the full prompt in `prompts/procurement-bid-site-finder.md` must be included in the Anthropic request.

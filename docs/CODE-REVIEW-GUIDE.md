@@ -1,6 +1,6 @@
 # Code review guide
 
-Prepared October 1, 2026 for the current working tree, including uncommitted remediation changes. This is a reading plan, not another implementation plan or a new security audit. Check off a section only after reviewing its implementation and relevant tests.
+Updated October 13, 2026 for the current local implementation; deployment is not reverified by this guide. This is a reading plan, not another implementation plan or a new security audit. Check off a section only after reviewing its implementation and relevant tests.
 
 The product lets signed-in users examine procurement leads, change stages, and keep notes/history. A separate research workflow discovers sources, retains evidence, reviews candidate findings, and imports verified records into Supabase. Skill instructions guide portal/API setup and alerts. These are distinct responsibilities, not one automatic background service.
 
@@ -8,7 +8,7 @@ The product lets signed-in users examine procurement leads, change stages, and k
 
 Review in the order below. For each responsibility, answer: **What goes in? What comes out? What can change? Who can do it? What happens if it fails?** Record issues as `file/function → observed behavior → expected behavior → supporting test or reproduction`.
 
-Start with the business behavior, then follow one record into the database. Do not begin by reading every migration or all 2,900+ lines of AppShell straight through. Function names below are useful search anchors if line numbers change.
+Start with the business behavior, then follow one record into the database. Do not begin by reading every migration or all the AppShell module straight through. Function names below are useful search anchors if line numbers change.
 
 ## 1. Understand the product and boundaries
 
@@ -32,7 +32,7 @@ Start with the business behavior, then follow one record into the database. Do n
 | [index.html](C:/Users/sherr/janitorial-lead-gen/index.html), [src/main.tsx](C:/Users/sherr/janitorial-lead-gen/src/main.tsx), [src/App.tsx](C:/Users/sherr/janitorial-lead-gen/src/App.tsx) | HTML root, React startup, styles and delegation to AppShell. |
 | [src/lib/supabase.ts](C:/Users/sherr/janitorial-lead-gen/src/lib/supabase.ts), [.env.example](C:/Users/sherr/janitorial-lead-gen/.env.example) | Browser Supabase client using public configuration. Review the example, not secret values. |
 | [AuthGate.tsx](C:/Users/sherr/janitorial-lead-gen/src/features/auth/AuthGate.tsx) | Session restoration/subscription, sign-in/signup screen, authenticated content boundary. |
-| [AppShell.tsx: App](C:/Users/sherr/janitorial-lead-gen/src/app/AppShell.tsx:444) | Connects the auth gate to the signed-in workspace and sign-out action. |
+| [AppShell.tsx: App](C:/Users/sherr/janitorial-lead-gen/src/app/AppShell.tsx) | Connects the auth gate to the signed-in workspace and sign-out action. |
 
 **Ask:** Does logout remove protected state? What happens to an expired session or failed session lookup? Does signing up require email confirmation? Remember that hiding the React screen is not database authorization—review section 6 too.
 
@@ -44,10 +44,10 @@ Start with the business behavior, then follow one record into the database. Do n
 
 | Files | Responsibility |
 | --- | --- |
-| [src/lib/procurement.ts](C:/Users/sherr/janitorial-lead-gen/src/lib/procurement.ts) | Typed database rows; `loadProcurementContracts` queue RPC; lazy `loadProcurementLeadDetail`; `mapProcurementLead`/`mapProcurementSource`; stage, category, location, date and value interpretation. Also contains the older `findLeadIdsByActivityDate` helper—check callers before treating every exported helper as active. |
+| [src/lib/procurement.ts](C:/Users/sherr/janitorial-lead-gen/src/lib/procurement.ts) | Typed database rows; `loadProcurementContracts` queue RPC; lazy `loadProcurementLeadDetail`; `mapProcurementLead`/`mapProcurementSource`; stage, category, location, date and value interpretation. Source reads use a workspace-owned invalidatable cache; history tables use stable full pagination. |
 | [contracts/types.ts](C:/Users/sherr/janitorial-lead-gen/src/features/contracts/types.ts), [shared/types.ts](C:/Users/sherr/janitorial-lead-gen/src/features/shared/types.ts) | UI contracts for leads, filters, stages, notes and history. Compare these with database row types. |
-| [contract-utils.ts](C:/Users/sherr/janitorial-lead-gen/src/features/contracts/contract-utils.ts) | Default filters, date boundaries/priorities, date labels and URL validation. Includes client filtering/sorting helpers; the live queue now filters on the server. |
-| [AppShell.tsx: AppShell](C:/Users/sherr/janitorial-lead-gen/src/app/AppShell.tsx:448) | Queue state, loading/errors, refresh/realtime, stale-response guards, selected detail, counts and cross-page checkbox selection. |
+| [contract-utils.ts](C:/Users/sherr/janitorial-lead-gen/src/features/contracts/contract-utils.ts) | Default filters, date boundaries/priorities, date labels and URL validation. The live queue owns filtering/sorting in SQL; removed test-only client duplicates are covered by queue SQL regressions. |
+| [AppShell.tsx: AppShell](C:/Users/sherr/janitorial-lead-gen/src/app/AppShell.tsx) | Queue state, loading/errors, refresh/realtime, stale-response guards, selected detail, counts and cross-page checkbox selection. |
 | [queue RPC migration](C:/Users/sherr/janitorial-lead-gen/supabase/migrations/20260930000200_procurement_queue_pages.sql), [queue corrections](C:/Users/sherr/janitorial-lead-gen/supabase/migrations/20261001000100_queue_bounds_and_historical_dates.sql) | Server filters/search, full-data counts, stable paging, lighter row projection, history-based date predicates and page bounds. The later function definition is authoritative. |
 
 **Ask:** Are a forecast, an open opportunity and an award distinguished correctly? Does unknown remain unknown? Do date-only values retain their day? Are counts based on the full dataset? What happens when filters change, a request returns late, or records move between pages? Are large evidence payloads fetched only when needed?
@@ -62,7 +62,7 @@ Start with the business behavior, then follow one record into the database. Do n
 | --- | --- |
 | [AppShell.tsx](C:/Users/sherr/janitorial-lead-gen/src/app/AppShell.tsx) | `applyContractAction`, `applyBulkContractStage`, note handlers and `refreshContractHistory` orchestrate interaction and refresh. `ContractActions`, `StageReasonDialog`, `ContractBulkStageBar`, `NotePanel` and `HistoryPanel` render controls. |
 | [save-lead-change.ts](C:/Users/sherr/janitorial-lead-gen/src/features/contracts/save-lead-change.ts) | Applies a confirmed write before separately handling a failed history read. |
-| [procurement.ts: history and mutations](C:/Users/sherr/janitorial-lead-gen/src/lib/procurement.ts:183) | Reads history and calls single/bulk stage, create-note and edit-note RPCs. |
+| [procurement.ts: history and mutations](C:/Users/sherr/janitorial-lead-gen/src/lib/procurement.ts) | Reads history and calls single/bulk stage, create-note and edit-note RPCs. |
 | [ResearchContext.tsx](C:/Users/sherr/janitorial-lead-gen/src/features/contracts/ResearchContext.tsx) | Displays imported qualifications separately from editable user notes. |
 | [database baseline](C:/Users/sherr/janitorial-lead-gen/supabase/baselines/20260930_public_procurement.sql) | Search for `update_procurement_lead_stage`, `bulk_update_procurement_lead_stage`, `create_lead_note`, `edit_lead_note`, audit triggers and note policies. |
 
@@ -79,9 +79,9 @@ Start with the business behavior, then follow one record into the database. Do n
 | [styles.css](C:/Users/sherr/janitorial-lead-gen/src/styles.css) | Brand, spacing, layout, selected/muted rows, controls, overlays, focus and responsive behavior. |
 | [ModeSwitch.tsx](C:/Users/sherr/janitorial-lead-gen/src/features/shared/components/ModeSwitch.tsx) | Workspace switch and Coming Soon treatment. |
 | [InfoTooltip.tsx](C:/Users/sherr/janitorial-lead-gen/src/features/shared/components/InfoTooltip.tsx), [EmptyQueueState.tsx](C:/Users/sherr/janitorial-lead-gen/src/features/shared/components/EmptyQueueState.tsx) | Filter explanations and actionable empty states. |
-| [AppShell.tsx: SummaryPill](C:/Users/sherr/janitorial-lead-gen/src/app/AppShell.tsx:1273) | Queue navigation/counts. Continue to `ContractFiltersBar`, `FilterSelect`, `ContractList`, `ContractContextPanel` and `SourceSummary`. |
-| [AppShell.tsx: CompanyList](C:/Users/sherr/janitorial-lead-gen/src/app/AppShell.tsx:1691) | Company prototype, related actions/context, sample company data and outreach previews. These are not the production procurement import pipeline. |
-| [AppShell.tsx: EmailApprovalPreview](C:/Users/sherr/janitorial-lead-gen/src/app/AppShell.tsx:2255) | Prototype email presentation; do not confuse this with the Resend signup-alert procedure. |
+| [AppShell.tsx: SummaryPill](C:/Users/sherr/janitorial-lead-gen/src/app/AppShell.tsx) | Queue navigation/counts. Continue to `ContractFiltersBar`, `FilterSelect`, `ContractList`, `ContractContextPanel` and `SourceSummary`. |
+| [AppShell.tsx: CompanyList](C:/Users/sherr/janitorial-lead-gen/src/app/AppShell.tsx) | Company prototype, related actions/context, sample company data and outreach previews. These are not the production procurement import pipeline. |
+| [AppShell.tsx: EmailApprovalPreview](C:/Users/sherr/janitorial-lead-gen/src/app/AppShell.tsx) | Prototype email presentation; do not confuse this with the Resend signup-alert procedure. |
 
 **Ask:** Can the owner scan and act quickly? Is keyboard focus visible? Are disabled functions clearly disabled? Are missing URLs plain text? Are busy, empty and error states understandable? Which pieces remain mock/prototype behavior?
 
@@ -179,8 +179,8 @@ These files instruct an agent during an authorized task. They are not an always-
 | Files | Responsibility/status |
 | --- | --- |
 | [spin_generate_contracts/index.ts](C:/Users/sherr/janitorial-lead-gen/supabase/functions/spin_generate_contracts/index.ts) | Dormant source discovery, Anthropic calls, URL fetching, extraction and writes to the earlier `spin_*` model. Review authorization, cost/fetch limits and canonical import integration before any activation. |
-| [function prompt](C:/Users/sherr/janitorial-lead-gen/supabase/functions/spin_generate_contracts/prompts/procurement-bid-site-finder.md), [root prompt](C:/Users/sherr/janitorial-lead-gen/prompts/procurement-bid-site-finder.md) | Generation instructions in two locations; compare for drift. |
-| [AppShell.tsx: ContractGeneratePanel](C:/Users/sherr/janitorial-lead-gen/src/app/AppShell.tsx:1327) | Disabled generation UI; also inspect generation request/types and `mapGeneratedSource`/`mapGeneratedContract`. |
+| [function prompt](C:/Users/sherr/janitorial-lead-gen/supabase/functions/spin_generate_contracts/prompts/procurement-bid-site-finder.md) | Canonical retained legacy prompt; duplicate root copy removed. |
+| [AppShell.tsx: ContractGeneratePanel](C:/Users/sherr/janitorial-lead-gen/src/app/AppShell.tsx) | Disabled generation UI; also inspect generation request/types and `mapGeneratedSource`/`mapGeneratedContract`. |
 | [prepare-sam-upserts.mjs](C:/Users/sherr/janitorial-lead-gen/scripts/prepare-sam-upserts.mjs), [prepare-intake-processing.mjs](C:/Users/sherr/janitorial-lead-gen/scripts/prepare-intake-processing.mjs), [verify-intake-processing.mjs](C:/Users/sherr/janitorial-lead-gen/scripts/verify-intake-processing.mjs) | Earlier batch-specific preparation and verification; current new batches use the main workflow CLI. |
 | [SAM-SEARCH-PLAYBOOK.md](C:/Users/sherr/janitorial-lead-gen/docs/SAM-SEARCH-PLAYBOOK.md) | Historical execution context and distinction between old SQL drafts and applied work. |
 
@@ -215,3 +215,7 @@ Do not treat `node_modules`, `dist`, `.netlify`, `supabase/.temp`, private captu
 - [ ] **Access handoff:** identify portal/API requirement → check prior status → attempt authorized setup → preserve blocker → send eligible alert through Resend → record acceptance/delivery separately → resume after user action.
 
 For each trace, identify the responsible files above and write down anything that is manual, external, disabled or unverified. This prevents mistaking the presence of a file or instruction for a completed integration.
+
+## October 13 cleanup references
+
+Use [the current backend contract](PROCUREMENT-BACKEND.md), [cleanup manifest](reviews/2026-10-13-cleanup-manifest.md), and [build report](reviews/2026-10-13-review-remediation-build.md). Historical reviews/specs describe the code at their date; removed helpers are not current entry points. Companies/email remain future functionality; Bonfire/Euna verification is separate.

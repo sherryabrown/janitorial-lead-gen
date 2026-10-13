@@ -5,7 +5,6 @@ import ts from 'typescript';
 import { execFileSync } from 'node:child_process';
 const compile=async p=>import('data:text/javascript;base64,'+Buffer.from(ts.transpileModule(readFileSync(p,'utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText).toString('base64'));
 const {mapProcurementLead,mapProcurementSource}=await compile('src/lib/procurement.ts');
-const {matchesContractFilters,getDefaultContractFilters}=await compile('src/features/contracts/contract-utils.ts');
 test('API endpoints and unresolved fallback links are not project-name links',()=>{
  const lead={id:'link',source_id:'source',payload:{title:'Project',source_url:'https://api.usaspending.gov/search'},source_url:'https://api.usaspending.gov/search'};
  assert.equal(mapProcurementLead(lead).sourceUrl,undefined);
@@ -24,13 +23,13 @@ test('calendar dates remain stable in Arkansas, New York and UTC across DST',()=
 });
 const after=JSON.parse(readFileSync('tests/fixtures/research/mapping.json','utf8'));
 const dhs=after.procurement_leads.find(l=>l.external_id==='710-25-028:ouachita'),ssc=after.procurement_leads.find(l=>l.external_id==='tasd-board-20260519-ssc-custodial');
-test('persisted historical solicitation keeps evidence and is excluded from opportunity filter',()=>{
+test('persisted historical solicitation keeps evidence and maps to unknown bid type',()=>{
  const c=mapProcurementLead(dhs);assert.equal(c.bidType,'unknown');assert.match(c.projectName,/Historical/);assert.ok(c.researchNotes.some(x=>x.includes('Expired historical IFB')));assert.match(c.nextAction,/contract/);
- const f=getDefaultContractFilters();assert.equal(matchesContractFilters(c,{...f,bidType:'opportunity'}),false);assert.equal(matchesContractFilters(c,{...f,query:'Camden'}),true);
+ assert.equal(c.bidType,'unknown');assert.match(c.location,/Camden/);
 });
 test('persisted board approval retains qualifications and does not invent executed end or annual value',()=>{
  const c=mapProcurementLead(ssc);assert.equal(c.bidType,'award');assert.match(c.projectName,/Board-approved/);assert.ok(c.researchNotes.some(x=>x.includes('Signed execution')));assert.equal(c.estimatedValue,undefined);assert.equal(c.keyDates.some(x=>x.key==='current-end'),false);
- assert.equal(matchesContractFilters(c,{...getDefaultContractFilters(),bidType:'award',query:'Texarkana'}),true);
+ assert.equal(c.bidType,'award');assert.match(c.location,/Texarkana/);
  const annotated=mapProcurementLead({...ssc,notes:'Existing owner note',next_action:'Owner follow-up'});assert.ok(annotated.notes.includes('Existing owner note'));assert.equal(annotated.nextAction,'Owner follow-up');
 });
 test('database source coverage displays geography and partial status rather than assumed completeness',()=>{

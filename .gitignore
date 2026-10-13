@@ -23,7 +23,6 @@ outputs/skill-drafts/
 outputs/procurement-access/
 outputs/deployment/
 outputs/api-links/
-/sql-validation-template.tar.gz
 
 # Local Netlify folder
 .netlify

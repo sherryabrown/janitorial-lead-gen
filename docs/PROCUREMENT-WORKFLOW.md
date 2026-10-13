@@ -4,6 +4,8 @@ For login/API setup and verified authenticated capture, use [SOURCE-ACCESS.md](S
 
 This is the current operating procedure. It supersedes batch-specific preparation/import instructions in historical reports. It does not promise flawless source data or uninterrupted APIs. It requires clear failures, protected user data, explicit approvals, and verifiable outcomes.
 
+For hosted routes/configuration/current local behavior use [PROCUREMENT-BACKEND.md](PROCUREMENT-BACKEND.md). Operator commands retain their reviewed import boundaries. Historical fixed-batch tools are audit reproduction only.
+
 ## What must be true
 
 1. **Authority and scope are stated first.** Define service, work area, sources and dates. Application geography research follows established source/intake persistence and verified-import authority; explicit research-only/export-only requests stop at that boundary. Explain intended changes before doing them. Honor separate scoped signup/verification and alert authority already supplied. Never infer permission for subscriptions, migrations, deployments or recurring work.

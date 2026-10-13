@@ -10,7 +10,7 @@ Run commands from the repository root. Use Node 22.15+ on a supported Node relea
 | `npm run test:workflow` | Node workflow/mapping tests, including the reviewed batch CLI's offline SQL receipt |
 | `npm run test:sql` | Historical intake/upsert SQL regressions, concurrency guards and protected-field preservation |
 | `npm test` | All three suites, stopping at the first failing command |
-| `npm run lint` | TS/TSX plus Node scripts/tests |
+| `npm run lint` | Maintained TS/TSX, Edge Functions and Node scripts/tests; private/generated output and machine state excluded |
 | `npm run typecheck` | TypeScript project checks |
 | `npm run build` | Typecheck and production Vite build |
 | `npm run check` | Lint, all tests, then build; stops on failure |
@@ -76,4 +76,4 @@ The new workflow removes external-folder setup and runtime package resolution. S
 - Keep a bounded milestone per build. Measure slow commands before restructuring them. Preserve required database verification even if it costs time.
 - Do not run `npm ci` before every edit, reauthenticate already-working integrations, or deploy to verify a local documentation change.
 
-Next: execute `specs/todo/02-code-review-remediation-and-authenticated-data-access.md`. This tooling work does not change live database permissions. The confirmed anonymous-read issue remains until that plan's access migration is implemented and verified.
+Current follow-up: see [the code cleanup report](reviews/2026-10-13-review-remediation-build.md) and [backend API contract](PROCUREMENT-BACKEND.md) before separately scoped UI wiring/scheduling. The earlier access remediation is recorded in `specs/done/02-code-review-remediation-and-authenticated-data-access.md`; this document is not a live permission readback.

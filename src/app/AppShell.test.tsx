@@ -5,12 +5,12 @@ import fixtures from '../../tests/fixtures/research/mapping.json';
 import { mapProcurementLead, type ProcurementLead } from '../lib/procurement';
 import App from './AppShell';
 
-const api = vi.hoisted(() => ({ load: vi.fn(), history: vi.fn(), detail: vi.fn(), write: vi.fn(), authChanged: undefined as undefined | ((event: string, session: unknown) => void) }));
+const api = vi.hoisted(() => ({ load: vi.fn(), history: vi.fn(), detail: vi.fn(), write: vi.fn(), note: vi.fn(), edit: vi.fn(), authChanged: undefined as undefined | ((event: string, session: unknown) => void) }));
 vi.mock('../lib/procurement', async (original) => ({
   ...await original<typeof import('../lib/procurement')>(),
   loadProcurementContracts: api.load, loadProcurementLeadHistory: api.history,
   loadProcurementLeadDetail: api.detail, updateProcurementLeadStage: api.write,
-  bulkUpdateProcurementLeadStage: api.write,
+  bulkUpdateProcurementLeadStage: api.write, addProcurementLeadNote: api.note, editProcurementLeadNote: api.edit,
 }));
 vi.mock('../lib/supabase', () => ({
   isSupabaseConfigured: true,
@@ -27,12 +27,14 @@ vi.mock('../lib/supabase', () => ({
 
 const lead=fixtures.procurement_leads[1] as unknown as ProcurementLead;
 beforeEach(() => {
-  vi.clearAllMocks();
+  vi.resetAllMocks();
   const mapped=mapProcurementLead(lead);
   api.load.mockResolvedValue({contracts:[mapped],sources:[],total:1,counts:{new:1}});
   api.history.mockResolvedValue([]);
   api.detail.mockResolvedValue(mapped);
   api.write.mockResolvedValue({...lead,stage:'interested'});
+  api.note.mockResolvedValue({id:'saved-note'});
+  api.edit.mockResolvedValue({id:'saved-note'});
   window.confirm=()=>true;
 });
 afterEach(cleanup);
@@ -109,4 +111,111 @@ it('ignores an older queue response after the user changes search', async () => 
   await act(async()=>release({contracts:[],sources:[],total:0,counts:{}}));
   expect(screen.getByText('1 results')).toBeTruthy();
   expect(screen.getByRole('region',{name:'Research context'}).textContent).toContain('Signed execution');
+});
+
+
+it('retains a rejected note draft and does not repeat a committed write after refresh failure', async () => {
+  render(<App />);
+  await screen.findByRole('region', {name:'Research context'});
+  await waitFor(() => expect(api.history).toHaveBeenCalled());
+  const input = screen.getByPlaceholderText('Capture any applicable information, including where data may not be accurate.');
+  fireEvent.change(input, {target:{value:'Keep this draft'}});
+  api.note.mockRejectedValueOnce(new Error('write rejected'));
+  fireEvent.click(screen.getByRole('button', {name:'Save note'}));
+  await screen.findByText(/Unable to save note: write rejected/);
+  expect((input as HTMLTextAreaElement).value).toBe('Keep this draft');
+  api.history.mockRejectedValueOnce(new Error('read failed'));
+  fireEvent.click(screen.getByRole('button', {name:'Save note'}));
+  await screen.findByText('Note saved. History could not refresh; retry refresh.');
+  expect((input as HTMLTextAreaElement).value).toBe('');
+  expect(api.note).toHaveBeenCalledTimes(2);
+  fireEvent.click(screen.getByRole('button', {name:'Refresh contracts from Supabase'}));
+  await waitFor(() => expect(api.history).toHaveBeenCalledTimes(3));
+  expect(api.note).toHaveBeenCalledTimes(2);
+});
+
+it('a pending note save does not clear a newer draft', async () => {
+  let finish: (value: unknown) => void = () => undefined;
+  api.note.mockImplementationOnce(() => new Promise(resolve => {finish=resolve;}));
+  render(<App />);
+  await screen.findByRole('region', {name:'Research context'});
+  await waitFor(() => expect(api.history).toHaveBeenCalled());
+  const input = screen.getByPlaceholderText('Capture any applicable information, including where data may not be accurate.');
+  fireEvent.change(input, {target:{value:'Submitted draft'}});
+  fireEvent.click(screen.getByRole('button', {name:'Save note'}));
+  await waitFor(() => expect(api.note).toHaveBeenCalled());
+  fireEvent.change(input, {target:{value:'New draft'}});
+  await act(async () => finish({id:'saved-note'}));
+  await waitFor(() => expect(screen.getByRole('button', {name:'Save note'})).toBeTruthy());
+  expect((input as HTMLTextAreaElement).value).toBe('New draft');
+});
+
+it('retains a rejected edit and treats a committed edit with failed refresh as saved', async () => {
+  api.history.mockResolvedValue([{id:'note-id',lead_id:lead.id,event_type:'note_added',note_text:'Original note',occurred_at:'2026-10-01T12:00:00Z',actor_id:'fixture-user',old_value:null,new_value:null,metadata:{}}]);
+  render(<App />);
+  await screen.findAllByText('Original note');
+  fireEvent.click(screen.getByRole('button', {name:/Edit note from/}));
+  const input = screen.getByRole('textbox', {name:/Edit note from/});
+  fireEvent.change(input, {target:{value:'Edited draft'}});
+  api.edit.mockRejectedValueOnce(new Error('edit rejected'));
+  fireEvent.click(screen.getByRole('button', {name:'Save edit'}));
+  await screen.findByText(/Unable to edit note: edit rejected/);
+  expect((input as HTMLTextAreaElement).value).toBe('Edited draft');
+  api.history.mockRejectedValueOnce(new Error('read failed'));
+  fireEvent.click(screen.getByRole('button', {name:'Save edit'}));
+  await screen.findByText('Note edited. History could not refresh; retry refresh.');
+  expect(screen.queryByRole('button', {name:'Save edit'})).toBeNull();
+  expect(api.edit).toHaveBeenCalledTimes(2);
+});
+
+
+it('an older save does not clear the shared draft after selecting another lead', async () => {
+  let finish: (value: unknown) => void = () => undefined;
+  const first=mapProcurementLead(lead), second={...first,id:'second-lead',projectName:'Second contract'};
+  api.load.mockResolvedValue({contracts:[first,second],sources:[],total:2,counts:{new:2}});
+  api.note.mockImplementationOnce(()=>new Promise(resolve=>{finish=resolve;}));
+  render(<App />);
+  await screen.findByRole('region',{name:'Research context'});
+  await waitFor(()=>expect(api.history).toHaveBeenCalled());
+  const input=screen.getByPlaceholderText('Capture any applicable information, including where data may not be accurate.');
+  fireEvent.change(input,{target:{value:'Shared draft'}});
+  fireEvent.click(screen.getByRole('button',{name:'Save note'}));
+  await waitFor(()=>expect(api.note).toHaveBeenCalled());
+  fireEvent.click((await screen.findByRole('checkbox',{name:'Select Second contract'})).closest('article')!);
+  await screen.findByRole('textbox',{name:'Note for Second contract'});
+  await waitFor(()=>expect(api.history).toHaveBeenCalledWith(expect.anything(),second.id));
+  const historyCalls=api.history.mock.calls.length;
+  await act(async()=>finish({id:'saved-note'}));
+  await waitFor(()=>expect((screen.getByRole('textbox',{name:'Note for Second contract'}) as HTMLTextAreaElement).value).toBe('Shared draft'));
+  expect(api.note.mock.calls[0][1]).toBe(lead.id);
+  expect(api.history).toHaveBeenCalledTimes(historyCalls);
+  expect(screen.queryByText(/Note saved. History could not refresh/)).toBeNull();
+});
+
+
+it('ignores a rejected history request after selecting another lead', async () => {
+  const first=mapProcurementLead(lead), second={...first,id:'second-lead',projectName:'Second contract'};
+  api.load.mockResolvedValue({contracts:[first,second],sources:[],total:2,counts:{new:2}});
+  let rejectOld: (reason: Error) => void = () => undefined;
+  api.history.mockImplementationOnce(()=>new Promise((_resolve,reject)=>{rejectOld=reject;}));
+  render(<App />);
+  await waitFor(()=>expect(api.history).toHaveBeenCalledWith(expect.anything(),first.id));
+  fireEvent.click((await screen.findByRole('checkbox',{name:'Select Second contract'})).closest('article')!);
+  await waitFor(()=>expect(api.history).toHaveBeenCalledWith(expect.anything(),second.id));
+  await act(async()=>{rejectOld(new Error('old history failure'));});
+  expect(screen.queryByText('History could not refresh. Retry refresh.')).toBeNull();
+});
+
+it('shows a current history read failure and ignores a failure after unmount', async () => {
+  api.history.mockRejectedValueOnce(new Error('current read failure'));
+  const view=render(<App />);
+  await screen.findByText('History could not refresh. Retry refresh.');
+  view.unmount();
+  let rejectOld: (reason: Error) => void = () => undefined;
+  api.history.mockImplementationOnce(()=>new Promise((_resolve,reject)=>{rejectOld=reject;}));
+  const next=render(<App />);
+  await waitFor(()=>expect(api.history).toHaveBeenCalledTimes(2));
+  next.unmount();
+  await act(async()=>{rejectOld(new Error('after unmount'));});
+  expect(screen.queryByText('History could not refresh. Retry refresh.')).toBeNull();
 });

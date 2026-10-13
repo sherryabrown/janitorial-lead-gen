@@ -3,9 +3,6 @@ import { JSDOM } from 'jsdom';
 import { safePublicUrl } from './known-source-execution.mjs';
 
 const acceptable = /^(text\/(html|plain|xml)|application\/(pdf|xml|xhtml\+xml))(;|$)/i;
-export function contentChangeType(previousHashes, hash) {
-  return previousHashes.includes(hash) ? 'unchanged' : previousHashes.length ? 'changed' : 'new';
-}
 
 export const semanticSources = new Set([
   'arbuy-janitorial', 'arbuy', 'ariba', 'state-contracts', 'state-intents', 'state-other', 'dhs',

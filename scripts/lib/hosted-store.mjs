@@ -1,8 +1,27 @@
 import { createHash, createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
 export const checked = response => {
-  if (response.error) throw new Error('Database operation failed; inspect server diagnostics privately');
+  if (response.error) {
+    // Retain only standardized codes: DB message/details/hint can contain row data or secrets.
+    const code = response.error.code;
+    const cause = { code: typeof code === 'string' && /^(?:[0-9A-Z]{5}|PGRST[0-9]{3})$/.test(code) ? code : 'unknown' };
+    throw new Error('Database operation failed; inspect server diagnostics privately', { cause });
+  }
   return response.data;
 };
+// Public status is derived from state, including checkpoints saved by older workers.
+// Never publish arbitrary exception text retained in a checkpoint.
+export function publicJobAction(job) {
+  const stage = job.checkpoint?.stage ?? '';
+  if (job.state === 'outcome_unknown' || stage === 'import_reconcile') return 'Reconcile saved evidence before retrying';
+  if (stage === 'import_awaiting_approval') return 'Approve the exact tested batch hash';
+  if (stage === 'discovery_review') return 'Review the saved official-source discovery packet';
+  if (job.state === 'blocked') return 'Review the saved workflow blocker and server diagnostics before resuming';
+  if (job.state === 'cancelled') return 'Resume the saved request when ready';
+  if (stage === 'import_verified') return 'Review imported leads';
+  if (stage === 'sam_review') return 'Review the saved statewide SAM candidates';
+  if (stage === 'discovery_collected') return 'Review captured category evidence';
+  return 'Read saved workflow status and review evidence or required actions';
+}
 export async function rows(db, table, filter=q=>q, columns='*', {offset=0,limit=10000,order='id'}={}) {
   const output=[];
   for(let start=offset; start<offset+limit; start+=500) {

@@ -1,10 +1,16 @@
-API-link repair completion: six corrections preserved; approved hosted evidence import/readback/replay and user project-name click verified. Snapshot fix `15e0869` is live on Render Free. The saved SAM notice package is now approved, imported and reconciled; stale award evidence remains correctly blocked. Repair owner: `specs/done/api-procurement-lead-links.md`. Earlier continuation notes below are historical checkpoints.
+Historical October 8 API-link repair completion: six corrections preserved; approved hosted evidence import/readback/replay and user project-name click verified. Snapshot fix `15e0869` is live on Render Free. The saved SAM notice package is now approved, imported and reconciled; stale award evidence remains correctly blocked. Repair owner: `specs/done/api-procurement-lead-links.md`. Earlier continuation notes below are historical checkpoints.
 
 # UI-managed Arkansas procurement workflow
 
-## Authoritative backend reconciliation — October 8, 2026
+## Current scope — October 13, 2026
 
-This section supersedes the dated continuation snapshots below. They are historical evidence, not instructions to repeat completed work. Frontend workflow controls remain deferred; the existing app already reads canonical `procurement_leads` and renders project-name links.
+Code cleanup precedes further integration. Companies and email previews remain future functionality. Bonfire/Euna access verification is deferred in [its separate plan](bonfire-euna-agency-explorer-access-verification.md); no access retry, credential change or provider inquiry is a current action under this plan. Current implementation is described in [PROCUREMENT-BACKEND.md](../../docs/PROCUREMENT-BACKEND.md). Dated deployment and acceptance claims below are evidence, not a fresh live-state check.
+
+The [second-pass cleanup](../done/second-pass-code-review-cleanup.md) is complete. Next: plan the requested UI/backend integration separately. Preserve completed pilot results; do not repeat their imports.
+
+## Historical backend reconciliation — October 8–9, 2026
+
+At the time, this reconciliation superseded the earlier continuation snapshots below. The October 13 scope above now owns next actions. They are historical evidence, not instructions to repeat completed work. Frontend workflow controls remain deferred; the existing app already reads canonical `procurement_leads` and renders project-name links.
 
 **October 9 wrap-up decision:** supported-access investigation is complete; authenticated automation remains blocked. Cloudflare documents automated challenge-solving browsers as unsupported and clearance as visitor/device-bound. Do not transfer in-app clearance or build an unproven remote viewer for the current Playwright worker. The user will submit the prepared Euna inquiry for an official vendor API or approved read-access procedure. No request has been sent yet. Exact message, evidence, owner and resume gate: [Bonfire supported-access handoff](../../docs/reviews/2026-10-09-bonfire-supported-access-handoff.md). Keep this plan in todo; resume only after a supported route is confirmed. Successful authenticated document capture/memory and second-request collection reuse remain the only acceptance checks in this batch. No completed import or app check is reopened.
 
@@ -22,9 +28,13 @@ This section supersedes the dated continuation snapshots below. They are histori
 
 **Definition of backend done:** callable known-source reuse and bounded official-source discovery feed saved reusable methods → bounded collection → verified interpretation → persisted candidates → native rehearsal → actual reviewed import into the canonical database read by `spin.aptimap.tools`. Successful login, entry checks and import preparation alone do not satisfy this definition. Existing completed pilots establish the public/API/discovery paths; the remaining acceptance is one authenticated-source pilot and its reuse/memory checks. Unsupported external categories remain explicit gaps, not implied coverage. No new frontend is required.
 
-**Next execution only:** finish automated capture diagnostics and authenticated collection/memory evidence for that Bonfire pilot using the existing account, handoff, sources and shared import code; prefer current routine janitorial findings, otherwise use the approved January 2025 historical notice without duplicating its existing lead. The authorized existing-lead import, independent readback/replay and signed-in SPIN project-link verification are complete; do not repeat them. Preserve completed acceptance evidence without rerunning it. Only a demonstrated regression can reopen a completed check, with the specific reason recorded first.
+### Historical October 8 next-execution checkpoint (superseded by current deferral)
+
+**Next execution at that checkpoint:** finish automated capture diagnostics and authenticated collection/memory evidence for that Bonfire pilot using the existing account, handoff, sources and shared import code; prefer current routine janitorial findings, otherwise use the approved January 2025 historical notice without duplicating its existing lead. The authorized existing-lead import, independent readback/replay and signed-in SPIN project-link verification are complete; do not repeat them. Preserve completed acceptance evidence without rerunning it. Only a demonstrated regression can reopen a completed check, with the specific reason recorded first.
 
 Evidence owners: `docs/reviews/2026-10-07-known-source-backend-acceptance.md`, `2026-10-07-public-source-and-sam-backend-acceptance.md`, `2026-10-07-public-discovery-and-reuse-acceptance.md`, `2026-10-07-cache-and-recovery-acceptance.md`, and `2026-10-08-authenticated-source-acceptance.md`.
+
+### Historical continuation checkpoints — October 6–8 (superseded)
 
 API-link deployment continuation: user released hold; Render Free and existing Netlify app are live at `d26c059`, Netlify lock restored. Hosted saved-evidence interpretation and native existing-lead rehearsal passed; exact application approval/UI confirmation still pending. See `docs/reviews/2026-10-07-api-link-hosted-verification.md`. Six corrections and approved migration remain intact; legacy Bonfire origins stay unresolved without repeat research.
 
@@ -34,7 +44,7 @@ API public-record-link repair: user-approved six-row live correction, readback a
 
 October 6, 2026. **Backend continuation in progress; frontend deferred by the user.** Retain the existing Netlify site and Supabase project. Render Free deployment, reviewed forward migration and selected-model configuration are complete. Paid AI and bounded official web search are approved under $1/request and $10/month shared caps; no paid hosting upgrade or aggregator signup is authorized.
 
-## Current acceptance checklist
+## Historical acceptance checklist — October 6–8, 2026
 
 **Current October 8 blocker:** refreshed app caller token is accepted and project security verification cleared. Official Bonfire sign-in explicitly rejects the saved email/password; login retries stopped, exact private correction requested. Approved completion-wait fix `1bc1081` is committed/pushed and live (`dep-db4491rtqb8s73e0uu6g`); ten focused tests/lint passed. Current seven open titles/three public contracts showed no routine-janitorial match; approved January 2025 notice already matches an existing lead. No authenticated capture/import/reuse success claimed. Keep access acceptance open and resume the same handoff when corrected credentials are supplied. See the authenticated-source acceptance report for exact evidence and usage.
 

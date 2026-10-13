@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { adapterContract, buildKnownSourcePlan, registeredEntryContract, safePublicUrl } from '../scripts/lib/known-source-execution.mjs';
-import { fetchPublicCheck, contentChangeType, semanticPublicHash } from '../scripts/lib/public-source-check.mjs';
+import { fetchPublicCheck, semanticPublicHash } from '../scripts/lib/public-source-check.mjs';
 
 const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 const source={id:id(1),code:'tasd-public-board',name:'TASD board',
@@ -44,12 +44,6 @@ test('public check saves exact URL and hash without claiming zero results',async
   assert.equal(result.body.toString(),'<html>Board minutes</html>');
   assert.deepEqual(fetched,[{url:contract.urls[0],redirect:'manual'}]);
   assert.equal(result.results_count,undefined);
-});
-
-test('the same URL and hash is unchanged; a new hash retains a changed version',()=>{
-  assert.equal(contentChangeType([], 'a'.repeat(64)),'new');
-  assert.equal(contentChangeType(['a'.repeat(64)], 'a'.repeat(64)),'unchanged');
-  assert.equal(contentChangeType(['a'.repeat(64)], 'b'.repeat(64)),'changed');
 });
 
 test('ARBuy record fingerprint ignores page scripts but detects status and document changes', () => {

@@ -44,6 +44,18 @@ test('queue SQL spans API limits, applies filters/counts, preserves order and de
     await db.query('insert into procurement_leads(source_id,external_id,payload) values($1,$2,$3)',[source.id,'historical-date',JSON.stringify(fixture.procurement_leads[0].payload)]);
     await db.exec('set role authenticated;');
     assert.equal((await query({query:'710-25-028',dateFrom:'2024-12-06',dateTo:'2024-12-06'})).total,1,'Historical publication dates remain filterable without becoming opportunities');
+    assert.equal((await query({query:'710-25-028',bidType:'opportunity'})).total,0,'Historical records never become opportunities');
+    await db.exec('reset role;');
+    for (const [name, deadline] of [['Alpha','2026-09-17T12:00:00Z'],['Bravo','2026-09-17T12:00:00Z'],['Later','2026-09-18T12:00:00Z']]) {
+      await db.query('insert into procurement_leads(source_id,external_id,payload) values($1,$2,$3)',[source.id,`queue-regression-${name}`,JSON.stringify({...fixture.procurement_leads[1].payload,title:`Queue regression ${name}`,bid_type:'opportunity',published_date:'2026-09-01',deadline})]);
+    }
+    await db.exec('set role authenticated;');
+    const today=await query({query:'Queue regression',dateFrom:'2026-09-17',dateTo:'2026-09-17',timezone:'America/Chicago'});
+    assert.deepEqual(today.rows.map(row=>row.title),['Queue regression Alpha','Queue regression Bravo'],'Deadline takes priority over publication, with stable title tie-breaker');
+    await db.query("select update_procurement_lead_stage($1,'won',null,null)",[today.rows[0].id]);
+    assert.equal((await query({query:'Queue regression',status:'open'})).total,2,'Open excludes won');
+    assert.equal((await query({query:'Queue regression',status:'closed',closedSubcategory:'won'})).total,1);
+    assert.equal((await query({query:'Queue regression',dateFrom:'2026-09-18',dateTo:'2026-09-17'})).total,0,'Reversed bounds return no matches');
     await db.exec('reset role; set role anon;');
     await assert.rejects(()=>db.query('select * from procurement_leads'),/permission denied/);
     await assert.rejects(()=>db.query('select procurement_queue_page()'),/permission denied/);

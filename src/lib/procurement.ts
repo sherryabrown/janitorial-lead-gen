@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 type JsonRecord = Record<string, unknown>;
+type ReadQuery = ReturnType<ReturnType<SupabaseClient['from']>['select']>;
 
 export type ProcurementBidType = 'forecast' | 'opportunity' | 'award' | 'unknown';
 export type ProcurementKeyDateKind = 'date' | 'datetime' | 'text';
@@ -109,21 +110,42 @@ export type LeadStatusChangeRow = { id: string; lead_id: string; from_status: st
 type LeadTimestampRow = { id: string; created_at: string | null };
 export type ProcurementStageReason = { code: string; note?: string };
 
-export async function loadProcurementContracts(client: SupabaseClient, filters: Record<string, unknown> = {}, page = 0) {
-  const { data, error } = await client.rpc('procurement_queue_page', {
-    p_filters: filters, p_limit: 50, p_offset: Math.max(0, page) * 50,
-  });
+// A workspace owns this cache. Invalidation cannot revive an older in-flight load.
+export function createProcurementSourceCache() {
+  let pending: Promise<ProcurementSource[]> | undefined;
+  return {
+    invalidate() { pending = undefined; },
+    load(client: SupabaseClient) {
+      if (!pending) {
+        const request = loadAllRows<ProcurementSource>(client, 'procurement_sources',
+          'id,code,name,contracting_entity_geo_level,business_category,url,source_coverage_areas,config');
+        pending = request;
+        void request.catch(() => { if (pending === request) pending = undefined; });
+      }
+      return pending;
+    },
+  };
+}
+
+async function loadAllRows<T>(client: SupabaseClient, table: string, columns: string,
+  filter: (query: ReadQuery) => ReadQuery = query => query): Promise<T[]> {
+  const result: T[] = [];
+  for (let offset = 0; ; offset += 500) {
+    const { data, error } = await filter(client.from(table).select(columns)).order('id').range(offset, offset + 499);
+    if (error) throw error;
+    result.push(...(data ?? []) as T[]);
+    if (!data || data.length < 500) return result;
+  }
+}
+
+export async function loadProcurementContracts(client: SupabaseClient, filters: Record<string, unknown> = {}, page = 0,
+  sourceCache?: ReturnType<typeof createProcurementSourceCache>) {
+  const [{ data, error }, sources] = await Promise.all([
+    client.rpc('procurement_queue_page', { p_filters: filters, p_limit: 50, p_offset: Math.max(0, page) * 50 }),
+    (sourceCache ?? createProcurementSourceCache()).load(client),
+  ]);
   if (error) throw error;
   const result = data as { rows: ProcurementLead[]; total: number; counts: Record<string, number> };
-  const sources: ProcurementSource[] = [];
-  for (let offset = 0; ; offset += 500) {
-    const { data: rows, error: sourceError } = await client.from('procurement_sources')
-      .select('id,code,name,contracting_entity_geo_level,business_category,url,source_coverage_areas,config')
-      .order('id').range(offset, offset + 499);
-    if (sourceError) throw sourceError;
-    sources.push(...(rows ?? []) as ProcurementSource[]);
-    if (!rows || rows.length < 500) break;
-  }
   const sourceById = new Map(sources.map((source) => [source.id, source]));
   return {
     contracts: result.rows.map((lead) => mapProcurementLead(lead, sourceById.get(lead.source_id ?? ''))),
@@ -184,24 +206,30 @@ export function mapProcurementLead(lead: ProcurementLead, source?: ProcurementSo
 }
 
 export async function loadProcurementLeadHistory(client: SupabaseClient, leadId: string) {
-  const { data: notes, error: notesError } = await client.from('procurement_lead_notes').select('id,lead_id,body,created_by,created_at,updated_by,updated_at').eq('lead_id', leadId);
-  const noteIds = ((notes ?? []) as LeadNoteRow[]).map((row) => row.id);
-  const [{ data: lead, error: leadError }, { data: edits, error: editsError }, { data: changes, error: changesError }] = await Promise.all([
+  const noteRows = await loadAllRows<LeadNoteRow>(client, 'procurement_lead_notes',
+    'id,lead_id,body,created_by,created_at,updated_by,updated_at', query => query.eq('lead_id', leadId));
+  const noteIds = noteRows.map(row => row.id);
+  const [{ data: lead, error: leadError }, editRows, changeRows] = await Promise.all([
     client.from('procurement_leads').select('id,created_at').eq('id', leadId).maybeSingle(),
-    noteIds.length ? client.from('procurement_lead_note_edits').select('id,note_id,old_body,new_body,edited_by,edited_at').in('note_id', noteIds) : Promise.resolve({ data: [], error: null }),
-    client.from('procurement_lead_stage_changes').select('id,lead_id,from_status,to_status,from_reason,to_reason,reason_code,reason_note,changed_by,created_at').eq('lead_id', leadId),
+    (async () => {
+      const edits: LeadNoteEditRow[] = [];
+      for (let offset = 0; offset < noteIds.length; offset += 100) {
+        edits.push(...await loadAllRows<LeadNoteEditRow>(client, 'procurement_lead_note_edits',
+          'id,note_id,old_body,new_body,edited_by,edited_at', query => query.in('note_id', noteIds.slice(offset, offset + 100))));
+      }
+      return edits;
+    })(),
+    loadAllRows<LeadStatusChangeRow>(client, 'procurement_lead_stage_changes',
+      'id,lead_id,from_status,to_status,from_reason,to_reason,reason_code,reason_note,changed_by,created_at', query => query.eq('lead_id', leadId)),
   ]);
-  if (notesError || leadError || editsError || changesError) throw notesError ?? leadError ?? editsError ?? changesError;
-  const noteRows = (notes ?? []) as LeadNoteRow[];
-  const editRows = (edits ?? []) as LeadNoteEditRow[];
-  const changeRows = (changes ?? []) as LeadStatusChangeRow[];
+  if (leadError) throw leadError;
   const leadRow = lead as LeadTimestampRow | null;
   return [
     ...(leadRow?.created_at ? [{ id: `lead-identified-${leadRow.id}`, lead_id: leadRow.id, actor_id: null, occurred_at: leadRow.created_at, event_type: 'lead_identified' as const, old_value: null, new_value: null, note_text: null, metadata: {} }] : []),
     ...noteRows.map((row) => ({ id: row.id, lead_id: row.lead_id, actor_id: row.created_by, occurred_at: row.created_at, event_type: 'note_added' as const, old_value: null, new_value: null, note_text: row.body, metadata: { note_id: row.id, updated_at: row.updated_at } })),
     ...editRows.map((row) => ({ id: row.id, lead_id: leadId, actor_id: row.edited_by, occurred_at: row.edited_at, event_type: 'note_added' as const, old_value: { body: row.old_body }, new_value: { body: row.new_body }, note_text: row.new_body, metadata: { note_id: row.note_id, edit: true } })),
     ...changeRows.map((row) => ({ id: row.id, lead_id: row.lead_id, actor_id: row.changed_by, occurred_at: row.created_at, event_type: 'stage_changed' as const, old_value: { stage: row.from_status, reason: row.from_reason }, new_value: { stage: row.to_status, reason: row.to_reason }, note_text: row.reason_note, metadata: { reason_code: row.reason_code } })),
-  ].sort((a, b) => b.occurred_at.localeCompare(a.occurred_at)) as ProcurementHistoryRow[];
+  ].sort((a, b) => b.occurred_at.localeCompare(a.occurred_at) || a.id.localeCompare(b.id)) as ProcurementHistoryRow[];
 }
 
 export async function updateProcurementLeadStage(
@@ -234,47 +262,6 @@ export async function bulkUpdateProcurementLeadStage(
   });
   if (error) throw error;
   return (data ?? []) as ProcurementLead[];
-}
-
-export async function findLeadIdsByActivityDate(client: SupabaseClient, dateFrom?: string, dateTo?: string) {
-  let leadQuery = client.from('procurement_leads').select('id').order('updated_at', { ascending: false });
-  let stageQuery = client.from('procurement_lead_stage_changes').select('lead_id').order('created_at', { ascending: false });
-  let noteQuery = client.from('procurement_lead_notes').select('lead_id').order('created_at', { ascending: false });
-  let editQuery = client.from('procurement_lead_note_edits').select('note_id').order('edited_at', { ascending: false });
-  if (dateFrom) {
-    const start = `${dateFrom}T00:00:00`;
-    leadQuery = leadQuery.gte('updated_at', start);
-    stageQuery = stageQuery.gte('created_at', start);
-    noteQuery = noteQuery.gte('created_at', start);
-    editQuery = editQuery.gte('edited_at', start);
-  }
-  if (dateTo) {
-    const end = `${dateTo}T23:59:59.999`;
-    leadQuery = leadQuery.lte('updated_at', end);
-    stageQuery = stageQuery.lte('created_at', end);
-    noteQuery = noteQuery.lte('created_at', end);
-    editQuery = editQuery.lte('edited_at', end);
-  }
-  const [{ data: leads, error: leadsError }, { data: stages, error: stagesError }, { data: notes, error: notesError }, { data: edits, error: editsError }] = await Promise.all([
-    leadQuery,
-    stageQuery,
-    noteQuery,
-    editQuery,
-  ]);
-  if (leadsError || stagesError || notesError || editsError) throw leadsError ?? stagesError ?? notesError ?? editsError;
-
-  const editedNoteIds = [...new Set((edits ?? []).map((row) => row.note_id as string))];
-  const { data: editedNotes, error: editedNotesError } = editedNoteIds.length
-    ? await client.from('procurement_lead_notes').select('lead_id').in('id', editedNoteIds)
-    : { data: [], error: null };
-  if (editedNotesError) throw editedNotesError;
-
-  return [...new Set([
-    ...(leads ?? []).map((row) => row.id as string),
-    ...(stages ?? []).map((row) => row.lead_id as string),
-    ...(notes ?? []).map((row) => row.lead_id as string),
-    ...(editedNotes ?? []).map((row) => row.lead_id as string),
-  ])];
 }
 
 export async function addProcurementLeadNote(client: SupabaseClient, leadId: string, text: string) {

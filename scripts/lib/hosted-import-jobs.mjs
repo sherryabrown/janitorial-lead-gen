@@ -1,4 +1,4 @@
-import { checked,rows,one } from './hosted-store.mjs';
+import { checked,rows,one,publicJobAction } from './hosted-store.mjs';
 import { hash } from './reviewed-batch.mjs';
 import { prepareImport,applyImport,importSnapshot } from './hosted-import.mjs';
 import { verifyBatch } from './batch-verification.mjs';
@@ -33,7 +33,7 @@ export function importJobs({db,project,transport,artifacts,samSavedRuns,rehearse
     const job=await lookup(id),c=job.checkpoint;
     return {job_id:id,request_id:job.search_request_id,state:job.state,stage:c.stage,
       approval_sha256:c.approval_sha256??null,summary:c.summary??null,test:c.test??null,
-      receipt:c.receipt??null,next_action:c.next_action??null};
+      receipt:c.receipt??null,next_action:publicJobAction(job),error_code:c.error_code??null,diagnostic_id:c.diagnostic_id??null};
   }
   async function approve(id,input,actor) {
     const job=await lookup(id),c=job.checkpoint;

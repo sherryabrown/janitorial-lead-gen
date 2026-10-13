@@ -188,7 +188,7 @@ test('the worker reuses a signed cached positive without AI, stages once and pre
     throw Error('Unexpected fixture RPC');
   }};
   const workflow=hostedWorkflow({db,project:'zreplhkoxswtzxlchtjf',serverKey:()=> 'private-test-key',artifacts:f.artifacts,
-    aiConfig:{enabled:true},ai:async()=>{aiCalls++;throw Error('Ambiguous row requires AI review');}});
+    aiConfig:{enabled:true},reportError:()=>{},ai:async()=>{aiCalls++;throw Error('Ambiguous row requires AI review');}});
   assert.equal(await workflow.step(),true);
   assert.equal(aiCalls,0);assert.equal(worker.state,'pending');assert.equal(worker.checkpoint.cache_hits,1);
   assert.deepEqual(worker.checkpoint.interpreted_task_ids,[f.ctx.task.id]);assert.equal(tables.procurement_intake_items.length,1);
@@ -196,5 +196,5 @@ test('the worker reuses a signed cached positive without AI, stages once and pre
   tables.procurement_extraction_cache[0].facts.facts.push({page_index:0,locator:'unstructured',unstructured:true,excerpt:'Unknown maintenance',title:''});
   claim=true;worker.checkpoint={stage:'interpret'};
   await workflow.step();assert.equal(aiCalls,1);assert.equal(worker.state,'blocked');
-  assert.equal(worker.checkpoint.next_action,'Ambiguous row requires AI review');assert.equal(tables.procurement_intake_items.length,1);
+  assert.equal(worker.checkpoint.error_code,'workflow_stage_failed');assert.doesNotMatch(worker.checkpoint.next_action,/Ambiguous row/);assert.equal(tables.procurement_intake_items.length,1);
 });

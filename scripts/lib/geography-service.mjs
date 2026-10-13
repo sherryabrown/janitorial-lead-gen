@@ -14,9 +14,8 @@ async function rows(db, table, columns = '*') {
 }
 
 export async function geographyRequest(db,command,input,{create}={}) {
-  const [geographies, links, capabilities, sources] = await Promise.all([
+  const [geographies, links] = await Promise.all([
     rows(db, 'procurement_geographies'), rows(db, 'procurement_place_counties'),
-    rows(db, 'procurement_source_capabilities'), rows(db, 'procurement_sources'),
   ]);
   if (!geographies.some(g => g.kind === 'municipality' && g.source_active === true &&
       g.dataset_url === 'https://gis.arkansas.gov/arcgis/rest/services/FEATURESERVICES/Boundaries/FeatureServer/41'))
@@ -32,6 +31,9 @@ export async function geographyRequest(db,command,input,{create}={}) {
     safeMetadata(input.search_windows);
     const routes = selectedRoutes(resolution, input.selected_city_ids,
       input.confirmed_city_selection === true, input.selection_token);
+    const [capabilities, sources] = await Promise.all([
+      rows(db, 'procurement_source_capabilities'), rows(db, 'procurement_sources'),
+    ]);
     const { data, error } = await (create ?? (args=>db.rpc('create_procurement_geography_request',args)))({
       p_name: input.request_name || `${input.name} Arkansas janitorial`,
       p_geography_id: resolution.geography.id,

@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
-import { addProcurementLeadNote, bulkUpdateProcurementLeadStage, loadProcurementContracts, loadProcurementLeadDetail, loadProcurementLeadHistory, updateProcurementLeadStage, editProcurementLeadNote, type ProcurementHistoryRow, type ProcurementBidType } from '../lib/procurement';
+import { createProcurementSourceCache, addProcurementLeadNote, bulkUpdateProcurementLeadStage, loadProcurementContracts, loadProcurementLeadDetail, loadProcurementLeadHistory, updateProcurementLeadStage, editProcurementLeadNote, type ProcurementHistoryRow, type ProcurementBidType } from '../lib/procurement';
 import {
   closedContractStatuses as contractClosedStatuses,
   getDateRangeBounds as getContractDateRangeBounds,
@@ -467,19 +467,7 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
   const [checkedCompanyIds, setCheckedCompanyIds] = useState<Set<string>>(new Set());
   const [contextMode, setContextMode] = useState<ContextPanelMode>('note');
   const [expandedClosedMode, setExpandedClosedMode] = useState<WorkMode | null>(null);
-  const [contractFilters, setContractFilters] = useState<ContractFilters>({
-    category: 'All',
-    bidType: 'All',
-    dateRangePreset: 'all',
-    query: '',
-    status: 'open',
-    closedSubcategory: 'all',
-    sortKey: 'applicable-date',
-    sortDirection: 'asc',
-    changedDateRangePreset: 'all',
-    changedDateFrom: undefined,
-    changedDateTo: undefined,
-  });
+  const [contractFilters, setContractFilters] = useState<ContractFilters>(getDefaultContractFilters);
   const [companyFilters, setCompanyFilters] = useState<CompanyFilters>({
     status: 'new',
     query: '',
@@ -490,12 +478,14 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
     sources: [],
     opportunities: [],
   });
+  const [sourceCache] = useState(createProcurementSourceCache);
   const contractRequestSequence = useRef(0);
   const historyRequestSequence = useRef(0);
   const contractRefreshTimer = useRef<number | null>(null);
   const lastContractRefreshAt = useRef(0);
 
-  const refreshContracts = useCallback(async ({ initial = false }: { initial?: boolean } = {}) => {
+  const refreshContracts = useCallback(async ({ initial = false, refreshSources = false }: { initial?: boolean; refreshSources?: boolean } = {}) => {
+    if (refreshSources) sourceCache.invalidate();
     const requestId = ++contractRequestSequence.current;
     if (!supabase) {
       if (initial) {
@@ -516,7 +506,7 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
       const bounds = getContractDateRangeBounds(contractFilters.dateRangePreset, contractFilters.dateFrom, contractFilters.dateTo);
       const changed = getContractDateRangeBounds(contractFilters.changedDateRangePreset, contractFilters.changedDateFrom, contractFilters.changedDateTo);
       const result = await loadProcurementContracts(client, { ...contractFilters, ...bounds,
-        changedFrom: changed.dateFrom, changedTo: changed.dateTo, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone }, contractPage);
+        changedFrom: changed.dateFrom, changedTo: changed.dateTo, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone }, contractPage, sourceCache);
       if (requestId !== contractRequestSequence.current) return;
       const mappedContracts = result.contracts.map((contract) =>
         makeContract({
@@ -565,7 +555,7 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
         setIsRefreshingContracts(false);
       }
     }
-  }, [contractFilters, contractPage]);
+  }, [contractFilters, contractPage, sourceCache]);
 
   const latestContractRefresh = useRef(refreshContracts);
   useEffect(() => { latestContractRefresh.current = refreshContracts; }, [refreshContracts]);
@@ -594,10 +584,19 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
     companies[0];
   const selectedSource = sources.find((source) => source.id === selectedContract?.sourceId);
 
+  const currentHistoryContractId = useRef(selectedContract?.id);
+  currentHistoryContractId.current = selectedContract?.id;
   const refreshContractHistory = useCallback(async (contractId: string) => {
-    if (!supabase) return false;
+    if (!supabase || currentHistoryContractId.current !== contractId) return false;
     const requestId = ++historyRequestSequence.current;
-    const [rows, detail] = await Promise.all([loadProcurementLeadHistory(supabase, contractId), loadProcurementLeadDetail(supabase, contractId)]);
+    let result;
+    try {
+      result = await Promise.all([loadProcurementLeadHistory(supabase, contractId), loadProcurementLeadDetail(supabase, contractId)]);
+    } catch (error) {
+      if (requestId !== historyRequestSequence.current) return false;
+      throw error;
+    }
+    const [rows, detail] = result;
     if (requestId !== historyRequestSequence.current) return false;
     const history = rows.map(mapProcurementHistory);
     const notes = rows
@@ -610,8 +609,12 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
   const historyContractId = selectedContract?.id;
   useEffect(() => {
     if (!historyContractId) return;
-    void refreshContractHistory(historyContractId).catch(() => setContractsRefreshError('History could not refresh. Retry refresh.'));
+    let active = true;
+    void refreshContractHistory(historyContractId).catch(() => {
+      if (active) setContractsRefreshError('History could not refresh. Retry refresh.');
+    });
     return () => {
+      active = false;
       historyRequestSequence.current += 1;
     };
   }, [contractsRefreshVersion, historyContractId, refreshContractHistory]);
@@ -716,19 +719,20 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
     const channel = client
       .channel('procurement-leads-freshness')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'procurement_leads' }, queueContractRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'procurement_sources' }, () => { sourceCache.invalidate(); queueContractRefresh(); })
       .subscribe();
     return () => {
       void client.removeChannel(channel);
     };
-  }, [queueContractRefresh]);
+  }, [queueContractRefresh, sourceCache]);
 
   useEffect(() => {
     const revalidateOnFocus = () => {
-      if (Date.now() - lastContractRefreshAt.current >= 15_000) queueContractRefresh();
+      if (Date.now() - lastContractRefreshAt.current >= 15_000) { sourceCache.invalidate(); queueContractRefresh(); }
     };
     window.addEventListener('focus', revalidateOnFocus);
     return () => window.removeEventListener('focus', revalidateOnFocus);
-  }, [queueContractRefresh]);
+  }, [queueContractRefresh, sourceCache]);
 
   useEffect(() => () => {
     if (contractRefreshTimer.current !== null) window.clearTimeout(contractRefreshTimer.current);
@@ -893,20 +897,31 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
   const saveContractNote = async (contractId: string, text: string) => {
     const cleanText = text.trim();
     if (!cleanText) return;
-    if (!supabase) return;
+    if (!supabase) throw new Error('Supabase is not configured.');
+    const client = supabase;
     try {
-      await addProcurementLeadNote(supabase, contractId, cleanText);
-      await refreshContractHistory(contractId);
+      await saveLeadChange({
+        write: () => addProcurementLeadNote(client, contractId, cleanText),
+        commit: () => setContractsError(null),
+        refresh: () => refreshContractHistory(contractId),
+        onRefreshError: () => setContractsRefreshError('Note saved. History could not refresh; retry refresh.'),
+      });
     } catch (error) {
       setContractsError(`Unable to save note: ${getLoadContractsErrorMessage(error)}`);
+      throw error;
     }
   };
 
   const editContractNote = async (contractId: string, noteId: string, text: string) => {
-    if (!supabase) return;
+    if (!supabase) throw new Error('Supabase is not configured.');
+    const client = supabase;
     try {
-      await editProcurementLeadNote(supabase, noteId, text.trim());
-      await refreshContractHistory(contractId);
+      await saveLeadChange({
+        write: () => editProcurementLeadNote(client, noteId, text.trim()),
+        commit: () => setContractsError(null),
+        refresh: () => refreshContractHistory(contractId),
+        onRefreshError: () => setContractsRefreshError('Note edited. History could not refresh; retry refresh.'),
+      });
     } catch (error) {
       setContractsError(`Unable to edit note: ${getLoadContractsErrorMessage(error)}`);
       throw error;
@@ -1118,7 +1133,7 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
                     aria-label="Refresh contracts from Supabase"
                     className="secondary-button compact"
                     disabled={isRefreshingContracts}
-                    onClick={() => void refreshContracts()}
+                    onClick={() => void refreshContracts({ refreshSources: true })}
                     type="button"
                   >
                     <RefreshCw className={isRefreshingContracts ? 'is-spinning' : undefined} size={15} aria-hidden="true" />
@@ -1151,7 +1166,7 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
               {contractsRefreshError ? (
                 <div className="inline-status is-error inline-status-action" role="alert">
                   <span>{contractsRefreshError}</span>
-                  <button className="text-button" onClick={() => void refreshContracts()} type="button">Retry</button>
+                  <button className="text-button" onClick={() => void refreshContracts({ refreshSources: true })} type="button">Retry</button>
                 </div>
               ) : null}
               {checkedContractIds.size > 0 ? (
@@ -2005,7 +2020,7 @@ function ContractContextPanel({
   mode: ContextPanelMode;
   source?: BidSource;
   onModeChange: (mode: ContextPanelMode) => void;
-  onSaveNote: (id: string, text: string) => void;
+  onSaveNote: (id: string, text: string) => void | Promise<void>;
   onEditNote: (id: string, noteId: string, text: string) => Promise<void>;
 }) {
   if (!contract) {
@@ -2053,7 +2068,7 @@ function CompanyContextPanel({
   company: CompanyLead;
   mode: ContextPanelMode;
   onModeChange: (mode: ContextPanelMode) => void;
-  onSaveNote: (id: string, text: string) => void;
+  onSaveNote: (id: string, text: string) => void | Promise<void>;
 }) {
   if (mode === 'email' && company.email && company.statusCategory === 'ready-to-email') {
     return (
@@ -2114,8 +2129,13 @@ function NotePanel({
   onEditNote?: (noteId: string, text: string) => Promise<void>;
 }) {
   const [noteText, setNoteText] = useState('');
+  const draftRevision = useRef(0);
+  const currentLeadId = useRef(leadId);
+  currentLeadId.current = leadId;
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState('');
+  const currentEdit = useRef({id: editingNoteId, text: editingText});
+  currentEdit.current = {id: editingNoteId, text: editingText};
   const [historyTypes, setHistoryTypes] = useState<HistoryType[]>(['note']);
   const [showLeadRelatedDates, setShowLeadRelatedDates] = useState(false);
   const visibleHistory = history.filter((item) => item.type !== 'lead-identified' && historyTypes.includes(item.type));
@@ -2128,12 +2148,30 @@ function NotePanel({
   const save = async () => {
     if (!noteText.trim() || savingNote) return;
     setSavingNote(true);
+    const submitted = noteText, revision = draftRevision.current, submittedLeadId = leadId;
     try {
-      await onSaveNote(noteText);
-      setNoteText('');
+      await onSaveNote(submitted);
+      if (revision === draftRevision.current && submittedLeadId === currentLeadId.current) {
+        setNoteText((current) => current === submitted ? '' : current);
+      }
+    } catch {
+      // The mutation handler presents the failure; retain the draft for retry.
     } finally {
       setSavingNote(false);
     }
+  };
+  const saveEdit = async (noteId: string) => {
+    if (!onEditNote || savingEdit || !editingText.trim()) return;
+    setSavingEdit(true);
+    const submitted = editingText, submittedLeadId = leadId;
+    try {
+      await onEditNote(noteId, submitted);
+      if (currentLeadId.current === submittedLeadId && currentEdit.current.id === noteId && currentEdit.current.text === submitted) {
+        setEditingNoteId(null);
+      }
+    } catch {
+      // The mutation handler reports failure; keep the edit available for retry.
+    } finally { setSavingEdit(false); }
   };
   return (
     <section className="note-panel">
@@ -2144,7 +2182,7 @@ function NotePanel({
       </div>
       <textarea
         aria-label={`Note for ${title}`}
-        onChange={(event) => setNoteText(event.target.value)}
+        onChange={(event) => { draftRevision.current += 1; setNoteText(event.target.value); }}
         placeholder="Capture any applicable information, including where data may not be accurate."
         value={noteText}
       />
@@ -2179,7 +2217,7 @@ function NotePanel({
           notes.map((note) => (
             <article key={note.id}>
               <strong>{note.at}</strong>
-            {editingNoteId === note.id ? <><textarea value={editingText} onChange={(event) => setEditingText(event.target.value)} /><button className="text-button" type="button" onClick={() => { if (onEditNote) void onEditNote(note.id, editingText).then(() => setEditingNoteId(null)); }}>Save edit</button><button className="text-button" type="button" onClick={() => setEditingNoteId(null)}>Cancel</button></> : <><p>{note.text}</p>{onEditNote ? <button className="text-button" type="button" onClick={() => { setEditingNoteId(note.id); setEditingText(note.text); }}>Edit</button> : null}</>}
+            {editingNoteId === note.id ? <><textarea value={editingText} onChange={(event) => setEditingText(event.target.value)} /><button className="text-button" type="button" disabled={savingEdit || !editingText.trim()} onClick={() => void saveEdit(note.id)}>Save edit</button><button className="text-button" type="button" onClick={() => setEditingNoteId(null)}>Cancel</button></> : <><p>{note.text}</p>{onEditNote ? <button className="text-button" type="button" onClick={() => { setEditingNoteId(note.id); setEditingText(note.text); }}>Edit</button> : null}</>}
             </article>
           ))
         ) : (
@@ -2194,7 +2232,7 @@ function NotePanel({
           {visibleHistory.length > 0 ? visibleHistory.map((item) => (
             <article className={`history-row history-${item.type}`} key={item.id}>
               <div className="history-time"><span>{item.at}</span>{item.type === 'note' && item.updatedAt && item.occurredAt !== item.updatedAt ? <span className="note-updated-at">Updated {formatHistoryTimestamp(item.updatedAt)}</span> : null}</div>
-              <div><strong>{item.label}</strong>{editingNoteId === item.noteId ? <><textarea aria-label={`Edit note from ${item.at}`} value={editingText} onChange={(event) => setEditingText(event.target.value)} /><div className="inline-actions"><button className="text-button" disabled={savingEdit || !editingText.trim()} type="button" onClick={() => { if (!onEditNote || !item.noteId || savingEdit) return; setSavingEdit(true); void onEditNote(item.noteId, editingText).then(() => setEditingNoteId(null)).finally(() => setSavingEdit(false)); }}>Save edit</button><button className="text-button" disabled={savingEdit} type="button" onClick={() => setEditingNoteId(null)}>Cancel</button></div></> : <>{item.detail ? <p>{item.detail}</p> : null}{item.type === 'note' && item.noteId && onEditNote ? <button aria-label={`Edit note from ${item.at}`} className="icon-button note-edit-button" title="Edit note" type="button" onClick={() => { setEditingNoteId(item.noteId ?? null); setEditingText(item.detail ?? ''); }}><Pencil size={15} aria-hidden="true" /></button> : null}</>}</div>
+              <div><strong>{item.label}</strong>{editingNoteId === item.noteId ? <><textarea aria-label={`Edit note from ${item.at}`} value={editingText} onChange={(event) => setEditingText(event.target.value)} /><div className="inline-actions"><button className="text-button" disabled={savingEdit || !editingText.trim()} type="button" onClick={() => { if (item.noteId) void saveEdit(item.noteId); }}>Save edit</button><button className="text-button" disabled={savingEdit} type="button" onClick={() => setEditingNoteId(null)}>Cancel</button></div></> : <>{item.detail ? <p>{item.detail}</p> : null}{item.type === 'note' && item.noteId && onEditNote ? <button aria-label={`Edit note from ${item.at}`} className="icon-button note-edit-button" title="Edit note" type="button" onClick={() => { setEditingNoteId(item.noteId ?? null); setEditingText(item.detail ?? ''); }}><Pencil size={15} aria-hidden="true" /></button> : null}</>}</div>
             </article>
           )) : <p className="muted-copy">{historyTypes.includes('note') ? 'No notes yet.' : 'No matching history.'}</p>}
         </div>
