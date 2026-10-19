@@ -124,6 +124,10 @@ export function evaluateFacts(packet,extraction) {
       continue;
     }
     const record=fact.record;
+    if(packet.automatic_county&&packet.category==='opportunity'&&record&&/^(closed|awarded|cancelled|canceled|no award)(?:\s|$)/i.test(record.status??'')) {
+      result.exclusions.push({reason:'Official listing marks this solicitation closed, awarded or cancelled',evidence});
+      continue;
+    }
     if(packet.automatic_county && record?.deadline && packet.query_window?.date_basis==='deadline') {
       const date=String(record.deadline),window=packet.query_window;
       if(/^\d{4}-\d{2}-\d{2}$/.test(date)&&Number.isFinite(Date.parse(date))&&new Date(date).toISOString().slice(0,10)===date&&(date<window.from||date>window.to)) {
@@ -142,7 +146,9 @@ export function evaluateFacts(packet,extraction) {
             'work_city','work_county','work_state','work_performance_locations'].filter(k=>record[k]!=null).map(k=>[k,record[k]]))},evidence:rawEvidence});
       continue;
     }
-    if(fact.detail_required || fact.unstructured || !fact.title || janitorial.test(fact.title) || ambiguous.test(fact.title))
+    const unrelatedService=packet.automatic_county&&record&&!janitorial.test(fact.title)&&
+      /\b(banking|financial|bond counsel|software|SaaS|brochures|apparel|uniforms|roofing|cabling|engineering|forestry|marketing|legal counsel|legal services|leadership|information technology|employee benefits|waterless boat cleaning stations)\b/i.test(fact.title);
+    if(fact.detail_required || fact.unstructured || !fact.title || janitorial.test(fact.title) || ambiguous.test(fact.title)&&!unrelatedService)
       result.unresolved.push({reason:'Verify routine janitorial scope, actual work location and requested date basis against source evidence',evidence});
     else result.exclusions.push({reason:'Listing title does not identify routine janitorial service',evidence});
   }

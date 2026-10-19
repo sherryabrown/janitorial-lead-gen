@@ -7,6 +7,19 @@ import {planReviewedBatch,hash} from '../scripts/lib/reviewed-batch.mjs';
 const load=p=>JSON.parse(readFileSync(p,'utf8'));
 const before=load('tests/fixtures/research/build-persistence-before.json'),spec=load('tests/fixtures/research/build-registry-spec.json');
 function registered(){const b=structuredClone(before),m=planRegistry(spec,b);for(const d of m.rows){b[d.table]=b[d.table].filter(x=>x.id!==d.row.id);b[d.table].push({...d.row,updated_at:'2026-09-30T20:00:00Z'});}return b;}
+
+test('registry updates normalize database timestamp precision without weakening stale guards',async()=>{
+ const {PGlite}=await import('@electric-sql/pglite'),db=new PGlite();
+ const old={id:'10000000-0000-4000-8000-000000000001',verified_at:'2026-10-07T06:59:16.063000+00:00',updated_at:'2026-10-07T07:01:51.152265+00:00',parser_version:'old'};
+ const manifest={kind:'registry',rows:[{table:'procurement_source_capabilities',before:old,row:{id:old.id,verified_at:'2026-10-19T23:15:00.808Z',parser_version:'new'}}]};
+ try{
+  await db.exec('create table procurement_source_capabilities(id uuid primary key,verified_at timestamptz,updated_at timestamptz,parser_version text)');
+  await db.query('insert into procurement_source_capabilities select * from jsonb_populate_record(null::procurement_source_capabilities,$1::jsonb)',[JSON.stringify(old)]);
+  await db.exec(persistenceSql(manifest));await db.exec(persistenceSql(manifest));
+  await db.query('update procurement_source_capabilities set parser_version=$1',['concurrent']);
+  await assert.rejects(db.exec(persistenceSql(manifest)),/baseline changed/);await db.exec('rollback');
+ }finally{await db.close();}
+});
 test('real source registry preserves existing configuration and separates SAM records',()=>{
  const m=planRegistry(spec,before);assert.equal(m.rows.filter(d=>d.table==='procurement_sources'&&!d.before).length,9);
  assert.deepEqual(m.mappings.sources['sam-federal'].map(s=>s.code),['sam','sam-awards']);

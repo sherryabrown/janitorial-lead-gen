@@ -84,10 +84,11 @@ export function captureReview(capture, run, task, source, methodSpec = {}) {
     title = `${methodSpec.expected_organization} public bid listing`;
     visible = `${listing.records.length} ${methodSpec.expected_organization} bids among ${listing.shown} shown; ` +
       `${listing.total} across ${listing.pages} page(s); terminal ${listing.terminal}`;
-    const rowValues = row => [row.bid_number, row.title, row.bid_type, row.issued, row.closes];
+    const rowValues = row => [row.bid_number, row.title, row.bid_type, row.issued, row.closes,
+      ...(methodSpec.public_details?[row.source_url,JSON.stringify(row)]:[])];
     const matches = listing.records.map((row, index) => ({ row, index }))
       .filter(({ row }) => /janitor|custod|cleaning|housekeep|floor care/i.test(row.title));
-    tables = [{ columns: ['Bid number', 'Title', 'Type', 'Issued', 'Closes'].map(name => ({ name })),
+    tables = [{ columns: ['Bid number', 'Title', 'Type', 'Issued', 'Closes',...(methodSpec.public_details?['Official detail','Published record']:[])].map(name => ({ name })),
       rows: listing.records.map(rowValues), total_rows: listing.records.length,
       keyword_rows: matches.map(({ row, index }) => ({ number: index + 1, cells: rowValues(row) })),
       keyword_total: matches.length }];

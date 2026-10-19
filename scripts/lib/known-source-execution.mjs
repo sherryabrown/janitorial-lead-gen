@@ -96,6 +96,12 @@ export function adapterContract(capability, source, now = new Date()) {
          spec.table_selector !== 'table.rgMasterTable' ||
          spec.row_selector !== 'tr.rgRow, tr.rgAltRow'))
       fail('HTML bid table needs a bounded, verified organization contract');
+    if(spec.public_details && (spec.response_format!=='html-table-v1'||spec.public_details.key!=='BidID'||
+        spec.public_details.client_state_selector!=='input#ctl00_mainContent_rgBidList_ClientState'||
+        !safePublicUrl(spec.public_details.endpoint,spec.allowed_hosts)||
+        new URL(spec.public_details.endpoint).origin!==new URL(spec.urls[0]).origin||
+        new URL(spec.public_details.endpoint).pathname!=='/PublicDetail.aspx'||new URL(spec.public_details.endpoint).search))
+      fail('Public bid details require a reviewed same-origin endpoint and ID map');
     if (spec.response_format === 'bonfire-projects-v1' &&
         (spec.urls.length !== 1 || !Number.isInteger(spec.max_records) ||
          spec.max_records < 1 || spec.max_records > 100 ||
@@ -120,7 +126,8 @@ export function adapterContract(capability, source, now = new Date()) {
       ...(spec.response_format ? { response_format: spec.response_format,
         expected_category: spec.expected_category, max_records: spec.max_records,
         expected_organization: spec.expected_organization, expected_heading: spec.expected_heading,
-        table_selector: spec.table_selector, row_selector: spec.row_selector } : {}) };
+        table_selector: spec.table_selector, row_selector: spec.row_selector,
+        ...(spec.public_details?{public_details:spec.public_details}:{}) } : {}) };
   }
   if (capability.method !== 'api' || spec.runner_id !== 'sam-search' ||
       source?.code !== samCodes[capability.kind])

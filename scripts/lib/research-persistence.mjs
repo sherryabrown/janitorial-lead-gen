@@ -147,7 +147,7 @@ export function persistenceSql(m,{schema='public',transaction=true}={}){
   const projection=keys.map(k=>`'${k}',to_jsonb(t)->'${k}'`).join(',');
   const expected=`(select jsonb_build_object(${keys.map(k=>`'${k}',to_jsonb(x)->'${k}'`).join(',')}) from jsonb_populate_record(null::${table},${json}) x)`;
   return `do $guard$ begin
- if exists(select 1 from ${table} t where id='${d.row.id}' and not (jsonb_build_object(${projection})=${expected}${d.before?` or (to_jsonb(t)-'updated_at'=${before}-'updated_at' and t.updated_at=(${before}->>'updated_at')::timestamptz)`:''})) then raise exception 'Persistence baseline changed'; end if;
+ if exists(select 1 from ${table} t where id='${d.row.id}' and not (jsonb_build_object(${projection})=${expected}${d.before?` or (to_jsonb(t)-'updated_at'=to_jsonb(jsonb_populate_record(null::${table},${before}))-'updated_at' and t.updated_at=(${before}->>'updated_at')::timestamptz)`:''})) then raise exception 'Persistence baseline changed'; end if;
  ${d.before?`if not exists(select 1 from ${table} where id='${d.row.id}') then raise exception 'Persistence baseline missing'; end if;`:''}
  end $guard$;
  ${d.before?`update ${table} t set ${keys.filter(k=>k!=='id').map(k=>`${quote(k)}=x.${quote(k)}`).join(',')},updated_at=now() from jsonb_populate_record(null::${table},${json}) x where t.id=x.id and jsonb_build_object(${projection})<>${expected};`:`insert into ${table} (${keys.map(quote).join(',')}) select ${keys.map(quote).join(',')} from jsonb_populate_record(null::${table},${json}) on conflict(id) do nothing;`}`;

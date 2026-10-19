@@ -2,7 +2,9 @@
 
 Implementation and preview release report for [the active plan](../../specs/todo/automatic-county-source-discovery-and-collection.md). Current results are below; the original release checkpoint is retained as historical evidence.
 
-## Current return release and acceptance
+The later [agent public-source research follow-up](2026-10-19-saline-public-source-research.md) supersedes the coverage/provider decision in this earlier checkpoint. The user requires no paid search provider.
+
+## Earlier return release and acceptance
 
 The reviewed implementation fixes are deployed. **Full Saline coverage remains incomplete, so the plan stays in todo.** Manual, repeat and browser-closed scheduled execution settled without worker exceptions, active jobs, unknown jobs or canonical imports. Saline County, Benton and Bryant each completed a bounded verified check for October 19, 2026–October 19, 2027; none produced a matching candidate. This is three checked sources, not complete county coverage.
 

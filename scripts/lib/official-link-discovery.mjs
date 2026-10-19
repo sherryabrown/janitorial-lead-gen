@@ -11,10 +11,31 @@ import {requestPublicCapture} from './public-capture-reuse.mjs';
 const relevant=/procure|bid|solicitat|contract|forecast|award|purchas|janitorial|custodial|cleaning|developer|\bapi\b|vendor|register/i;
 const key=(request,task)=>`api-workflow:discovery:${request}:${task}`;
 const freshCapture=capture=>Number.isFinite(Date.parse(capture.retrieved_at))&&Date.now()-Date.parse(capture.retrieved_at)<=30*86400000;
-export function officialLinks(bytes,url) {
+export function officialLinks(bytes,url,{automatic=false}={}) {
   const dom=new JSDOM(bytes.toString('utf8'),{url,virtualConsole:new VirtualConsole()});
-  try{return [...new Map([...dom.window.document.querySelectorAll('a[href]')].flatMap(a=>{
-    try{const link=publicUrl(a.href);return relevant.test(`${a.textContent} ${link}`)&&safePublicUrl(link,[new URL(link).hostname])?
+  try{
+    const doc=dom.window.document,pattern=automatic?/procure|bid|solicitat|contract|forecast|award|purchas|janitorial|custodial|cleaning|proposal|\brfp\b|\brfq\b|public notices|business (?:office|department)/i:relevant;
+    const anchors=[...doc.querySelectorAll('a[href]')];
+    if(automatic) {
+      // Apptegy publishes its navigation as flat, indexed JSON. Read only
+      // explicit published link records; never evaluate JavaScript or guess URLs.
+      try {
+        const raw=doc.querySelector('script#__NUXT_DATA__[type="application/json"]')?.textContent;
+        const values=raw&&raw.length<=2_000_000?JSON.parse(raw):null;
+        if(Array.isArray(values)&&values.length<=50000)for(const item of values) {
+          if(!item||Array.isArray(item)||typeof item!=='object'||values[item.type]!=='link'||values[item.status]!=='published'||
+              values[item.hidden]!==false||!Number.isInteger(item.name)||!Number.isInteger(item.url))continue;
+          const name=values[item.name],target=values[item.url];
+          if(typeof name!=='string'||typeof target!=='string'||!pattern.test(name))continue;
+          const anchor=doc.createElement('a');anchor.href=target;anchor.textContent=name;anchors.push(anchor);
+        }
+      }catch{/* Unrecognized menu data does not establish any source link. */}
+    }
+    return [...new Map(anchors.flatMap(a=>{
+    try{
+      const observed=new URL(a.href);
+      if(automatic&&observed.protocol==='http:'&&observed.hostname===new URL(url).hostname&&!observed.port)observed.protocol='https:';
+      const link=publicUrl(observed.href);return pattern.test(`${a.textContent} ${link}`)&&safePublicUrl(link,[new URL(link).hostname])?
       [[link,{url:link,label:a.textContent.replace(/\s+/g,' ').trim().slice(0,160)}]]:[];}catch{return [];}
   })).values()].slice(0,100);}finally{dom.window.close();}
 }
@@ -222,7 +243,7 @@ export function publicDiscovery({db,artifacts,persist,reconcileHandoffs,resolveS
     }
     const capture=checked(await db.from('procurement_public_captures').select('*').eq('run_id',run.id).single());
     if(c.automation_policy===automaticCountyPolicy)c.observed_hosts=[...new Set([...(c.observed_hosts??[]),new URL(capture.final_url).hostname])];
-    const links=/html/i.test(capture.content_type)?officialLinks(Buffer.from(capture.content_base64,'base64'),capture.final_url):[];
+    const links=/html/i.test(capture.content_type)?officialLinks(Buffer.from(capture.content_base64,'base64'),capture.final_url,{automatic:c.automation_policy===automaticCountyPolicy}):[];
     c.visited.push(url);c.queue.shift();c.run_ids.push(run.id);
     c.links=[...new Map([...c.links,...links.map(l=>({...l,from_run_id:run.id}))].map(l=>[l.url,l])).values()].slice(0,100);
     for(const l of links)if((c.automation_policy===automaticCountyPolicy||new URL(l.url).hostname.replace(/^www\./,'')===host.replace(/^www\./,''))&&!/signup|register|login|sign.?in|logout|payment|subscribe|submit|delete|create.account/i.test(l.url)&&

@@ -62,8 +62,12 @@ export async function fetchPublicCheck(contract, requestedUrl, fetcher = fetch,{
       return { state: 'outcome_unknown', reason: 'Network request failed or timed out', requested_url: requestedUrl,
         final_url: url, redirects };
     }
-    if ([301,302,303,307,308].includes(response.status)) {
-      const location = response.headers.get('location');
+    // Some official CMS front doors return an empty 200 with Refresh instead
+    // of a 3xx. Honor only an immediate, explicit redirect in county research,
+    // using exactly the same host validation and hop limit.
+    const refresh=research&&response.status===200?response.headers.get('refresh')?.match(/^\s*0\s*;\s*url\s*=\s*([^\r\n]+)\s*$/i):null;
+    if ([301,302,303,307,308].includes(response.status)||refresh) {
+      const location = refresh?refresh[1].trim().replace(/^['"]|['"]$/g,''):response.headers.get('location');
       if (!location || hop === 2) return { state: 'partial', reason: 'Redirect limit or missing location',
         requested_url: requestedUrl, final_url: url, redirects, upstream_status: response.status };
       const next = new URL(location, url).toString();

@@ -19,7 +19,7 @@ function savedLink(page, target) {
     });
 }
 
-export function makeInterpretationPacket({ request, task, job, source, capability, runs, captures }) {
+export function makeInterpretationPacket({ request, task, job, source, capability, runs, captures,confirmedCities=[] }) {
   need(request?.id && task?.id && job?.task_id === task.id && task.source_id === source?.id,
     'Request, task, job and source must match');
   need(task.kind !== 'source_entry' && ['forecast', 'opportunity', 'award'].includes(task.kind),
@@ -29,6 +29,10 @@ export function makeInterpretationPacket({ request, task, job, source, capabilit
   need(runs.length > 0 && runs.length === captures.length && runs.length <= 30,
     'Bounded saved captures are required');
   const automaticCounty=['county_scope','state_research'].includes(request.workflow_control?.admin_policy);
+  const cityAreas=request.workflow_control?.admin_policy==='county_scope'&&request.cities_confirmed_at
+    ?confirmedCities.filter(g=>request.selected_city_ids?.includes(g.id)&&g.state_code==='AR'&&g.incorporated&&['place','municipality'].includes(g.kind))
+      .map(g=>({area_type:'city',city_name:g.name,state_code:'AR'})):[];
+  const requestedAreas=[...request.requested_search_areas,...cityAreas.filter(a=>!request.requested_search_areas.some(old=>old.area_type==='city'&&old.state_code===a.state_code&&old.city_name===a.city_name))];
   const pages = runs.map((run, index) => {
     need(run.job_id === job.id && run.coverage_task_id === task.id &&
       run.source_id === source.id && run.page_index === index,
@@ -57,12 +61,12 @@ export function makeInterpretationPacket({ request, task, job, source, capabilit
     service_scope: request.service_scope, method_id: capability.id,
     method_version: capability.parser_version,
     pages: pages.map(({ url, content_sha256, page_index }) => ({ url, content_sha256, page_index })),
-    complete,...(automaticCounty?{interpretation_policy:'county-structured-v1',page_specs:pages.map(p=>p.interpretation_spec??null)}:{}) };
+    complete,...(automaticCounty?{interpretation_policy:'county-structured-v1',...(cityAreas.length?{confirmed_city_areas:cityAreas}:{}),page_specs:pages.map(p=>p.interpretation_spec??null)}:{}) };
   const packet_hash = hash(identity);
   return { version: 2, packet_hash, request_id: request.id, task_id: task.id,
     source_id: source.id, source_code: source.code, category: task.kind,
     request_scope: { service_scope: request.service_scope, search_windows: request.search_windows,
-      requested_search_areas: request.requested_search_areas },
+      requested_search_areas: requestedAreas },
     query_window: task.query_window, method_id: capability.id,
     method_version: capability.parser_version, method_guidance: capability.method_spec?.interpretation_guidance ??
       source.config?.known_source_review?.interpretation_guidance ?? null,

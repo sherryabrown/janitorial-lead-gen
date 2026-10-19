@@ -158,6 +158,8 @@ Historical validation above describes the earlier runner update. On September 30
 
 ## Manual observations and reviewed request links
 
+Reviewed registry updates compare the typed database baseline, including timestamp normalization, while retaining the exact updated-at concurrency guard. A harmless timestamp representation difference must not prevent a verified method update; a real concurrent row edit still rejects the package.
+
 Keep a finding's stable external_id when recapturing it. When the payload or provenance changes, provide amends_intake_id referencing the prior same-source manual intake. Staging creates a separate deterministic observation identity; it never overwrites the original. Replaying the same observation is a no-op. An ignored parent cannot be revived this way.
 
 Before promoting an amendment, its parent must already link to the same canonical lead. Review the original first when that link is missing. Title similarity is insufficient. Primary evidence is still required for promotion. Changed source facts add immutable provenance to the existing lead; this does not silently replace previously verified canonical fields. Retrieval/request-only observations add intake relationships without business-change events.

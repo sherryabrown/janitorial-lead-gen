@@ -16,6 +16,7 @@ import { supportingCapture } from './supporting-capture.mjs';
 import {packetLink} from './api-record-links.mjs';
 import {portalRecipe,matchingSession} from './portal-session.mjs';
 import {continueBonfireDetails} from './bonfire-detail-continuation.mjs';
+import {continuePublicTableDetails,applyPublicTableDetails} from './public-table-details.mjs';
 
 export function validateFindingBounds(packet,result,{verifiedSupporting=false}={}) {
   const basis=packet.query_window.date_basis??'published';
@@ -62,7 +63,9 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
       rows(db,'procurement_jobs',q=>q.eq('task_id',taskId)),one(db,'procurement_sources',task.source_id),
       one(db,'procurement_source_capabilities',task.capability_id),rows(db,'procurement_runs',q=>q.in('id',runIds)),
       rows(db,'procurement_public_captures',q=>q.in('run_id',runIds),'*',{order:'run_id'})]);
-    return {request,task,job:jobs[0],source,capability,runs:runIds.map(id=>runs.find(r=>r.id===id)),captures:runIds.map(id=>captures.find(c=>c.run_id===id))};
+    const confirmedCities=request.workflow_control?.admin_policy==='county_scope'&&request.cities_confirmed_at&&request.selected_city_ids?.length
+      ?await rows(db,'procurement_geographies',q=>q.in('id',request.selected_city_ids)):[];
+    return {request,task,job:jobs[0],source,capability,confirmedCities,runs:runIds.map(id=>runs.find(r=>r.id===id)),captures:runIds.map(id=>captures.find(c=>c.run_id===id))};
   }
   async function packet(requestId,taskId) {
     const ctx=await context(requestId,taskId),packet=makeInterpretationPacket(ctx);
@@ -280,6 +283,14 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
           (t.state==='needs_interpretation'||t.state==='partial'&&checkpoint.browser_task_ids?.includes(t.id)));
         if(!task){checkpoint.next_action=data.next_action;await save('blocked');return true;}
         const ctx=await context(request.id,task.id),p=makeInterpretationPacket(ctx),key=extractionKey(p,ctx.capability.method_spec);
+        if(p.automatic_county&&ctx.capability.method_spec.public_details) {
+          const guarded=supportingCapture({artifacts,serverKey,fetcher:supportingFetch,beforeFetch:async()=>{
+            if((await one(db,'procurement_search_requests',request.id)).workflow_control?.cancelled) {
+              const error=Error('Request cancelled before public detail fetch');error.code='request_cancelled';throw error;
+            }
+          }});
+          if(!await continuePublicTableDetails({context:ctx,packet:p,supporting:guarded,checkpoint,save,actor:request.initiated_by}))return true;
+        }
         if(ctx.capability.method_spec.response_format==='bonfire-projects-v1') {
           const guarded=supportingCapture({artifacts,serverKey,fetcher:supportingFetch,beforeFetch:async()=>{
             if((await one(db,'procurement_search_requests',request.id)).workflow_control?.cancelled) {
@@ -305,7 +316,7 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
           checked(await db.from('procurement_extraction_cache').upsert({cache_key:key,source_id:p.source_id,facts},{onConflict:'cache_key',ignoreDuplicates:true}));
           cached={facts};
         } else checkpoint.cache_hits=(checkpoint.cache_hits??0)+1;
-        let result=evaluateFacts(p,cached.facts);
+        let result=evaluateFacts(p,applyPublicTableDetails(cached.facts,p,checkpoint));
         // Reapply bounds independently to each cached positive fact. A previous request
         // never decides coverage for a different geography or date window.
         const eligible=[];

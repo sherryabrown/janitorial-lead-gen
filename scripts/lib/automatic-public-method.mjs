@@ -18,6 +18,24 @@ const headers = {
 };
 const category = /\b(current|open|active)\s+(bids|bid opportunities|solicitations|procurement opportunities)\b/i;
 const empty = /\b(no (?:current |open |active )?(?:bids|solicitations|bid opportunities)(?: are)? (?:available|posted|open)|there are no open bids|there are currently no bids listed)\b/i;
+const documentColumns=[['Closing Date/Time','Information / Description','Award Letter','Award Status'],
+  ['Date of Post','Bid Document','Bid Number','Due Date','Status']];
+const columnNames=table=>[...table.querySelectorAll('thead th')].map(h=>clean(h.textContent));
+function documentUrl(anchor,spec) {
+  if(!anchor)throw Error('Published bid document missing');
+  const url=new URL(anchor.href),entry=new URL(spec.urls[0]);
+  if(url.protocol==='http:'&&url.hostname===entry.hostname&&!url.port)url.protocol='https:';
+  if(!safePublicUrl(url.href,spec.allowed_hosts))throw Error('Published document leaves verified hosts');
+  return url.href;
+}
+export function publishedDeadlineDate(value) {
+  const date=clean(value).match(/\b(?:[A-Za-z]+ \d{1,2}, \d{4}|\d{1,2}\/\d{1,2}\/\d{4})\b/)?.[0];
+  if(!date)return null;
+  const parsed=new Date(date+' 12:00:00 UTC');
+  if(!Number.isFinite(parsed.getTime()))return null;
+  const day=Number(date.match(/\/(\d{1,2})\//)?.[1]??date.match(/ (\d{1,2}),/)?.[1]);
+  return parsed.getUTCDate()===day?parsed.toISOString().slice(0,10):null;
+}
 
 // This is deliberately a recognizer for evidenced, terminal public listings, not
 // an arbitrary selector/code generator. Unknown structures stay partial.
@@ -27,10 +45,50 @@ export function inspectAutomaticListing(body, spec) {
   const dom = new JSDOM(body.toString('utf8'), { url: spec.urls[0], virtualConsole: new VirtualConsole() });
   try {
     const doc = dom.window.document;
+    const remoteTable=[...doc.querySelectorAll('script[id*="datatables"][id$="after"]')].some(node=>/["']?(?:serverSide|ajax)["']?\s*:/i.test(node.textContent));
     for (const node of doc.querySelectorAll('script,style,noscript,template,nav,header,footer')) node.remove();
     const root = doc.querySelector('main, [role="main"]') ?? doc.body;
     if (root.querySelector('[rel="next"], [aria-label*="Next"], .pagination, .pager') ||
         /\b(load more|next page)\b/i.test(visibleText(root))) throw Error('Listing pagination needs verification');
+    if(spec.expected_heading==='Published bid document table') {
+      if(![...root.querySelectorAll('h1,h2,h3')].some(h=>/^Bid Opportunities(?: and Information)?$/i.test(clean(h.textContent)))||
+          remoteTable)
+        throw Error('Published bid table heading or traversal changed');
+      const tables=[...root.querySelectorAll('table')].filter(t=>documentColumns.some(cols=>JSON.stringify(cols)===JSON.stringify(columnNames(t))));
+      if(tables.length!==1)throw Error('Published bid document columns changed');
+      const table=tables[0],housing=columnNames(table).length===5,rows=[...table.querySelectorAll('tbody tr')];
+      if(!rows.length||rows.length>100)throw Error('Published bid table lacks bounded row evidence');
+      const records=rows.map(row=>{
+        const cells=[...row.querySelectorAll('td')],info=cells[1],anchor=info?.querySelector('a[href]');
+        if(cells.length!==(housing?5:4))throw Error('Published bid document row changed');
+        const source_url=documentUrl(anchor,spec),clone=info.cloneNode(true);
+        for(const a of clone.querySelectorAll('a'))a.remove();
+        const title=visibleText(clone)||clean(anchor.textContent);
+        if(!title)throw Error('Published bid title missing');
+        const raw=clean(cells[housing?3:0].textContent),deadline=publishedDeadlineDate(raw);
+        return {id:source_url,title,source_url,status:clean(cells[housing?4:3].textContent),
+          deadline_text:raw,...(deadline?{deadline}:{})};
+      });
+      if(new Set(records.map(r=>r.id)).size!==records.length)throw Error('Duplicate published bid documents');
+      return {records,total:records.length,terminal:true,evidence:'Bid Opportunities',heading:spec.expected_heading};
+    }
+    if(spec.expected_heading==='Published procurement sections') {
+      const heading=clean(doc.querySelector('h1')?.textContent);
+      const matrix=doc.querySelector('#matrix');
+      if(!/^(Invitation to Bid|Requests for (Proposals|Qualifications|Information))$/.test(heading)||!matrix||
+          matrix.querySelector('iframe,[data-ajax],[rel="next"],.pagination,.pager'))throw Error('Published procurement sections changed');
+      const blocks=[...matrix.querySelectorAll('section.xresources,section.xdropdowns li')];
+      if(!blocks.length||blocks.length>100)throw Error('Published procurement sections lack bounded evidence');
+      const records=blocks.map(block=>{
+        const title=clean(block.querySelector('h2,.uk-accordion-title')?.textContent);
+        const anchor=[...block.querySelectorAll('a[href]')].find(a=>/\.pdf(?:$|\?)/i.test(a.href)&&/\b(?:ITB|RFP|RFQ|RFI|ASQ|qualifications)\b/i.test(a.textContent));
+        if(!title||!anchor)throw Error('Procurement section identity or primary document missing');
+        const source_url=documentUrl(anchor,spec);
+        return {id:source_url,title,source_url};
+      });
+      if(new Set(records.map(r=>r.id)).size!==records.length)throw Error('Duplicate procurement sections');
+      return {records,total:records.length,terminal:true,evidence:heading,heading:spec.expected_heading};
+    }
     if(spec.expected_heading==='EvoGov bid listing') {
       const evidence=clean(root.querySelector('.evo_bids_empty')?.textContent).match(/There are currently no bids listed\./i)?.[0];
       if(!evidence||root.querySelector('.evo_bids_empty table, iframe'))throw Error('Public bid listing changed; revalidation required');
@@ -129,6 +187,9 @@ export function proposeAutomaticListing(body, url) {
     if(!heading&&/There are currently no bids listed\./i.test(root.querySelector('.evo_bids_empty')?.textContent??''))heading='EvoGov bid listing';
     if(!heading&&root.querySelector('table#rpfbids')&&visibleText(root).includes('All current and active bid opportunities are listed below.'))heading='Revize public bids';
     if(!heading&&/View current bid opportunities for the (?:City|Town) of [^.]+\./.test(visibleText(root)))heading='City bid listing';
+    if(!heading&&[...root.querySelectorAll('table')].some(t=>documentColumns.some(cols=>JSON.stringify(cols)===JSON.stringify(columnNames(t)))))heading='Published bid document table';
+    if(!heading&&dom.window.document.querySelector('#matrix section.xresources')&&
+        /^(Invitation to Bid|Requests for (Proposals|Qualifications|Information))$/.test(clean(dom.window.document.querySelector('h1')?.textContent)))heading='Published procurement sections';
   } finally { dom.window.close(); }
   if (!heading) throw Error('No supported opportunity listing heading');
   const spec = { version: 1, runner_id: 'public-fetch', check_when: 'each_request', urls: [url],

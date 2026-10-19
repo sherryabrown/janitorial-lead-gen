@@ -8,6 +8,7 @@ import {nativeRehearsal} from '../../scripts/lib/native-sql-rehearsal.mjs';
 import {checked} from '../../scripts/lib/hosted-store.mjs';
 import {procurementSchedules} from '../../scripts/lib/procurement-schedules.mjs';
 import {randomUUID} from 'node:crypto';
+import {readFileSync} from 'node:fs';
 
 export async function verifyAutomaticCounty({db,artifacts,audit,livePool,rehearsalPool,actor,config}) {
   const project='zreplhkoxswtzxlchtjf',errors=[],calls=[];
@@ -17,11 +18,13 @@ export async function verifyAutomaticCounty({db,artifacts,audit,livePool,rehears
     else if(url==='https://www.arcounties.org/counties/arkansas/')body='<h2>Arkansas County</h2><h3><a href="https://county.example/">www.county.example</a></h3>';
     else if(url==='https://county.example/')body='<main><h1>Open bids</h1><p>2 open bids</p><table><tr><th>Bid number</th><th>Title</th><th>Work county</th><th>Work state</th><th>Deadline</th></tr><tr><td>26-1</td><td><a href="/bid/26-1">Janitorial services</a></td><td>Arkansas County</td><td>AR</td><td>2027-01-01</td></tr><tr><td>26-2</td><td><a href="/bid/26-1">Janitorial services annex</a></td><td></td><td>AR</td><td>2027-01-01</td></tr></table></main>';
     else if(url==='https://county.example/bid/26-1')body='<main><h1>Janitorial services</h1><p>Bid 26-1; work county: Arkansas County, AR. Deadline: 2027-01-01.</p></main>';
+    else if(url==='https://arkansas.ionwave.net/SourcingEvents.aspx?SourceType=1')body=readFileSync('tests/fixtures/county/ionwave-public-listing.html');
+    else if(url==='https://arkansas.ionwave.net/PublicDetail.aspx?bidID=1642&SourceType=1')body=readFileSync('tests/fixtures/county/ionwave-public-detail.html');
     else throw Error(`Unexpected isolated county destination ${url}`);
     return new Response(body,{headers:{'content-type':'text/html'}});
   };
   let discovery,aiCalls=0;
-  const workflow=hostedWorkflow({db,project,artifacts,audit,collectionFetch:fetcher,aiConfig:{enabled:true},
+  const workflow=hostedWorkflow({db,project,artifacts,audit,collectionFetch:fetcher,supportingFetch:fetcher,serverKey:'isolated-county-public-evidence-key',aiConfig:{enabled:true},
     ai:async({packet})=>{if(++aiCalls>1){const error=Error('Fixture budget reached');error.code='ai_budget_reached';throw error;}
       return {version:1,packet_hash:packet.packet_hash,reviewed_by:'fixture',reviewed_scope:'Fixture invalid AI',coverage:'partial',
         findings:[],exclusions:[],unresolved:[{reason:'Invalid quotation fixture',evidence:[{run_id:packet.pages[0].run_id,locator:'saved document',excerpt:'This quotation never occurred'}]}]};},
@@ -119,5 +122,23 @@ export async function verifyAutomaticCounty({db,artifacts,audit,livePool,rehears
   assert.equal(checked(await db.rpc('reconcile_procurement_county_reads',{p_schedule:schedule.id})),0,'Reconciliation replays without new work');
   assert.equal((await livePool.query("select has_function_privilege('authenticated','reconcile_procurement_county_reads(uuid,uuid)','EXECUTE') as allowed")).rows[0].allowed,false);
   await schedules.control(schedule.id,'archive',{expected_version:schedule.version},actor);
+  // Exercise the actual public detail continuation through native intake, not
+  // just the pure parser. All HTTP responses are saved fixtures in this harness.
+  const city='ARM'+'d'.repeat(32),sourceId=randomUUID(),capId=randomUUID();
+  await livePool.query("insert into procurement_geographies(id,kind,name,state_code,incorporated,dataset_url,dataset_version,dataset_hash) values($1,'municipality','Little Rock','AR',true,'https://gis.arkansas.gov/arcgis/rest/services/FEATURESERVICES/Boundaries/FeatureServer/41','fixture','public-detail')",[city]);
+  await livePool.query("insert into procurement_place_counties(place_id,county_id) values($1,'05001')",[city]);
+  const source={...offline,id:sourceId,identity_key:randomUUID(),code:'public-detail-fixture',name:'Fixture public bid table',url:'https://arkansas.ionwave.net/SourcingEvents.aspx?SourceType=1',source_coverage_areas:[{area_type:'city',city_name:'Little Rock',state_code:'AR'}],config:{known_source_route:{home_city:'Little Rock'}}};
+  checked(await db.from('procurement_sources').insert(source));
+  checked(await db.from('procurement_source_capabilities').insert({id:capId,source_id:sourceId,kind:'opportunity',method:'browser',endpoint_url:source.url,official_entry_url:source.url,route_geography_id:city,availability:'active',verified_at:new Date().toISOString(),verified_until:'2027-12-31T00:00:00Z',verification_evidence:{automation_policy:'county-public-v1',fixture:true},parser_version:'public-detail-native-fixture',method_spec:{version:1,runner_id:'public-fetch',check_when:'each_request',urls:[source.url],allowed_hosts:['arkansas.ionwave.net'],max_bytes:2000000,response_format:'html-table-v1',max_records:100,expected_organization:'Little Rock Water Reclamation Authority',table_selector:'table.rgMasterTable',row_selector:'tr.rgRow, tr.rgAltRow',public_details:{key:'BidID',endpoint:'https://arkansas.ionwave.net/PublicDetail.aspx',client_state_selector:'input#ctl00_mainContent_rgBidList_ClientState'}}}));
+  const detailPreview=await triggers.preview({...config,county_ids:['05001']});
+  const detailRun=await triggers.submit({...detailPreview.config,confirmed_scope:true,preview_hash:detailPreview.preview_hash},actor,'public-detail-native-fixture');
+  for(let n=0;n<100;n++)if(!await workflow.step()&&!await triggers.step())break;
+  if(errors.length)throw errors[0];
+  const detailChild=checked(await db.from('procurement_trigger_requests').select('*').eq('trigger_id',detailRun.trigger_id)).find(c=>c.role==='county');
+  const detailStatus=await workflow.status(detailChild.request_id),candidate=detailStatus.candidates.find(c=>c.title==='Janitorial Services at Clearwater Administrative Building and Clearwater Maintenance Complex');
+  assert.ok(candidate,JSON.stringify({message:'Actual public detail evidence reaches native intake',jobs:detailStatus.jobs,tasks:detailStatus.tasks,candidates:detailStatus.candidates}));
+  const intake=checked(await db.from('procurement_intake_items').select('*').eq('id',candidate.intake_id).single());
+  assert.equal(intake.source_id,sourceId);assert.equal(intake.payload.work_city,'Little Rock');assert.equal(intake.payload.deadline,'2026-11-05');
+  assert.equal(checked(await db.from('procurement_leads').select('id').eq('source_id',sourceId)).length,0,'Public detail collection preserves non-SAM approval');
   return {source_count:sources.length,candidates:status.total_candidates,scheduled_candidates:scheduledStatus.total_candidates,canonical_writes:0};
 }
