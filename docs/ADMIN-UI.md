@@ -22,6 +22,10 @@ Returning to Contracts restores its current filters, page, selected record and b
 
 ## API additions in this release
 
+Bonfire Portal follow-up (October 19): category packets for `bonfire-projects-v1` also expose `portal_url` and `project_links` (`id`, `title`, `closes`, `url`, `run_id`, `content_sha256`). These are derived from hash-verified saved listing bytes and do not alter packet identity or establish qualified leads. Review captured evidence shows every listed project, without title filtering. Links open the official Portal/detail in another tab; they do not adopt cookies, verify the backend session or enable protected scheduled execution. See [current access results](SOURCE-ACCESS-LIVE-STATUS.md).
+
+Saved browser jobs expose only their `access_handoff_id` and `capture_state` in request status. **Check saved portal access** reads the existing access record; it does not sign in or start collection. Explicit sign-in/capture/reconciliation buttons reuse the existing bearer routes and refresh saved status. Expired recipes disable hosted sign-in/capture, and a completed capture cannot be repeated through that action. The access response exposes recipe/session validity booleans and safe next action; credentials, recipe selectors, encrypted artifacts and cookies remain private. Manual verification does not grant unattended acceptance. These continuation changes require the matching backend release; browser fixtures do not establish production availability.
+
 Existing bearer authentication, allowed origins, audit and import guards apply. No schema migration or new secret is needed.
 
 - `GET /v1/requests/:id/sources?offset=0&limit=50`: registered official seed options associated with that saved request; bounded pagination, safe ID/code/name/URL only. No unrestricted source search.

@@ -21,6 +21,33 @@ function fixture(fetcher=async()=>new Response('{"award_date":"2026-10-03"}',{he
   return {ctx,packet,saved,artifacts,service};
 }
 
+test('Bonfire supporting capture accepts current saved projects, rejects historical and client-forged destinations before fetching',async()=>{
+  let fetches=0;
+  const f=fixture(async()=>{fetches++;return new Response('<html><title>Just a moment</title>Performing security verification</html>',{headers:{'Content-Type':'text/html'}});});
+  const body=Buffer.from(JSON.stringify({success:1,payload:{projects:{249097:{ProjectID:'249097',ProjectName:'Park Management',DateClose:'2026-11-13 10:30:00'}}}}));
+  f.ctx.capability.method_spec={...f.ctx.capability.method_spec,response_format:'bonfire-projects-v1',max_records:100,
+    allowed_hosts:['town.bonfirehub.com'],urls:['https://town.bonfirehub.com/PublicPortal/getOpenPublicOpportunitiesSectionData']};
+  Object.assign(f.ctx.captures[0],{content_base64:body.toString('base64'),content_sha256:sha(body),content_type:'application/json'});
+  f.ctx.runs[0].detail.content_sha256=sha(body);
+  f.packet=makeInterpretationPacket(f.ctx);
+  for(const url of ['https://town.bonfirehub.com/opportunities/169158','https://town.bonfirehub.com/opportunities/258049'])
+    await assert.rejects(f.service.capture(f.ctx,f.packet,{packet_hash:f.packet.packet_hash,url},'reviewer'),/hash-verified saved listing/);
+  assert.equal(fetches,0);
+  const current=f.packet.project_links[0].url;
+  const outcome=await f.service.capture(f.ctx,f.packet,{packet_hash:f.packet.packet_hash,url:current},'reviewer');
+  assert.notEqual(outcome.state,'captured');
+  assert.equal(outcome.lead_coverage,false);
+  assert.equal(fetches,1);
+  const allowed=supportingCapture({artifacts:f.artifacts,serverKey:'private-test-key',
+    fetcher:async()=>new Response('<html><title>Park Management</title><main>Current official project details</main></html>',{headers:{'Content-Type':'text/html'}})});
+  const captured=await allowed.capture(f.ctx,f.packet,{packet_hash:f.packet.packet_hash,url:current},'reviewer');
+  assert.equal(captured.state,'captured');assert.equal(captured.lead_coverage,false);
+  assert.match((await allowed.load(f.ctx,f.packet,captured)).toString(),/Current official project details/);
+  f.packet.pages[0].body=Buffer.from('tampered');
+  await assert.rejects(f.service.capture(f.ctx,f.packet,{packet_hash:f.packet.packet_hash,url:current},'reviewer'),/hash-verified saved listing/);
+  assert.equal(fetches,1);
+});
+
 test('processed primary PDF reuse preserves retrieval time, binds provenance and sends no fetch',async()=>{
  const f=fixture(),body=Buffer.from('%PDF- retained official document'),digest=sha(body),id='00000000-0000-4000-8000-000000000099';
  await f.artifacts.put(body);let fetches=0;
@@ -156,7 +183,7 @@ test('an exactly reviewed structured row is replaced rather than left as an ambi
 });
 
 test('the worker reuses a signed cached positive without AI, stages once and preserves lease checkpoints',async()=>{
-  let aiCalls=0;
+  let aiCalls=0,reportedError;
   const f=fixture(async()=>new Response('{"site":"Texarkana","deadline":"2026-10-30"}',{headers:{'Content-Type':'application/json'}}));
   const capture=await f.service.capture(f.ctx,f.packet,{packet_hash:f.packet.packet_hash,url:'https://example.gov/detail'},'reviewer');
   const review=result(f.packet);review.findings[0].supporting_evidence=[{...capture,locator:'saved document',excerpt:'{"site":"Texarkana","deadline":"2026-10-30"}'}];
@@ -188,7 +215,7 @@ test('the worker reuses a signed cached positive without AI, stages once and pre
     throw Error('Unexpected fixture RPC');
   }};
   const workflow=hostedWorkflow({db,project:'zreplhkoxswtzxlchtjf',serverKey:()=> 'private-test-key',artifacts:f.artifacts,
-    aiConfig:{enabled:true},reportError:()=>{},ai:async()=>{aiCalls++;throw Error('Ambiguous row requires AI review');}});
+    aiConfig:{enabled:true},reportError:(_id,error)=>{reportedError=error;},ai:async()=>{aiCalls++;throw Error('Ambiguous row requires AI review');}});
   assert.equal(await workflow.step(),true);
   assert.equal(aiCalls,0);assert.equal(worker.state,'pending');assert.equal(worker.checkpoint.cache_hits,1);
   assert.deepEqual(worker.checkpoint.interpreted_task_ids,[f.ctx.task.id]);assert.equal(tables.procurement_intake_items.length,1);
@@ -197,4 +224,15 @@ test('the worker reuses a signed cached positive without AI, stages once and pre
   claim=true;worker.checkpoint={stage:'interpret'};
   await workflow.step();assert.equal(aiCalls,1);assert.equal(worker.state,'blocked');
   assert.equal(worker.checkpoint.error_code,'workflow_stage_failed');assert.doesNotMatch(worker.checkpoint.next_action,/Ambiguous row/);assert.equal(tables.procurement_intake_items.length,1);
+  // Listing-only Bonfire gaps never spend another AI call guessing inaccessible details.
+  const row={ProjectID:'249097',ProjectName:'Facilities maintenance services',DateClose:'2026-10-30 17:00:00'};
+  const listing=Buffer.from(JSON.stringify({success:1,payload:{projects:{249097:row}}}));
+  Object.assign(f.ctx.capability.method_spec,{response_format:'bonfire-projects-v1',max_records:100});
+  Object.assign(f.ctx.captures[0],{content_base64:listing.toString('base64'),content_sha256:sha(listing),content_type:'application/json'});
+  f.ctx.runs[0].detail.content_sha256=sha(listing);
+  const listingPacket=makeInterpretationPacket(f.ctx);
+  tables.procurement_extraction_cache=[{cache_key:extractionKey(listingPacket,f.ctx.capability.method_spec),facts:{version:1,facts:[{page_index:0,record:row,title:row.ProjectName,excerpt:JSON.stringify(row),locator:'row 1'}]}}];
+  claim=true;worker.checkpoint={stage:'interpret'};
+  await workflow.step();assert.equal(aiCalls,1);assert.equal(worker.state,'pending',reportedError?.message);
+  assert.deepEqual(worker.checkpoint.interpreted_task_ids,[f.ctx.task.id]);assert.equal(tables.procurement_intake_items.length,1);
 });

@@ -14,6 +14,7 @@ import { accessNext } from './source-access.mjs';
 import { recordAccessEvent } from './source-access-store.mjs';
 import { supportingCapture } from './supporting-capture.mjs';
 import {packetLink} from './api-record-links.mjs';
+import {portalRecipe,matchingSession} from './portal-session.mjs';
 
 export function validateFindingBounds(packet,result,{verifiedSupporting=false}={}) {
   const basis=packet.query_window.date_basis??'published';
@@ -34,7 +35,7 @@ export function validateFindingBounds(packet,result,{verifiedSupporting=false}={
       throw new Error('Finding actual work location is unverified or outside requested geography');
   }
 }
-export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=boundedInterpretation,processJob,captureBrowser,audit,reportError=(id,error)=>console.error('Workflow stage failed',id,error)}) {
+export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=boundedInterpretation,processJob,captureBrowser,canCaptureBrowser,audit,reportError=(id,error)=>console.error('Workflow stage failed',id,error)}) {
   const supporting=supportingCapture({artifacts,serverKey,loadReviewedIntake:async id=>{
     const item=await one(db,'procurement_intake_items',id);
     if(!item)return null;
@@ -133,8 +134,10 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
     const targets=await rows(db,'procurement_request_targets',q=>q.eq('search_request_id',requestId),'id');
     const [tasks,interpretations,jobs,usage]=await Promise.all([
       targets.length?rows(db,'procurement_coverage_tasks',q=>q.in('target_id',targets.map(t=>t.id)),'id,source_id,kind,state,reason,pages_reviewed'):[],
-      rows(db,'procurement_interpretations',q=>q.eq('request_id',requestId),'id,is_current,staging_receipt'),rows(db,'procurement_jobs',q=>q.eq('search_request_id',requestId),'id,state,kind,dedupe_key,checkpoint'),
+      rows(db,'procurement_interpretations',q=>q.eq('request_id',requestId),'id,is_current,staging_receipt'),rows(db,'procurement_jobs',q=>q.eq('search_request_id',requestId),'id,state,kind,dedupe_key,checkpoint,capability_id'),
       rows(db,'procurement_usage_ledger',q=>q.eq('request_id',requestId),'id,kind,state,provider,model,rate_version,input_tokens,output_tokens,reserved_usd,actual_usd,usage')]);
+    const capabilityIds=[...new Set(jobs.map(j=>j.capability_id).filter(Boolean))];
+    const browserCapabilities=capabilityIds.length?await rows(db,'procurement_source_capabilities',q=>q.in('id',capabilityIds),'id,method_spec'):[];
     const ids=[...new Set([...interpretations.filter(i=>i.is_current!==false).flatMap(i=>i.staging_receipt?.intake_ids??[]),
       ...jobs.filter(j=>j.dedupe_key?.startsWith('api-sam:')&&j.checkpoint?.stage==='sam_review').flatMap(j=>j.checkpoint.intake_ids??[])])];
     const selected=ids.slice(offset,offset+limit),intakes=selected.length?await rows(db,'procurement_intake_items',q=>q.in('id',selected)):[];
@@ -148,6 +151,8 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
     return {request_id:requestId,cancelled:request.workflow_control.cancelled===true,requested_categories:request.requested_categories,
       search_windows:request.search_windows,jobs:jobs.map(j=>({id:j.id,state:j.state,kind:j.kind,stage:j.checkpoint?.stage,run_ids:j.checkpoint?.run_ids??[],pages:j.checkpoint?.pages??null,
         records:j.checkpoint?.records??null,terminal_confirmed:j.checkpoint?.terminal_confirmed??false,
+        access_handoff_id:browserCapabilities.find(c=>c.id===j.capability_id&&c.method_spec?.runner_id==='authenticated-browser')?.method_spec.access_handoff_id??null,
+        capture_state:j.checkpoint?.hosted_browser_attempt?.state??null,
         next_action:publicJobAction(j),error_code:j.checkpoint?.error_code??null,diagnostic_id:j.checkpoint?.diagnostic_id??null})),
       tasks:tasks.map(t=>({id:t.id,source_id:t.source_id,category:t.kind,state:t.state,reason:t.reason,pages:t.pages_reviewed})),
       candidates,total_candidates:ids.length,next_offset:offset+limit<ids.length?offset+limit:null,
@@ -185,7 +190,7 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
         const result=await executeKnownSources({db,project,serverKey,command:'run',requestId:request.id,maxJobs:1,retryPartial:false,
           cancelled:async()=>!!(await one(db,'procurement_search_requests',request.id)).workflow_control.cancelled});
         const browserRoute=result.routes.find(r=>r.state==='awaiting_browser_capture');
-        if(browserRoute&&captureBrowser&&!request.workflow_control?.admin_trigger_id) {
+        if(browserRoute&&captureBrowser&&(!request.workflow_control?.admin_trigger_id||await canCaptureBrowser?.(browserRoute.job_id))) {
           const captured=await captureBrowser(browserRoute.job_id,request.initiated_by);
           if(captured.receipt)checkpoint.browser_task_ids=[...new Set([...(checkpoint.browser_task_ids??[]),browserRoute.task_id])];
         }
@@ -223,7 +228,10 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
           catch {result.unresolved.push({reason:'Cached source fact does not establish this request scope/date; review before exclusion',evidence:finding.evidence});}
         }
         result.findings=eligible;
-        if(result.unresolved.length && aiConfig?.enabled) {
+        // A Bonfire index has no protected project/document content to interpret.
+        // Preserve its unresolved evidence rather than pay AI to guess access gaps.
+        const listingNeedsDetail=ctx.capability.method_spec?.response_format==='bonfire-projects-v1';
+        if(result.unresolved.length && aiConfig?.enabled && !listingNeedsDetail) {
           const response=await auditPhase('ai_interpretation',()=>ai({db,requestId:request.id,actor:request.initiated_by,packet:p,config:aiConfig}),{task_id:task.id,source_id:p.source_id,reason:'provider'});
           result={...result,...response,coverage:'partial'};
         }
@@ -247,7 +255,11 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
   async function access(id) {
     const h=await one(db,'procurement_access_handoffs',id);
     if(!h)throw new Error('Saved access handoff not found');
-    return {id:h.id,source_id:h.source_id,channel:h.channel,tenant:h.tenant,revision:h.lifecycle_revision,next:accessNext(h)};
+    let recipe_current=false,session_current=false;
+    if(h.channel==='portal')try {const recipe=portalRecipe(h);recipe_current=true;session_current=!!matchingSession(h,recipe);}catch { /* retain reviewed expiry */ }
+    return {id:h.id,source_id:h.source_id,channel:h.channel,tenant:h.tenant,revision:h.lifecycle_revision,next:accessNext(h),
+      ...(h.channel==='portal'?{hosted:{recipe_current,session_current},
+        ...(!recipe_current?{next:{actor:'researcher',action:'Revalidate the expired or missing reviewed portal recipe before hosted sign-in; manual browser success does not renew it'}}:{})}:{})};
   }
   async function accessEvent(id,event,actor) {
     const h=await one(db,'procurement_access_handoffs',id);

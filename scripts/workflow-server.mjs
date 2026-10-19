@@ -38,7 +38,7 @@ const imports=importJobs({db,project,transport,artifacts,samSavedRuns:sam.savedR
   rehearse:rehearsalPool?nativeRehearsal(rehearsalPool):null});
 const workflow=hostedWorkflow({db,project,serverKey:()=>env.SUPABASE_SERVICE_ROLE_KEY,artifacts,aiConfig,audit,processJob:(job,c,save)=>
   c.stage.startsWith('discovery_')?discovery.step(job,c,save):c.stage.startsWith('sam_')?sam.step(job,c,save):imports.step(job,c,save),
-  captureBrowser:(id,actor)=>browser.captureWorker(id,actor)});
+  captureBrowser:(id,actor)=>browser.captureWorker(id,actor),canCaptureBrowser:id=>browser.canCaptureWorker(id)});
 let running=false;
 let benchmarking=Boolean(env.PROCUREMENT_BROWSER_BENCHMARK_ID);
 function kick() {
@@ -58,6 +58,7 @@ const discovery=discoveryService({db,project,artifacts,transport,rehearse:rehear
       command:planOnly||request.workflow_control?.check_updates===false?'plan':'run',requestId,selectedSourceCode:sourceCode,maxJobs:4,retryPartial:false});
   }});
 const browser=browserService({db,artifacts,sessionKey:env.PROCUREMENT_SESSION_ENCRYPTION_KEY,
+  environmentId:env.RENDER_SERVICE_ID&&env.RENDER_GIT_COMMIT?`${env.RENDER_SERVICE_ID}:${env.RENDER_GIT_COMMIT}`:null,
   profile:env.PROCUREMENT_BUSINESS_PROFILE?JSON.parse(env.PROCUREMENT_BUSINESS_PROFILE):{},exclusive:async operation=>{
   if(running||benchmarking)throw Error('Worker is busy; resume this bounded browser action after the active stage');
   running=true;try{return await operation();}finally{running=false;}

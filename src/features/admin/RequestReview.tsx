@@ -5,7 +5,7 @@ import {
   acknowledged,
 } from '../../lib/procurement-workflow';
 import { SourceReview } from './SourceReview';
-import type { RequestStatus, Packet, Task, ImportStatus } from './types';
+import type { RequestStatus, Packet, Task, ImportStatus, Job } from './types';
 import { title } from './model';
 export function RequestReview({
   id,
@@ -182,9 +182,12 @@ export function RequestReview({
           {data.jobs
             .filter((j) => !j.stage?.startsWith('import_'))
             .map((j) => (
-              <p className="admin-hint" key={j.id}>
-                <strong>{title(j.stage ?? j.state)}</strong> | {j.next_action}
-              </p>
+              <div key={j.id}>
+                <p className="admin-hint">
+                  <strong>{title(j.stage ?? j.state)}</strong> | {j.next_action}
+                </p>
+                {j.access_handoff_id && <SavedAccess job={j} onChange={() => setVersion(x => x + 1)} />}
+              </div>
             ))}
           {data.tasks.map((t) => (
             <div className="admin-task" key={t.id}>
@@ -485,6 +488,35 @@ export function RequestReview({
     </section>
   );
 }
+type AccessStatus = { tenant: string; next: { action?: string }; hosted?: { recipe_current: boolean; session_current: boolean } };
+function SavedAccess({job,onChange}:{job:Job;onChange:()=>void}) {
+  const [access,setAccess]=useState<AccessStatus|null>(null),[busy,setBusy]=useState(false),[message,setMessage]=useState('');
+  const path=`/v1/access/${job.access_handoff_id}`;
+  const perform=async(action?:string)=>{
+    setBusy(true);setMessage('');
+    try {
+      if(action) {
+        const result=await workflowRequest<{next_action?:string;state:string}>(`${path}/${action}`,{body:{}});
+        setMessage(result.next_action??title(result.state));onChange();
+      }
+      setAccess(await workflowRequest<AccessStatus>(path));
+    }catch(error){setMessage((error as Error).message);}finally{setBusy(false);}
+  };
+  return <div className="admin-review-form">
+    <button type="button" className="text-button" disabled={busy} onClick={()=>void perform()}>Check saved portal access</button>
+    {access && <>
+      <p>{access.tenant} · {access.next.action}</p>
+      <div className="admin-inline">
+        <button type="button" className="text-button" disabled={busy||!access.hosted?.recipe_current} onClick={()=>void perform('continue')}>Resume saved sign-in</button>
+        <button type="button" className="text-button" disabled={busy||!access.hosted?.session_current||job.capture_state==='captured'||!['pending','partial'].includes(job.state)} onClick={()=>void perform(`capture/${job.id}`)}>Capture saved method</button>
+        {job.capture_state && job.capture_state!=='captured' && <button type="button" className="text-button" disabled={busy} onClick={()=>void perform(`capture/${job.id}/reconcile`)}>Reconcile saved capture</button>}
+      </div>
+      <p className="admin-hint">Manual browser verification does not verify the hosted session. These actions resume the existing record; they do not create an account or approve unattended collection.</p>
+    </>}
+    {message && <p role="status">{message}</p>}
+  </div>;
+}
+
 function InterpretationReview({
   packet,
   busy,
@@ -600,6 +632,30 @@ function InterpretationReview({
         </select>
       </label>
       <pre className="admin-evidence">{p.review}</pre>
+      {packet.project_links && (
+        <details>
+          <summary>Current projects from this saved listing</summary>
+          <p className="admin-hint">
+            Listing captured. Project details and documents still need verification;
+            a listing alone does not establish a qualified lead. Opening the Portal
+            does not verify the server session.
+          </p>
+          <a href={packet.portal_url} target="_blank" rel="noreferrer">Open agency Portal</a>
+          <ul>
+            {packet.project_links.filter(link => link.run_id === p.run_id).map(link => (
+              <li key={link.id}>
+                <a href={link.url} target="_blank" rel="noreferrer">{link.title}</a>
+                {' · Closes '}{link.closes}
+              </li>
+            ))}
+          </ul>
+          <p className="admin-hint">
+            If a project asks for sign-in or security verification, complete the
+            official access action and retain the saved evidence for review.
+            No automatic challenge retries are performed.
+          </p>
+        </details>
+      )}
       <label>
         Decision
         <select value={decision} onChange={(e) => setDecision(e.target.value)}>

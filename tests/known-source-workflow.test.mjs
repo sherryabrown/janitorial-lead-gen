@@ -10,6 +10,25 @@ import { planReviewedBatch, hash } from '../scripts/lib/reviewed-batch.mjs';
 const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 const bytes=Buffer.from('<html><title>Bid list</title><main><table><thead><tr><th>Bid #</th><th>Description</th></tr></thead><tbody><tr><td>24-17</td><td>Janitorial services</td></tr></tbody></table></main></html>');
 const sha=b=>createHash('sha256').update(b).digest('hex');
+
+test('Bonfire packet exposes every current project only from hash-verified listing evidence',()=>{
+  const body=Buffer.from(JSON.stringify({success:1,payload:{projects:{
+    249097:{ProjectID:'249097',ProjectName:'Natural Steps Park Management',DateClose:'2026-11-13 10:30:00'},
+    258049:{ProjectID:'258049',ProjectName:'GIS Consulting Services',DateClose:'2026-11-03 12:00:00'},
+  }}}));
+  const ctx=context(body,'application/json');
+  ctx.capability.method_spec={response_format:'bonfire-projects-v1',max_records:100,allowed_hosts:['town.bonfirehub.com']};
+  const packet=makeInterpretationPacket(ctx);
+  assert.deepEqual(packet.project_links.map(p=>p.id),['249097','258049']);
+  assert.equal(packet.project_links[0].url,'https://town.bonfirehub.com/opportunities/249097');
+  assert.equal(packet.project_links[0].content_sha256,sha(body));
+  assert.equal(packet.project_links[0].run_id,ctx.runs[0].id);
+  assert.equal(packet.portal_url,'https://town.bonfirehub.com/portal/?tab=openOpportunities');
+  assert.equal(makeInterpretationPacket(ctx).packet_hash,packet.packet_hash);
+  ctx.captures[0].content_base64=Buffer.from('{}').toString('base64');
+  assert.throws(()=>makeInterpretationPacket(ctx),/hash/);
+  assert.equal(makeInterpretationPacket(context()).project_links,undefined);
+});
 function context(body=bytes,type='text/html') {
   const request={id:id(1),service_scope:{service:'janitorial'},search_windows:{opportunity:{from:'2026-10-01',to:'2026-10-04'}},requested_search_areas:[{area_type:'city',city_name:'Texarkana',state_code:'AR'}]};
   const source={id:id(2),code:'sample',name:'Official bids',config:{}};

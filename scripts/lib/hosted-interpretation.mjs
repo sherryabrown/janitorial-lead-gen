@@ -77,7 +77,8 @@ export async function verifyEvidenceSpans(packet,result,{loadSupporting}={}) {
   }
 }
 export const extractionKey=(packet,spec)=>hash({source:packet.source_id,method:packet.method_id,
-  method_version:packet.method_version,spec,parser:'hosted-facts-v1',policy:'routine-janitorial-v1',
+  method_version:packet.method_version,spec,parser:'hosted-facts-v1',
+  policy:spec.response_format==='bonfire-projects-v1'?'bonfire-detail-required-v1':'routine-janitorial-v1',
   pages:packet.pages.map(p=>({url:p.url,hash:p.content_sha256}))});
 
 export async function extractFacts(packet,spec) {
@@ -92,7 +93,8 @@ export async function extractFacts(packet,spec) {
     else if(spec.runner_id==='api-bounded')records=apiField(JSON.parse(page.body.toString()),spec.pagination.records_path);
     if(records) {
       for(const [index,record] of records.entries()) facts.push({page_index:pageIndex,locator:`row ${index+1}`,
-        record,excerpt:clean(JSON.stringify(record)),title:clean(record.title??record.description??record.ProjectName)});
+        record,excerpt:clean(JSON.stringify(record)),title:clean(record.title??record.description??record.ProjectName),
+        ...(spec.response_format==='bonfire-projects-v1'?{detail_required:true}:{})});
     } else {
       const texts=await evidenceText(page);
       for(const value of texts)facts.push({page_index:pageIndex,locator:value.locator,record:null,
@@ -130,7 +132,7 @@ export function evaluateFacts(packet,extraction) {
             'work_city','work_county','work_state','work_performance_locations'].filter(k=>record[k]!=null).map(k=>[k,record[k]]))},evidence:rawEvidence});
       continue;
     }
-    if(fact.unstructured || !fact.title || janitorial.test(fact.title) || ambiguous.test(fact.title))
+    if(fact.detail_required || fact.unstructured || !fact.title || janitorial.test(fact.title) || ambiguous.test(fact.title))
       result.unresolved.push({reason:'Verify routine janitorial scope, actual work location and requested date basis against source evidence',evidence});
     else result.exclusions.push({reason:'Listing title does not identify routine janitorial service',evidence});
   }

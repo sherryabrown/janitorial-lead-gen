@@ -123,6 +123,8 @@ export type Task = {
   pages: number;
 };
 export type Job = {
+  access_handoff_id?: string | null;
+  capture_state?: string | null;
   id: string;
   state: string;
   stage: string;
@@ -144,6 +146,8 @@ export type EvidencePage = {
   content_sha256?: string;
 };
 export type Packet = {
+  portal_url?: string;
+  project_links?: { id: string; title: string; closes: string; url: string; run_id: string; content_sha256: string }[];
   version: number;
   packet_hash: string;
   category: Category;

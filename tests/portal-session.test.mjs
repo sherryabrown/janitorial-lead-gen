@@ -11,10 +11,10 @@ const recipe=()=>({version:1,official_portal:true,verified_at:'2026-10-01',verif
  authenticated_selector:'a[href="/logout"]',login_steps:[{action:'fill',selector:'#email',secret:'PROCUREMENT_PORTAL_EMAIL'},
  {action:'fill',selector:'#password',secret:'PROCUREMENT_PORTAL_PASSWORD'},{action:'click',selector:'#login'}]});
 const state=()=>({cookies:[{name:'auth',value:'private-fixture',domain:'agency.example.gov',path:'/',expires:-1,secure:true,httpOnly:true,sameSite:'Lax'}],origins:[]});
-function fixture({credentials=true,documentFetch,redirectRequired=false,completionFails=false,intermediate=false,insecureCookies=false,secureRestoreFails=false,challenge=false,persistenceFails=false}={}){
- let handoff={id,source_id:'source',channel:'portal',tenant:'agency.example.gov',updated_at:'2026-10-01T00:00:00Z',lifecycle_revision:0,
+function fixture({credentials=true,documentFetch,redirectRequired=false,completionFails=false,intermediate=false,insecureCookies=false,secureRestoreFails=false,challenge=false,persistenceFails=false,portalHost='agency.example.gov',environmentId=null}={}){
+ let handoff={id,source_id:'source',channel:'portal',tenant:portalHost,updated_at:'2026-10-01T00:00:00Z',lifecycle_revision:0,
  lifecycle:{version:1,stages:{registration:{state:'submitted',provenance:'user_reported'}},attempts:[],events:[],
- account:{kind:'existing_account',provider:'agency.example.gov',reference:'existing'}},details:{hosted_access_recipe:recipe()}};
+ account:{kind:'existing_account',provider:'agency.example.gov',reference:'existing'}},details:{hosted_access_recipe:JSON.parse(JSON.stringify(recipe()).replaceAll('agency.example.gov',portalHost))}};
  const saved=new Map(),stats={launches:0,closed:0,fills:0,redirectWaits:0,contexts:0};
  const tables={};
  const db={from(table){let filters=[],updates,single=false;
@@ -35,13 +35,13 @@ function fixture({credentials=true,documentFetch,redirectRequired=false,completi
  const artifacts={async put(value){const b=Buffer.isBuffer(value)?value:Buffer.from(JSON.stringify(value)),path=`artifacts/${sha(b)}`;saved.set(path,b);return path;},async get(path){return saved.get(path);}};
  const launch=async()=>{stats.launches++;let connected=true;return {isConnected:()=>connected,async close(){if(connected)stats.closed++;connected=false;},
  async newContext(options){stats.contexts++;let signed=!!options.storageState&&!secureRestoreFails,redirectPending=false,current=recipe().verify_url;
- return {async close(){},async route(){},async cookies(){return [{name:'auth',value:'private-fixture'}];},async storageState(){const s=state();if(insecureCookies)s.cookies.push({...s.cookies[0],name:'optional',secure:false});return s;},async newPage(){return {async goto(url){if(redirectPending)throw Error('Login interrupted by navigation');current=url;return {status:()=>200};},url:()=>current,
+ return {async close(){},async route(){},async cookies(){return [{name:'auth',value:'private-fixture'}];},async storageState(){const s=state();s.cookies[0].domain=portalHost;if(insecureCookies)s.cookies.push({...s.cookies[0],name:'optional',secure:false});return s;},async newPage(){return {async goto(url){if(redirectPending)throw Error('Login interrupted by navigation');current=url;return {status:()=>200};},url:()=>current,
  async waitForURL(predicate){stats.redirectWaits++;assert.equal(predicate(new URL('https://foreign.gov/portal')),false);assert.equal(predicate(new URL(recipe().verify_url+'?tab=open')),true);if(completionFails)throw Error('Login completion timeout');if(intermediate){current='https://agency.example.gov/registration';assert.equal(predicate(new URL(current)),true);}redirectPending=false;},
  async title(){return challenge?'Just a moment...':'Contract opportunities';},async content(){return '<html><title>Contracts</title><main>Janitorial work</main></html>';},
  locator(_selector){return {first(){return this;},async count(){return 0;},async isVisible(){return false;},async waitFor(){if(!signed)throw Error('Not authenticated');},
  async fill(){stats.fills++;},async click(){signed=true;redirectPending=redirectRequired;}};}};}};}};};
  const key=Buffer.alloc(32,7).toString('base64');
- const service=browserService({db,artifacts,sessionKey:key,launch,documentFetch,secrets:()=>credentials?'private-value':undefined,memory:async n=>n==='max'?536870912:300000000});
+ const service=browserService({db,artifacts,sessionKey:key,launch,documentFetch,environmentId,secrets:()=>credentials?'private-value':undefined,memory:async n=>n==='max'?536870912:300000000});
  return {service,stats,saved,key,tables,get handoff(){return handoff;},set handoff(h){handoff=h;}};
 }
 test('reviewed recipes and session state reject expired, aggregator and foreign tenant data',()=>{
@@ -154,6 +154,38 @@ test('closed challenge capture releases only an unsaved attempt; uncertain persi
  assert.equal(uncertain.tables.procurement_jobs[0].checkpoint.hosted_browser_attempt.state,'request_pending');
  assert.equal(uncertain.tables.procurement_runs.length,1);assert.equal(uncertain.stats.closed,2);
  assert.equal(JSON.stringify(uncertain.tables).includes('private provider failure text'),false);
+});
+
+test('Admin acceptance requires exact hosted capability/recipe/environment receipt and immutable capture readback',async()=>{
+ const f=fixture({portalHost:'town.bonfirehub.com',environmentId:'render-test'});
+ await f.service.continueAccess(id,actor);
+ const spec={version:1,runner_id:'authenticated-browser',check_when:'each_request',access_handoff_id:id,
+   urls:['https://town.bonfirehub.com/opportunities/249097'],allowed_hosts:['town.bonfirehub.com'],max_bytes:10000,check_instructions:'Current detail',terminal_instruction:'Partial'};
+ const cap={id:'cap',source_id:'source',kind:'opportunity',method:'browser',parser_version:'v1',availability:'active',
+   verified_at:'2026-10-01',verified_until:'2099-01-01',verification_evidence:{official:true},method_spec:spec};
+ f.tables.procurement_source_capabilities=[cap];f.tables.procurement_sources=[{id:'source'}];
+ f.tables.procurement_jobs=[{id:'job',capability_id:'cap',state:'pending',checkpoint:{},updated_at:'2026-10-01'}];
+ assert.equal(await f.service.canCaptureWorker('job'),false);
+ const result=await f.service.capture('job',actor,id);
+ const path=result.resources.receipt_path;
+ cap.verification_evidence.unattended_capture_receipt=path;
+ assert.equal(await f.service.canCaptureWorker('job'),true);
+ const launches=f.stats.launches;
+ f.tables.procurement_jobs.push({id:'later-job',capability_id:'cap',checkpoint:{hosted_browser_attempt:{
+   method_hash:accessHash(spec),at:new Date(Date.now()+1000).toISOString(),state:'not_saved',failure_code:'human_verification_required'}}});
+ assert.equal(await f.service.canCaptureWorker('job'),false);
+ f.tables.procurement_jobs.pop();assert.equal(await f.service.canCaptureWorker('job'),true);
+ for(const change of [{environment_id:'different-render'},{recipe_hash:'changed'},{method_hash:'changed'},
+   {readback_confirmed:false},{browser_closed:false},{failure_code:'human_verification_required'},{finished_at:'2020-01-01'}]){
+   const bytes=Buffer.from(JSON.stringify({...JSON.parse(f.saved.get(path)),...change}));
+   const other=`artifacts/${sha(bytes)}`;f.saved.set(other,bytes);cap.verification_evidence.unattended_capture_receipt=other;
+   assert.equal(await f.service.canCaptureWorker('job'),false);
+ }
+ cap.verification_evidence.unattended_capture_receipt=path;
+ const capture=f.tables.procurement_public_captures[0],original=capture.content_base64;
+ capture.content_base64=Buffer.from('tampered').toString('base64');assert.equal(await f.service.canCaptureWorker('job'),false);capture.content_base64=original;
+ f.handoff.details.hosted_access_recipe.verified_until='2020-01-01';assert.equal(await f.service.canCaptureWorker('job'),false);
+ assert.equal(f.stats.launches,launches); // Eligibility checks never navigate or sign in.
 });
 
 test('expired interrupted read reconciles absent audit before retry and refuses an active lease',async()=>{

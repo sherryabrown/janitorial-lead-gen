@@ -1,5 +1,7 @@
 # Bonfire/Euna Agency Explorer access verification
 
+Status: superseded as the active implementation plan by [Bonfire/Euna Portal opportunity collection](bonfire-euna-portal-opportunity-collection.md). Original verification requests and historical context below are retained; use the Portal-first plan for new implementation.
+
 ## Original requests
 
 > do you know what trouble bonfire/euna is having? manually i can get to the Opportunities -> Agency explorer -> select Arkansas -> <agency of City of Little Rock or Murphy USA for now> -> 'Portal' (I don't see any leads for Murphy USA right now but it's the same process). can this be addressed within the plan docs you just created?

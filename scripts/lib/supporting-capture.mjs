@@ -4,6 +4,8 @@ import { fetchPublicCheck } from './public-source-check.mjs';
 import { sha } from './hosted-store.mjs';
 import { createHmac,timingSafeEqual } from 'node:crypto';
 import { hash } from './reviewed-batch.mjs';
+import { inspectPublicBonfireProjects } from './public-bonfire-projects.mjs';
+import { JSDOM } from 'jsdom';
 
 // Supporting evidence supplements a saved category capture; it never establishes coverage.
 export function supportingCapture({artifacts,serverKey,loadReviewedIntake,fetcher=fetch}) {
@@ -78,6 +80,10 @@ export function supportingCapture({artifacts,serverKey,loadReviewedIntake,fetche
       const spec=contract(context);
       if(input?.packet_hash!==packet.packet_hash || !safePublicUrl(input?.url,spec.allowed_hosts))
         throw new Error('Supporting URL must belong to the verified method and exact packet');
+      if(context.capability.method_spec.response_format==='bonfire-projects-v1' &&
+          !packet.pages.some(page=>sha(page.body)===page.content_sha256 &&
+            inspectPublicBonfireProjects(page.body,context.capability.method_spec).records.some(row=>row.url===input.url)))
+        throw new Error('Bonfire project must appear in the hash-verified saved listing');
       const intent={kind:'supporting-capture-intent-v1',...identity(packet),actor,url:input.url,
         created_at:new Date().toISOString(),method_hash:hash(context.capability.method_spec)};
       const intent_path=await artifacts.put({...intent,signature:signature(intent)});
@@ -96,7 +102,24 @@ export function supportingCapture({artifacts,serverKey,loadReviewedIntake,fetche
         return {state:'captured',lead_coverage:false,fresh_capture:false,capture_receipt,url:input.url,
           content_sha256:receipt.content_sha256,content_type:receipt.content_type,retrieved_at:receipt.retrieved_at,local_path};
       }
-      const outcome=await auditPhase('fetch_document',()=>fetchPublicCheck(spec,input.url,fetcher),{source_id:context.source.id,task_id:context.task.id});
+      const outcome=await auditPhase('fetch_document',async()=>{
+        const fetched=await fetchPublicCheck(spec,input.url,fetcher);
+        if(context.capability.method_spec.response_format==='bonfire-projects-v1' && fetched.state==='captured') {
+          let accessPage=fetched.final_url!==input.url;
+          if(/^text\/html|^application\/xhtml\+xml/i.test(fetched.content_type)) {
+            const dom=new JSDOM(fetched.body.toString('utf8'));
+            try {
+              const doc=dom.window.document;
+              accessPage ||= /just a moment|security verification|log\s*in|sign\s*in|registration|access denied|forbidden/i.test(doc.title) ||
+                !!doc.querySelector('input[type="password"],iframe[src*="captcha"],#challenge-running') ||
+                /performing security verification|verify you are (?:a )?human/i.test(doc.body?.textContent??'');
+            } finally {dom.window.close();}
+          }
+          if(accessPage)return {state:'blocked',reason:'Official project sign-in or security verification required; no project evidence captured',
+            requested_url:input.url,final_url:fetched.final_url,upstream_status:fetched.upstream_status};
+        }
+        return fetched;
+      },{source_id:context.source.id,task_id:context.task.id});
       const {body,...audit}=outcome;
       const receipt={kind:'supporting-capture-v1',...identity(packet),actor,retrieved_at:new Date().toISOString(),
         intent_path,method_hash:hash(context.capability.method_spec),...audit,...(body?{local_path:await artifacts.put(body)}:{})};

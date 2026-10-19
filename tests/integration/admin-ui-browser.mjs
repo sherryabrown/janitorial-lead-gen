@@ -253,11 +253,18 @@ try {
               pages: 1,
             },
           ],
-          jobs: [],
+          jobs: [{id:'saved-browser-job',state:'blocked',next_action:'Official project verification required',access_handoff_id:'saved-access',capture_state:'not_saved'}],
           candidates: [],
           total_candidates: 0,
           next_offset: null,
         };
+      else if (p === '/v1/access/saved-access')
+        body = {tenant:'littlerock.bonfirehub.com',next:{action:'Revalidate the expired reviewed portal recipe before hosted sign-in'},hosted:{recipe_current:false,session_current:false}};
+      else if (p === '/v1/requests/request/tasks/task/packet')
+        body = {version:2,packet_hash:'a'.repeat(64),category:'opportunity',task_id:'task',request_id:'request',complete:true,
+          portal_url:'https://littlerock.bonfirehub.com/portal/?tab=openOpportunities',
+          pages:[{run_id:'listing',url:'https://littlerock.bonfirehub.com/PublicPortal/getOpenPublicOpportunitiesSectionData',review:'Saved public listing: Natural Steps Park Management; project details need verification'}],
+          project_links:[{id:'249097',title:'Natural Steps Park Management',closes:'2026-11-13 16:30:00',url:'https://littlerock.bonfirehub.com/opportunities/249097',run_id:'listing',content_sha256:'b'.repeat(64)}]};
       else throw Error('Unexpected fixture route ' + p);
     } else throw Error('Unexpected external request ' + url.origin);
     await route.fulfill({
@@ -309,7 +316,22 @@ try {
   await page.getByRole('button', { name: 'Confirm and run now' }).click();
   await page.getByRole('region', { name: 'Run details' }).waitFor();
   await page.getByRole('region', { name: 'Saved results' }).waitFor();
+  await page.getByRole('button',{name:'Check saved portal access'}).click();
+  assert.equal(await page.getByRole('button',{name:'Resume saved sign-in'}).isDisabled(),true);
+  assert.equal(await page.getByRole('button',{name:'Capture saved method'}).isDisabled(),true);
   await page.screenshot({ path: out + '/results.png', fullPage: true });
+  await page.getByRole('button',{name:'Review captured evidence'}).click();
+  await page.getByText('Current projects from this saved listing').click();
+  assert.equal(await page.getByRole('link',{name:'Natural Steps Park Management'}).getAttribute('href'),'https://littlerock.bonfirehub.com/opportunities/249097');
+  for(const width of [1440,390,320]) {
+    await page.setViewportSize({width,height:900});
+    await page.getByRole('link',{name:'Open agency Portal'}).focus();
+    await page.keyboard.press('Tab');
+    assert.equal(await page.getByRole('link',{name:'Natural Steps Park Management'}).evaluate(el=>el===document.activeElement),true);
+    await page.screenshot({path:`${out}/bonfire-review-${width}.png`,fullPage:true});
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+  }
+  await page.setViewportSize({width:1440,height:1000});
   await page.getByRole('button', { name: 'Close details' }).click();
   await page
     .getByRole('button', { name: 'Save schedule', exact: true })

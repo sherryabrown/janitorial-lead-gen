@@ -201,6 +201,35 @@ it('sends an explicit append against the current review rather than replacing pr
     mocked.request.mock.calls.some((c) => c[0].includes('/imports/')),
   ).toBe(false);
 });
+it('shows current Bonfire project actions without treating browser navigation as verified collection', async () => {
+  mocked.request.mockImplementation(async path => path.endsWith('/packet') ? {
+    ...packet,portal_url:'https://town.bonfirehub.com/portal/?tab=openOpportunities',
+    project_links:[{id:'249097',title:'Park Management',closes:'2026-11-13 10:30:00',url:'https://town.bonfirehub.com/opportunities/249097',run_id:packet.pages[0].run_id,content_sha256:'a'.repeat(64)}],
+  } : {tasks:[task],jobs:[],candidates:[],total_candidates:0,next_offset:null});
+  render(<RequestReview id="request" owner="reviewer" onViewLeads={()=>{}} />);
+  fireEvent.click(await screen.findByRole('button',{name:'Review captured evidence'}));
+  await screen.findByText('Current projects from this saved listing');
+  fireEvent.click(screen.getByText('Current projects from this saved listing'));
+  expect(screen.getByRole('link',{name:'Park Management'}).getAttribute('href')).toBe('https://town.bonfirehub.com/opportunities/249097');
+  expect(screen.getByRole('link',{name:'Open agency Portal'}).getAttribute('target')).toBe('_blank');
+  expect(screen.getByText(/Opening the Portal does not verify the server session/)).toBeTruthy();
+  expect(mocked.request.mock.calls.some(c=>/session|capture|imports/.test(c[0]))).toBe(false);
+});
+it('checks saved access without signing in automatically and disables expired hosted actions',async()=>{
+  mocked.request.mockImplementation(async path=>path.startsWith('/v1/access/')?{
+    tenant:'littlerock.bonfirehub.com',next:{action:'Revalidate the reviewed portal recipe'},hosted:{recipe_current:false,session_current:false},
+  }:{tasks:[],jobs:[{id:'saved-job',state:'blocked',next_action:'Official project verification required',access_handoff_id:'saved-access',capture_state:'not_saved'}],candidates:[],total_candidates:0,next_offset:null});
+  render(<RequestReview id="request" owner="reviewer" onViewLeads={()=>{}} />);
+  expect(mocked.request.mock.calls.some(c=>c[0].startsWith('/v1/access/'))).toBe(false);
+  fireEvent.click(await screen.findByRole('button',{name:'Check saved portal access'}));
+  const resume=await screen.findByRole('button',{name:'Resume saved sign-in'});
+  expect((resume as HTMLButtonElement).disabled).toBe(true);
+  expect((screen.getByRole('button',{name:'Capture saved method'}) as HTMLButtonElement).disabled).toBe(true);
+  expect(mocked.request.mock.calls.some(c=>/continue|capture\//.test(c[0]))).toBe(false);
+  fireEvent.click(screen.getByRole('button',{name:'Reconcile saved capture'}));
+  await act(async()=>{});
+  expect(mocked.request.mock.calls.some(c=>c[0]==='/v1/access/saved-access/capture/saved-job/reconcile')).toBe(true);
+});
 it('paginates steps and stops polling on terminal state or unmount', async () => {
   vi.useFakeTimers();
   let statuses = 0;

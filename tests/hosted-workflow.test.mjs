@@ -5,7 +5,7 @@ import { workflowServer } from '../scripts/lib/workflow-http.mjs';
 import { requestedCategories,validateRequestScope } from '../scripts/lib/request-scope.mjs';
 import { makeInterpretationPacket } from '../scripts/lib/known-source-workflow.mjs';
 import { extractionKey,verifyEvidenceSpans,extractFacts,evaluateFacts,cacheReviewedFacts } from '../scripts/lib/hosted-interpretation.mjs';
-import { validateFindingBounds } from '../scripts/lib/hosted-workflow.mjs';
+import { validateFindingBounds,hostedWorkflow } from '../scripts/lib/hosted-workflow.mjs';
 import { quotaExhausted,boundedInterpretation } from '../scripts/lib/hosted-ai.mjs';
 import { encryptSession,decryptSession,artifactStore } from '../scripts/lib/hosted-store.mjs';
 import { context,result,id } from './helpers/known-workflow.mjs';
@@ -18,6 +18,30 @@ async function call(server,path,{method='GET',headers={},input}={}) {
     end(text){resolve({status:this.status,headers:this.headers,data:JSON.parse(text)});}}));
 }
 const actor=id(88),auth={authorization:'Bearer valid-session','content-type':'application/json'};
+
+test('Admin collection uses the accepted shared browser path only and preserves legacy execution',async()=>{
+ for(const [admin,accepted,expected] of [[true,false,0],[true,true,1],[true,undefined,0],[false,false,1]]) {
+  let captured=0,claimed=false;
+  const request={id:id(1),initiated_by:actor,workflow_control:admin?{admin_trigger_id:id(8)}:{},requested_categories:['opportunity'],search_windows:{opportunity:{from:'2026-10-01',to:'2027-10-01',date_basis:'deadline'}}};
+  const worker={id:id(2),search_request_id:request.id,lease_token:'lease',checkpoint:{stage:'collect'},state:'running'};
+  const tables={procurement_search_requests:[request],procurement_request_targets:[{id:id(3),geography_id:'town',search_request_id:request.id}],
+   procurement_geographies:[{id:'town',kind:'municipality',source_active:true}],
+   procurement_source_capabilities:[{id:id(4),source_id:id(5),kind:'opportunity',route_geography_id:'town',availability:'active',verified_at:'2026-01-01',verified_until:'2099-01-01',verification_evidence:{official:true},parser_version:'v1',method:'browser',method_spec:{runner_id:'authenticated-browser'}}],
+   procurement_sources:[{id:id(5),code:'town',config:{}}],
+   procurement_jobs:[{id:id(6),search_request_id:request.id,kind:'collect',task_id:id(7),capability_id:id(4),state:'pending'}],
+   procurement_coverage_tasks:[{id:id(7),target_id:id(3),source_id:id(5),capability_id:id(4),kind:'opportunity'}]};
+  const db={from(table){const filters=[];let single=false;const q={select(){return this;},order(){return this;},range(){return this;},eq(k,v){filters.push(r=>r[k]===v);return this;},in(k,v){filters.push(r=>v.includes(r[k]));return this;},not(k,_op,v){filters.push(r=>r[k]!==v);return this;},maybeSingle(){single=true;return this;},then(resolve,reject){const data=(tables[table]??[]).filter(r=>filters.every(f=>f(r)));return Promise.resolve({data:single?data[0]:data}).then(resolve,reject);}};return q;},
+   async rpc(name,args){if(name==='claim_procurement_workflow_job'){const data=claimed?null:worker;claimed=true;return {data};}
+    if(name==='checkpoint_procurement_workflow'){worker.checkpoint=args.p_checkpoint;worker.state=args.p_state;return {data:true};}throw Error('Unexpected fixture RPC '+name);}};
+  const workflow=hostedWorkflow({db,artifacts:{},reportError:(_id,error)=>{throw error;},
+   ...(accepted===undefined?{}:{canCaptureBrowser:async job=>{assert.equal(job,id(6));return accepted;}}),
+   captureBrowser:async()=>{captured++;return {receipt:{run_ids:[id(9)]}};}});
+  assert.equal(await workflow.step(),true);assert.equal(captured,expected);
+  assert.equal(worker.checkpoint.stage,'interpret');
+  assert.deepEqual(worker.checkpoint.browser_task_ids,expected?[id(7)]:undefined);
+  assert.equal(await workflow.step(),false);assert.equal(captured,expected);
+ }
+});
 test('private portal session and capture routes require sign-in, bind actor/handoff, and never return submitted state',async()=>{
  let recorded,kicks=0;const server=workflowServer({authenticate:async()=>({id:actor}),workflow:{},kick:()=>{kicks++;},browser:{
  adoptSession:async(...a)=>{recorded=a;return {state:'signed_in',lead_coverage:false};},
@@ -80,6 +104,16 @@ test('cache identity excludes request/window/run IDs but changes with content, m
   assert.equal(extractionKey({...p,request_id:id(70),query_window:{from:'2027-01-01'},pages:p.pages.map(x=>({...x,run_id:id(72)}))},{runner_id:'public-fetch'}),key);
   assert.notEqual(extractionKey({...p,method_version:'new'},{runner_id:'public-fetch'}),key);
   assert.notEqual(extractionKey({...p,pages:p.pages.map(x=>({...x,content_sha256:'a'.repeat(64)}))},{runner_id:'public-fetch'}),key);
+});
+
+test('Bonfire project titles without service keywords remain unresolved until details are captured',async()=>{
+ const body=Buffer.from(JSON.stringify({success:1,payload:{projects:{249097:{ProjectID:'249097',ProjectName:'Park Management',DateClose:'2026-11-13 16:30:00'}}}}));
+ const ctx=context(body,'application/json');
+ const spec={response_format:'bonfire-projects-v1',max_records:100,allowed_hosts:['town.bonfirehub.com']};
+ ctx.capability.method_spec=spec;const p=makeInterpretationPacket(ctx);
+ const facts=await extractFacts(p,spec),result=evaluateFacts(p,facts);
+ assert.equal(facts.facts[0].detail_required,true);assert.equal(result.unresolved.length,1);
+ assert.equal(result.exclusions.length,0);assert.equal(result.findings.length,0);assert.equal(result.coverage,'partial');
 });
 test('fabricated quotations, unquoted work locations and out-of-bound dates cannot stage candidates',async()=>{
   const body=Buffer.from('<html><title>Procurement</title><main><table><tr><td>Janitorial services at Texarkana Arkansas 2026-10-30</td></tr></table></main></html>');
