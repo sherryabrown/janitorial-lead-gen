@@ -11,6 +11,9 @@ test('county public research follows recorded public redirects but rejects priva
   const fetcher=async target=>{calls.push(target);return target===url?new Response(null,{status:302,headers:{location:'https://canonical.example/bids'}}):new Response('<main>Official bids</main>',{headers:{'content-type':'text/html'}});};
   const result=await fetchPublicCheck(contract,url,fetcher,{researchEntry:url,resolveHost:publicDns});
   assert.equal(result.state,'captured');assert.deepEqual(result.redirects,['https://canonical.example/bids']);assert.equal(calls.length,2);
+  const wordpressDns=async()=>[{address:'192.0.78.25',family:4},{address:'192.0.78.24',family:4}];
+  assert.equal((await fetchPublicCheck(contract,url,fetcher,{researchEntry:url,resolveHost:wordpressDns})).state,'captured','Public WordPress addresses remain reachable');
+  assert.equal(await researchDestination('https://canonical.example/',async()=>[{address:'192.0.0.1'}]),false,'Reserved protocol-assignment subnet remains blocked');
   for(const address of ['127.0.0.1','10.0.0.1','169.254.169.254','172.16.0.1','192.168.1.1','::1','fc00::1','::ffff:127.0.0.1']) {
     assert.equal(await researchDestination('https://canonical.example/',async()=>[{address}]),false);
   }
