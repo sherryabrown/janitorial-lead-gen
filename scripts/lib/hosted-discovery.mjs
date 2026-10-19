@@ -35,6 +35,18 @@ export function discoveryService(options) {
   };
 }
 
+// A missing-source gap may reuse its associated official seed. A registered task
+// still owns its identity; an arbitrary source ID cannot be attached by the client.
+export function reviewedDiscoverySource(task,spec,sources,associations) {
+  const source=sources.find(s=>s.id===task.source_id);
+  if(task.source_id&&!source)throw new Error('Registered source missing');
+  if(source&&spec.code!==source.code)throw new Error('Do not replace a registered source with a duplicate');
+  if(source)return source;
+  if(!spec.existing_id)return undefined;
+  const seed=sources.find(s=>s.id===spec.existing_id&&s.code===spec.code);
+  if(!seed||!associations.some(a=>a.source_id===seed.id))throw new Error('Existing official seed must belong to this request');
+  return seed;
+}
 // Durable, versioned persistence entry point for a bounded researcher. It reuses the
 // existing registry planner, SQL validation and baseline guards; it does not trust a model's URL claim.
 export async function saveDiscoveredMethod({db,project,artifacts,transport,rehearse,requestId,taskId,sourceSpec,capability,actor,handoffs:researchedHandoffs=[],beforeSend=async()=>{}}) {
@@ -46,9 +58,7 @@ export async function saveDiscoveredMethod({db,project,artifacts,transport,rehea
   const [sources,requests,existingCaps,associations]=await Promise.all([
     rows(db,'procurement_sources'),rows(db,'procurement_search_requests',q=>q.eq('id',requestId)),rows(db,'procurement_source_capabilities'),
     rows(db,'procurement_request_sources',q=>q.eq('search_request_id',requestId))]);
-  const source=sources.find(s=>s.id===task.source_id);
-  if(task.source_id&&!source)throw new Error('Registered source missing');
-  if(source&&sourceSpec.code!==source.code)throw new Error('Do not replace a registered source with a duplicate');
+  const source=reviewedDiscoverySource(task,sourceSpec,sources,associations);
   adapterContract({...capability,source_id:source?.id??randomUUID(),availability:'active'},source??sourceSpec);
   const evidence=capability.verification_evidence;
   if(!evidence?.run_ids?.length)throw new Error('Audited official captures required for method verification');

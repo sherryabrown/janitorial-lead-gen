@@ -81,11 +81,16 @@ export function publicDiscovery({db,artifacts,persist,reconcileHandoffs,collect,
     return {job_id:job.id,state:job.state,next_action:job.checkpoint.next_action,lead_coverage:false,paid_search:false};
   }
   async function packet(requestId,taskId) {
-    await scope(requestId,taskId);
+    const {task}=await scope(requestId,taskId);
     const job=checked(await db.from('procurement_jobs').select('*').eq('dedupe_key',key(requestId,taskId)).single());
     if(!job.checkpoint.packet_artifact)return {job_id:job.id,state:job.state,next_action:job.checkpoint.next_action};
     const bytes=await artifacts.get(job.checkpoint.packet_artifact);
-    return {...JSON.parse(bytes),job_id:job.id,state:job.state,packet_hash:sha(bytes)};
+    const seed=job.checkpoint.seed_source_id&&await one(db,'procurement_sources',job.checkpoint.seed_source_id);
+    const verified=job.checkpoint.persistence?.receipt?.verified===true;
+    const registered=verified?(await rows(db,'procurement_sources',q=>q.eq('code',job.checkpoint.source_code)))[0]:null;
+    const identity=registered??seed;
+    const source=identity?{id:identity.id,code:identity.code,name:identity.name,url:identity.url,contracting_entity_geo_level:identity.contracting_entity_geo_level,business_category:identity.business_category}:null;
+    return {...JSON.parse(bytes),job_id:job.id,state:job.state,packet_hash:sha(bytes),source,route_geography_id:task.route_geography_id,registration_verified:verified};
   }
   async function finish(job,c,save) {
     const p={version:1,request_id:job.search_request_id,task_id:c.task_id,seed_source_id:c.seed_source_id,run_ids:c.run_ids,

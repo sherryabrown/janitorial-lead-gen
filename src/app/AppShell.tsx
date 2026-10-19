@@ -1,5 +1,5 @@
 import { AuthGate } from '../features/auth/AuthGate';
-import type { ContractCategory, ContractStatus, ContractDateType, ContractStatusFilter, ContractView, ContractBidTypeFilter, ContractDateRangePreset, ContractSortKey, ContractSortDirection, GenerateStatus, BidSource, ContractOpportunity, ContractFilters, ContractAction, ContractStageReason } from '../features/contracts/types';
+import type { ContractCategory, ContractStatus, ContractStatusFilter, ContractView, ContractBidTypeFilter, ContractDateRangePreset, ContractSortKey, ContractSortDirection, BidSource, ContractOpportunity, ContractFilters, ContractAction, ContractStageReason } from '../features/contracts/types';
 import { getDefaultContractFilters } from '../features/contracts/contract-utils';
 import { saveLeadChange } from '../features/contracts/save-lead-change';
 import {
@@ -16,11 +16,11 @@ import {
   RefreshCw,
   Search,
   School,
-  Sparkles,
+  Settings,
   Stethoscope,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { isSupabaseConfigured, supabase } from '../lib/supabase';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { supabase } from '../lib/supabase';
 import { createProcurementSourceCache, addProcurementLeadNote, bulkUpdateProcurementLeadStage, loadProcurementContracts, loadProcurementLeadDetail, loadProcurementLeadHistory, updateProcurementLeadStage, editProcurementLeadNote, type ProcurementHistoryRow, type ProcurementBidType } from '../lib/procurement';
 import {
   closedContractStatuses as contractClosedStatuses,
@@ -28,9 +28,11 @@ import {
 } from '../features/contracts/contract-utils';
 import { ResearchContext } from '../features/contracts/ResearchContext';
 import { formatDateLabel, formatKeyDate, normalizeUrl } from '../features/contracts/contract-utils';
-import { ComingSoon, ModeSwitch } from '../features/shared/components/ModeSwitch';
+import { ModeSwitch } from '../features/shared/components/ModeSwitch';
 import { EmptyQueueState } from '../features/shared/components/EmptyQueueState';
 import { InfoTooltip } from '../features/shared/components/InfoTooltip';
+
+const AdminScreen = lazy(() => import('../features/admin/AdminScreen'));
 
 function getLoadContractsErrorMessage(error: unknown) {
   if (error instanceof Error) return error.message;
@@ -112,59 +114,6 @@ type CompanyFilters = {
   status: CompanyStatusCategory;
   query: string;
   closedSubcategory: ClosedSubcategory;
-};
-
-type GenerateContractsForm = {
-  city: string;
-  zip: string;
-  county: string;
-};
-
-type GenerateContractsSource = {
-  id: string;
-  entityName: string;
-  portalType: string;
-  bidsUrl?: string | null;
-  awardsUrl?: string | null;
-  confidence: 'high' | 'medium' | 'low';
-  needsHumanReview: boolean;
-};
-
-type GenerateContractsOpportunity = {
-  id: string;
-  sourceId?: string | null;
-  projectName: string;
-  agencyName: string;
-  category: ContractCategory;
-  location?: string | null;
-  contactName?: string | null;
-  contactPhone?: string | null;
-  contactEmail?: string | null;
-  dueAt?: string | null;
-  expiresAt?: string | null;
-  estimatedValue?: string | null;
-  status: 'new';
-  sourceUrl?: string | null;
-  summary?: string | null;
-};
-
-type GenerateContractsResponse = {
-  runId?: string;
-  status: 'completed' | 'needs-review' | 'failed';
-  stage: string;
-  normalizedLocation?: string;
-  sources: GenerateContractsSource[];
-  opportunities: GenerateContractsOpportunity[];
-  message?: string;
-};
-
-type GeneratePanelState = {
-  status: GenerateStatus;
-  stage?: string;
-  message?: string;
-  normalizedLocation?: string;
-  sources: GenerateContractsSource[];
-  opportunities: GenerateContractsOpportunity[];
 };
 
 type CompanyAction =
@@ -473,11 +422,6 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
     query: '',
     closedSubcategory: 'all',
   });
-  const [generatePanel, setGeneratePanel] = useState<GeneratePanelState>({
-    status: 'idle',
-    sources: [],
-    opportunities: [],
-  });
   const [sourceCache] = useState(createProcurementSourceCache);
   const contractRequestSequence = useRef(0);
   const historyRequestSequence = useRef(0);
@@ -765,6 +709,7 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
   };
 
   const selectContractSummary = (status: ContractStatusFilter) => {
+    if (contractView === 'admin' && status === contractFilters.status) { setContractView(status); return; }
     setContractView(status);
     setContractFilters((current) => ({
       ...current,
@@ -775,13 +720,6 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
       status === 'closed' ? (current === 'contracts' ? null : 'contracts') : null,
     );
     setCheckedContractIds(new Set());
-  };
-
-  const selectGenerateContracts = () => {
-    setContractView('generate');
-    setExpandedClosedMode(null);
-    setCheckedContractIds(new Set());
-    setContextMode('note');
   };
 
   const selectCompanySummary = (status: CompanyStatusCategory) => {
@@ -937,74 +875,6 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
     );
   };
 
-  const generateContracts = async (form: GenerateContractsForm) => {
-    if (!isSupabaseConfigured || !supabase) {
-      setGeneratePanel({
-        status: 'failed',
-        stage: 'configuration',
-        message: 'Add Supabase env values before generating contracts.',
-        sources: [],
-        opportunities: [],
-      });
-      return;
-    }
-
-    setGeneratePanel({
-      status: 'validating',
-      stage: 'geography_lookup',
-      message: 'Checking Arkansas geography and procurement sources.',
-      sources: [],
-      opportunities: [],
-    });
-
-    const { data, error } = await supabase.functions.invoke<GenerateContractsResponse>(
-      'spin_generate_contracts',
-      {
-        body: {
-          city: form.city.trim() || undefined,
-          zip: form.zip.trim() || undefined,
-          county: form.county.trim() || undefined,
-        },
-      },
-    );
-
-    if (error || !data) {
-      setGeneratePanel({
-        status: 'failed',
-        stage: 'failed',
-        message: error?.message ?? 'Contract generation failed.',
-        sources: [],
-        opportunities: [],
-      });
-      return;
-    }
-
-    const generatedSources = data.sources.map(mapGeneratedSource);
-    const generatedContracts = data.opportunities.map(mapGeneratedContract);
-
-    setSources((current) => mergeById(current, generatedSources));
-    setContracts((current) => mergeById(generatedContracts, current));
-    if (generatedContracts[0]) setSelectedContractId(generatedContracts[0].id);
-
-    setGeneratePanel({
-      status: data.status === 'completed' ? 'done' : data.status,
-      stage: data.stage,
-      message: data.message,
-      normalizedLocation: data.normalizedLocation,
-      sources: data.sources,
-      opportunities: data.opportunities,
-    });
-  };
-
-  const viewGeneratedContracts = () => {
-    setContractView('new');
-    setContractFilters((current) => ({ ...current, status: 'new', closedSubcategory: 'all' }));
-    setExpandedClosedMode(null);
-    setCheckedContractIds(new Set());
-    const firstGenerated = generatePanel.opportunities[0];
-    if (firstGenerated) setSelectedContractId(firstGenerated.id);
-  };
-
   const toggleVisibleContracts = () => {
     setCheckedContractRecords((current) => new Map([...current, ...visibleContracts.map((row) => [row.id, row] as const)]));
     setCheckedContractIds((current) => {
@@ -1047,18 +917,7 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
       <div className="summary-strip summary-wide" aria-label={`${workMode} status counts`}>
         {workMode === 'contracts' ? (
           <>
-            <ComingSoon label="Generate contracts">
-              <button
-                aria-label="Generate contracts"
-                className={`summary-pill generate-summary-pill ${contractView === 'generate' ? 'is-active' : ''}`}
-                disabled
-                onClick={selectGenerateContracts}
-                type="button"
-              >
-                <Sparkles size={18} aria-hidden="true" />
-                <span>Generate</span>
-              </button>
-            </ComingSoon>
+            <button aria-label="Admin" className={`summary-pill ${contractView === 'admin' ? 'is-active' : ''}`} onClick={() => setContractView('admin')} type="button"><Settings size={18} aria-hidden="true" /><span>Admin</span></button>
             <span className="summary-separator" aria-hidden="true">|</span>
             {contractSummary.map((item) => (
               <SummaryPill
@@ -1100,21 +959,14 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
         )}
       </div>
 
-      <section className="workspace">
+      <section className={`workspace ${workMode === 'contracts' && contractView === 'admin' ? 'is-admin' : ''}`}>
         <section
           className="lead-worklist"
           aria-label={workMode === 'contracts' ? 'Contract opportunities' : 'Company leads'}
         >
           {workMode === 'contracts' ? (
-            contractView === 'generate' ? (
-              <ContractGeneratePanel
-                panel={generatePanel}
-                onClear={() =>
-                  setGeneratePanel({ status: 'idle', sources: [], opportunities: [] })
-                }
-                onGenerate={generateContracts}
-                onViewContracts={viewGeneratedContracts}
-              />
+            contractView === 'admin' ? (
+              <Suspense fallback={<p role="status">Loading Admin…</p>}><AdminScreen owner={session.user.id} onViewLeads={() => setContractView(contractFilters.status)} /></Suspense>
             ) : (
               <>
               <ContractFiltersBar
@@ -1263,7 +1115,7 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
           )}
         </section>
 
-        {workMode === 'contracts' ? (
+        {workMode === 'contracts' && contractView === 'admin' ? null : workMode === 'contracts' ? (
           <ContractContextPanel
             contract={selectedContract}
             mode={contextMode}
@@ -1334,138 +1186,6 @@ function SummaryPill<T extends string>({
             </button>
           ))}
         </div>
-      ) : null}
-    </div>
-  );
-}
-
-function ContractGeneratePanel({
-  panel,
-  onClear,
-  onGenerate,
-  onViewContracts,
-}: {
-  panel: GeneratePanelState;
-  onClear: () => void;
-  onGenerate: (form: GenerateContractsForm) => void;
-  onViewContracts: () => void;
-}) {
-  const [form, setForm] = useState<GenerateContractsForm>({ city: '', zip: '', county: '' });
-  const isBusy = panel.status === 'validating';
-  const canSubmit = Boolean(form.city.trim() || form.zip.trim() || form.county.trim());
-  const showSources = panel.sources.length > 0;
-  const showOpportunities = panel.opportunities.length > 0;
-
-  return (
-    <div className="generate-panel">
-      <div className="list-header generate-header">
-        <div>
-          <p className="eyebrow">Contract monitoring</p>
-          <h2>Generate contracts</h2>
-        </div>
-        <span className={`generate-status generate-${panel.status}`}>
-          {labelForGenerateStatus(panel.status, panel.stage)}
-        </span>
-      </div>
-
-      <form
-        className="generate-form"
-        onSubmit={(event) => {
-          event.preventDefault();
-          if (canSubmit && !isBusy) onGenerate(form);
-        }}
-      >
-        <label className="input-field">
-          <span>City</span>
-          <input
-            autoComplete="address-level2"
-            onChange={(event) => setForm((current) => ({ ...current, city: event.target.value }))}
-            placeholder="Little Rock"
-            value={form.city}
-          />
-        </label>
-        <label className="input-field">
-          <span>ZIP</span>
-          <input
-            inputMode="numeric"
-            onChange={(event) => setForm((current) => ({ ...current, zip: event.target.value }))}
-            placeholder="72201"
-            value={form.zip}
-          />
-        </label>
-        <label className="input-field">
-          <span>County</span>
-          <input
-            autoComplete="address-level1"
-            onChange={(event) => setForm((current) => ({ ...current, county: event.target.value }))}
-            placeholder="Pulaski"
-            value={form.county}
-          />
-        </label>
-        <label className="input-field state-field">
-          <span>State</span>
-          <input readOnly value="Arkansas" />
-        </label>
-        <div className="generate-actions">
-          <button className="primary-button" disabled={!canSubmit || isBusy} type="submit">
-            <Sparkles size={16} aria-hidden="true" />
-            {isBusy ? 'Generating' : 'Generate contracts'}
-          </button>
-          <button
-            className="secondary-button"
-            onClick={() => {
-              setForm({ city: '', zip: '', county: '' });
-              onClear();
-            }}
-            type="button"
-          >
-            Clear
-          </button>
-        </div>
-      </form>
-
-      <div className="generate-result">
-        <p>{panel.message ?? 'Enter an Arkansas city, ZIP, or county to check bid sources and capture contracts.'}</p>
-        {panel.normalizedLocation ? <strong>{panel.normalizedLocation}</strong> : null}
-        {!isSupabaseConfigured ? (
-          <p className="generate-warning">Supabase env values are required before this can run.</p>
-        ) : null}
-      </div>
-
-      {showOpportunities ? (
-        <section className="generate-section" aria-label="Generated contracts">
-          <div className="generate-section-heading">
-            <h3>{panel.opportunities.length} new contract{panel.opportunities.length === 1 ? '' : 's'}</h3>
-            <button className="secondary-button compact" onClick={onViewContracts} type="button">
-              View new contracts
-            </button>
-          </div>
-          <div className="generate-rows">
-            {panel.opportunities.map((opportunity) => (
-              <div className="generate-row" key={opportunity.id}>
-                <strong>{opportunity.projectName}</strong>
-                <span>{opportunity.agencyName}</span>
-                <span>{opportunity.dueAt ? formatDateLabel(opportunity.dueAt, 'due') : 'Date pending'}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      {showSources ? (
-        <section className="generate-section" aria-label="Procurement sources">
-          <div className="generate-section-heading">
-            <h3>{panel.sources.length} source{panel.sources.length === 1 ? '' : 's'}</h3>
-          </div>
-          <div className="generate-rows">
-            {panel.sources.map((source) => (
-              <div className="generate-row" key={source.id}>
-                <strong>{source.entityName}</strong>
-                <span>{source.portalType}</span>
-              </div>
-            ))}
-          </div>
-        </section>
       ) : null}
     </div>
   );
@@ -2908,74 +2628,6 @@ function labelForOption(option: string) {
   if (option === 'added:asc') return 'Added: oldest first';
   if (option === 'updated:desc') return 'Updated: newest first';
   return option;
-}
-
-function labelForGenerateStatus(status: GenerateStatus, stage?: string) {
-  if (status === 'validating') {
-    if (stage === 'finding_sources') return 'Finding sources';
-    if (stage === 'capturing_contracts') return 'Capturing contracts';
-    if (stage === 'checking_sources') return 'Checking sources';
-    return 'Validating';
-  }
-  if (status === 'done') return 'Done';
-  if (status === 'needs-review') return 'Needs review';
-  if (status === 'failed') return 'Failed';
-  return 'Ready';
-}
-
-function mapGeneratedSource(source: GenerateContractsSource): BidSource {
-  return {
-    id: source.id,
-    name: source.entityName,
-    agencyType: source.entityName.toLowerCase().includes('school')
-      ? 'School district'
-      : source.entityName.toLowerCase().includes('city')
-        ? 'City'
-        : source.entityName.toLowerCase().includes('county')
-          ? 'County'
-          : 'Agency',
-    location: 'Arkansas',
-    category: source.entityName.toLowerCase().includes('school') ? 'School' : 'Government',
-    url: source.bidsUrl ?? source.awardsUrl ?? '',
-    status: source.needsHumanReview ? 'needs-review' : 'current',
-    lastChecked: 'Just now',
-  };
-}
-
-function mapGeneratedContract(opportunity: GenerateContractsOpportunity): ContractOpportunity {
-  const dateType: ContractDateType = opportunity.expiresAt && !opportunity.dueAt ? 'expiring' : 'due';
-  const dateValue = opportunity.dueAt ?? opportunity.expiresAt ?? '';
-  return makeContract({
-    id: opportunity.id,
-    projectName: opportunity.projectName,
-    agencyName: opportunity.agencyName,
-    category: isContractCategory(opportunity.category) ? opportunity.category : 'Government',
-    location: opportunity.location ?? 'Arkansas',
-    contactName: opportunity.contactName ?? 'Contact pending',
-    contactPhone: opportunity.contactPhone ?? undefined,
-    contactEmail: opportunity.contactEmail ?? undefined,
-    dateType,
-    date: dateValue.slice(0, 10),
-    dateLabel: formatDateLabel(dateValue, dateType),
-    estimatedValue: opportunity.estimatedValue ?? undefined,
-    status: 'new',
-    sourceId: opportunity.sourceId ?? `source-${opportunity.id}`,
-    nextAction: 'Review bid packet',
-    history: ['Generated from contract monitoring'],
-  });
-}
-
-function isContractCategory(value: string): value is ContractCategory {
-  return value === 'School' || value === 'Government' || value === 'Medical';
-}
-
-function mergeById<T extends { id: string }>(preferred: T[], fallback: T[]) {
-  const seen = new Set<string>();
-  return [...preferred, ...fallback].filter((item) => {
-    if (seen.has(item.id)) return false;
-    seen.add(item.id);
-    return true;
-  });
 }
 
 function labelForBidType(value: ProcurementBidType) {

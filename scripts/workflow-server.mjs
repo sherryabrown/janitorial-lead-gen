@@ -64,14 +64,14 @@ const browser=browserService({db,artifacts,sessionKey:env.PROCUREMENT_SESSION_EN
 }});
 const triggers=countyTriggers({db,discovery,workflow,audit});
 const schedules=procurementSchedules({db,triggers});
-const server=workflowServer({workflow,imports,discovery,kick,triggers,schedules,schedulerKey:env.PROCUREMENT_SCHEDULER_KEY,audit,db,
+const server=workflowServer({workflow,imports,discovery,kick,triggers,schedules,schedulerKey:env.PROCUREMENT_SCHEDULER_KEY,aiPolicy:aiConfig,audit,db,
   attention:attentionService(db),
   browser,
   authenticate:async token=>{const {data,error}=await db.auth.getUser(token);return error?null:data.user;},
   allowedOrigins:(env.PROCUREMENT_ALLOWED_ORIGINS??'').split(',').filter(Boolean),
   sam:sam.submit,samPacket:sam.packet});
 server.requestTimeout=15000;server.headersTimeout=10000;
-server.listen(Number(env.PORT??8080),'0.0.0.0',()=>console.log('Procurement backend listening; frontend unchanged.'));
+server.listen(Number(env.PORT??8080),env.HOST??'0.0.0.0',()=>console.log('Procurement backend listening; frontend unchanged.'));
 if(benchmarking)void startupBrowserBenchmark({db,artifacts,id:env.PROCUREMENT_BROWSER_BENCHMARK_ID})
   .then(result=>console.log(`Public browser benchmark: ${result.status}; private receipt saved.`))
   .catch(()=>console.error('Public browser benchmark blocked; inspect private evidence.'))

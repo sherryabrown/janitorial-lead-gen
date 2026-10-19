@@ -4,7 +4,7 @@ Backend code contract, updated October 18, 2026. Scheduler deployment/live accep
 
 ## Responsibilities and authentication
 
-The existing app reads canonical leads through Supabase queue/detail RPCs and persists stages/notes through authenticated database APIs. The hosted backend collects source evidence, stages reviewed candidates and prepares/applies exact approved imports. Candidate intake is not the canonical lead queue. Companies/email previews and Generate remain disabled future/legacy UI; this contract does not activate them.
+The existing app reads canonical leads through Supabase queue/detail RPCs and persists stages/notes through authenticated database APIs. The hosted backend collects source evidence, stages reviewed candidates and prepares/applies exact approved imports. Candidate intake is not the canonical lead queue. Companies and email previews remain disabled future functionality. The local Admin UI replaces Generate using this shared workflow; the legacy `spin_generate_contracts` function remains dormant and undeployed. See [Admin UI and release checks](ADMIN-UI.md).
 
 `npm run workflow:server` starts `scripts/workflow-server.mjs`. `/health` is public process health only. Every `/v1` route requires a Supabase user access token in `Authorization: Bearer <token>`; all signed-in users can operate the shared workflow and actions record the actor. Exact configured origins only; no cookie authentication. Direct HTTP failures are sanitized. Worker failures expose a controlled action, `workflow_stage_failed` code and diagnostic UUID; exception text stays in private server logs. Import/status and attention projections also suppress old arbitrary checkpoint error messages.
 
@@ -12,7 +12,7 @@ Request submissions require `Idempotency-Key` (8–100 letters, digits, undersco
 
 ## Admin execution addition — October 13
 
-[Admin trigger API](ADMIN-TRIGGERS.md) adds multi-county/state-source execution, private step auditing and shared parent budgets. Admin/scheduling migrations were installed October 18, 2026; the recurring scheduler is activated and live-accepted, while the Admin frontend remains part 03. Part 02 adds the durable scheduling API and private dispatcher; see [rollout status](ADMIN-SCHEDULING-DEPLOYMENT.md). Existing standalone routes below retain their contract. Admin child usage reports actual provider consumption rather than reservation estimates.
+[Admin trigger API](ADMIN-TRIGGERS.md) adds multi-county/state-source execution, private step auditing and shared parent budgets. Admin/scheduling migrations were installed October 18, 2026; the recurring scheduler is activated and live-accepted, while the Admin frontend is implemented locally in part 03, pending coordinated release. Part 02 adds the durable scheduling API and private dispatcher; see [rollout status](ADMIN-SCHEDULING-DEPLOYMENT.md). Existing standalone routes below retain their contract. Admin child usage reports actual provider consumption rather than reservation estimates.
 
 ## Routes
 

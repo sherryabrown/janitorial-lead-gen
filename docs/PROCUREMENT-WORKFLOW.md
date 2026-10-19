@@ -172,4 +172,4 @@ All signed-in accounts may read shared procurement data and use the validated si
 
 Queue results use 50-row pages with server-side filters and full-data counts. Checkbox selection applies only to explicitly checked records across visited pages; changing filters clears it. Sorting has a record-ID tie breaker. Each RPC is snapshot-consistent, but separate pages are not one frozen snapshot: concurrent inserts or edits can move records between pages. Refresh reconciles current results; it is not a bulk export. Detail payloads load on selection.
 
-Keep Generate disabled and `spin_generate_contracts` undeployed until it has authenticated callers, bounded costs/rates, outbound URL/redirect controls, validated typed filters and canonical reviewed-import integration. No paid generation service is activated by this remediation.
+The Admin screen replaces the Generate frontend with the shared authenticated procurement workflow. Keep the legacy `spin_generate_contracts` function undeployed; its prompt, migrations and historical tables are retained for a separately coordinated retirement. No paid generation service is activated. See [Admin UI](ADMIN-UI.md).

@@ -83,8 +83,32 @@ export function countyTriggers({db,discovery,workflow,audit}) {
       usage:usageSummary(usage),next_action:next(t.state)};
   }
   async function list({offset=0,limit=50}={}) {
-    const {data,error}=await db.from('procurement_triggers').select('id,target_kind,state,created_at').order('created_at',{ascending:false}).order('id').range(offset,offset+limit);
-    if(error)throw Error('Could not read triggers');return {items:data.slice(0,limit),next_offset:data.length>limit?offset+limit:null};
+    const values=checked(await db.from('procurement_triggers').select('id,target_kind,state,created_at,origin,schedule_id,config').order('created_at',{ascending:false}).order('id').range(offset,offset+limit));
+    const page=values.slice(0,limit),ids=page.map(t=>t.id),scheduleIds=[...new Set(page.map(t=>t.schedule_id).filter(Boolean))];
+    // Batch page relationships, never one status call per row. Keep IN filters
+    // below URL limits even when a page contains many all-county occurrences.
+    const linked=async(table,column,keys,columns,filter=q=>q)=>{
+      const unique=[...new Set(keys)],result=[];
+      for(let i=0;i<unique.length;i+=100)result.push(...await rows(db,table,q=>filter(q.in(column,unique.slice(i,i+100))),columns));
+      return result;
+    };
+    const [usage,saved,children]=await Promise.all([
+      linked('procurement_usage_ledger','trigger_id',ids,'trigger_id,state,actual_usd,reserved_usd,usage'),
+      linked('procurement_schedules','id',scheduleIds,'id,name'),
+      linked('procurement_trigger_requests','trigger_id',ids,'trigger_id,request_id')]);
+    const requestIds=children.map(c=>c.request_id),targets=await linked('procurement_request_targets','search_request_id',requestIds,'id,search_request_id');
+    const [tasks,interpretations]=await Promise.all([
+      linked('procurement_coverage_tasks','target_id',targets.map(t=>t.id),'target_id,evidence'),
+      linked('procurement_interpretations','request_id',requestIds,'request_id,staging_receipt',q=>q.eq('is_current',true))]);
+    const summaries=new Map(ids.map(id=>[id,{usage:[],candidates:new Set(),evidence:new Set()}])),byRequest=new Map(children.map(c=>[c.request_id,c.trigger_id])),byTarget=new Map(targets.map(t=>[t.id,byRequest.get(t.search_request_id)])),names=new Map(saved.map(s=>[s.id,s.name]));
+    for(const u of usage)summaries.get(u.trigger_id)?.usage.push(u);
+    for(const i of interpretations)for(const id of i.staging_receipt?.intake_ids??[])summaries.get(byRequest.get(i.request_id))?.candidates.add(id);
+    for(const t of tasks)for(const id of t.evidence?.run_ids??[])summaries.get(byTarget.get(t.target_id))?.evidence.add(id);
+    return {items:page.map(t=>{const summary=summaries.get(t.id);return {
+      id:t.id,target_kind:t.target_kind,state:t.state,created_at:t.created_at,origin:t.origin,
+      county_count:t.config.county_ids.length,schedule_name:names.get(t.schedule_id)??null,
+      candidate_count:summary.candidates.size,evidence_count:summary.evidence.size,usage:usageSummary(summary.usage)
+    };}),next_offset:values.length>limit?offset+limit:null};
   }
   async function steps(id,{cursor=null,limit=50}={}) {
     if(!await one(db,'procurement_triggers',id))throw Error('Trigger not found');

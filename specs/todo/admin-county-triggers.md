@@ -1,6 +1,6 @@
 # Arkansas Admin: county triggers and activity
 
-Date: October 13, 2026. Status: part 01 implemented locally; parts 02/03 planned. This is a coordinated three-part implementation; build the numbered plans in order. No production infrastructure, map asset or schedule is activated. Part 01 requires its reviewed migration/backend rollout.
+Planning began October 13, 2026. Current status: parts 01/02 are deployed, and production scheduling acceptance passed October 18. Part 03 (Admin UI/map) is implemented locally; its verification and release status are recorded in [the UI build report](../../docs/reviews/2026-10-18-admin-ui-build.md). The coordinated frontend/backend production release/readback remains outstanding. This is a coordinated three-part implementation; build the numbered plans in order. The dispatcher is active; no production recurrence is enabled by the plan itself.
 
 ## Initiating request
 
@@ -50,7 +50,7 @@ After Run now: retain selection; show queued activity and focus its progress row
 
 1. [01: execution and step audit](../done/01-admin-county-trigger-execution-and-audit.md): shared trigger model, automatic source routing, usage attribution and sanitized APIs.
 2. [02: durable schedules complete](../done/02-admin-county-trigger-scheduling.md): recurrence, atomic occurrences, wake/continuation and recovery without a browser.
-3. [03: Admin UI and county map](03-admin-county-trigger-ui.md): current-style map/form/schedules/activity/review wiring and legacy Generate UI replacement.
+3. [03: Admin UI and county map — locally complete](../done/03-admin-county-trigger-ui.md): current-style map/form/schedules/activity/review wiring and legacy Generate UI replacement.
 
 The screen can be developed against shared fixtures once 01's API contract is set. Do not release enabled scheduling until 02 passes browser-closed/restart acceptance. Each plan includes meaningful tests and completion criteria; move each independently to done after success. Update links in this coordinator as plans move. Move the coordinator only after all three parts pass together.
 
@@ -72,6 +72,6 @@ Official [Arkansas GIS county layer 48](https://gis.arkansas.gov/arcgis/rest/ser
 
 All three plans pass local lint/app/workflow/SQL/build and applicable real isolated access gates. UI verified at desktop/mobile widths, keyboard-only operation, map/list parity and visual match. Scheduling runs with app closed and survives duplicate ticks/restart without duplicate captures or imports. Per-step AI usage is attributable, unknown usage stays unknown, and totals are not double-counted. Perform authorized infrastructure/provider acceptance only after local gates and reviewable configuration are ready; document any deployment prerequisite rather than claiming a mock is live.
 
-Parts 01/02 backend is deployed and scheduling passed production acceptance October 18: [API contract](../../docs/ADMIN-TRIGGERS.md) and [build/verification report](../../docs/reviews/2026-10-13-admin-trigger-execution-build.md). The map/Admin UI remain part 03.
+Parts 01/02 backend is deployed and scheduling passed production acceptance October 18: [API contract](../../docs/ADMIN-TRIGGERS.md) and [build/verification report](../../docs/reviews/2026-10-13-admin-trigger-execution-build.md). The map/Admin UI are implemented locally in part 03; the coordinated release/readback remains outstanding.
 
-Next: build 03. Preserve this coordinator until their integrated acceptance passes.
+Next: review the part 03 build on `codex/admin-county-trigger-ui`. Commit/push is authorized; production Netlify deployment is explicitly excluded. A later authorized coordinated backend/frontend release still needs authenticated production readback. Preserve this coordinator in todo until that integrated production check passes.

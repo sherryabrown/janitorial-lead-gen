@@ -43,6 +43,9 @@ test('confirmed multi-county submission is atomic, all-city scoped, idempotent a
     assert.equal((await sql.query("select count(*)::int n from procurement_trigger_requests where role='state_research'")).rows[0].n,2);
     const noAi=(await service.status(first.trigger_id)).usage;
     assert.equal(noAi.ai,'not_used');assert.equal(noAi.actual_usd,0);
+    const activity=await service.list({limit:1});assert.equal(activity.items.length,1);assert.ok(activity.next_offset);
+    assert.equal(activity.items[0].county_count,2);assert.equal(activity.items[0].candidate_count,0);assert.equal(activity.items[0].evidence_count,0);assert.equal(activity.items[0].usage.actual_usd,0);
+    assert.equal('config' in activity.items[0],false);
   }finally{await sql.close();}
 });
 test('source planner uses existing adapters, preserves legacy state routes and isolates Admin source targets',async()=>{

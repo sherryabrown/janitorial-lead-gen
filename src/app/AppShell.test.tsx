@@ -219,3 +219,17 @@ it('shows a current history read failure and ignores a failure after unmount', a
   await act(async()=>{rejectOld(new Error('after unmount'));});
   expect(screen.queryByText('History could not refresh. Retry refresh.')).toBeNull();
 });
+
+vi.mock('../features/admin/AdminScreen',()=>({default:({onViewLeads}:{onViewLeads:()=>void})=><section aria-label="Admin county checks"><button onClick={onViewLeads}>Back to contracts</button></section>}));
+it('replaces Generate with Admin and restores checked queue records and filters',async()=>{
+  render(<App/>);
+  await screen.findByRole('article');
+  expect(screen.queryByRole('button',{name:'Generate contracts'})).toBeNull();
+  fireEvent.click(screen.getByRole('button',{name:/Select all 1 visible contracts/}));
+  fireEvent.click(screen.getByRole('button',{name:'Admin'}));
+  await screen.findByRole('region',{name:'Admin county checks'});
+  expect(screen.queryByRole('region',{name:'Research context'})).toBeNull();
+  fireEvent.click(screen.getByRole('button',{name:'Back to contracts'}));
+  await screen.findByRole('article');
+  expect(screen.getByText(/1 selected across pages/)).toBeTruthy();
+});

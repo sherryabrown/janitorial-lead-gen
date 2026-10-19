@@ -62,7 +62,20 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
       rows(db,'procurement_public_captures',q=>q.in('run_id',runIds),'*',{order:'run_id'})]);
     return {request,task,job:jobs[0],source,capability,runs:runIds.map(id=>runs.find(r=>r.id===id)),captures:runIds.map(id=>captures.find(c=>c.run_id===id))};
   }
-  async function packet(requestId,taskId) {return makeInterpretationPacket(await context(requestId,taskId));}
+  async function packet(requestId,taskId) {
+    const packet=makeInterpretationPacket(await context(requestId,taskId));
+    const current=(await rows(db,'procurement_interpretations',q=>q.eq('request_id',requestId).eq('task_id',taskId).eq('is_current',true),'id,packet_hash,result'))[0];
+    // The immutable packet hash remains unchanged. A review revision explicitly supersedes
+    // the current interpretation; only matching-packet outcomes may be appended by the UI.
+    return {...packet,current_interpretation:current?{id:current.id,packet_hash:current.packet_hash,counts:Object.fromEntries(['findings','exclusions','unresolved'].map(k=>[k,current.result[k].length]))}:null};
+  }
+  async function sourceOptions(requestId,{offset=0,limit=50}={}) {
+    if(!await one(db,'procurement_search_requests',requestId))throw Error('Request not found');
+    const ids=(await rows(db,'procurement_request_sources',q=>q.eq('search_request_id',requestId),'source_id')).map(s=>s.source_id);
+    if(!ids.length)return {items:[],next_offset:null};
+    const values=checked(await db.from('procurement_sources').select('id,code,name,url').in('id',ids).order('name').order('id').range(offset,offset+limit));
+    return {items:values.slice(0,limit),next_offset:values.length>limit?offset+limit:null};
+  }
   async function captureSupporting(requestId,taskId,input,actor) {
     const ctx=await context(requestId,taskId);
     return supporting.capture(ctx,makeInterpretationPacket(ctx),input,actor);
@@ -86,6 +99,11 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
   }
   async function interpret(requestId,taskId,result,actor) {
     const p=await packet(requestId,taskId);
+    if(result.append_to_current) {
+      const current=(await rows(db,'procurement_interpretations',q=>q.eq('request_id',requestId).eq('task_id',taskId).eq('is_current',true),'id,packet_hash,result'))[0];
+      if(!current||current.id!==result.supersedes_id||current.packet_hash!==p.packet_hash)throw Error('Review changed; refresh the current packet');
+      result={...result,...Object.fromEntries(['findings','exclusions','unresolved'].map(k=>[k,[...current.result[k],...result[k]]]))};
+    }
     const reviewed={...result,reviewed_by:actor,findings:result.findings.map(f=>({ ...f,payload:{...f.payload,
       ...(packetLink(p,f)??{}),
       ...(f.payload.work_city||f.payload.work_county?{work_performance_locations:[{state_code:f.payload.work_state,
@@ -239,5 +257,5 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
     await recordAccessEvent(db,h,{...event,next_action:`${event.next_action} (recorded by ${actor})`});
     return access(id);
   }
-  return {submit,preview:input=>geographyRequest(db,'preview',input),context,packet,captureSupporting,interpret,status,control,step,access,accessEvent};
+  return {submit,preview:input=>geographyRequest(db,'preview',input),context,packet,sourceOptions,captureSupporting,interpret,status,control,step,access,accessEvent};
 }

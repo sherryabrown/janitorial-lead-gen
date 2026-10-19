@@ -1,6 +1,6 @@
 # Durable scheduling deployment record
 
-Production activation and live acceptance passed October 18, 2026 (America/New_York). Part 02 is complete; the Admin screen is part 03. Bonfire/Euna remains deferred. No new paid infrastructure or AI budget was introduced.
+Production activation and live acceptance passed October 18, 2026 (America/New_York). Part 02 is complete; the Admin screen is implemented locally in part 03, pending coordinated frontend/backend release; see [UI release notes](ADMIN-UI.md). Bonfire/Euna remains deferred. No new paid infrastructure or AI budget was introduced.
 
 ## Active infrastructure
 

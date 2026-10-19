@@ -10,7 +10,7 @@ async function body(request) {
   }
   try {return JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{throw new HttpError(400,'Invalid JSON');}
 }
-export function workflowServer({authenticate,workflow,imports,discovery,sam,samPacket,browser,attention,triggers,schedules,schedulerKey,audit,db,kick=()=>{},allowedOrigins=[]}) {
+export function workflowServer({authenticate,workflow,imports,discovery,sam,samPacket,browser,attention,triggers,schedules,schedulerKey,aiPolicy,audit,db,kick=()=>{},allowedOrigins=[]}) {
   return createServer(async(request,response)=>{
     response.setHeader('Content-Type','application/json');response.setHeader('Cache-Control','no-store');
     response.setHeader('X-Content-Type-Options','nosniff');
@@ -46,7 +46,7 @@ export function workflowServer({authenticate,workflow,imports,discovery,sam,samP
       const wakeRelated=async()=>{if(triggers&&segments[1]==='requests'&&uuid.test(segments[2]??''))await triggers.wake(segments[2]);};
       let result;
       const execute=async()=>{
-      if(schedules&&url.pathname==='/v1/scheduler/status'&&request.method==='GET')result={...await schedules.status(),backend_key_configured:typeof schedulerKey==='string'&&schedulerKey.length>=32};
+      if(schedules&&url.pathname==='/v1/scheduler/status'&&request.method==='GET')result={...await schedules.status(),backend_key_configured:typeof schedulerKey==='string'&&schedulerKey.length>=32,...(aiPolicy?{ai_policy:{enabled:aiPolicy.enabled,monthly_usd:aiPolicy.monthlyUsd}}:{})};
       else if(schedules&&segments[1]==='schedules') {
         const limit=Number(url.searchParams.get('limit')??50),offset=Number(url.searchParams.get('offset')??0);
         if(!Number.isInteger(limit)||limit<1||limit>100||!Number.isInteger(offset)||offset<0)throw new HttpError(400,'Invalid pagination');
@@ -85,6 +85,10 @@ export function workflowServer({authenticate,workflow,imports,discovery,sam,samP
           const offset=Number(url.searchParams.get('offset')??0),limit=Number(url.searchParams.get('limit')??50);
           if(!Number.isInteger(offset)||offset<0||!Number.isInteger(limit)||limit<1||limit>100)throw new HttpError(400,'Invalid pagination');
           result=await workflow.status(id,{offset,limit});kick();
+        } else if(request.method==='GET'&&segments.length===4&&segments[3]==='sources') {
+          const offset=Number(url.searchParams.get('offset')??0),limit=Number(url.searchParams.get('limit')??50);
+          if(!Number.isInteger(offset)||offset<0||!Number.isInteger(limit)||limit<1||limit>100)throw new HttpError(400,'Invalid pagination');
+          result=await workflow.sourceOptions(id,{offset,limit});
         } else if(request.method==='GET'&&segments.length===4&&segments[3]==='attention') {
           const offset=Number(url.searchParams.get('offset')??0),limit=Number(url.searchParams.get('limit')??50);
           if(!Number.isInteger(offset)||offset<0||!Number.isInteger(limit)||limit<1||limit>100)throw new HttpError(400,'Invalid pagination');

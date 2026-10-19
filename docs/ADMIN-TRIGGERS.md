@@ -1,6 +1,6 @@
 # Admin trigger execution API
 
-Parts 01/02 backend contract, updated October 18, 2026. Admin/scheduling migrations are installed; host rollout is documented in [the deployment record](ADMIN-SCHEDULING-DEPLOYMENT.md). The recurring dispatcher is activated and live-accepted; the Admin screen remains part 03.
+Parts 01/02 backend contract, updated October 18, 2026. Admin/scheduling migrations are installed; host rollout is documented in [the deployment record](ADMIN-SCHEDULING-DEPLOYMENT.md). The recurring dispatcher is activated and live-accepted; the Admin screen is implemented locally in part 03, pending release. [UI/release notes](ADMIN-UI.md) identify the accompanying API changes.
 
 All endpoints use the existing Supabase bearer authentication and exact allowed origins. Every signed-in user can manage triggers; no extra Admin role is introduced. Tables, audit records, research checkpoints, usage reservations and submission/control RPCs remain server-only. Existing standalone geography/SAM/lead APIs keep their behavior.
 
@@ -12,7 +12,7 @@ All endpoints use the existing Supabase bearer authentication and exact allowed 
 | GET `/v1/state-triggers` | Independently managed saved state-source targets and related counties/latest run. Includes configured schedule/next-due state. |
 | POST `/v1/triggers/preview` | Read-only resolved county/city scope, current revision hash and planned routes. No external fetch or AI call. |
 | POST `/v1/triggers` | Confirm preview and submit immutable run with `Idempotency-Key`. Returns 202 and `trigger_id`. |
-| GET `/v1/triggers?offset=0&limit=50` | Recent runs; maximum limit 100. |
+| GET `/v1/triggers?offset=0&limit=50` | Recent runs; maximum limit 100. The part 03 projection adds origin/schedule name, county count, distinct candidate/evidence counts and aggregate actual usage; no config/private artifacts. |
 | GET `/v1/triggers/:id` | Frozen scope, child request IDs, related state-source run references, state, usage and controlled next action. |
 | GET `/v1/triggers/:id/steps?limit=50&cursor=...` | Monotonic sequence cursor, sanitized step outcomes/times/counts and actual usage. |
 | POST `/v1/triggers/:id/cancel` or `/resume` | Durable controls and actor audit; preserves evidence. Unknown outcomes require reconciliation. |
@@ -46,7 +46,7 @@ Maintain sources delegates missing/expired methods to existing bounded official-
 
 Use existing child request packet/interpret/discovery review and exact import endpoints in [PROCUREMENT-BACKEND.md](PROCUREMENT-BACKEND.md). Reviewed import remains explicit; canonical sales fields, schema checks, rehearsal, unknown-commit reconciliation and readback are preserved. Request mutations wake the related parent summary without resuming a cancelled parent. Parent `needs_review` is separate from verified import or complete county coverage.
 
-Worker traffic runs bounded stages as before; it also reconciles parent runs. Part 02 adds durable schedule CRUD and private wake, described below. Production browser-independent execution remains gated on deployment and live acceptance.
+Worker traffic runs bounded stages as before; it also reconciles parent runs. Part 02 adds durable schedule CRUD and private wake, described below. Production browser-independent scheduling passed part 02 live acceptance; the local part 03 UI does not provide or replace the scheduler wake.
 
 ## Audit and billing
 

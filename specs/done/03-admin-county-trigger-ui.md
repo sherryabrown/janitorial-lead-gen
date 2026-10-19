@@ -1,6 +1,21 @@
 # 03 — Admin UI and Arkansas county map
 
-Parent requirements/prompt/layout: [Admin county triggers](admin-county-triggers.md). Dependencies: [01 deployed API/audit contract](../../docs/ADMIN-TRIGGERS.md), [02 durable scheduling accepted in production](../done/02-admin-county-trigger-scheduling.md). Use fixtures for local UI verification; the scheduling dependency is live-accepted. Preserve current user changes and existing queue behavior.
+Parent requirements/prompt/layout: [Admin county triggers](../todo/admin-county-triggers.md). Dependencies: [01 deployed API/audit contract](../../docs/ADMIN-TRIGGERS.md), [02 durable scheduling accepted in production](../done/02-admin-county-trigger-scheduling.md). Use fixtures for local UI verification; the scheduling dependency is live-accepted. Preserve current user changes and existing queue behavior.
+
+## County selection and source workflow clarification
+
+Clarifying request: “Does this plan have a map view from which the user can select/unselect the counties to run, as well as updating based on known sources, getting/verifying new sources, and capturing resulting sources?”
+
+Yes: the map/list selection supplies the scope for both Run now and Save schedule. The two work options below are independently selectable, both selected initially. Neither requires the user to classify a county or source as new/known. Map clicks change the draft only; execution requires Run now or explicitly saving an enabled schedule. Editing a schedule uses its own map draft and affects future occurrences only.
+
+| User option | Required behavior using existing services |
+| --- | --- |
+| Maintain sources | Resolve what is already registered for the selected counties/cities and categories. Reuse known sources, accounts and verified methods; research missing sources/methods and revalidate expired methods. Check the existing registry/identity before saving a discovered source so a known source is reused rather than registered again. |
+| Check for lead updates | Use verified methods to capture source evidence, compare with saved observations, and identify changed information/new lead candidates through the shared collection/review pipeline. Keep this distinct from maintaining the source registry. |
+
+Make discovery results reviewable inline: source name/official URL, related county/city/category, new or existing registration, method verification state, saved evidence, and the next action. Reuse the existing discovery packet/review/resume endpoints and guarded registration service (`saveDiscoveredMethod`, existing registry planner/rehearsal/readback). Only show a source/method as saved or verified after its persisted receipt confirms that outcome. Retain captured evidence and county/category relationships for future reuse; discovered state sources appear in the separate State sources list without silently enabling a schedule. Source/method registration is separate from importing lead candidates.
+
+Respect existing research limits: official-link discovery needs an appropriate official seed and bounded captures; reviewed evidence is required before method activation. When a seed, access, verification or review is missing, show the saved gap/handoff and its next action. Do not imply unrestricted web discovery, successful registration, verified coverage or automatic approval merely because a URL was found. Show research, revalidation, capture, comparison, registration/readback and AI usage from the actual saved steps/results.
 
 ## Components and integration
 
@@ -32,6 +47,20 @@ Review results uses existing saved child request/task/packet APIs, bounded curre
 
 App interaction tests: Generate replaced/Admin enabled; queues restored; map/list/chips parity; all/clear; duplicate/rejected IDs; keyboard; draft isolation; empty validation; default all-cities names grouped by county; scope confirmation; independent state-source list/run/schedule; county rerun does not enqueue a state update; session expired with draft kept; uncertain submit retry same key; stale response ignored; multiple daily time add/remove/validation and readable next runs; weekly/monthly controls and short-month explanation; schedule edit/pause/resume/run-now saved state; run/step page loading; AI no/yes/unknown actual vs reserved; inline review/hash-stale and unknown import reconciliation. Contract tests ensure frontend request shape/status projection matches 01/02 fixtures.
 
+Explicit source-flow cases: Maintain sources only, Check for lead updates only, and both, for manual runs and schedules; automatic new/known resolution without a user classification field; an existing registration reused without a duplicate; discovery evidence/review followed by confirmed source/method persistence; missing seed/verification displayed as a gap instead of coverage; and a newly found state source shown separately with recurrence still unconfigured.
+
 Visual/browser QA at desktop and 320px/mobile: current typography/spacing/borders/colors, focus/readable contrast, no page overflow, touch selector, no lead sidebar on Admin, concise next action. Capture and inspect actual screenshots during implementation. npm run check, applicable access checks owned by backend parts, and integrated browser-closed scheduled run acceptance. Update backend/current UI docs, add deployment/config/readback report without secrets, and mark all coordinator links correctly as plans move.
 
 Done when real manual/schedule management and logged progress are wired, county selection is accessible and matches existing UI, review/approval actions use shared guarded services, and 02's schedule activation status is honestly reported. Nothing auto-imports merely because a schedule ran.
+
+## Build acceptance — October 18, 2026
+
+Implemented locally and accepted against the prescribed UI fixtures and shared backend services. The user confirmed next 12 months as the editable default. All 75 official map county IDs match the live county registry in a read-only check.
+
+- `npm run check`: passed lint, 50 UI tests, 260 workflow tests, SQL suites and production build.
+- Final bounded activity aggregation and source-review regression: 14 targeted workflow tests passed, including the additional aggregation test; changed-file lint passed.
+- `npm run test:access`: passed actual isolated PostgreSQL 15/PostgREST/JWT boundaries, Admin/schedule denial/replay, shared budget controls and private browser-independent worker/wake.
+- Actual Edge browser acceptance: desktop 1440px, mobile 390px/320px, keyboard map/list, confirmation before one manual submission, paused daily schedule with two times, zero page errors/overflow and zero production mutations. Screenshots captured and inspected.
+- Existing part 02 production browser-closed/duplicate tick/restart acceptance remains the scheduling dependency; this build does not claim a new live UI deployment. The map/Admin chunk is lazy-loaded (about 210 KB compressed) and produces an acknowledged uncompressed chunk-size warning.
+
+See [Admin UI/release guide](../../docs/ADMIN-UI.md) and [build report](../../docs/reviews/2026-10-18-admin-ui-build.md). Part 03 is complete locally. The parent stays in todo until authorized backend/frontend deployment and authenticated production readback. No product decisions remain; no commit, push, deployment, AI configuration change, live recurrence or automatic import was performed.
