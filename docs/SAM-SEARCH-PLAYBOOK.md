@@ -129,8 +129,10 @@ Use the separate SAM.gov statewide Admin section for opportunities or awards. Ex
 
 Saved packets and exact run IDs feed the existing reviewed import process. Partial or denied collection must remain visible. Unknown outcomes reconcile the matching saved audit without automatic resends. No production import is required merely to test the Admin controls. See [Admin documentation](ADMIN-UI.md#sam-admin-extension--october-19-2026) and [live release evidence](ADMIN-SAM-DEPLOYMENT.md). Netlify production remains unchanged.
 
-## Automatic saving policy (release pending)
+## Automatic saving policy
 
 `sam-automatic-v1` supersedes the SAM-only human selection/preparation/approval steps above. Both manual and scheduled collection use the same existing importer automatically. Notices use saved official notice type, award facts and deadline; `Active` alone does not prove an open solicitation. Official performance location must identify Arkansas, and NAICS must establish janitorial work. Unsupported/missing/contradictory evidence remains an exclusion rather than an invented classification or location. Full award/notice identities and current canonical patch rules remain authoritative.
 
 The system supplies existing planner decision fields and records policy authorization truthfully; it does not manufacture a human reviewer. A tested package is automatically authorized for that exact hash, then applied and read back. Failed testing/permissions/schema checks stop the write. Unknown write outcomes reconcile the same package; they do not resend it blindly. A definite later-page failure can retain an audited successful prefix as partial. An uncertain collection attempt stays blocked until reconciled; it is not restarted to hide the uncertainty.
+
+The automatic SAM extension is released to the existing Render backend, local backend and approved Netlify draft preview. [Live acceptance and recovery evidence](ADMIN-SAM-AUTOMATIC-DEPLOYMENT.md) records actual canonical readback, scheduled execution and cleanup. Netlify production remains unchanged.

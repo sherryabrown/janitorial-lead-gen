@@ -73,14 +73,16 @@ Released to the existing Supabase/Render backend and approved Netlify draft prev
 
 SAM schedules reuse the existing cadence controls: multiple daily times, weekly weekdays, or monthly dates with the existing short-month rule, in America/Chicago. A new schedule starts paused. Its category-specific rolling lookback defaults to 30 days and freezes into explicit dates for each occurrence. County drafts remain selected when submitting or editing SAM. Shared schedule actions support edit, pause/resume, run now and archive.
 
-SAM history includes existing direct SAM requests as well as new Admin parents. Results show saved pages, counts, category/window, partial/terminal status, evidence and candidates. Preparing imports requires the exact captured run IDs and current candidate hashes; partial captures require explicit acknowledgment. Existing package testing and exact-hash approval remain required. Unknown fetch outcomes expose reconciliation of the saved audited attempt, never automatic resending.
+SAM history includes existing direct SAM requests as well as new Admin parents. Results show saved pages, counts, category/window, partial/terminal status, evidence and candidates. SAM now supplies exact captured run IDs, current candidate hashes and bounded partial authority through its automatic server policy. Package testing and exact-hash authorization remain internal; no SAM import approval click is required. Unknown fetch outcomes expose reconciliation of the saved audited attempt, never automatic resending.
 
 Additional authenticated routes: `GET /v1/sam/requests?offset=0&limit=50` and `POST /v1/sam/requests/:id/reconcile`. Saved review uses the existing packet endpoint. No credentials or raw private artifacts are exposed.
 
-## Automatic SAM saving — October 19, 2026 (implementation; release pending)
+## Automatic SAM saving — October 19, 2026
 
 SAM opportunities and awards now continue from capture through validation, native SQL testing, transactional import and verified readback without candidate selection, a review reason, new-lead checkbox or batch approval. Search/schedule scope confirmation remains. The results view reports verified added/updated/unchanged counts and per-record exclusions; collecting records alone is not a successful database import. Other source review flows retain their existing approval controls.
 
 The server records `sam-automatic-v1` authority instead of claiming a human review. Missing Arkansas performance evidence, unsupported classification, unknown janitorial service or conflicting canonical identity remain exceptions. Valid records in the same capture continue independently. Official evidence remains available; no extra AI calls are introduced. Existing user/sales fields retain the current importer protections.
 
 Legacy staged SAM results offer **Continue automatic saving**, using saved evidence only. This is a continuation of the automatic policy, not per-record approval. Paused/cancelled scheduled work and uncertain imports cannot be restarted through it. Collection and database outcomes remain separate, including partial capture and unresolved write outcomes.
+
+The automatic SAM extension is released to the existing Render backend, local backend and approved Netlify draft preview. [Live acceptance and recovery evidence](ADMIN-SAM-AUTOMATIC-DEPLOYMENT.md) records actual canonical readback, scheduled execution and cleanup. Netlify production remains unchanged.

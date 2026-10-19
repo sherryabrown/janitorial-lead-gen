@@ -1,5 +1,7 @@
 # SAM Admin release acceptance — October 19, 2026
 
+The SAM manual import-approval behavior in this historical release is superseded by [automatic validated SAM saving](ADMIN-SAM-AUTOMATIC-DEPLOYMENT.md). Non-SAM approval flows remain unchanged.
+
 Feature commit: `84f70f5` (`feat: add SAM Admin runs and schedules`), pushed to `codex/admin-county-trigger-ui`.
 
 ## Release

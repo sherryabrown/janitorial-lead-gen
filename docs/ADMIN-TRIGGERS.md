@@ -84,10 +84,12 @@ Migration `20261019000100_admin_sam_triggers.sql` wraps existing atomic submissi
 
 Release order: forward migration, private `sam-search` function, matching Render backend, then Netlify draft preview. Check existing rows against the new constraints before migration. The matching release, both real manual categories and one browser-closed scheduled occurrence passed; see [live evidence](ADMIN-SAM-DEPLOYMENT.md).
 
-## Automatic SAM persistence extension (release pending)
+## Automatic SAM persistence extension
 
 No schedule config/opt-in or schema change is required. The existing SAM worker stages immutable evidence, then internally creates a deterministic automatic import job. Its server-owned policy binds exact audited runs/current intake hashes, factual scope/classification decisions and initiating identity. It uses the original planner, native rehearsal, exact tested package hash, restricted transaction and readback. Public reviewed-import preparation cannot grant automatic authority with a client flag; non-SAM/direct reviewed imports still await approval.
 
 `POST /v1/sam/requests/:id/process` is authenticated and resumes only eligible saved staged SAM results without any fetch or broad workflow restart. It checks cancellation/scheduled runnable state, preserves import identities and wakes the shared worker. It does not resume unrelated failed manual import jobs.
 
 SAM packets retain saved evidence after automatic processing and expose safe `automatic` status, verified write counts, exclusions and continuation availability. SAM parents stay pending through active import work, complete after verified processing and report partial/unknown outcomes separately. Superseded definite manual preparation failures do not keep a successfully auto-processed SAM parent in needs-review; uncertain writes are never ignored.
+
+The automatic SAM extension is released to the existing Render backend, local backend and approved Netlify draft preview. [Live acceptance and recovery evidence](ADMIN-SAM-AUTOMATIC-DEPLOYMENT.md) records actual canonical readback, scheduled execution and cleanup. Netlify production remains unchanged.

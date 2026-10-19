@@ -4,7 +4,7 @@
 
 > Please remove the manual approval steps so valid SAM results are automatically added or updated in the database, for both manual and scheduled runs. Keep duplicate checks and validation.
 
-Planning date: October 19, 2026. Build checkpoint: implementation and isolated verification complete; authorized coordinated release/live acceptance pending. No new schema migration or provider API is required.
+Planning date: October 19, 2026. Completed implementation and verification, including the authorized coordinated Render/draft release and genuine nonempty live/manual/scheduled acceptance. No new schema migration or provider API is required.
 
 ## Outcome and boundaries
 
@@ -14,7 +14,7 @@ Use the current SAM collector, shared worker, persisted jobs, scheduler, import 
 
 Invalid or ambiguous records remain saved with specific validation reasons; they do not become leads merely because a run succeeded. A validation failure is an exception to resolve, not a mandatory approval step for valid results. Preserve evidence even when collection is partial or access fails.
 
-## Current code and observed failure
+## Baseline at planning and observed failures
 
 - `scripts/lib/hosted-sam.mjs`: `sam_stage` saves immutable intake via `samIntakeRows()`, then ends at blocked `sam_review`. `packet()` only accepts that checkpoint and hardcodes `canonical_writes: 0`.
 - `scripts/lib/hosted-import-jobs.mjs`: `prepare()` binds request/current hashes/exact saved SAM runs; `import_prepare` creates a tested package then blocks at `import_awaiting_approval`. `approve()` authorizes its exact hash, and `import_apply` uses the existing transaction/readback. Unknown writes retain `import_reconcile`.
@@ -78,7 +78,7 @@ Extend the existing suites rather than duplicating their harnesses:
 
 No additional product decision is needed to begin. Use the explicit authorization in the initiating prompt as the product policy for valid SAM automatic writes; do not ask for a second human approval of each result.
 
-Next implementation prompt:
+Original implementation prompt (completed):
 
 ```text
 $build-code specs/todo/sam-automatic-validated-imports.md
@@ -96,8 +96,12 @@ Proposed implementation commit message: `feat: automatically save validated SAM 
 
 Implemented server-owned `sam-automatic-v1` decisions; per-identity validation/exclusions; exact-run deterministic automatic import jobs; existing native rehearsal/tested hash/transaction/readback; honest system-policy provenance; no SAM approval form; automatic progress/counts and guarded saved-result continuation. Non-SAM reviewed import contracts remain unchanged. Partial known-success pages retain partial scope; unknown collection/write outcomes are not resent.
 
-Verification: aggregate `npm run check` passed (59 UI, 272 workflow tests, SQL rollback/readback/replay/protected-field checks, lint and build). Final targeted tests passed (32, including automatic award identity, policy provenance, partial-page failure and existing protections). Real PostgreSQL/PostgREST access suite passed with nonempty manual and scheduled automatic imports, mixed valid/invalid records, no duplicate canonical lead and paused legacy continuation rejection. Browser suite passed desktop/390px/320px/keyboard with no SAM approval controls and preserved county selection. Existing large lazy Admin/map bundle warning remains.
+Verification: aggregate `npm run check` passed (59 UI, 272 workflow tests, SQL rollback/readback/replay/protected-field checks, lint and build). Final targeted tests passed (35, including automatic award identity, policy provenance, partial-page failure, uncertain-import holds, bounded pre-send revalidation and existing protections). Real PostgreSQL/PostgREST access suite passed with nonempty manual and scheduled automatic imports, mixed valid/invalid records, no duplicate canonical lead and paused legacy continuation rejection. Browser suite passed desktop/390px/320px/keyboard with no SAM approval controls and preserved county selection. Existing large lazy Admin/map bundle warning remains.
 
 The native harness now retains startup diagnostics, bounds startup wait and uses one Haskell runtime capability; it also installs the existing public-record-link migration to match the code under test. Initial startup and obsolete-schema fixture failures were diagnosed and fixed rather than counted as passes.
 
-User authorized commit/push and matching Render/draft preview release plus live verification. Production Netlify remains excluded. Keep this plan in todo until genuine nonempty live/manual/scheduled acceptance and cleanup are recorded.
+User authorized commit/push and matching Render/draft preview release plus live verification. Both genuine nonempty manual and browser-closed scheduled runs completed automatically with verified canonical readback and no approval action. The DeQueen canonical ID was preserved; exactly one row remains. The disposable schedule was paused/archived and temporary users soft-deleted. AI/environment values, unrelated saved SAM jobs and locked Netlify production were rechecked unchanged. [Release evidence](../../docs/ADMIN-SAM-AUTOMATIC-DEPLOYMENT.md) records all receipts and tests. No remaining product decision or required acceptance blocker.
+
+Recovery verification: known unsent canonical changes regenerate/test the exact package at most once; after a possible send, no automatic resend occurs. A saved uncertain automatic import blocks subsequent SAM fetching, preparation and application until readback reconciliation. Specific safe next-action text is returned. Validation exclusions are retained beside the automatic job with factual reasons; only the valid set enters the existing native-tested importer, avoiding empty/deferred-only write jobs.
+
+Final release readback: feature `be38904`, count fix `6e1b084`, recovery fix `c40c341`; Render `dep-dbar2pom7kps739v0lag` live and draft Netlify `6ad5b17fd16ad408f67d557c` on the final code. Final recovery suite passed 35 tests; native integration/lint passed after bounded precondition regeneration and global uncertain-import hold. Final live API counter/readback, local restart and unchanged production checks passed. No further approval is required to save valid SAM results.
