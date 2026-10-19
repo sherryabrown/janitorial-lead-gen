@@ -1,8 +1,67 @@
 # Automatic county discovery build — October 19, 2026
 
-Implementation and preview release report for [the plan](../../specs/todo/automatic-county-source-discovery-and-collection.md). Release and manual/repeat/single-scheduled execution verification are complete. Full coverage and unattended recurrence acceptance remain blocked; the plan stays in todo. Netlify production is unchanged.
+Implementation and preview release report for [the active plan](../../specs/todo/automatic-county-source-discovery-and-collection.md). Current results are below; the original release checkpoint is retained as historical evidence.
 
-## Current release
+## Current return release and acceptance
+
+The reviewed implementation fixes are deployed. **Full Saline coverage remains incomplete, so the plan stays in todo.** Manual, repeat and browser-closed scheduled execution settled without worker exceptions, active jobs, unknown jobs or canonical imports. Saline County, Benton and Bryant each completed a bounded verified check for October 19, 2026–October 19, 2027; none produced a matching candidate. This is three checked sources, not complete county coverage.
+
+- Code: `0b034780efb6ea0df7bff6d82200ce7819317946` — `fix: complete automatic county collection`; final correction `dbc334a00ea2fa7c6909baca37910ff8d1f16ae3` — `fix: allow public county website redirects`. Both pushed to `codex/admin-county-trigger-ui`.
+- Final Render deploy `dep-dbb7fdg473hc73diaa0g` went live at 20:05:25 UTC before Netlify preview `6ad6782f285051025b4ecaa9`. The preview is [bonfire-review](https://bonfire-review--janitorial-lead-gen.netlify.app). Health, preview HTTP and authenticated-origin preflight passed.
+- Netlify production remains locked on `6ad583d1b9bb1b307abcf1fd`; Render settings/budget hashes match their original values. Preserve all existing behavior outside automatic county collection, including queues, imports, schedules, state sources, Companies and email previews. Bonfire protected access remains paused.
+- Migration `20261019000300_county_public_read_reconciliation.sql` is applied/read back. The new function is service-role only; it adds no tables or browser grants. Genuine uncertain writes/AI/imports retain holds. The scheduler overlap guard is unchanged.
+- `npm run check` passed: 69 UI and 306 workflow tests, SQL replay/concurrency checks, lint, TypeScript/build. Native `npm run test:access` passed, including two scheduled occurrences after an audited website read failure while a real unknown import still blocks recurrence. Desktop/390px/320px/keyboard browser acceptance passed; screenshots inspected. Final targeted intake regressions passed 31 tests; redirect/directory regressions passed 21 tests after the narrow DNS correction. Existing Admin bundle size warning remains.
+
+| Run / trigger | Actual input / output tokens | Recorded USD | Reused captures |
+| --- | --- | --- | --- |
+| Manual — bd5f8453-799e-4a9c-977a-2f94c11b0559 | 7216 / 805 | 0.0090345 | 18 |
+| Repeat — 4757bf06-4259-46d5-9b17-29153f0a3e43 | 7235 / 1063 | 0.01020975 | 18 |
+| Scheduled — 45ac191f-d60d-4a22-a09f-f5e380b72ee1 | 7233 / 974 | 0.00980775 | 20 |
+
+All six AI ledger operations completed: 21,684 input tokens, 2,842 output tokens and $0.029052 total recorded actual usage. Provider credits were not reported. Saline's 21 row exclusions use captured structured evidence with no AI. The registry stayed at 97 sources; all three runs have one county child and no repeated state-source child. No candidates or canonical request/intake links were created. Positive relevant intake and shared-route deduplication are proved in the isolated native fixture, not fabricated live data.
+
+Scheduled trigger `45ac191f-d60d-4a22-a09f-f5e380b72ee1`, occurrence `7eb48117-a695-48f9-8dfa-6345c21c430a`, was dispatched naturally at 20:10 UTC with no browser open. Disposable schedule `cb0af867-795f-4e05-b5f6-0598325e4c35` is archived, `enabled=false`, `next_due_at=null`; the temporary actor is soft-deleted. The live check proves one real occurrence; the native regression separately proves the next occurrence is not blocked by a harmless failed read. Two long-running acceptance-client sessions stalled; verification resumed from saved trigger IDs without resubmitting completed runs or interrupting hosted jobs.
+
+Bauxite's final live source-entry capture followed the public www → bare-domain → WordPress redirect within two redirects. A DNS guard incorrectly rejected the public 192.0.78.x range; the final correction narrows the reserved 192.0.0.0/24 check and retains private-address rejection. The website is readable; that does not itself verify an opportunity listing.
+
+### Remaining coverage and decision
+
+Tull and Traskwood still have no unique website published in the checked official directories/county pages. No general web-search executor is configured. The child plan records a concrete bounded Brave provider/account/budget option; it has not been enabled. Other readable pages lack supported listing/category evidence, and unavailable, protected, oversized or empty pages remain incomplete. Housing Authority/UA Little Rock/Little Rock interpretation still lacks sufficient literal scope/work-location/date/detail evidence. These are not verified zero-opportunity results. Inspection of the saved readable pages found Bauxite's welcome page, Haskell's city homepage, the library's About page and Bryant Schools' homepage rather than verified opportunity listings. Capturing these pages cannot establish an empty procurement result. Further source-format/link discovery support and the broader discovery decision remain before full coverage acceptance; do not move this plan to done on the strength of terminal jobs alone.
+
+| Original missing source | Return outcome |
+| --- | --- |
+| Tull | No unique website published in checked directories/county fallback |
+| Alexander | Official website registered; supported opportunity listing remains unverified |
+| Bauxite | Official website registered; supported opportunity listing remains unverified |
+| Shannon Hills | Official website registered; supported opportunity listing remains unverified |
+| Traskwood | No unique website published in checked directories/county fallback |
+| Haskell | Official website registered; supported opportunity listing remains unverified |
+
+| Original missing method | Route | Return outcome |
+| --- | --- | --- |
+| City of Alexander public notices | Saline County | Source could not be verified automatically; supported listing evidence is missing |
+| City of Haskell public records | Saline County | Source could not be verified automatically; supported listing evidence is missing |
+| Benton School District procurement research | Saline County | Empty response body |
+| Clinton National Airport forecast March 2026 | Little Rock | Source could not be verified automatically; supported listing evidence is missing |
+| City of Benton bid listings | Saline County | Verified check; no matching opportunities |
+| Little Rock Water Reclamation Authority | Little Rock | HTTP 404 |
+| Saline County Library public procurement records | Saline County | Source could not be verified automatically; supported listing evidence is missing |
+| Little Rock School District Procurement | Little Rock | Document exceeds verified byte bound |
+| Central Arkansas Water Procurement | Little Rock | Source could not be verified automatically; supported listing evidence is missing |
+| City of Bryant bid listings | Saline County | Verified check; no matching opportunities |
+| Bryant Public Schools procurement research | Saline County | Source could not be verified automatically; supported listing evidence is missing |
+| City of Shannon Hills public records | Saline County | Source could not be verified automatically; supported listing evidence is missing |
+| Benton Utilities public procurement records | Saline County | Source could not be verified automatically; supported listing evidence is missing |
+| Little Rock financial reports and capital plans | Little Rock | HTTP 403 |
+| Clinton National Airport Procurement | Little Rock | HTTP 202 |
+| Bauxite Public Schools procurement research | Saline County | Source could not be verified automatically; supported listing evidence is missing |
+| Little Rock public contracts | Little Rock | HTTP 403 |
+| UAMS procurement | Little Rock | Source could not be verified automatically; supported listing evidence is missing |
+| UA Little Rock bids and awards | Saline County | HTTP 401 |
+
+Private evidence in ignored `outputs/deployment/automatic-county`: `live-return.json`, `return-audit.json`, `return-cleanup.json`, migration/release readbacks and focused/full/native/browser test logs. No private raw captures, credentials or private diagnostics were committed. The sanitized public Saline listing-table fixture and its provenance are committed for regression testing. No files were deleted in this follow-up; retained operator services remain in use.
+
+## Original release checkpoint — historical
 
 - Code commit: `816d00fa70757c10f9f9db75237e5f0ad14997f4` — `fix: complete county result interpretation`, pushed to `codex/admin-county-trigger-ui`.
 - Render deploy `dep-dbb5ndei0phs73f289gg` became live at `2026-10-19T18:05:51.538Z`, before Netlify preview deploy `6ad65c556d6ad4aaeac06d71`.

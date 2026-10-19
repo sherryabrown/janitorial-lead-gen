@@ -1,18 +1,16 @@
 # Automatic county source discovery and opportunity collection
 
-Status: in progress October 19, 2026. Supported implementation is released to Render/Netlify preview; automated, visual and single-occurrence execution checks passed. Full coverage and unattended recurrence remain blocked by the return checkpoint below. Keep in todo. Netlify production must remain unchanged.
+Status: return implementation released and manual/repeat/scheduled execution verified October 19, 2026. Full source-coverage acceptance remains incomplete; keep in todo. Netlify production remains unchanged. Preserve all existing behavior outside automatic county collection.
 
-Implementation checkpoint: [build, release and verification report](../../docs/reviews/2026-10-19-automatic-county-build.md). Fresh Saline manual, repeat and one browser-closed scheduled run settled without runtime exceptions. Benton and Bryant completed verified checks; broader coverage is incomplete. The disposable schedule is archived. Do not interpret this checkpoint as universal source coverage or move the plan to done before the remaining gates pass. Netlify production remains unchanged.
+Implementation and live evidence: [build report](../../docs/reviews/2026-10-19-automatic-county-build.md).
 
-### Return checkpoint — remaining coverage work
+### Return checkpoint
 
-Resume from the released code and saved live evidence; do not repeat the same broad source queries as a substitute for addressing these gaps.
+The five reviewed implementation gaps now have fixes: narrowly audited public-read reconciliation without weakening uncertain write/AI holds; saved structured listing interpretation; evidenced cross-host public redirects; official county-directory fallback; and shared parent/request-local acquisitions with same-request candidate deduplication. Migration `20261019000300` adds a service-role-only reconciliation function and no tables. No new search provider, accounts or budgets were added.
 
-1. Read-only source-entry failures for Alexander and Shannon Hills leave `outcome_unknown` jobs. The existing `create_procurement_schedule_occurrence` overlap guard treats these as a previous active run and skips later occurrences. Establish a bounded, evidence-backed terminal/reconciliation path for public GET failures while preserving unknown AI charges, writes and all import guards. Add a regression proving a second scheduled occurrence can check independent sources after a harmless fetch failure; do not simply remove the overlap guard or clear uncertain side effects.
-2. The captured Saline County listing still uses a generic method and its AI interpretation fails evidence validation. Reuse the supported structured listing verifier/parser to establish valid scope/date/work-location results without changing budgets or accepting fabricated quotations. The Housing Authority and UA Little Rock also retain unresolved interpretation evidence.
-3. Extend saved-provenance handling for public cross-host canonical redirects and unsupported listing formats. Haskell/Bauxite redirects, oversized School District content and empty/failed responses remain incomplete. Retain fetch bounds and paused protected-portal access.
-4. Traskwood and Tull have no unique website in the authoritative directory response. Extend an existing trusted-directory or approved bounded-research capability; request a concrete provider/cost decision before adding a new paid dependency. Do not ask the user to supply individual URLs.
-5. Share identical source/method/query acquisitions across geographic routes. Source identity and intake deduplication already work, but equivalent route tasks can still fetch the same endpoint separately.
+Fresh manual and repeat Saline runs settled without worker exceptions, unknown jobs or canonical imports. Saline County's listing now completes a verified check alongside Benton and Bryant; other coverage remains partial. The actual captured Saline table has 21 evidenced exclusions for the requested future deadline window. Public-directory fallback still publishes no unique website for Tull or Traskwood; unavailable/unsupported/protected sources are not false empty results. The live return also exposed an overbroad public-address rejection for Bauxite's WordPress canonical redirect; the corrected final release follows that exact public redirect chain within the existing bounds.
+
+The browser-closed disposable occurrence settled and its schedule is archived. Final deployed code is `dbc334a00ea2fa7c6909baca37910ff8d1f16ae3`. Remaining gates are broader source discovery beyond published directories and unsupported listing/interpretation evidence, detailed in the report and provider decision below. Do not describe three checked sources as complete Saline coverage.
 
 ## Initiating request
 
@@ -103,3 +101,11 @@ Completion requires the supported automatic path working without user technical 
 No decision is needed to preserve non-SAM import approval or existing source-only schedules: this plan preserves both. The conditional decision is whether an existing approved research capability plus authoritative directories covers source bootstrap. If not, present the concrete missing provider/cost capability before adding one; do not ask for county-by-county technical setup or raise AI budgets implicitly.
 
 Update `docs/ADMIN-UI.md`, `docs/ADMIN-TRIGGERS.md`, relevant workflow/backend documentation and the parent Admin plan to reflect actual automatic behavior, supported boundaries and acceptance evidence. Do not delete legacy operator paths still used. Report changes, tests, unresolved limitations and proposed commit message. Netlify production and paused Bonfire access work remain unchanged.
+
+### Broader discovery decision (not enabled)
+
+The checked municipal and official county fallback pages still do not publish a unique website for Tull or Traskwood. Their saved discovery packets retain that evidence. There is no configured general search executor, and the coding agent's search tool is not part of the deployed worker. No source URLs are requested from the operator.
+
+A concrete option for a subsequent approved extension is Brave Web Search, currently [$5 per 1,000 requests](https://api-dashboard.search.brave.com/documentation/pricing) (checked October 19, 2026). Proposed bounds would be at most two searches per unresolved place per run and 200 searches/$1 gross per month, with no automatic overage; four searches for these two cities would cost $0.02 before any account credits. Those are proposed limits, not an approved allowance. This needs an account/key, permission to retain results under the account's terms, a private runtime secret, provider reservation/actual-usage integration and an explicit budget decision. It has not been acquired, configured or called by the application.
+
+Search results would supply possible official starting links only. Identity, official linkage, executable listing verification and opportunity evidence would still require captured public pages. Search cannot ensure a website exists or resolve protected/unsupported portals. Additional saved-page format support remains separate from directory discovery. Existing AI settings and budgets remain unchanged. Consequently the plan remains in todo rather than labeling partial Saline coverage complete.
