@@ -322,8 +322,33 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
         // Preserve its unresolved evidence rather than pay AI to guess access gaps.
         const listingNeedsDetail=ctx.capability.method_spec?.response_format==='bonfire-projects-v1';
         if(result.unresolved.length && aiConfig?.enabled && !listingNeedsDetail) {
-          const response=await auditPhase('ai_interpretation',()=>ai({db,requestId:request.id,actor:request.initiated_by,packet:p,config:aiConfig}),{task_id:task.id,source_id:p.source_id,reason:'provider'});
-          result={...result,...response,coverage:'partial'};
+          const automaticCounty=['county_scope','state_research'].includes(request.workflow_control?.admin_policy);
+          let response;
+          const budgetResult=()=>({...result,unresolved:result.unresolved.map(item=>({...item,reason:`${item.reason}; AI budget reached`}))});
+          try {
+            response=automaticCounty&&checkpoint.ai_budget_reached?budgetResult():
+              await auditPhase('ai_interpretation',()=>ai({db,requestId:request.id,actor:request.initiated_by,packet:p,config:aiConfig}),{task_id:task.id,source_id:p.source_id,reason:'provider'});
+          }
+          catch(error) {
+            if(!automaticCounty||error.code!=='ai_budget_reached')throw error;
+            checkpoint.ai_budget_reached=true;
+            response=budgetResult();
+          }
+          const proposed={...result,...response,coverage:'partial'};
+          if(automaticCounty) {
+            try {
+              validateInterpretation(p,proposed,{verifiedSupporting:true});
+              await verifyEvidenceSpans(p,proposed,{loadSupporting:e=>supporting.load(ctx,p,e)});
+              validateFindingBounds(p,proposed,{verifiedSupporting:true});
+              result=proposed;
+            } catch {
+              // Retain only the original deterministic evidence; never stage an
+              // unsupported AI claim or repeat a paid call for this saved task.
+              checkpoint.ai_rejected_task_ids=[...(checkpoint.ai_rejected_task_ids??[]),task.id];
+              result={...result,coverage:'partial',unresolved:result.unresolved.map(item=>({...item,
+                reason:`${item.reason}; automatic interpretation did not pass evidence validation`}))};
+            }
+          } else result=proposed;
         }
         await auditPhase('stage',()=>interpret(request.id,task.id,result,`worker:${request.initiated_by}`),{task_id:task.id,source_id:p.source_id,reason:cacheUsed?'cache':'deterministic'});
         checkpoint.interpreted_task_ids=[...done,task.id];await save('pending');

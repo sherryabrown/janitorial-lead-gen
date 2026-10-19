@@ -233,6 +233,15 @@ test('explicit primary quota rejection permits backup; an unknown call never swi
   assert.equal(writes.at(-1).state,'outcome_unknown');assert.equal(urls.some(u=>u.includes('anthropic')),false);
 });
 
+test('database budget refusal is identified without sending inference or switching providers',async()=>{
+  const packet=makeInterpretationPacket(context()),urls=[];
+  const rate={key:'fixture',model:'fixture',rateVersion:'offline',inputUsdPerMillion:1,outputUsdPerMillion:1};
+  await assert.rejects(boundedInterpretation({db:{rpc:async()=>({error:{code:'P0001',message:'Request budget exhausted'}})},
+    requestId:packet.request_id,actor,packet,config:{enabled:true,monthlyUsd:10,openai:rate,anthropic:rate},
+    fetcher:async url=>{urls.push(url);return new Response(JSON.stringify({input_tokens:100}));}}),{code:'ai_budget_reached'});
+  assert.equal(urls.length,1);assert.match(urls[0],/input_tokens/);
+});
+
 
 test('uncertain automatic SAM imports expose a specific safe continuation without a failed provider attempt',async()=>{
   const request={id:id(92),workflow_control:{}};

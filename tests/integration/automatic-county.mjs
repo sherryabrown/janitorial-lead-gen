@@ -14,13 +14,16 @@ export async function verifyAutomaticCounty({db,artifacts,audit,livePool,rehears
     calls.push(String(url));let body;
     if(url==='https://www.arcounties.org/counties/')body='<div class="county"><a href="/counties/arkansas/">Arkansas</a></div>';
     else if(url==='https://www.arcounties.org/counties/arkansas/')body='<h2>Arkansas County</h2><h3><a href="https://county.example/">www.county.example</a></h3>';
-    else if(url==='https://county.example/')body='<main><h1>Open bids</h1><p>1 open bids</p><table><tr><th>Bid number</th><th>Title</th><th>Work county</th><th>Work state</th><th>Deadline</th></tr><tr><td>26-1</td><td><a href="/bid/26-1">Janitorial services</a></td><td>Arkansas County</td><td>AR</td><td>2027-01-01</td></tr></table></main>';
+    else if(url==='https://county.example/')body='<main><h1>Open bids</h1><p>2 open bids</p><table><tr><th>Bid number</th><th>Title</th><th>Work county</th><th>Work state</th><th>Deadline</th></tr><tr><td>26-1</td><td><a href="/bid/26-1">Janitorial services</a></td><td>Arkansas County</td><td>AR</td><td>2027-01-01</td></tr><tr><td>26-2</td><td><a href="/bid/26-1">Janitorial services annex</a></td><td></td><td>AR</td><td>2027-01-01</td></tr></table></main>';
     else if(url==='https://county.example/bid/26-1')body='<main><h1>Janitorial services</h1><p>Bid 26-1; work county: Arkansas County, AR. Deadline: 2027-01-01.</p></main>';
     else throw Error(`Unexpected isolated county destination ${url}`);
     return new Response(body,{headers:{'content-type':'text/html'}});
   };
-  let discovery;
-  const workflow=hostedWorkflow({db,project,artifacts,audit,collectionFetch:fetcher,aiConfig:{enabled:false},
+  let discovery,aiCalls=0;
+  const workflow=hostedWorkflow({db,project,artifacts,audit,collectionFetch:fetcher,aiConfig:{enabled:true},
+    ai:async({packet})=>{if(++aiCalls>1){const error=Error('Fixture budget reached');error.code='ai_budget_reached';throw error;}
+      return {version:1,packet_hash:packet.packet_hash,reviewed_by:'fixture',reviewed_scope:'Fixture invalid AI',coverage:'partial',
+        findings:[],exclusions:[],unresolved:[{reason:'Invalid quotation fixture',evidence:[{run_id:packet.pages[0].run_id,locator:'saved document',excerpt:'This quotation never occurred'}]}]};},
     processJob:(job,c,save)=>discovery.step(job,c,save),reportError:(_id,error)=>errors.push(error)});
   discovery=discoveryService({db,project,artifacts,fetcher,transport:postgresTransport(livePool,project),rehearse:nativeRehearsal(rehearsalPool),
     continueCollection:workflow.continueVerifiedCollection,collect:async({requestId,sourceCode,planOnly})=>executeKnownSources({db,project,requestId,
@@ -34,6 +37,8 @@ export async function verifyAutomaticCounty({db,artifacts,audit,livePool,rehears
   const child=children.find(c=>c.role==='county');assert.ok(child);
   const status=await workflow.status(child.request_id);
   assert.equal(status.total_candidates,1,JSON.stringify(status.jobs));
+  const process=checked(await db.from('procurement_jobs').select('checkpoint').eq('search_request_id',child.request_id).eq('kind','process'));
+  assert.ok(process.some(job=>job.checkpoint.ai_rejected_task_ids?.length),'Invalid AI evidence falls back without stopping valid deterministic candidates');
   const sources=checked(await db.from('procurement_sources').select('id').eq('url','https://county.example/'));
   assert.equal(sources.length,1);
   const capabilities=checked(await db.from('procurement_source_capabilities').select('*').eq('source_id',sources[0].id));
@@ -56,6 +61,7 @@ export async function verifyAutomaticCounty({db,artifacts,audit,livePool,rehears
   const scheduledChildren=checked(await db.from('procurement_trigger_requests').select('*').eq('trigger_id',occurrences.items[0].trigger_id));
   const scheduledStatus=await workflow.status(scheduledChildren.find(c=>c.role==='county').request_id);
   assert.equal(scheduledStatus.total_candidates,1);
+  assert.ok(checked(await db.from('procurement_jobs').select('checkpoint').eq('search_request_id',scheduledChildren.find(c=>c.role==='county').request_id).eq('kind','process')).some(job=>job.checkpoint.ai_budget_reached),'Budget exhaustion retains deterministic candidates');
   assert.equal(calls.filter(url=>url.includes('arcounties.org')).length,directoryReads,'Verified method reused on scheduled run');
   assert.equal(checked(await db.from('procurement_sources').select('id').eq('url','https://county.example/')).length,1);
   assert.equal(checked(await db.from('procurement_leads').select('id').eq('source_id',sources[0].id)).length,0);

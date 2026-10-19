@@ -34,7 +34,8 @@ export function validateDiscoveryReview(packet,input,task) {
     throw new Error('Category quotation is not in saved capture');
   const spec=capability.method_spec;
   if(!Array.isArray(spec.urls)||spec.urls.some(url=>!packet.pages.some(p=>p.url===url))||
-    !packet.pages.some(p=>p.url===sourceSpec.url)||!packet.pages.some(p=>p.url===capability.official_entry_url))
+    !packet.pages.some(p=>p.url===sourceSpec.url||p.requested_url===sourceSpec.url)||
+    !packet.pages.some(p=>p.url===capability.official_entry_url||p.requested_url===capability.official_entry_url))
     throw new Error('Every destination and official identity require successful saved captures');
   const now=new Date().toISOString(),saved={...capability,availability:'active',verified_at:now,
     verified_until:new Date(Date.now()+30*86400000).toISOString(),
@@ -102,7 +103,7 @@ export function publicDiscovery({db,artifacts,persist,reconcileHandoffs,resolveS
     for(const id of c.run_ids) {
       const capture=checked(await db.from('procurement_public_captures').select('*').eq('run_id',id).single());
       const bytes=Buffer.from(capture.content_base64,'base64');if(sha(bytes)!==capture.content_sha256)throw new Error('Capture hash changed');
-      p.pages.push({run_id:id,url:capture.final_url,content_sha256:capture.content_sha256,content_type:capture.content_type,review:publicReview(bytes,capture.content_type)});
+      p.pages.push({run_id:id,url:capture.final_url,requested_url:capture.requested_url,content_sha256:capture.content_sha256,content_type:capture.content_type,review:publicReview(bytes,capture.content_type)});
     }
     c.packet_artifact=await artifacts.put(p);c.stage=c.automation_policy===automaticCountyPolicy?'discovery_verify':'discovery_review';
     c.next_action='Review captured category evidence and portal/API links, then submit an evidence-bound method; keep unsupported categories as gaps. Paid search is disabled under the strict cap';
@@ -130,7 +131,7 @@ export function publicDiscovery({db,artifacts,persist,reconcileHandoffs,resolveS
       const source=await one(db,'procurement_sources',c.seed_source_id);
       const packetBytes=await artifacts.get(c.packet_artifact),p={...JSON.parse(packetBytes),packet_hash:sha(packetBytes)};
       const failures=[];
-      if(task.kind==='opportunity'&&source&&!c.blocker)for(const page of p.pages) {
+      if(task.kind==='opportunity'&&source)for(const page of p.pages) {
         if(!/html/i.test(page.content_type))continue;
         const capture=checked(await db.from('procurement_public_captures').select('*').eq('run_id',page.run_id).single());
         if(!freshCapture(capture)){failures.push('Source evidence is stale; recapture required');continue;}
@@ -187,7 +188,7 @@ export function publicDiscovery({db,artifacts,persist,reconcileHandoffs,resolveS
     if(c.stage!=='discovery_capture')throw new Error('Discovery needs saved review, not repeat research');
     if(!c.queue.length||c.visited.length>=10){await finish(job,c,save);return;}
     const source=await one(db,'procurement_sources',c.seed_source_id),url=c.queue[0],host=new URL(source.url).hostname,start=Date.now();
-    const allowedHosts=[host,...(c.observed_hosts??[])];
+    const allowedHosts=[host,...(c.automation_policy===automaticCountyPolicy?[host.startsWith('www.')?host.slice(4):`www.${host}`]:[]),...(c.observed_hosts??[])];
     if(!safePublicUrl(url,allowedHosts))throw new Error('Discovery destination outside saved official host');
     const pageIndex=(c.page_offset??0)+c.visited.length;
     const prior=await rows(db,'procurement_runs',q=>q.eq('job_id',job.id).eq('page_index',pageIndex));let run=prior[0];

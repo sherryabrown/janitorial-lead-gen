@@ -52,8 +52,12 @@ export async function boundedInterpretation({db,requestId,actor,packet,config,fe
     }
     if(!Number.isInteger(count) || count<1 || count>8000)throw new Error('Input token limit exceeded');
     const id=randomUUID(),reserved=(count*c.inputUsdPerMillion+2000*c.outputUsdPerMillion)/1e6;
-    checked(await db.rpc('reserve_procurement_usage',{p_monthly_usd:config.monthlyUsd,p_entry:{id,request_id:requestId,
-      step_id:currentAudit()?.stepId??null,actor_id:actor,kind:'inference',provider,model:c.model,rate_version:c.rateVersion,input_tokens:count,output_tokens:2000,reserved_usd:reserved}}));
+    const reservation=await db.rpc('reserve_procurement_usage',{p_monthly_usd:config.monthlyUsd,p_entry:{id,request_id:requestId,
+      step_id:currentAudit()?.stepId??null,actor_id:actor,kind:'inference',provider,model:c.model,rate_version:c.rateVersion,input_tokens:count,output_tokens:2000,reserved_usd:reserved}});
+    if(['Request budget exhausted','Monthly budget exhausted'].includes(reservation.error?.message)) {
+      const error=Error('AI budget reached; no inference sent');error.code='ai_budget_reached';throw error;
+    }
+    checked(reservation);
     let response,data;
     try {
       response=await fetcher(provider==='openai'?'https://api.openai.com/v1/responses':'https://api.anthropic.com/v1/messages',{

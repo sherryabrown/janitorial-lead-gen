@@ -49,6 +49,16 @@ export function reviewedDiscoverySource(task,spec,sources,associations) {
   if(!seed||!associations.some(a=>a.source_id===seed.id))throw new Error('Existing official seed must belong to this request');
   return seed;
 }
+export function automaticRouteAssociation(capability,source,existingCaps) {
+  if(capability.verification_evidence?.automation_policy!=='county-public-v1')return capability;
+  const matches=existingCaps.filter(c=>c.source_id===source?.id&&c.kind===capability.kind&&c.method===capability.method&&c.endpoint_url===capability.endpoint_url);
+  if(matches.length>1)throw Error('Ambiguous existing source method identity');
+  const old=matches[0];
+  return {...capability,route_geography_id:old?.route_geography_id??capability.route_geography_id,
+    verification_evidence:{...capability.verification_evidence,route_geography_ids:[...new Set([
+      capability.route_geography_id,...(old?[old.route_geography_id]:[]),
+      ...(old?.verification_evidence?.automation_policy==='county-public-v1'?old.verification_evidence.route_geography_ids??[]:[])])].sort()}};
+}
 // Durable, versioned persistence entry point for a bounded researcher. It reuses the
 // existing registry planner, SQL validation and baseline guards; it does not trust a model's URL claim.
 export async function saveDiscoveredMethod({db,project,artifacts,transport,rehearse,requestId,taskId,sourceSpec,capability,actor,handoffs:researchedHandoffs=[],beforeSend=async()=>{}}) {
@@ -73,10 +83,7 @@ export async function saveDiscoveredMethod({db,project,artifacts,transport,rehea
   const before={project_ref:project,procurement_sources:sources,procurement_search_requests:requests,
     procurement_geographies:await rows(db,'procurement_geographies'),procurement_source_capabilities:existingCaps,procurement_request_sources:associations,procurement_intake_items:[]};
   const spec={version:1,project_ref:project,authorization:`Official method review by ${actor}; request ${requestId}`,requests:[{...requests[0],key:'request'}],
-    sources:[{...sourceSpec,existing_id:source?.id,request_keys:['request']}],capabilities:[{...capability,source_code:sourceSpec.code}]};
-  if(capability.verification_evidence?.automation_policy==='county-public-v1'&&existingCaps.some(c=>
-    c.source_id===source?.id&&c.kind===capability.kind&&c.method===capability.method&&c.endpoint_url===capability.endpoint_url&&
-    c.route_geography_id!==capability.route_geography_id))throw Error('Shared method route requires explicit scope reconciliation');
+    sources:[{...sourceSpec,existing_id:source?.id,request_keys:['request']}],capabilities:[{...automaticRouteAssociation(capability,source,existingCaps),source_code:sourceSpec.code}]};
   const manifest=planRegistry(spec,before);
   // A request association is not proof that every city in that request is
   // served by this agency. Automatic verification preserves registered scope.

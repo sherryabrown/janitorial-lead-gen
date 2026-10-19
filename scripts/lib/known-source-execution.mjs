@@ -7,6 +7,9 @@ export const categories = ['forecast', 'opportunity', 'award'];
 const samCodes = { opportunity: 'sam', award: 'sam-awards' };
 export const separateSamSource = (source, capability) =>
   ['sam', 'sam-awards'].includes(source?.code) || capability?.method_spec?.runner_id === 'sam-search';
+export const capabilityCoversRoute = (capability, geographyId) => capability.route_geography_id===geographyId ||
+  capability.verification_evidence?.automation_policy==='county-public-v1' &&
+  capability.verification_evidence.route_geography_ids?.includes(geographyId)===true;
 export function geographyJobs(jobs, tasks, sources, capabilities, selectedSourceCode) {
   const taskById = new Map(tasks.map(task => [task.id, task]));
   const sourceById = new Map(sources.map(source => [source.id, source]));
@@ -204,7 +207,7 @@ export function buildKnownSourcePlan(request, targets, geographies, capabilities
     const geography = geographyById.get(target.geography_id);
     if (!geography || !geography.source_active) fail(`Inactive route geography: ${target.geography_id}`);
     for (const [categoryIndex, kind] of requestedCategories(request).entries()) {
-      const attached = capabilities.filter(c => c.route_geography_id === geography.id && c.kind === kind);
+      const attached = capabilities.filter(c => capabilityCoversRoute(c,geography.id) && c.kind === kind);
       const verified = attached.filter(c => c.availability === 'active' &&
         c.verified_at && c.verified_until &&
         Date.parse(c.verified_at) <= now.getTime() && Date.parse(c.verified_until) > now.getTime() &&
@@ -252,7 +255,7 @@ export function buildKnownSourcePlan(request, targets, geographies, capabilities
     }
     for (const source of sources.filter(s => covers(s, geography))) {
       if (entrySources.has(source.id) || !registeredEntryContract(source, now) ||
-          capabilities.some(c => c.source_id === source.id && c.route_geography_id === geography.id &&
+          capabilities.some(c => c.source_id === source.id && capabilityCoversRoute(c,geography.id) &&
             c.availability === 'active' && ['public-fetch','ardot-table'].includes(c.method_spec?.runner_id) &&
             c.verified_until && Date.parse(c.verified_until) > now.getTime())) continue;
       entrySources.add(source.id);

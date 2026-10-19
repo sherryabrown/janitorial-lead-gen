@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { adapterContract, separateSamSource } from './known-source-execution.mjs';
+import { adapterContract, separateSamSource, capabilityCoversRoute } from './known-source-execution.mjs';
 
 const categories = ['forecast', 'opportunity', 'award'];
 const normalize = value => String(value ?? '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('en-US');
@@ -64,7 +64,7 @@ export function planSourceRoutes(routes, capabilities, sources, now = new Date()
   const seenCapabilities = new Set();
   return routes.map((geography, order) => {
     const perCategory = Object.fromEntries(categories.map(kind => {
-      const attached = capabilities.filter(c => c.route_geography_id === geography.id && c.kind === kind);
+      const attached = capabilities.filter(c => capabilityCoversRoute(c,geography.id) && c.kind === kind);
       const verified = attached.filter(c => c.availability === 'active' && c.verified_at && c.verified_until &&
         Date.parse(c.verified_at) <= now.getTime() && Date.parse(c.verified_until) > now.getTime() &&
         c.verification_evidence && Object.keys(c.verification_evidence).length > 0 &&

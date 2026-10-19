@@ -4,8 +4,19 @@ import {proposeAutomaticListing,inspectAutomaticListing} from '../scripts/lib/au
 import {countyProfile,directoryWebsite,resolveOfficialDirectory,countyDirectory,municipalWebsite,municipalLookup} from '../scripts/lib/official-directory.mjs';
 import {publicDiscovery,publicReview} from '../scripts/lib/official-link-discovery.mjs';
 import {createHash} from 'node:crypto';
+import {automaticRouteAssociation} from '../scripts/lib/hosted-discovery.mjs';
+import {capabilityCoversRoute} from '../scripts/lib/known-source-execution.mjs';
 const url='https://agency.example/bids';
 const listing='<main><h1>Open bids</h1><p>1 open bids</p><table><tr><th>Bid number</th><th>Title</th><th>Work county</th><th>Deadline</th></tr><tr><td>26-1</td><td><a href="/bid/26-1">Janitorial services</a></td><td>Saline</td><td>2026-11-30</td></tr></table></main>';
+test('automatic shared method retains its original route and only adds explicitly verified associations',()=>{
+  const old={id:'method',source_id:'source',kind:'opportunity',method:'browser',endpoint_url:url,route_geography_id:'city'};
+  const proposed={...old,route_geography_id:'county',verification_evidence:{automation_policy:'county-public-v1',run_ids:['capture']}};
+  const merged=automaticRouteAssociation(proposed,{id:'source'},[old]);
+  assert.equal(merged.route_geography_id,'city');assert.deepEqual(merged.verification_evidence.route_geography_ids,['city','county']);
+  assert.equal(capabilityCoversRoute(merged,'county'),true);assert.equal(capabilityCoversRoute(merged,'other'),false);
+  assert.equal(capabilityCoversRoute({...merged,verification_evidence:{route_geography_ids:['other']}},'other'),false);
+  assert.equal(automaticRouteAssociation(old,{id:'source'},[]),old);
+});
 test('automatic method verifies structured identities, actual work location, official links and terminal count',()=>{
   const {spec,listing:result}=proposeAutomaticListing(Buffer.from(listing),url);
   assert.equal(result.terminal,true);assert.equal(result.records[0].work_county,'Saline');
@@ -43,15 +54,15 @@ test('directory rejects ambiguous, unrelated and unsafe websites',()=>{
 
 test('automatic saved capture advances through verification, registration and collection without a review submission',async()=>{
   const hash=value=>createHash('sha256').update(value).digest('hex');
-  const body=Buffer.from(listing),source={id:'source',code:'official',name:'Official county',url,contracting_entity_geo_level:'county'};
+  const body=Buffer.from(listing),source={id:'source',code:'official',name:'Official county',url:'https://www.agency.example/bids',contracting_entity_geo_level:'county'};
   const capture={run_id:'run',source_id:source.id,content_base64:body.toString('base64'),content_sha256:hash(body),retrieved_at:new Date().toISOString()};
   const data={procurement_search_requests:[{id:'request'}],procurement_coverage_tasks:[{id:'task',target_id:'target',kind:'opportunity',route_geography_id:'county'}],
     procurement_request_targets:[{id:'target',search_request_id:'request'}],procurement_sources:[source],procurement_public_captures:[capture]};
   const db={from(table){const filters=[];const q={select:()=>q,eq:(key,value)=>{filters.push(r=>r[key]===value);return q;},
     maybeSingle:async()=>({data:data[table].find(r=>filters.every(f=>f(r)))}),single:async()=>({data:data[table].find(r=>filters.every(f=>f(r)))})};return q;}};
   const saved=new Map(),artifacts={put:async value=>{const bytes=Buffer.from(JSON.stringify(value)),id=hash(bytes);saved.set(id,bytes);return id;},get:async id=>saved.get(id)};
-  const packet={seed_source_id:'source',pages:[{run_id:'run',url,content_type:'text/html',content_sha256:hash(body),review:publicReview(body,'text/html')}],links:[]};
-  const c={stage:'discovery_verify',task_id:'task',seed_source_id:'source',automation_policy:'county-public-v1',packet_artifact:await artifacts.put(packet)};
+  const packet={seed_source_id:'source',pages:[{run_id:'run',url,requested_url:source.url,content_type:'text/html',content_sha256:hash(body),review:publicReview(body,'text/html')}],links:[]};
+  const c={stage:'discovery_verify',task_id:'task',seed_source_id:'source',automation_policy:'county-public-v1',packet_artifact:await artifacts.put(packet),blocker:'An unrelated linked detail returned HTTP 404'};
   const events=[];let registered;
   const service=publicDiscovery({db,artifacts,persist:async review=>{registered=review;events.push('persist');return {receipt:{verified:true}};},
     collect:async args=>{events.push(args.planOnly?'plan':'collect');return {};},continueCollection:async()=>events.push('continue')});
