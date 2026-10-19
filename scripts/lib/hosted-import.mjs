@@ -97,7 +97,7 @@ export function packageApproval(p) {
   return hash({version:p.version,policy:p.policy,review:p.review,runs:p.runs,before:p.before,schema:p.schema,
     manifest:p.manifest,sql:p.sql,test:p.test,schema_sha256:p.schema_sha256,sql_sha256:p.sql_sha256});
 }
-export async function applyImport({db,project,transport,artifacts,packageData,approval}) {
+export async function applyImport({db,project,transport,artifacts,packageData,approval,beforeSend,revalidateBaseline=false}) {
   const p=packageData;
   const rebuilt=planReviewedBatch(p.before,p.review,p.runs??[]),sql=reconciliationSql(rebuilt);
   if(p.version!==2||p.policy!==rehearsalPolicy||p.test?.status!=='native_tests_passed'||p.test.policy!==rehearsalPolicy||
@@ -110,9 +110,14 @@ export async function applyImport({db,project,transport,artifacts,packageData,ap
   if(schemaHash(await transport.schema())!==p.schema_sha256)throw new Error('Live schema drift; prepare a new reviewed package');
   await assertCurrentReview(db,p.review);
   const before=await importSnapshot(db,project,p.review,p.manifest);
+  if(revalidateBaseline){
+    const current=planReviewedBatch(before,p.review,p.runs??[]);
+    if(hash(current.records)!==hash(p.manifest.records)||hash(current.decisions)!==hash(p.manifest.decisions))
+      throw Error('Canonical import baseline changed before send; regenerate the tested package');
+  }
   // Intent is durable before a transaction is sent. Caller must also checkpoint its action lease.
   const intent=await artifacts.put({status:'applying',approval,at:new Date().toISOString()});
-  await auditPhase('apply_import',()=>transport.apply(sql));
+  await auditPhase('apply_import',()=>{beforeSend?.();return transport.apply(sql);});
   const {receipt}=await auditPhase('readback',async()=>{const after=await importSnapshot(db,project,p.review,p.manifest);return {after,receipt:verifyBatch(before,after,p.manifest)};});
   const artifact=await artifacts.put({...receipt,approval,intent,at:new Date().toISOString()});
   if(!receipt.verified)throw new Error('Import readback did not verify; reconcile before retry');

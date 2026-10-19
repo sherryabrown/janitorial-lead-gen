@@ -182,3 +182,31 @@ test('automatic SAM awards use full existing identities and preserve sales field
   assert.equal(repeated.summary.new_leads,0);assert.equal(repeated.records[0].id,id(77));
   assert.deepEqual(repeated.records[0].payload,f.before.procurement_leads[0].payload);
 });
+
+
+test('automatic SAM collection and preparation wait for uncertain automatic imports but leave manual imports alone',async()=>{
+  const f=setup(),uncertain={id:id(99),state:'outcome_unknown',checkpoint:{stage:'import_reconcile',automatic:{policy:samAutomaticPolicy}}};
+  const service=importJobs({...f,db:{from(){const q={select(){return q;},like(){return q;},in(){return q;},order(){return q;},range(){return q;},then(resolve){resolve({data:[uncertain]});}};return q;}}});
+  await assert.rejects(service.assertAutomaticCollectable(),/Reconcile the saved uncertain SAM import/);
+  await assert.rejects(service.prepareAutomatic(f.review.request_id),/Reconcile the saved uncertain SAM import/);
+  delete uncertain.checkpoint.automatic;await service.assertAutomaticCollectable();
+});
+
+
+test('automatic SAM revalidates a known unsent precondition failure once without treating it as an unknown commit',async()=>{
+  const f=setup(),capture=JSON.parse(readFileSync('tests/fixtures/sam/20bc470d-bfd8-4bd7-a4e0-926cdcd3696d.json','utf8'));
+  const candidate={...f.item,...samIntakeRows(collectRuns([capture],[capture.run_id]),code=>f.before.procurement_sources.find(s=>s.code===code).id)[0]};
+  f.before.procurement_intake_items=[candidate];f.before.procurement_jobs=[{search_request_id:f.review.request_id,dedupe_key:'api-sam:test',checkpoint:{stage:'sam_review',run_ids:[capture.run_id],intake_ids:[candidate.id]}}];
+  const built=automaticSamReview({request:{id:f.review.request_id,initiated_by:f.actor},candidates:[candidate],runs:[capture],snapshot:f.before,partial:false});
+  const c={stage:'import_prepare',actor_id:f.actor,review:built.review,runs_artifact:await f.artifacts.put([capture]),automatic:{policy:samAutomaticPolicy,key:built.key,exclusions:[]}};
+  const service=importJobs({...f,db:{from(table){const q=f.db.from(table),originalThen=q.then;let guard=false;q.like=()=>{guard=true;return q;};q.then=resolve=>guard?resolve({data:[]}):originalThen(resolve);return q;}}});
+  // Preparation uses the ordinary bound review DB; the guard-only DB is used for application.
+  await importJobs(f).step({id:id(71)},c,async()=>{});
+  const prepared=structuredClone(c);let writes=0;f.transport.apply=async()=>{writes++;};f.transport.schema=async()=>schema;
+  const pkg=JSON.parse((await f.artifacts.get(c.package_artifact)).toString()),record=pkg.manifest.records[0];
+  f.before.procurement_leads=[{...baseline.procurement_leads[0],id:id(88),source_id:record.source_id,external_id:record.external_id,payload:record.payload,search_term_used:record.search_term_used}];
+  await service.step({id:id(71),search_request_id:f.review.request_id},c,async()=>{});
+  assert.equal(writes,0);assert.equal(c.stage,'import_prepare');assert.equal(c.reprepare_count,1);
+  const exhausted={...prepared,reprepare_count:1};await service.step({id:id(71),search_request_id:f.review.request_id},exhausted,async()=>{});
+  assert.equal(exhausted.stage,'import_precondition_failed');assert.equal(writes,0);
+});

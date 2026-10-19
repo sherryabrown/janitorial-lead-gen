@@ -33,9 +33,15 @@ export function importJobs({db,project,transport,artifacts,samSavedRuns,rehearse
     const job=(await rows(db,'procurement_jobs',q=>q.eq('dedupe_key',dedupe)))[0];
     return {job_id:job.id,state:job.state,next_action:'Read import job status; approve the exact tested hash when ready'};
   }
+  async function assertAutomaticCollectable() {
+    const jobs=await rows(db,'procurement_jobs',q=>q.like('dedupe_key','api-import:%').in('state',['blocked','outcome_unknown']),'id,state,checkpoint');
+    if(jobs.some(j=>j.checkpoint?.automatic?.policy===samAutomaticPolicy&&j.checkpoint?.stage==='import_reconcile'))
+      {const error=Error('Reconcile the saved uncertain SAM import before collecting or saving another SAM result');error.code='sam_import_reconciliation_required';throw error;}
+  }
   async function prepare(requestId,review,actor) {return prepareInternal(requestId,review,actor);}
   // Internal worker entry point only; no HTTP flag can grant automatic authority.
   async function prepareAutomatic(requestId) {
+    await assertAutomaticCollectable();
     const jobs=await rows(db,'procurement_jobs',q=>q.eq('search_request_id',requestId));
     const sam=jobs.find(j=>j.dedupe_key===`api-sam:${requestId}`&&j.checkpoint?.stage==='sam_review');
     if(!sam||!samSavedRuns)throw Error('Saved SAM processing context required');
@@ -95,14 +101,28 @@ export function importJobs({db,project,transport,artifacts,samSavedRuns,rehearse
       }else{c.stage='import_awaiting_approval';c.next_action='Approve the exact tested batch hash';await save('blocked');}
     } else if(c.stage==='import_apply') {
       const p=JSON.parse((await artifacts.get(c.package_artifact)).toString());
+      if(c.automatic)await assertAutomaticCollectable();
       if(c.automatic&&(c.automatic.policy!==samAutomaticPolicy||c.authorization?.tested_sha256!==c.approval_sha256||
         p.review.authorization?.version!==samAutomaticPolicy||p.review.request_id!==job.search_request_id))
         throw Error('Exact automatic SAM policy/package context required');
       c.stage='import_reconcile';c.next_action='If interrupted, reconcile live readback before any retry';
       await save('running');
-      c.receipt=await applyImport({db,project,transport,artifacts,packageData:p,approval:c.approval_sha256});
+      let sent=false;
+      try {c.receipt=await applyImport({db,project,transport,artifacts,packageData:p,approval:c.approval_sha256,revalidateBaseline:Boolean(c.automatic),beforeSend:()=>{sent=true;}});}
+      catch(error){
+        if(c.automatic&&!sent){
+          if(error.code==='schedule_paused'){c.stage='import_apply';await save('pending');throw error;}
+          if((c.reprepare_count??0)<1){
+            c.previous_packages=[...(c.previous_packages??[]),c.package_artifact];c.reprepare_count=(c.reprepare_count??0)+1;
+            c.review=p.review;c.runs_artifact=await artifacts.put(p.runs??[]);c.stage='import_prepare';
+            c.next_action='Revalidating changed SAM import inputs before any database write';await save('pending');return;
+          }
+          c.stage='import_precondition_failed';c.next_action='Automatic write did not start; saved inputs or schema need correction';await save('blocked');return;
+        }
+        throw error;
+      }
       c.stage='import_verified';c.next_action='Review imported leads';await save('succeeded');
     } else {c.next_action='Reconcile saved import outcome before retry';await save('outcome_unknown');}
   }
-  return {prepare,prepareAutomatic,status,approve,reconcile,step};
+  return {prepare,prepareAutomatic,assertAutomaticCollectable,status,approve,reconcile,step};
 }

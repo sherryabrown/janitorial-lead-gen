@@ -66,3 +66,10 @@ test('SAM packet counts provenance-only canonical matches as unchanged, not as m
   const sam=statewideSam({db,artifacts:{get:async()=>Buffer.from(JSON.stringify(capture))}});
   const packet=await sam.packet(requestId);assert.equal(packet.automatic.unchanged,1);assert.equal(packet.canonical_writes,0);assert.equal(packet.automatic.verified,true);
 });
+
+
+test('uncertain import guard prevents another provider send and preserves the unsent collection checkpoint',async()=>{
+  let sends=0;const sam=statewideSam({validateCollection:async()=>{throw Error('Reconcile prior import');},fetcher:async()=>{sends++;}});
+  const c={stage:'sam_collect'};await assert.rejects(sam.step({},c,async()=>{}),/Reconcile prior import/);
+  assert.equal(sends,0);assert.equal(c.stage,'sam_collect');assert.equal(c.request_attempt_id,undefined);
+});

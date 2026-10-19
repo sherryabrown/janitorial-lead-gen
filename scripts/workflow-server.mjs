@@ -33,7 +33,7 @@ const provider=name=>({key:env[`${name}_API_KEY`],model:env[`${name}_MODEL`],rat
   inputUsdPerMillion:Number(env[`${name}_INPUT_USD_PER_MILLION`]),outputUsdPerMillion:Number(env[`${name}_OUTPUT_USD_PER_MILLION`])});
 const aiConfig={enabled:env.PROCUREMENT_AI_ENABLED==='true',monthlyUsd:Number(env.PROCUREMENT_MONTHLY_AI_USD??0),
   openai:provider('OPENAI'),anthropic:provider('ANTHROPIC')};
-const sam=statewideSam({db,project,serverKey:()=>env.SUPABASE_SERVICE_ROLE_KEY,artifacts,automaticImport:id=>imports.prepareAutomatic(id)});
+const sam=statewideSam({db,project,serverKey:()=>env.SUPABASE_SERVICE_ROLE_KEY,artifacts,automaticImport:id=>imports.prepareAutomatic(id),validateCollection:()=>imports.assertAutomaticCollectable()});
 const imports=importJobs({db,project,transport,artifacts,samSavedRuns:sam.savedRuns,
   rehearse:rehearsalPool?nativeRehearsal(rehearsalPool):null});
 const workflow=hostedWorkflow({db,project,serverKey:()=>env.SUPABASE_SERVICE_ROLE_KEY,artifacts,aiConfig,audit,processJob:(job,c,save)=>

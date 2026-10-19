@@ -200,7 +200,7 @@ try {
   const rehearsalPool=new pg.Pool({host:'127.0.0.1',port:dbPort,user:'procurement_rehearsal_backend',database:'postgres',max:1});
   try {
     const project='zreplhkoxswtzxlchtjf';
-    samWorker=statewideSam({db,project,serverKey:()=> 'private-offline',artifacts,fetcher:samFetcher,automaticImport:id=>automaticImports.prepareAutomatic(id)});
+    samWorker=statewideSam({db,project,serverKey:()=> 'private-offline',artifacts,fetcher:samFetcher,automaticImport:id=>automaticImports.prepareAutomatic(id),validateCollection:()=>automaticImports.assertAutomaticCollectable()});
     automaticImports=importJobs({db,project,transport:postgresTransport(livePool,project),artifacts,samSavedRuns:samWorker.savedRuns,rehearse:nativeRehearsal(rehearsalPool)});
     const fixture=JSON.parse(readFileSync('tests/fixtures/sam/20bc470d-bfd8-4bd7-a4e0-926cdcd3696d.json','utf8')).response.opportunitiesData[0];
     const notice={...fixture,noticeId:'11111111111111111111111111111111',type:'Combined Synopsis/Solicitation',title:'Native automatic janitorial check',postedDate:'2026-10-13',responseDeadLine:'2030-11-04T10:00:00-06:00',naicsCode:'561720',placeOfPerformance:{state:{code:'AR'}}};

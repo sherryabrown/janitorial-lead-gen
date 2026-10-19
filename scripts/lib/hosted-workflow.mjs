@@ -240,6 +240,10 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
       } else throw new Error('Unsupported saved workflow stage');
     } catch(error) {
       if(error.code==='schedule_paused') {await save('pending');return true;}
+      if(error.code==='sam_import_reconciliation_required'&&checkpoint.stage.startsWith('sam_')){
+        checkpoint.error_code=error.code;checkpoint.next_action='Reconcile the previous SAM database result before collecting or saving more SAM records';
+        await save('blocked');return true;
+      }
       checkpoint.error_code='workflow_stage_failed';
       checkpoint.diagnostic_id=randomUUID();
       checkpoint.next_action='Review the saved workflow blocker and server diagnostics before resuming';

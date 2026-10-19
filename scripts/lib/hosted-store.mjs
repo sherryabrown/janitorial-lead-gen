@@ -14,6 +14,7 @@ export function publicJobAction(job) {
   if(job.checkpoint?.hosted_browser_attempt?.failure_code==='human_verification_required')
     return 'Official project verification is required; review saved evidence and access before explicitly resuming';
   const stage = job.checkpoint?.stage ?? '';
+  if(job.checkpoint?.error_code==='sam_import_reconciliation_required')return 'Reconcile the previous SAM database result before collecting or saving more SAM records';
   if (job.state === 'outcome_unknown' || stage === 'import_reconcile') return 'Reconcile saved evidence before retrying';
   if (stage === 'import_awaiting_approval') return 'Approve the exact tested batch hash';
   if (stage === 'discovery_review') return 'Review the saved official-source discovery packet';

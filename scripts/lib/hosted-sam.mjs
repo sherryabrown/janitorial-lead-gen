@@ -6,7 +6,7 @@ import {resolveSamAwardLinks} from './api-record-links.mjs';
 import {samRequest} from './sam-request.mjs';
 import {auditPhase} from './workflow-audit.mjs';
 import {randomUUID} from 'node:crypto';
-export function statewideSam({db,project,serverKey,artifacts,fetcher=fetch,automaticImport}) {
+export function statewideSam({db,project,serverKey,artifacts,fetcher=fetch,automaticImport,validateCollection}) {
   async function history({offset=0,limit=50}={}) {
     const jobs=checked(await db.from('procurement_jobs').select('id,search_request_id,state,checkpoint,created_at').like('dedupe_key','api-sam:%')
       .order('created_at',{ascending:false}).order('id').range(offset,offset+limit));
@@ -157,6 +157,7 @@ export function statewideSam({db,project,serverKey,artifacts,fetcher=fetch,autom
     if(c.stage==='sam_stage') {await auditPhase('stage',()=>stage(c));await save(automaticImport?'pending':'blocked');return;}
     if(!['sam_collect','sam_reconcile'].includes(c.stage))throw new Error('Unknown SAM checkpoint');
     if(c.stage==='sam_reconcile') {c.next_action='Inspect SAM audit runs for this saved attempt before resending';await save('outcome_unknown');return;}
+    if(validateCollection)await validateCollection();
     c.stage='sam_reconcile';c.attempted_at=new Date().toISOString();c.request_attempt_id=randomUUID();c.request_job_id=job.id;await save('running');
     const key=serverKey();
     let response,data;

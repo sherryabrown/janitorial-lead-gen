@@ -7,7 +7,7 @@ import { makeInterpretationPacket } from '../scripts/lib/known-source-workflow.m
 import { extractionKey,verifyEvidenceSpans,extractFacts,evaluateFacts,cacheReviewedFacts } from '../scripts/lib/hosted-interpretation.mjs';
 import { validateFindingBounds,hostedWorkflow } from '../scripts/lib/hosted-workflow.mjs';
 import { quotaExhausted,boundedInterpretation } from '../scripts/lib/hosted-ai.mjs';
-import { encryptSession,decryptSession,artifactStore } from '../scripts/lib/hosted-store.mjs';
+import { encryptSession,decryptSession,artifactStore,publicJobAction } from '../scripts/lib/hosted-store.mjs';
 import { context,result,id } from './helpers/known-workflow.mjs';
 import { pdfFixture } from './helpers/valid-pdf.mjs';
 
@@ -215,4 +215,19 @@ test('explicit primary quota rejection permits backup; an unknown call never swi
     urls.push(url);if(url.includes('input_tokens'))return reply({input_tokens:100});throw new Error('network outcome unknown');
   }}),/outcome unknown/);
   assert.equal(writes.at(-1).state,'outcome_unknown');assert.equal(urls.some(u=>u.includes('anthropic')),false);
+});
+
+
+test('uncertain automatic SAM imports expose a specific safe continuation without a failed provider attempt',async()=>{
+  const request={id:id(92),workflow_control:{}};
+  const job={id:id(93),search_request_id:request.id,lease_token:'fixture',checkpoint:{stage:'sam_collect'}};let claimed=false;
+  const db={from(){const q={select(){return q;},eq(){return q;},maybeSingle:async()=>({data:request})};return q;},async rpc(name,args){
+    if(name==='claim_procurement_workflow_job'){const data=claimed?null:job;claimed=true;return {data};}
+    if(name==='checkpoint_procurement_workflow'){job.checkpoint=structuredClone(args.p_checkpoint);job.state=args.p_state;return {data:true};}throw Error('Unexpected RPC');
+  }};
+  const workflow=hostedWorkflow({db,processJob:async()=>{const error=Error('Reconcile previous import');error.code='sam_import_reconciliation_required';throw error;},reportError:()=>assert.fail('Known guard should not expose provider diagnostics')});
+  assert.equal(await workflow.step(),true);assert.equal(job.state,'blocked');
+  assert.equal(job.checkpoint.error_code,'sam_import_reconciliation_required');
+  assert.match(publicJobAction(job),/Reconcile the previous SAM database result/);
+  assert.equal(job.checkpoint.request_attempt_id,undefined);
 });
