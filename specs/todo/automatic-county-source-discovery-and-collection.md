@@ -2,7 +2,7 @@
 
 Status: return implementation released and manual/repeat/scheduled execution verified October 19, 2026. Full source-coverage acceptance remains incomplete; keep in todo. Netlify production remains unchanged. Preserve all existing behavior outside automatic county collection.
 
-Implementation and live evidence: [build report](../../docs/reviews/2026-10-19-automatic-county-build.md).
+Implementation and live evidence: [earlier build report](../../docs/reviews/2026-10-19-automatic-county-build.md) and [current agent public-source research](../../docs/reviews/2026-10-19-saline-public-source-research.md). The user's latest direction requires no paid search provider; saved verified public methods are reused by the application.
 
 ### Return checkpoint
 
