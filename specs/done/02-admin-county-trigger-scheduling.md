@@ -1,6 +1,6 @@
 # 02 — Durable county schedules
 
-Parent requirements/prompt: [Admin county triggers](admin-county-triggers.md). Dependency: [01 complete locally](../done/01-admin-county-trigger-execution-and-audit.md); use [the established API/audit contract](../../docs/ADMIN-TRIGGERS.md). Production rollout is separate from local verification. Reuse its typed county-scope/state-source trigger configuration, coordinator, usage grouping and actor/audit model. County schedules include all incorporated cities plus county sources by default; independent state-source schedules execute separately. Do not create a second collector or import path.
+Parent requirements/prompt: [Admin county triggers](../todo/admin-county-triggers.md). Dependency: [01 complete locally](../done/01-admin-county-trigger-execution-and-audit.md); use [the established API/audit contract](../../docs/ADMIN-TRIGGERS.md). Production rollout is separate from local verification. Reuse its typed county-scope/state-source trigger configuration, coordinator, usage grouping and actor/audit model. County schedules include all incorporated cities plus county sources by default; independent state-source schedules execute separately. Do not create a second collector or import path.
 
 ## Persistence and controls
 
@@ -39,3 +39,12 @@ Final local gates: `npm run check` passed (21 app tests, 257 workflow tests, SQL
 ## Host deployment update — October 18, 2026
 
 Commit/push and Render/Netlify deployment authorized. The three Admin trigger/scheduling migrations are installed and recorded in production migration history; readback confirms scheduler disabled. Older migration-history gaps remain unchanged. `npm run check` passed again before release. Host deploy receipts/live readback are retained privately under outputs/deployment/admin-scheduling/. Recurring-job activation and the required production app-closed acceptance remain outstanding, so this plan stays in todo.
+
+
+## Production activation and completion — October 18, 2026
+
+SUCCESS. The matching private Vault/Render wake key is live; one every-minute pg_cron/pg_net dispatcher is active on the existing free infrastructure. AI enabled=true, monthly cap USD 10, all provider settings and budgets are unchanged. No paid calls were used in acceptance.
+
+Natural scheduled execution, actual per-step zero-AI usage, concurrent duplicate ticks, a real Render restart, pending-only Cron recovery, pause across the next due instant, privacy/auth checks, idle dispatch and cleanup passed. Both test schedules are archived and temporary accounts soft-deleted; original jobs and unrelated settings are preserved. See [deployment evidence and rollback](../../docs/ADMIN-SCHEDULING-DEPLOYMENT.md). Earlier pending statuses above are historical and superseded by this result.
+
+Local gates passed again: npm run check (21 app/257 workflow tests, SQL gates, lint/build), npm run test:access (real isolated PostgreSQL/PostgREST), and git diff --check. No UI changes; Bonfire/Euna remains deferred. Next: [03 Admin UI and county map](../todo/03-admin-county-trigger-ui.md).

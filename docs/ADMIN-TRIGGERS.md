@@ -1,6 +1,6 @@
 # Admin trigger execution API
 
-Parts 01/02 backend contract, updated October 18, 2026. Admin/scheduling migrations are installed; host rollout is documented in [the deployment record](ADMIN-SCHEDULING-DEPLOYMENT.md). No Admin screen or recurring scheduler is activated.
+Parts 01/02 backend contract, updated October 18, 2026. Admin/scheduling migrations are installed; host rollout is documented in [the deployment record](ADMIN-SCHEDULING-DEPLOYMENT.md). The recurring dispatcher is activated and live-accepted; the Admin screen remains part 03.
 
 All endpoints use the existing Supabase bearer authentication and exact allowed origins. Every signed-in user can manage triggers; no extra Admin role is introduced. Tables, audit records, research checkpoints, usage reservations and submission/control RPCs remain server-only. Existing standalone geography/SAM/lead APIs keep their behavior.
 
@@ -58,11 +58,11 @@ Step/trigger usage shows `ai` as `not_used`, `used` or `unknown`; actual input/o
 
 ## Local verification
 
-The Admin tests use the real baseline/migration chain in offline PGlite and the shared planner. The real isolated PostgreSQL/PostgREST gate also verifies private access denial, atomic replay and concurrent shared AI reservations. No production/provider action is needed for these gates. Apply the forward migration and deploy the reviewed backend separately when authorized; parts 02/03 depend on this API.
+The Admin tests use the real baseline/migration chain in offline PGlite and the shared planner. The real isolated PostgreSQL/PostgREST gate also verifies private access denial, atomic replay and concurrent shared AI reservations. No production/provider action is needed for these local gates. The forward migrations/backend are deployed and part 02 passed production scheduling acceptance; part 03 consumes this API.
 
-## Durable scheduling API (part 02, local)
+## Durable scheduling API (part 02)
 
-Schedules reuse trigger preview, coordinator, source adapters, step audits and usage envelopes. Production activation is separate; see [deployment record](ADMIN-SCHEDULING-DEPLOYMENT.md). No Admin screen is introduced in this part.
+Schedules reuse trigger preview, coordinator, source adapters, step audits and usage envelopes. Production activation/live acceptance passed October 18; see [deployment record](ADMIN-SCHEDULING-DEPLOYMENT.md). No Admin screen is introduced in this part.
 
 Authenticated routes: GET/POST `/v1/schedules`; POST `/v1/schedules/preview`; GET `/v1/schedules/:id`; GET `/:id/occurrences` and `/:id/events`; POST `/:id/update`, `/:id/pause`, `/:id/resume`, `/:id/archive`, `/:id/run-now`. Create and Run now require `Idempotency-Key`; edits/controls/Run now require `expected_version`. Save requires `confirmed_scope:true` and the schedule `preview_hash`. Lists use offset/limit (maximum 100). GET `/v1/scheduler/status` reports activation/extension/delivery state and whether the backend private key is configured; it exposes no secrets.
 

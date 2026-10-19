@@ -1,6 +1,6 @@
 # Procurement backend API (v1)
 
-Current local code contract, reconciled October 13, 2026. This cleanup performs no deployment or live verification. Dated production acceptance is listed below; it does not attest today's provider availability or deployment revision. [Earlier documentation checkpoints](reviews/2026-10-13-backend-document-history.md) are preserved as history.
+Backend code contract, updated October 18, 2026. Scheduler deployment/live acceptance is recorded in [the deployment record](ADMIN-SCHEDULING-DEPLOYMENT.md); it does not attest every provider's current availability. [Earlier documentation checkpoints](reviews/2026-10-13-backend-document-history.md) are preserved as history.
 
 ## Responsibilities and authentication
 
@@ -12,7 +12,7 @@ Request submissions require `Idempotency-Key` (8–100 letters, digits, undersco
 
 ## Admin execution addition — October 13
 
-[Admin trigger API](ADMIN-TRIGGERS.md) adds multi-county/state-source execution, private step auditing and shared parent budgets. Admin/scheduling migrations were installed October 18, 2026; no Admin frontend or recurring scheduler is activated. Part 02 adds the durable scheduling API and private dispatcher; see [rollout status](ADMIN-SCHEDULING-DEPLOYMENT.md). Existing standalone routes below retain their contract. Admin child usage reports actual provider consumption rather than reservation estimates.
+[Admin trigger API](ADMIN-TRIGGERS.md) adds multi-county/state-source execution, private step auditing and shared parent budgets. Admin/scheduling migrations were installed October 18, 2026; the recurring scheduler is activated and live-accepted, while the Admin frontend remains part 03. Part 02 adds the durable scheduling API and private dispatcher; see [rollout status](ADMIN-SCHEDULING-DEPLOYMENT.md). Existing standalone routes below retain their contract. Admin child usage reports actual provider consumption rather than reservation estimates.
 
 ## Routes
 
@@ -71,7 +71,7 @@ Version-2 import packages bind manifest, baseline, evidence, schema, SQL/test di
 
 Durable Supabase jobs hold leases/checkpoints; private `procurement-private` Storage holds immutable artifacts and encrypted sessions. Extraction facts and usage reservations have private tables. CLI and host share geography, source collection, interpretation and reviewed-import services.
 
-The worker wakes from actual request/status traffic and processes bounded stages for up to two minutes per kick. Remaining pending work requires another wake. Part 02 provides schedule CRUD and a durable private dispatcher for due schedules/pending continuations after deployment/activation. No artificial keepalive is issued. Cancellation stops new work without undoing committed records.
+The worker wakes from actual request/status traffic and processes bounded stages for up to two minutes per kick. Remaining pending work requires another wake. Part 02 provides schedule CRUD and a durable private dispatcher for due schedules/pending continuations after activation (completed October 18; live evidence in ADMIN-SCHEDULING-DEPLOYMENT.md). No artificial keepalive is issued. Cancellation stops new work without undoing committed records.
 
 The server injects collection into `discoveryService`, selecting bounded `official-link-discovery.mjs`, not its no-collector fallback. It follows saved official-host links: one page per checkpoint, maximum ten pages and 2 MB/page. External portal/developer links are saved for review. New-source research needs an associated official seed; reviewed category evidence, native registry rehearsal and guarded readback precede method activation. No paid web-search/inference discovery calls run. Registered methods feed the existing capture/review/import path. Login, entry accessibility or a shell response is not lead coverage.
 

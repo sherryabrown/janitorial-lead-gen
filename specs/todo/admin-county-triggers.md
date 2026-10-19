@@ -49,7 +49,7 @@ After Run now: retain selection; show queued activity and focus its progress row
 ## Plans and order
 
 1. [01: execution and step audit](../done/01-admin-county-trigger-execution-and-audit.md): shared trigger model, automatic source routing, usage attribution and sanitized APIs.
-2. [02: durable schedules](02-admin-county-trigger-scheduling.md): recurrence, atomic occurrences, wake/continuation and recovery without a browser.
+2. [02: durable schedules complete](../done/02-admin-county-trigger-scheduling.md): recurrence, atomic occurrences, wake/continuation and recovery without a browser.
 3. [03: Admin UI and county map](03-admin-county-trigger-ui.md): current-style map/form/schedules/activity/review wiring and legacy Generate UI replacement.
 
 The screen can be developed against shared fixtures once 01's API contract is set. Do not release enabled scheduling until 02 passes browser-closed/restart acceptance. Each plan includes meaningful tests and completion criteria; move each independently to done after success. Update links in this coordinator as plans move. Move the coordinator only after all three parts pass together.
@@ -72,6 +72,6 @@ Official [Arkansas GIS county layer 48](https://gis.arkansas.gov/arcgis/rest/ser
 
 All three plans pass local lint/app/workflow/SQL/build and applicable real isolated access gates. UI verified at desktop/mobile widths, keyboard-only operation, map/list parity and visual match. Scheduling runs with app closed and survives duplicate ticks/restart without duplicate captures or imports. Per-step AI usage is attributable, unknown usage stays unknown, and totals are not double-counted. Perform authorized infrastructure/provider acceptance only after local gates and reviewable configuration are ready; document any deployment prerequisite rather than claiming a mock is live.
 
-Part 01 is complete locally: [API contract](../../docs/ADMIN-TRIGGERS.md) and [build/verification report](../../docs/reviews/2026-10-13-admin-trigger-execution-build.md). Scheduling/map/UI remain planned.
+Parts 01/02 backend is deployed and scheduling passed production acceptance October 18: [API contract](../../docs/ADMIN-TRIGGERS.md) and [build/verification report](../../docs/reviews/2026-10-13-admin-trigger-execution-build.md). The map/Admin UI remain part 03.
 
-Next: build 02, then 03. Preserve this coordinator until their integrated acceptance passes.
+Next: build 03. Preserve this coordinator until their integrated acceptance passes.

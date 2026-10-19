@@ -1,6 +1,6 @@
 # 03 — Admin UI and Arkansas county map
 
-Parent requirements/prompt/layout: [Admin county triggers](admin-county-triggers.md). Dependencies: [01 API/audit contract implemented locally](../../docs/ADMIN-TRIGGERS.md), 02 durable scheduling. Build against fixtures while dependencies are local; production schedule activation requires 02 acceptance. Preserve current user changes and existing queue behavior.
+Parent requirements/prompt/layout: [Admin county triggers](admin-county-triggers.md). Dependencies: [01 deployed API/audit contract](../../docs/ADMIN-TRIGGERS.md), [02 durable scheduling accepted in production](../done/02-admin-county-trigger-scheduling.md). Use fixtures for local UI verification; the scheduling dependency is live-accepted. Preserve current user changes and existing queue behavior.
 
 ## Components and integration
 
