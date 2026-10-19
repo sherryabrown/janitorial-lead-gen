@@ -23,6 +23,15 @@ async function fixture() {
     workflow:{status:async()=>({total_candidates:0})}});
   return {sql,db,audit,service,calls};
 }
+test('a planning failure cannot appear completed just because it created no coverage tasks',async()=>{
+  const {sql,service}=await fixture();try {
+    const config={...input,maintain_sources:false},preview=await service.preview(config);
+    const run=await service.submit({...config,confirmed_scope:true,preview_hash:preview.preview_hash},actor,'blocked-before-plan');
+    await sql.exec("update procurement_jobs set state='blocked',checkpoint=jsonb_build_object('stage','plan','error_code','workflow_stage_failed')");
+    assert.equal((await sql.query('select count(*)::int n from procurement_coverage_tasks')).rows[0].n,0);
+    await service.step();assert.equal((await service.status(run.trigger_id)).state,'needs_review');
+  }finally{await sql.close();}
+});
 test('confirmed multi-county submission is atomic, all-city scoped, idempotent and skips repeated state onboarding',async()=>{
   const {sql,service}=await fixture();try {
     const preview=await service.preview(input);

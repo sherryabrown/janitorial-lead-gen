@@ -48,6 +48,8 @@ export async function verifyAutomaticCounty({db,artifacts,audit,livePool,rehears
   const before=calls.length;await discovery(child.request_id,{task_id:checked(await db.from('procurement_jobs').select('checkpoint').eq('search_request_id',child.request_id).eq('kind','discover'))[0].checkpoint.task_id},actor);
   assert.equal(calls.length,before,'Saved discovery replay does not refetch');
   const directoryReads=calls.filter(url=>url.includes('arcounties.org')).length;
+  await livePool.query("insert into procurement_geographies(id,kind,name,dataset_url,dataset_version,dataset_hash) values('05003','county','Ashley County','fixture','1','shared-route')");
+  await livePool.query("update procurement_source_capabilities set route_geography_id='05003',verification_evidence=verification_evidence || '{\"route_geography_ids\":[\"05001\",\"05003\"]}'::jsonb where id=$1",[capabilities[0].id]);
   // A later request must reverify an expired registered method without requiring
   // an already-existing request/source association or another directory lookup.
   await livePool.query("update procurement_source_capabilities set verified_at='2026-09-01T00:00:00Z',verified_until='2026-10-01T00:00:00Z' where id=$1",[capabilities[0].id]);
@@ -64,6 +66,18 @@ export async function verifyAutomaticCounty({db,artifacts,audit,livePool,rehears
   const scheduledChildren=checked(await db.from('procurement_trigger_requests').select('*').eq('trigger_id',occurrences.items[0].trigger_id));
   const scheduledStatus=await workflow.status(scheduledChildren.find(c=>c.role==='county').request_id);
   assert.equal(scheduledStatus.total_candidates,1);
+  assert.equal(scheduledStatus.tasks.filter(task=>task.state==='method_missing').length,0,'Shared-route method gaps reconcile after activation');
+  assert.equal(checked(await db.from('procurement_source_capabilities').select('route_geography_id').eq('id',capabilities[0].id).single()).route_geography_id,'05003','Native shared-route registration retains original method identity');
+  const guardClient=await livePool.connect();
+  try {
+    await guardClient.query('begin');
+    await guardClient.query("update procurement_source_capabilities set verification_evidence=verification_evidence-'automation_policy' where id=$1",[capabilities[0].id]);
+    const requestId=scheduledChildren.find(c=>c.role==='county').request_id;
+    const target=(await guardClient.query('select id from procurement_request_targets where search_request_id=$1 and geography_id=$2',[requestId,'05001'])).rows[0];
+    await assert.rejects(guardClient.query('select create_procurement_known_plan($1,$2::jsonb)',[requestId,JSON.stringify([{target_id:target.id,
+      route_geography_id:'05001',kind:'opportunity',state:'unchecked',task_key:'unverified-association',query_window:{},priority:1,agency_scope:'county',
+      capability_id:capabilities[0].id,source_id:sources[0].id}])]),/current runnable capability/);
+  } finally {await guardClient.query('rollback');guardClient.release();}
   assert.ok(checked(await db.from('procurement_jobs').select('checkpoint').eq('search_request_id',scheduledChildren.find(c=>c.role==='county').request_id).eq('kind','process')).some(job=>job.checkpoint.ai_budget_reached),'Budget exhaustion retains deterministic candidates');
   assert.equal(calls.filter(url=>url.includes('arcounties.org')).length,directoryReads,'Verified method reused on scheduled run');
   assert.equal(checked(await db.from('procurement_sources').select('id').eq('url','https://county.example/')).length,1);

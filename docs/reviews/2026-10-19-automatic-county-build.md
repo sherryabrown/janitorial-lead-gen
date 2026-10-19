@@ -1,6 +1,6 @@
 # Automatic county discovery build — October 19, 2026
 
-Local implementation checkpoint for [the plan](../../specs/todo/automatic-county-source-discovery-and-collection.md). Live preview acceptance is outstanding; this is not a production release record.
+Implementation and preview release checkpoint for [the plan](../../specs/todo/automatic-county-source-discovery-and-collection.md). Final live acceptance is outstanding; Netlify production is unchanged.
 
 ## Implemented
 
@@ -34,6 +34,8 @@ A later live attempt exposed a saved registry seed that was valid for its persis
 
 The scheduled occurrence also produced a provider-truncated response with known actual usage. County processing now discards such output, retains deterministic evidence and makes no further AI calls in that process checkpoint. Actual usage remains recorded; uncertain/missing-usage outcomes are still held. Thirty-one targeted tests passed. The intermediate manual/repeat/scheduled runs settled, produced one browser-closed occurrence and retained import guards; their disposable schedule was archived and actor soft-deleted. Their parent discovery failure means they do not establish final end-to-end acceptance of the seed correction.
 
-No migration, dependency, account or budget change. Netlify production remains unchanged. Keep the plan in todo until required acceptance passes, and record any remaining blockers rather than treating them as zero results.
+Function-only migration `20261019000200_verified_shared_source_routes.sql` aligns native plan validation, gap reconciliation and the non-SAM schedule baseline with the server-verified route associations. No tables, client grants, dependencies, provider accounts or budgets change. Existing anonymous/authenticated denial and service-role execution are preserved; the SAM baseline wrapper remains intact. Roll back the backend to the preceding canonical-route-only implementation before restoring the previous three function definitions; do not remove source records or verification evidence. The pre-migration definitions are retained privately with the release artifacts.
+
+Native migration acceptance proves collection on an additional verified route, preservation of the original method identity, gap reconciliation, scheduled execution and rejection when trusted policy provenance is removed. A separate parent-status regression prevents a failed planning job with zero tasks from appearing completed. Keep the plan in todo until required acceptance passes, and record remaining blockers rather than treating them as zero results.
 
 Proposed commit message: `feat: automate county source collection`
