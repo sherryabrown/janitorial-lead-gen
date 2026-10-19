@@ -30,7 +30,7 @@ export function usageSummary(entries) {
 export function workflowAudit(db) {
   const rpc=async(name,args)=>checked(await db.rpc(name,args));
   async function run(requestId,phase,operation,meta={}) {
-    const allowed=/^(plan|collect|interpret|resolve_sources|reuse_state_source|research|revalidate|fetch_page|fetch_api_page|fetch_document|research_fetch|compare|extract|stage|ai_interpretation|test_import|apply_import|readback|cancel|resume|discover|prepare|approve|reconcile|supporting-captures|discovery_(capture|review|register|collect|handoff)|import_(prepare|apply|reconcile|verified|awaiting_approval))$/;
+    const allowed=/^(plan|collect|interpret|resolve_sources|reuse_state_source|research|revalidate|fetch_page|fetch_api_page|fetch_document|research_fetch|compare|extract|stage|ai_interpretation|test_import|apply_import|readback|cancel|resume|discover|prepare|approve|reconcile|supporting-captures|discovery_(resolve|verify|save|capture|review|register|collect|handoff)|import_(prepare|apply|reconcile|verified|awaiting_approval))$/;
     phase=allowed.test(phase)?phase:'request_action';
     const link=(await rows(db,'procurement_trigger_requests',q=>q.eq('request_id',requestId)))[0];
     if(!link)return operation();

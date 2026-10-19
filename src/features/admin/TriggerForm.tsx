@@ -71,6 +71,7 @@ export function TriggerForm({
           </span>
         </label>
       </fieldset>
+      {!draft.config.check_updates && <p className="admin-notice">Source-only run. Enable Check for lead updates to collect opportunities.</p>}
       <fieldset disabled={pending}>
         <legend>Look for</legend>
         <div className="admin-inline">

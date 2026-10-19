@@ -12,6 +12,22 @@ const candidate = { intake_id: 'candidate', intake_hash: 'hash', title: 'Cleanin
 const results = { tasks: [], jobs: [], candidates: [candidate], total_candidates: 1, next_offset: null };
 const review = (signal: string) => <RequestReview id="request" owner="owner" onViewLeads={() => {}} refreshSignal={signal} />;
 
+it('explains source-only county results with location names and no technical source setup', async () => {
+  mocked.request.mockImplementation(async (path: string) => path.endsWith('/packet') ? {
+    pages: [{ run_id: 'capture', url: 'https://agency.example/bids', review: 'Saved source page' }], source: { name: 'County bids' },
+  } : { ...results, automatic_county: true, check_updates: false, tasks: [{ id: 'gap', category: 'opportunity', state: 'method_missing',
+    location_name: 'Saline County', source_name: 'County bids', discovery_state: 'blocked', discovery_action: 'Source could not be verified automatically.' }] });
+  render(review('needs_review'));
+  await screen.findByText(/Source-only run/);
+  expect(screen.getByText(/Saline County · County bids/)).toBeTruthy();
+  expect(screen.queryByText('Load official source options')).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'View source evidence' }));
+  await screen.findByText('Saved source evidence');
+  expect(screen.queryByText('Review source and method')).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Retry source' }));
+  await waitFor(() => expect(mocked.request).toHaveBeenCalledWith('/v1/requests/request/discover/resume', { body: { task_id: 'gap' } }));
+});
+
 it('retains written review and selection on a parent refresh, invalidating changed candidate hashes', async () => {
   let changed = false;
   mocked.request.mockImplementation(async () => ({ ...results, candidates: [{ ...candidate, intake_hash: changed ? 'new' : 'hash' }] }));

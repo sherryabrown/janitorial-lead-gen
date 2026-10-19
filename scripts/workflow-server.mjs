@@ -52,6 +52,7 @@ function kick() {
   });
 }
 const discovery=discoveryService({db,project,artifacts,transport,rehearse:rehearsalPool?nativeRehearsal(rehearsalPool):null,
+  continueCollection:workflow.continueVerifiedCollection,
   collect:async({requestId,sourceCode,planOnly})=>{
     const request=await one(db,'procurement_search_requests',requestId);
     return executeKnownSources({db,project,serverKey:()=>env.SUPABASE_SERVICE_ROLE_KEY,

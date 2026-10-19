@@ -105,3 +105,7 @@ Background run transitions retain an open source/candidate review. Refresh retai
 Automatic SAM progress polls the new lightweight saved-status route and reloads verified full evidence when its identity changes. Collection-pending, failed reads and confirmed empty results remain distinct. Release the matching Render backend before this frontend. This build makes no deployment and leaves Netlify production unchanged.
 
 The map still uses all 75 official county identities and the same exact projected boundaries. Build-time removal of exactly collinear forward vertices reduces its JSON from 949,687 to 604,290 bytes without approximation or new runtime dependencies.
+
+## Automatic county source work — pending preview release
+
+The [automatic county build](reviews/2026-10-19-automatic-county-build.md) adds directory-based official website resolution and verification of supported public listings. Normal county results show location/source names and saved evidence instead of requesting seed URLs and technical method setup. Unsupported or inaccessible sources remain incomplete; they are not zero-result searches. Both work options collect opportunities; source-only configurations continue to perform only maintenance. Non-SAM lead import still requires approval. See the report for deployment/acceptance status; Netlify production is unchanged.

@@ -5,11 +5,13 @@ export function SourceReview({
   task,
   onSave,
   busy,
+  readOnly = false,
 }: {
   packet: Packet;
   task: Task;
   onSave: (body: unknown) => void;
   busy: boolean;
+  readOnly?: boolean;
 }) {
   const [newSource, setNewSource] = useState(false);
   const [page, setPage] = useState(0),
@@ -24,6 +26,16 @@ export function SourceReview({
       api: 'unknown',
     });
   const p = packet.pages?.[page];
+  if (readOnly) return <div>
+    <h3>Saved source evidence</h3>
+    <p>{packet.source?.name ?? task.source_name ?? task.location_name}</p>
+    <p>{packet.registration_verified ? 'Source method verified.' : 'Source verification is incomplete; this does not mean no opportunities exist.'}</p>
+    {packet.pages?.map((saved, index) => <details key={saved.run_id ?? index}>
+      <summary>Page {index + 1}</summary>
+      <a href={saved.url} target="_blank" rel="noreferrer">Official page</a>
+      <p>{saved.review}</p>
+    </details>)}
+  </div>;
   if (packet.registration_verified)
     return (
       <div>

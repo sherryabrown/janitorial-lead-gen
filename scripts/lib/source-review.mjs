@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { JSDOM } from 'jsdom';
+import { inspectAutomaticListing } from './automatic-public-method.mjs';
 import { inspectArdotPage } from './ardot-table.mjs';
 import { inspectPublicJsonListing } from './public-json-listing.mjs';
 import { inspectPublicHtmlTable } from './public-html-table.mjs';
@@ -101,6 +102,13 @@ export function captureReview(capture, run, task, source, methodSpec = {}) {
       rows: listing.records.slice(0, 50).map(rowValues), total_rows: listing.records.length,
       keyword_rows: matches.slice(0, 25).map(({ row, index }) =>
         ({ number: index + 1, cells: rowValues(row) })), keyword_total: matches.length }];
+  } else if (methodSpec.response_format === 'county-listing-v1') {
+    const listing = inspectAutomaticListing(body, methodSpec);
+    title = listing.heading;
+    visible = listing.evidence;
+    const values = listing.records.map(row => [JSON.stringify(row)]);
+    tables = [{ columns: [{ name: 'Official record' }], rows: values, total_rows: values.length,
+      keyword_rows: values.map((cells, index) => ({ number: index + 1, cells })), keyword_total: values.length }];
   } else if (isHtml) {
     const dom = new JSDOM(body.toString('utf8'), { url: capture.final_url });
     const document = dom.window.document;

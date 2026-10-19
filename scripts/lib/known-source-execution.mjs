@@ -103,9 +103,12 @@ export function adapterContract(capability, source, now = new Date()) {
          spec.max_records < 1 || spec.max_records > 100 ||
          !/\/PublicPortal\/getPublicContractsSectionData$/.test(spec.urls[0])))
       fail('Bonfire contracts need a bounded public endpoint contract');
+    if (spec.response_format === 'county-listing-v1' &&
+        (spec.urls.length !== 1 || spec.max_records !== 100 || typeof spec.expected_heading !== 'string' || !spec.expected_heading.trim()))
+      fail('Automatic listing requires a bounded verified heading contract');
     if (spec.response_format !== undefined &&
         !['json-files-v1', 'html-table-v1', 'bonfire-projects-v1',
-          'bonfire-contracts-v1'].includes(spec.response_format))
+          'bonfire-contracts-v1', 'county-listing-v1'].includes(spec.response_format))
       fail('Unsupported public listing format');
     return { version: 1, runner_id: 'public-fetch', kind: capability.kind,
       method: capability.method, parser_version: capability.parser_version,
@@ -113,7 +116,7 @@ export function adapterContract(capability, source, now = new Date()) {
       max_bytes: spec.max_bytes,
       ...(spec.response_format ? { response_format: spec.response_format,
         expected_category: spec.expected_category, max_records: spec.max_records,
-        expected_organization: spec.expected_organization,
+        expected_organization: spec.expected_organization, expected_heading: spec.expected_heading,
         table_selector: spec.table_selector, row_selector: spec.row_selector } : {}) };
   }
   if (capability.method !== 'api' || spec.runner_id !== 'sam-search' ||

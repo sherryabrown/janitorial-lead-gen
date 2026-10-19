@@ -7,11 +7,13 @@ import { adapterContract } from './known-source-execution.mjs';
 import { schemaHash } from './hosted-import.mjs';
 import {publicDiscovery} from './official-link-discovery.mjs';
 import {rehearsalBlueprint,rehearsalPolicy} from './native-sql-rehearsal.mjs';
+import {resolveOfficialDirectory} from './official-directory.mjs';
 
 // A configured researcher can feed this contract. Missing search execution is a persisted
 // human handoff, never an invented source or a silently successful discovery job.
 export function discoveryService(options) {
   if(options.collect)return publicDiscovery({...options,persist:args=>saveDiscoveredMethod({...options,...args}),
+    resolveSeed:args=>resolveDiscoverySeed({...options,...args}),
     reconcileHandoffs:args=>saveDiscoveryHandoffs({...options,...args})});
   const {db,artifacts}=options;
   return async(requestId,input,actor)=>{
@@ -72,7 +74,21 @@ export async function saveDiscoveredMethod({db,project,artifacts,transport,rehea
     procurement_geographies:await rows(db,'procurement_geographies'),procurement_source_capabilities:existingCaps,procurement_request_sources:associations,procurement_intake_items:[]};
   const spec={version:1,project_ref:project,authorization:`Official method review by ${actor}; request ${requestId}`,requests:[{...requests[0],key:'request'}],
     sources:[{...sourceSpec,existing_id:source?.id,request_keys:['request']}],capabilities:[{...capability,source_code:sourceSpec.code}]};
-  const manifest=planRegistry(spec,before),sql=persistenceSql(manifest),schema=await transport.schema();
+  if(capability.verification_evidence?.automation_policy==='county-public-v1'&&existingCaps.some(c=>
+    c.source_id===source?.id&&c.kind===capability.kind&&c.method===capability.method&&c.endpoint_url===capability.endpoint_url&&
+    c.route_geography_id!==capability.route_geography_id))throw Error('Shared method route requires explicit scope reconciliation');
+  const manifest=planRegistry(spec,before);
+  // A request association is not proof that every city in that request is
+  // served by this agency. Automatic verification preserves registered scope.
+  if(capability.verification_evidence?.automation_policy==='county-public-v1'&&source) {
+    const delta=manifest.rows.find(d=>d.table==='procurement_sources'&&d.row.id===source.id);
+    if(delta)delta.row.source_coverage_areas=source.source_coverage_areas;
+  }
+  return persistRegistry({db,artifacts,transport,rehearse,requestId,before,manifest,sourceSpec,researchedHandoffs,beforeSend});
+}
+
+async function persistRegistry({db,artifacts,transport,rehearse,requestId,before,manifest,sourceSpec,researchedHandoffs=[],beforeSend}) {
+  const sql=persistenceSql(manifest),schema=await transport.schema();
   const test=await rehearse({before,schema,manifest,sql});
   if(test.status!=='native_tests_passed'||test.policy!==rehearsalPolicy||!['rollback','readback','replay','cleanup'].every(k=>test[k]===true)||
     test.rehearsal_sql_sha256!==hash(rehearsalBlueprint(before,schema,manifest).sql))throw new Error('Native registry rehearsal required');
@@ -85,6 +101,34 @@ export async function saveDiscoveredMethod({db,project,artifacts,transport,rehea
   if(!receipt.verified)throw new Error('Method persistence readback failed');
   await saveDiscoveryHandoffs({db,manifest,sourceSpec,handoffs:researchedHandoffs});
   return {artifact,receipt,test,next_action:'Replan and execute the saved method through the common capture/review/import workflow'};
+}
+
+// Directory evidence is captured by the server, not accepted from the client.
+async function resolveDiscoverySeed({db,project,artifacts,transport,rehearse,requestId,taskId,actor,beforeSend,fetcher}) {
+  if(!transport||!rehearse)throw Error('Native registry rehearsal is required for official source resolution');
+  const task=await one(db,'procurement_coverage_tasks',taskId),target=task&&await one(db,'procurement_request_targets',task.target_id);
+  if(target?.search_request_id!==requestId)throw Error('Directory task scope mismatch');
+  const geo=await one(db,'procurement_geographies',task.route_geography_id);
+  const resolved=await resolveOfficialDirectory(geo,{fetcher,capture:e=>artifacts.put(e)});
+  const directoryArtifact=await artifacts.put(resolved);
+  if(resolved.state!=='resolved')return {...resolved,pages:undefined,directory_artifact:directoryArtifact};
+  const sources=await rows(db,'procurement_sources'),requests=await rows(db,'procurement_search_requests',q=>q.eq('id',requestId));
+  const matches=sources.filter(s=>s.url===resolved.url);
+  if(matches.length>1)return {state:'blocked',reason:'Multiple saved sources match the official directory website',directory_artifact:directoryArtifact};
+  const existing=matches[0],code=existing?.code??`official-${geo.id.toLowerCase()}`;
+  const sourceSpec={code,local_key:code,existing_id:existing?.id,name:existing?.name??geo.name,url:resolved.url,
+    agency:geo.name,provider:new URL(resolved.url).hostname,geo_level:geo.kind==='municipality'?'city':geo.kind,
+    identity_evidence:`Official directory identifies ${geo.name}; immutable evidence ${directoryArtifact}`,metadata:{directory_artifact:directoryArtifact},request_keys:['request']};
+  const before={project_ref:project,procurement_sources:sources,procurement_search_requests:requests,
+    procurement_geographies:await rows(db,'procurement_geographies'),procurement_source_capabilities:await rows(db,'procurement_source_capabilities'),
+    procurement_request_sources:await rows(db,'procurement_request_sources',q=>q.eq('search_request_id',requestId)),procurement_intake_items:[]};
+  const manifest=planRegistry({version:1,project_ref:project,authorization:`Automatic official directory resolution for ${requestId}; actor ${actor}`,
+    requests:[{...requests[0],key:'request'}],sources:[sourceSpec]},before);
+  const row=manifest.rows.find(d=>d.table==='procurement_sources');
+  if(row)row.row.source_coverage_areas=existing?.source_coverage_areas??[{area_type:geo.kind==='county'?'county':'city',state_code:'AR',
+    [geo.kind==='county'?'county_name':'city_name']:geo.name}];
+  const persisted=await persistRegistry({db,artifacts,transport,rehearse,requestId,before,manifest,sourceSpec,beforeSend});
+  return {state:'resolved',source_id:manifest.mappings.sources[code][0].id,url:resolved.url,directory_artifact:directoryArtifact,persisted};
 }
 
 export async function saveDiscoveryHandoffs({db,manifest,sourceSpec,handoffs:researchedHandoffs=[]}) {

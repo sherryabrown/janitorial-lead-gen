@@ -18,6 +18,7 @@ import {importJobs} from '../../scripts/lib/hosted-import-jobs.mjs';
 import {postgresTransport} from '../../scripts/lib/hosted-import.mjs';
 import {nativeRehearsal} from '../../scripts/lib/native-sql-rehearsal.mjs';
 import {statewideSam} from '../../scripts/lib/hosted-sam.mjs';
+import {verifyAutomaticCounty} from './automatic-county.mjs';
 
 const bin=process.env.ACCESS_TEST_PG_BIN || 'C:/Program Files/PostgreSQL/15/bin';
 const gateway=process.env.ACCESS_TEST_POSTGREST_BIN || resolve('outputs/procurement-access/local-access-runtime/postgrest/postgrest.exe');
@@ -251,6 +252,8 @@ try {
       .eq('id',holdJob).eq('state','blocked').eq('checkpoint',JSON.stringify(checkpoint)).select('id');
     const reconciled=await reconcile();assert.equal(reconciled.error,null);assert.equal(reconciled.data.length,1);
     const stale=await reconcile();assert.equal(stale.error,null);assert.equal(stale.data.length,0,'Stale reconciliation cannot overwrite a changed checkpoint');
+    sql("update procurement_jobs set state='cancelled'; update procurement_triggers set state='completed';");
+    console.log('Automatic county acceptance:',await verifyAutomaticCounty({db,artifacts,audit,livePool,rehearsalPool,actor:first,config:adminConfig}));
   }finally {await livePool.end();await rehearsalPool.end();}
   console.log(JSON.stringify({status:'passed',engine:'PostgreSQL 15 + PostgREST',checks:['anonymous reads/RPC denial','member and non-member reads/stages','signed expired and invalid JWT HTTP rejection','note ownership','atomic actor history','1005-row paged queue','service workflow access','Admin private table/RPC denial','Admin atomic replay','concurrent parent AI reservations and four-call cap','scheduling private tables/RPC denial and atomic replay','browser-independent private HTTP wake/shared worker/audit/replay/pause','nonempty automatic SAM manual/scheduled native validation/write/readback/deduplication','private detail hold containment and checkpoint CAS/stale-write rejection'],isolated_wake_and_stage_ms:isolatedWakeAndStageMs,production_contacted:false},null,2));
 } finally {

@@ -2,7 +2,7 @@ import { hash } from './reviewed-batch.mjs';
 import { checked, rows, one } from './hosted-store.mjs';
 import { resolveGeography, planSourceRoutes } from './geography-routing.mjs';
 import { validateRequestScope } from './request-scope.mjs';
-import { separateSamSource, buildKnownSourcePlan } from './known-source-execution.mjs';
+import { separateSamSource, buildKnownSourcePlan, adapterContract } from './known-source-execution.mjs';
 import { usageSummary,auditPhase } from './workflow-audit.mjs';
 import {samTrigger,samRequest} from './sam-request.mjs';
 
@@ -170,7 +170,10 @@ export function countyTriggers({db,discovery,workflow,audit}) {
           if(child.role==='state_research') {
             const records=await rows(db,'procurement_county_state_research',q=>q.eq('request_id',child.request_id));
             for(const record of records) {
-              const candidates=data.sources.filter(s=>!separateSamSource(s)&&data.capabilities.some(c=>c.source_id===s.id&&c.route_geography_id==='05'&&c.kind===record.category));
+              const candidates=data.sources.filter(s=>!separateSamSource(s)&&data.capabilities.some(c=>{
+                if(c.source_id!==s.id||c.route_geography_id!=='05'||c.kind!==record.category)return false;
+                try{adapterContract(c,s);return true;}catch{return false;}
+              }));
               for(const s of candidates) {
                 await auditPhase('reuse_state_source',()=>rpc('associate_procurement_state_trigger',{p_source:s.id,p_category:record.category,p_scope:hash([s.id,record.category,'state']),p_county:child.county_id,
                   p_evidence:{basis:'registered_state_category',coverage:'work_location_review_required'}}),{source_id:s.id,reason:'registered_source'});

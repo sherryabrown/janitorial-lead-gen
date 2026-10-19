@@ -6,6 +6,8 @@ This is the current operating procedure. **Policy scope:** manual decision/appro
 
 For hosted routes/configuration/current local behavior use [PROCUREMENT-BACKEND.md](PROCUREMENT-BACKEND.md). Operator commands retain their reviewed import boundaries. Historical fixed-batch tools are audit reproduction only.
 
+The pending [automatic county extension](reviews/2026-10-19-automatic-county-build.md) resolves official directory websites and validates supported public listing methods without operator source setup. It reuses native registry rehearsal/readback and the collection/intake path described here. This changes county source maintenance, not non-SAM canonical import authority. Unsupported sites remain explicit coverage gaps. See the linked checkpoint for live acceptance and release status.
+
 ## What must be true
 
 1. **Authority and scope are stated first.** Define service, work area, sources and dates. Application geography research follows established source/intake persistence and verified-import authority; explicit research-only/export-only requests stop at that boundary. Explain intended changes before doing them. Honor separate scoped signup/verification and alert authority already supplied. Never infer permission for subscriptions, migrations, deployments or recurring work.

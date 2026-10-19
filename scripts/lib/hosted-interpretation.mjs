@@ -1,4 +1,5 @@
 import { JSDOM } from 'jsdom';
+import { inspectAutomaticListing } from './automatic-public-method.mjs';
 import { hash } from './reviewed-batch.mjs';
 import { inspectPublicBonfireProjects,inspectPublicBonfireContracts } from './public-bonfire-projects.mjs';
 import { inspectPublicHtmlTable } from './public-html-table.mjs';
@@ -85,7 +86,8 @@ export async function extractFacts(packet,spec) {
   const facts=[];
   for(const [pageIndex,page] of packet.pages.entries()) {
     let records;
-    if(spec.response_format==='bonfire-projects-v1')records=inspectPublicBonfireProjects(page.body,spec).records;
+    if(spec.response_format==='county-listing-v1')records=inspectAutomaticListing(page.body,spec).records;
+    else if(spec.response_format==='bonfire-projects-v1')records=inspectPublicBonfireProjects(page.body,spec).records;
     else if(spec.response_format==='bonfire-contracts-v1')records=inspectPublicBonfireContracts(page.body,spec).records;
     else if(spec.response_format==='html-table-v1')records=inspectPublicHtmlTable(page.body,spec).records;
     else if(spec.response_format==='json-files-v1')records=inspectPublicJsonListing(page.body,spec).records;

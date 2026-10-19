@@ -19,6 +19,14 @@ export function publicJobAction(job) {
   if(job.checkpoint?.error_code==='sam_import_reconciliation_required')return 'Reconcile the previous SAM database result before collecting or saving more SAM records';
   if (job.state === 'outcome_unknown' || stage === 'import_reconcile') return 'Reconcile saved evidence before retrying';
   if (stage === 'import_awaiting_approval') return 'Approve the exact tested batch hash';
+  if (stage === 'discovery_resolve') return job.state==='blocked'
+    ? 'Official website could not be resolved from the available directory. Other sources can continue.' : 'Finding official website';
+  if (stage === 'discovery_verify') return job.state==='blocked'
+    ? 'Source could not be verified automatically. View saved evidence; other sources can continue.' : 'Checking source';
+  if (stage === 'discovery_save') return 'Saving verified source method';
+  if (stage === 'discovery_capture' && job.checkpoint?.automation_policy) return job.state==='blocked'
+    ? 'Website unavailable or access required. View saved evidence.' : 'Checking official source pages';
+  if (stage === 'discovery_collect') return 'Collecting requested opportunities';
   if (stage === 'discovery_review') return 'Review the saved official-source discovery packet';
   if (stage === 'sam_review') return job.checkpoint.automatic_import_job_id||job.checkpoint.automatic_completed?'View automatically saved SAM results':'SAM results are awaiting automatic validation';
   if (stage === 'sam_reconcile') return 'Review SAM access or reconcile its saved response before any new request';

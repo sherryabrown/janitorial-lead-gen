@@ -259,11 +259,14 @@ try {
         };
       else if (p === '/v1/requests/request')
         body = {
+          automatic_county: true, check_updates: false,
           tasks: [
             {
               id: 'task',
               category: 'opportunity',
               state: 'method_missing',
+              location_name: 'Saline County', source_name: 'County bids', discovery_state: 'blocked',
+              discovery_action: 'Source could not be verified automatically. Other sources can continue.',
               reason: 'Review saved method evidence',
               pages: 1,
             },
@@ -275,6 +278,7 @@ try {
         };
       else if (p === '/v1/access/saved-access')
         body = {tenant:'littlerock.bonfirehub.com',next:{action:'Revalidate the expired reviewed portal recipe before hosted sign-in'},hosted:{recipe_current:false,session_current:false}};
+      else if(p==='/v1/requests/request/discovery/tasks/task/packet')body={source:{name:'County bids'},pages:[{run_id:'county-page',url:'https://county.example/bids',review:'Official county listing evidence retained for verification.'}]};
       else if(p === '/v1/requests/request/tasks/task/supporting-evidence')
         body = {review:'PDF page 1: Official janitorial work scope in Little Rock. Long source text remains readable on mobile.'};
       else if (p === '/v1/requests/request/tasks/task/packet')
@@ -336,6 +340,21 @@ try {
   await page.getByRole('region', { name: 'Run details' }).getByRole('alert').waitFor();
   await page.getByRole('button', { name: 'Retry progress' }).click();
   await page.getByRole('region', { name: 'Saved results' }).waitFor();
+  await page.getByRole('region',{name:'Saved results'}).getByText(/Source-only run/).waitFor();
+  assert.equal(await page.getByRole('button',{name:'Load official source options'}).count(),0);
+  await page.getByRole('button',{name:'View source evidence'}).click();
+  await page.getByRole('heading',{name:'Saved source evidence'}).waitFor();
+  assert.equal(await page.getByRole('heading',{name:'Review source and method'}).count(),0);
+  for(const width of [1440,390,320]) {
+    await page.setViewportSize({width,height:900});
+    await page.getByRole('button',{name:'Retry source'}).focus();
+    await page.keyboard.press('Tab');
+    assert.equal(await page.getByRole('button',{name:'View source evidence'}).evaluate(el=>el===document.activeElement),true);
+    await page.getByRole('region',{name:'Saved results'}).screenshot({path:`${out}/automatic-county-${width}.png`});
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+  }
+  await page.setViewportSize({width:1440,height:1000});
+  await page.getByRole('button',{name:'Close evidence'}).click();
   await page.getByRole('button',{name:'Check saved portal access'}).click();
   assert.equal(await page.getByRole('button',{name:'Resume saved sign-in'}).isDisabled(),true);
   assert.equal(await page.getByRole('button',{name:'Capture saved method'}).isDisabled(),true);

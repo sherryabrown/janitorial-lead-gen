@@ -126,6 +126,10 @@ export type Candidate = {
   state: string;
 };
 export type Task = {
+  discovery_state?: string | null;
+  discovery_action?: string | null;
+  source_name?: string | null;
+  location_name?: string | null;
   id: string;
   source_id: string | null;
   category: string;
@@ -142,6 +146,8 @@ export type Job = {
   next_action: string;
 };
 export type RequestStatus = {
+  automatic_county?: boolean;
+  check_updates?: boolean;
   request_id: string;
   tasks: Task[];
   jobs: Job[];

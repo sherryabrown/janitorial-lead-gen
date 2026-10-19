@@ -1,4 +1,5 @@
 import { adminSourcePlan } from './county-triggers.mjs';
+import { inspectAutomaticListing } from './automatic-public-method.mjs';
 import { auditPhase } from './workflow-audit.mjs';
 import { rows as scopedRows } from './hosted-store.mjs';
 import { savedContentChange } from './source-change.mjs';
@@ -14,7 +15,7 @@ import { collectKnownApi } from './known-access-run.mjs';
 
 
 // Shared adapter orchestration. CLI credentials and output are injected, never read here.
-export async function executeKnownSources({db, project, serverKey, command, requestId, selectedSourceCode, maxJobs=Infinity, cancelled=async()=>false, retryPartial=true}) {
+export async function executeKnownSources({db, project, serverKey, command, requestId, selectedSourceCode, maxJobs=Infinity, cancelled=async()=>false, retryPartial=true, fetcher=fetch}) {
 if (!['plan','run'].includes(command)) throw new Error('Invalid collection command');
 if (['sam','sam-awards'].includes(selectedSourceCode)) throw new Error('Use separate statewide SAM');
 function rows(table, columns = '*', filter = null) {
@@ -126,11 +127,11 @@ if (command === 'plan') {
           if (inserted.error || !inserted.data)
             throw new Error(`Cannot audit public request; no fetch sent: ${inserted.error?.message ?? 'no row returned'}`);
           run = inserted.data;
-          const capture = await auditPhase('fetch_page',()=>fetchPublicCheck(contract, url),{source_id:source.id,task_id:task.id});
+          const capture = await auditPhase('fetch_page',()=>fetchPublicCheck(contract, url,fetcher),{source_id:source.id,task_id:task.id});
           if (capture.state === 'captured') {
             let listing = null, listingError = null;
             if (contract.response_format) {
-              try { listing = contract.response_format === 'json-files-v1'
+              try { listing = contract.response_format === 'county-listing-v1' ? inspectAutomaticListing(capture.body, contract) : contract.response_format === 'json-files-v1'
                 ? inspectPublicJsonListing(capture.body, contract)
                 : contract.response_format === 'html-table-v1'
                   ? inspectPublicHtmlTable(capture.body, contract)

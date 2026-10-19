@@ -36,7 +36,7 @@ export function validateFindingBounds(packet,result,{verifiedSupporting=false}={
       throw new Error('Finding actual work location is unverified or outside requested geography');
   }
 }
-export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=boundedInterpretation,processJob,captureBrowser,canCaptureBrowser,audit,supportingFetch=fetch,reportError=(id,error)=>console.error('Workflow stage failed',id,error)}) {
+export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=boundedInterpretation,processJob,captureBrowser,canCaptureBrowser,audit,supportingFetch=fetch,collectionFetch=fetch,reportError=(id,error)=>console.error('Workflow stage failed',id,error)}) {
   const supporting=supportingCapture({artifacts,serverKey,fetcher:supportingFetch,loadReviewedIntake:async id=>{
     const item=await one(db,'procurement_intake_items',id);
     if(!item)return null;
@@ -187,10 +187,14 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
     if(!request)throw new Error('Request not found');
     const targets=await rows(db,'procurement_request_targets',q=>q.eq('search_request_id',requestId),'id');
     const [tasks,interpretations,jobs,usage]=await Promise.all([
-      targets.length?rows(db,'procurement_coverage_tasks',q=>q.in('target_id',targets.map(t=>t.id)),'id,source_id,kind,state,reason,pages_reviewed'):[],
+      targets.length?rows(db,'procurement_coverage_tasks',q=>q.in('target_id',targets.map(t=>t.id)),'id,source_id,route_geography_id,kind,state,reason,pages_reviewed'):[],
       rows(db,'procurement_interpretations',q=>q.eq('request_id',requestId),'id,is_current,staging_receipt'),rows(db,'procurement_jobs',q=>q.eq('search_request_id',requestId),'id,state,kind,dedupe_key,checkpoint,capability_id'),
       rows(db,'procurement_usage_ledger',q=>q.eq('request_id',requestId),'id,kind,state,provider,model,rate_version,input_tokens,output_tokens,reserved_usd,actual_usd,usage')]);
     const capabilityIds=[...new Set(jobs.map(j=>j.capability_id).filter(Boolean))];
+    const sourceIds=[...new Set(tasks.map(t=>t.source_id).filter(Boolean))],geoIds=[...new Set(tasks.map(t=>t.route_geography_id).filter(Boolean))];
+    const [taskSources,taskPlaces]=await Promise.all([
+      sourceIds.length?rows(db,'procurement_sources',q=>q.in('id',sourceIds),'id,name'):[],
+      geoIds.length?rows(db,'procurement_geographies',q=>q.in('id',geoIds),'id,name'):[]]);
     const browserCapabilities=capabilityIds.length?await rows(db,'procurement_source_capabilities',q=>q.in('id',capabilityIds),'id,method_spec'):[];
     const ids=[...new Set([...interpretations.filter(i=>i.is_current!==false).flatMap(i=>i.staging_receipt?.intake_ids??[]),
       ...jobs.filter(j=>j.dedupe_key?.startsWith('api-sam:')&&j.checkpoint?.stage==='sam_review').flatMap(j=>j.checkpoint.intake_ids??[])])];
@@ -203,12 +207,16 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
       state:i.status==='processed'&&links.some(l=>l.intake_id===i.id&&leads.some(r=>r.id===l.lead_id)&&requestLinks.some(r=>r.lead_id===l.lead_id))?'imported':
         i.status==='processed'?'link_review_required':i.status==='ignored'?'ignored':'pending_review'}));
     return {request_id:requestId,cancelled:request.workflow_control.cancelled===true,requested_categories:request.requested_categories,
+      automatic_county:['county_scope','state_research'].includes(request.workflow_control?.admin_policy),check_updates:request.workflow_control?.check_updates!==false,
       search_windows:request.search_windows,jobs:jobs.map(j=>({id:j.id,state:j.state,kind:j.kind,stage:j.checkpoint?.stage,run_ids:j.checkpoint?.run_ids??[],pages:j.checkpoint?.pages??null,
         records:j.checkpoint?.records??null,terminal_confirmed:j.checkpoint?.terminal_confirmed??false,
         access_handoff_id:browserCapabilities.find(c=>c.id===j.capability_id&&c.method_spec?.runner_id==='authenticated-browser')?.method_spec.access_handoff_id??null,
         capture_state:j.checkpoint?.hosted_browser_attempt?.state??null,
         next_action:publicJobAction(j),error_code:j.checkpoint?.error_code??null,diagnostic_id:j.checkpoint?.diagnostic_id??null})),
-      tasks:tasks.map(t=>({id:t.id,source_id:t.source_id,category:t.kind,state:t.state,reason:t.reason,pages:t.pages_reviewed})),
+      tasks:tasks.map(t=>({id:t.id,source_id:t.source_id,category:t.kind,state:t.state,reason:t.reason,pages:t.pages_reviewed,
+        source_name:taskSources.find(s=>s.id===t.source_id)?.name??null,location_name:taskPlaces.find(g=>g.id===t.route_geography_id)?.name??null,
+        discovery_state:jobs.find(j=>j.kind==='discover'&&j.checkpoint?.task_id===t.id)?.state??null,
+        discovery_action:(()=>{const j=jobs.find(j=>j.kind==='discover'&&j.checkpoint?.task_id===t.id);return j?publicJobAction(j):null;})()})),
       candidates,total_candidates:ids.length,next_offset:offset+limit<ids.length?offset+limit:null,
       usage:request.workflow_control?.admin_trigger_id?usageSummary(usage):{calls:usage.filter(u=>u.kind==='inference'&&u.state!=='not_sent').length,
         input_tokens:usage.reduce((n,u)=>n+(u.usage?.input_tokens??u.input_tokens),0),
@@ -222,6 +230,16 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
   }
   async function control(requestId,action,actor) {
     return rpc('control_procurement_workflow',{p_request:requestId,p_actor:actor,p_action:action});
+  }
+  async function continueVerifiedCollection(requestId) {
+    const request=await one(db,'procurement_search_requests',requestId);
+    if(request.workflow_control?.cancelled||request.workflow_control?.check_updates===false)return;
+    const job=checked(await db.from('procurement_jobs').select('id,state,checkpoint,updated_at')
+      .eq('search_request_id',requestId).eq('dedupe_key',`api-workflow:${requestId}`).maybeSingle());
+    if(job?.state==='blocked'&&!job.checkpoint?.error_code&&job.checkpoint?.stage==='interpret') {
+      checked(await db.from('procurement_jobs').update({state:'pending',checkpoint:{...job.checkpoint,stage:'collect'}})
+        .eq('id',job.id).eq('state','blocked').eq('updated_at',job.updated_at));
+    }
   }
   async function step() {
     const job=await rpc('claim_procurement_workflow_job',{});
@@ -241,7 +259,7 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
         await executeKnownSources({db,project,serverKey,command:'plan',requestId:request.id});
         checkpoint.stage=request.workflow_control?.check_updates===false?'interpret':'collect';await save('pending');
       } else if(checkpoint.stage==='collect') {
-        const result=await executeKnownSources({db,project,serverKey,command:'run',requestId:request.id,maxJobs:1,retryPartial:false,
+        const result=await executeKnownSources({db,project,serverKey,command:'run',requestId:request.id,maxJobs:1,retryPartial:false,fetcher:collectionFetch,
           cancelled:async()=>!!(await one(db,'procurement_search_requests',request.id)).workflow_control.cancelled});
         const browserRoute=result.routes.find(r=>r.state==='awaiting_browser_capture');
         if(browserRoute&&captureBrowser&&(!request.workflow_control?.admin_trigger_id||await canCaptureBrowser?.(browserRoute.job_id))) {
@@ -346,5 +364,5 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
     await recordAccessEvent(db,h,{...event,next_action:`${event.next_action} (recorded by ${actor})`});
     return access(id);
   }
-  return {submit,preview:input=>geographyRequest(db,'preview',input),context,packet,sourceOptions,captureSupporting,readSupporting,interpret,status,control,step,access,accessEvent};
+  return {submit,preview:input=>geographyRequest(db,'preview',input),context,packet,sourceOptions,captureSupporting,readSupporting,interpret,status,control,continueVerifiedCollection,step,access,accessEvent};
 }

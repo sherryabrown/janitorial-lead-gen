@@ -1,4 +1,5 @@
 import { JSDOM } from 'jsdom';
+import { inspectAutomaticListing } from './automatic-public-method.mjs';
 import { inspectArdotPage } from './ardot-table.mjs';
 import { inspectPublicJsonListing } from './public-json-listing.mjs';
 import { inspectPublicHtmlTable } from './public-html-table.mjs';
@@ -10,6 +11,11 @@ const emptyListing = /\bno\s+(?:(?:current|open|active|available)\s+)?(?:bids?|s
 
 // Retrieval success is not evidence that the intended listing was rendered.
 export function zeroEvidence(body, contentType, sourceCode, pageIndex=0, review='', methodSpec={}, reviewSummary=null) {
+  if (methodSpec.response_format === 'county-listing-v1') {
+    const listing = inspectAutomaticListing(body, methodSpec);
+    return { eligible: listing.terminal, reason: null, text: listing.records.length ? review : listing.evidence,
+      listing: listing.records.length > 0, listing_rows: listing.records.length };
+  }
   if (methodSpec.runner_id === 'api-bounded') {
     const page=inspectApiPage(JSON.parse(body.toString('utf8')),methodSpec,pageIndex);
     return {eligible:page.count>0 || page.terminal,reason:page.count===0 && !page.terminal ? 'API terminal proof missing' : null,

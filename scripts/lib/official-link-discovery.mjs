@@ -1,15 +1,17 @@
 import {auditPhase} from './workflow-audit.mjs';
 import {readFile} from 'node:fs/promises';
-import {JSDOM} from 'jsdom';
+import {JSDOM,VirtualConsole} from 'jsdom';
 import {checked,rows,one,sha} from './hosted-store.mjs';
 import {publicUrl,verifyPersistence} from './research-persistence.mjs';
 import {safePublicUrl,adapterContract,separateSamSource} from './known-source-execution.mjs';
 import {validateHandoff,discoveryView} from './public-source-discovery.mjs';
 import {fetchPublicCheck} from './public-source-check.mjs';
+import {automaticCountyPolicy,proposeAutomaticListing} from './automatic-public-method.mjs';
 const relevant=/procure|bid|solicitat|contract|forecast|award|purchas|janitorial|custodial|cleaning|developer|\bapi\b|vendor|register/i;
 const key=(request,task)=>`api-workflow:discovery:${request}:${task}`;
+const freshCapture=capture=>Number.isFinite(Date.parse(capture.retrieved_at))&&Date.now()-Date.parse(capture.retrieved_at)<=30*86400000;
 export function officialLinks(bytes,url) {
-  const dom=new JSDOM(bytes.toString('utf8'),{url});
+  const dom=new JSDOM(bytes.toString('utf8'),{url,virtualConsole:new VirtualConsole()});
   try{return [...new Map([...dom.window.document.querySelectorAll('a[href]')].flatMap(a=>{
     try{const link=publicUrl(a.href);return relevant.test(`${a.textContent} ${link}`)&&safePublicUrl(link,[new URL(link).hostname])?
       [[link,{url:link,label:a.textContent.replace(/\s+/g,' ').trim().slice(0,160)}]]:[];}catch{return [];}
@@ -18,7 +20,7 @@ export function officialLinks(bytes,url) {
 export function publicReview(bytes,type) {
   if(/pdf/i.test(type))return 'PDF saved; use existing document extraction before method activation';
   if(!/html/i.test(type))return bytes.toString('utf8').slice(0,12000);
-  const dom=new JSDOM(bytes.toString('utf8'));
+  const dom=new JSDOM(bytes.toString('utf8'),{virtualConsole:new VirtualConsole()});
   try{for(const node of dom.window.document.querySelectorAll('script,style,noscript,form,input'))node.remove();
     return (dom.window.document.body?.textContent??'').replace(/\s+/g,' ').trim().slice(0,12000);
   }finally{dom.window.close();}
@@ -47,7 +49,7 @@ export function validateDiscoveryReview(packet,input,task) {
   return {sourceSpec,capability:saved,handoffs:input.handoffs};
 }
 // One page per durable worker stage. No paid search, browser, signup or lead coverage.
-export function publicDiscovery({db,artifacts,persist,reconcileHandoffs,collect,fetcher=fetch}) {
+export function publicDiscovery({db,artifacts,persist,reconcileHandoffs,resolveSeed,collect,continueCollection,fetcher=fetch}) {
   async function scope(requestId,taskId) {
     const request=await one(db,'procurement_search_requests',requestId),task=await one(db,'procurement_coverage_tasks',taskId);
     const target=task&&await one(db,'procurement_request_targets',task.target_id);
@@ -73,10 +75,12 @@ export function publicDiscovery({db,artifacts,persist,reconcileHandoffs,collect,
       source=await one(db,'procurement_sources',input.seed_source_id);
     }
     if(source&&separateSamSource(source))throw new Error('SAM has a separate statewide trigger');
+    const automatic=['county_scope','state_research'].includes(request.workflow_control?.admin_policy);
     const seed=source&&publicUrl(source.url),job=checked(await db.from('procurement_jobs').upsert({search_request_id:requestId,
-      dedupe_key:key(requestId,task.id),kind:'discover',state:seed?'pending':'blocked',checkpoint:{stage:'discovery_capture',actor_id:actor,
+      dedupe_key:key(requestId,task.id),kind:'discover',state:seed||automatic?'pending':'blocked',checkpoint:{stage:!seed&&automatic?'discovery_resolve':'discovery_capture',actor_id:actor,
         task_id:task.id,seed_source_id:source?.id??null,queue:seed?[seed]:[],visited:[],run_ids:[],links:[],
-        next_action:seed?'Inspect saved official entry and relevant same-host links':'Associate a verified official agency entry; no trusted seed exists'}},
+        ...(['county_scope','state_research'].includes(request.workflow_control?.admin_policy)?{automation_policy:automaticCountyPolicy}:{}),
+        next_action:seed?'Inspect saved official entry and relevant same-host links':automatic?'Finding official website':'Associate a verified official agency entry; no trusted seed exists'}},
       {onConflict:'dedupe_key',ignoreDuplicates:true}).select('*').single());
     return {job_id:job.id,state:job.state,next_action:job.checkpoint.next_action,lead_coverage:false,paid_search:false};
   }
@@ -100,13 +104,70 @@ export function publicDiscovery({db,artifacts,persist,reconcileHandoffs,collect,
       const bytes=Buffer.from(capture.content_base64,'base64');if(sha(bytes)!==capture.content_sha256)throw new Error('Capture hash changed');
       p.pages.push({run_id:id,url:capture.final_url,content_sha256:capture.content_sha256,content_type:capture.content_type,review:publicReview(bytes,capture.content_type)});
     }
-    c.packet_artifact=await artifacts.put(p);c.stage='discovery_review';
+    c.packet_artifact=await artifacts.put(p);c.stage=c.automation_policy===automaticCountyPolicy?'discovery_verify':'discovery_review';
     c.next_action='Review captured category evidence and portal/API links, then submit an evidence-bound method; keep unsupported categories as gaps. Paid search is disabled under the strict cap';
-    await save('blocked');
+    await save(c.stage==='discovery_verify'?'pending':'blocked');
   }
   async function step(job,c,save) {
+    if(c.stage==='discovery_resolve') {
+      let result;
+      if(c.seed_intent) {
+        const saved=JSON.parse(await artifacts.get(c.seed_intent)),after={...saved.before};
+        for(const table of ['procurement_sources','procurement_source_capabilities','procurement_request_sources'])
+          after[table]=await rows(db,table,table==='procurement_request_sources'?q=>q.eq('search_request_id',job.search_request_id):q=>q);
+        if(!verifyPersistence(saved.before,after,saved.manifest).verified)throw Error('Official source persistence needs reconciliation');
+        const mapping=Object.values(saved.manifest.mappings.sources).flat()[0];
+        const source=after.procurement_sources.find(s=>s.id===mapping.id);
+        result={state:'resolved',source_id:source.id,url:source.url};
+      }else result=await auditPhase('research',()=>resolveSeed({requestId:job.search_request_id,taskId:c.task_id,actor:c.actor_id,
+        beforeSend:async artifact=>{c.seed_intent=artifact;await save('running');}}),{task_id:c.task_id});
+      c.directory_artifact=result.directory_artifact??c.directory_artifact;
+      if(result.state!=='resolved'){c.next_action=result.reason;await save('blocked');return;}
+      c.seed_source_id=result.source_id;c.queue=[result.url];c.stage='discovery_capture';c.next_action='Checking official source';await save('pending');return;
+    }
+    if(c.stage==='discovery_verify') {
+      const {task}=await scope(job.search_request_id,c.task_id);
+      const source=await one(db,'procurement_sources',c.seed_source_id);
+      const packetBytes=await artifacts.get(c.packet_artifact),p={...JSON.parse(packetBytes),packet_hash:sha(packetBytes)};
+      const failures=[];
+      if(task.kind==='opportunity'&&source&&!c.blocker)for(const page of p.pages) {
+        if(!/html/i.test(page.content_type))continue;
+        const capture=checked(await db.from('procurement_public_captures').select('*').eq('run_id',page.run_id).single());
+        if(!freshCapture(capture)){failures.push('Source evidence is stale; recapture required');continue;}
+        const body=Buffer.from(capture.content_base64,'base64');
+        if(sha(body)!==page.content_sha256)throw Error('Automatic verification capture changed');
+        let verified;
+        try {
+          const {spec,listing}=proposeAutomaticListing(body,page.url);
+          const input={sourceSpec:{existing_id:source.id,local_key:source.code,code:source.code,name:source.name,url:source.url,
+            agency:source.name,provider:new URL(source.url).hostname,geo_level:source.contracting_entity_geo_level,
+            identity_evidence:`Existing registered source ${source.id}; saved official capture ${page.run_id}`},
+            capability:{kind:task.kind,route_geography_id:task.route_geography_id,method:'browser',parser_version:automaticCountyPolicy,
+              official_entry_url:source.url,endpoint_url:page.url,method_spec:spec},
+            category_evidence:[{run_id:page.run_id,excerpt:listing.evidence}],
+            check_instructions:'Execute the verified bounded listing parser; preserve unresolved locations and dates.',
+            terminal_instruction:'Require the saved listing heading and exact terminal count or explicit empty state on every run.',
+            handoffs:['portal','api'].map(channel=>({channel,source_id:source.id,tenant:new URL(source.url).hostname,
+              checked_on:new Date().toISOString().slice(0,10),access_state:'unknown',next_actor:'researcher',
+              next_action:'Public listing verified; separate authenticated access has not been assessed',evidence_urls:[page.url],
+              requirements:{public:'unknown',account:'unknown',approval:'unknown',api_key:'unknown',payment:'unknown'},
+              categories:{forecast:'unknown',opportunity:'unknown',award:'unknown'}}))};
+          verified=validateDiscoveryReview(p,input,task);
+          verified.capability.verification_evidence.automation_policy=automaticCountyPolicy;
+        } catch(error){failures.push(error.message);}
+        if(verified) {
+          c.review_artifact=await artifacts.put(verified);c.source_code=source.code;c.stage='discovery_save';
+          c.next_action='Save the verified source method and continue requested work';await save('pending');return;
+        }
+      }
+      c.verification_failures=[...new Set(failures)].slice(0,5);
+      c.next_action=c.blocker?'Website unavailable; saved evidence retained':
+        'Source could not be verified automatically; supported listing evidence is missing';
+      await save('blocked');return;
+    }
     if(c.stage==='discovery_collect') {
       c.collection=await collect({requestId:job.search_request_id,sourceCode:c.source_code});
+      if(c.automation_policy===automaticCountyPolicy)await continueCollection?.(job.search_request_id);
       c.stage='discovery_collected';c.next_action='Review captured category packet and persist candidates through the existing interpretation/import workflow';await save('succeeded');return;
     }
     if(c.stage==='discovery_save') {
@@ -126,14 +187,16 @@ export function publicDiscovery({db,artifacts,persist,reconcileHandoffs,collect,
     if(c.stage!=='discovery_capture')throw new Error('Discovery needs saved review, not repeat research');
     if(!c.queue.length||c.visited.length>=10){await finish(job,c,save);return;}
     const source=await one(db,'procurement_sources',c.seed_source_id),url=c.queue[0],host=new URL(source.url).hostname,start=Date.now();
-    if(!safePublicUrl(url,[host]))throw new Error('Discovery destination outside saved official host');
-    const prior=await rows(db,'procurement_runs',q=>q.eq('job_id',job.id).eq('page_index',c.visited.length));let run=prior[0];
+    const allowedHosts=[host,...(c.observed_hosts??[])];
+    if(!safePublicUrl(url,allowedHosts))throw new Error('Discovery destination outside saved official host');
+    const pageIndex=(c.page_offset??0)+c.visited.length;
+    const prior=await rows(db,'procurement_runs',q=>q.eq('job_id',job.id).eq('page_index',pageIndex));let run=prior[0];
     if(run&&run.detail?.state!=='content_saved')throw new Error('Prior fetch outcome requires reconciliation; no repeat fetch');
     if(!run) {
-      run=checked(await db.from('procurement_runs').insert({source_id:source.id,job_id:job.id,coverage_task_id:c.task_id,page_index:c.visited.length,
+      run=checked(await db.from('procurement_runs').insert({source_id:source.id,job_id:job.id,coverage_task_id:c.task_id,page_index:pageIndex,
         page_attempt:1,started_at:new Date().toISOString(),status:'partial',record_count:0,
         detail:{collector:'official-link-discovery',scope:'research_only',state:'request_pending',requested_url:url}}).select('*').single());
-      const capture=await auditPhase('research_fetch',()=>fetchPublicCheck({runner_id:'public-fetch',allowed_hosts:[host],max_bytes:2000000},url,fetcher),{source_id:source.id,task_id:c.task_id});
+      const capture=await auditPhase('research_fetch',()=>fetchPublicCheck({runner_id:'public-fetch',allowed_hosts:allowedHosts,max_bytes:2000000},url,fetcher),{source_id:source.id,task_id:c.task_id});
       if(capture.state!=='captured') {
         checked(await db.from('procurement_runs').update({status:'blocked',finished_at:new Date().toISOString(),detail:{collector:'official-link-discovery',
           scope:'research_only',state:capture.state,reason:capture.reason,requested_url:url}}).eq('id',run.id));
@@ -149,8 +212,10 @@ export function publicDiscovery({db,artifacts,persist,reconcileHandoffs,collect,
     const links=/html/i.test(capture.content_type)?officialLinks(Buffer.from(capture.content_base64,'base64'),capture.final_url):[];
     c.visited.push(url);c.queue.shift();c.run_ids.push(run.id);
     c.links=[...new Map([...c.links,...links.map(l=>({...l,from_run_id:run.id}))].map(l=>[l.url,l])).values()].slice(0,100);
-    for(const l of links)if(new URL(l.url).hostname===host&&!/signup|register|login|sign.?in|logout|payment|subscribe|submit|delete|create.account/i.test(l.url)&&
-      !c.visited.includes(l.url)&&!c.queue.includes(l.url)&&c.queue.length+c.visited.length<10)c.queue.push(l.url);
+    for(const l of links)if(new URL(l.url).hostname.replace(/^www\./,'')===host.replace(/^www\./,'')&&!/signup|register|login|sign.?in|logout|payment|subscribe|submit|delete|create.account/i.test(l.url)&&
+      !c.visited.includes(l.url)&&!c.queue.includes(l.url)&&c.queue.length+c.visited.length<10){
+      c.observed_hosts=[...new Set([...(c.observed_hosts??[]),new URL(l.url).hostname])];c.queue.push(l.url);
+    }
     let mem=null;try{mem=Number(await readFile('/sys/fs/cgroup/memory.current','utf8'));}catch{/* local lacks cgroups */}
     c.resources={elapsed_ms:(c.resources?.elapsed_ms??0)+Date.now()-start,sampled_peak_container_bytes:Math.max(c.resources?.sampled_peak_container_bytes??0,mem??0)||null,process_rss_bytes:process.memoryUsage().rss};
     if(!c.queue.length||c.visited.length>=10)await finish(job,c,save);else await save('pending');
@@ -173,6 +238,33 @@ export function publicDiscovery({db,artifacts,persist,reconcileHandoffs,collect,
     const {request}=await scope(requestId,input?.task_id);
     if(request.workflow_control?.cancelled)throw new Error('Request is cancelled');
     const job=checked(await db.from('procurement_jobs').select('*').eq('dedupe_key',key(requestId,input.task_id)).single());
+    if(['county_scope','state_research'].includes(request.workflow_control?.admin_policy)&&job.state==='blocked'&&
+        (['discovery_review','discovery_verify','discovery_resolve'].includes(job.checkpoint.stage)||
+          job.checkpoint.stage==='discovery_capture'&&!job.checkpoint.seed_source_id)) {
+      // Explicit retry upgrades saved research, without automatically replaying
+      // uncertain fetches or resetting registration intents.
+      const checkpoint={...job.checkpoint,automation_policy:automaticCountyPolicy,resumed_by:actor,
+        stage:job.checkpoint.packet_artifact?'discovery_verify':'discovery_resolve'};
+      // A user-requested retry can replace expired evidence, never an uncertain
+      // write. Retain every old packet/run and reserve new page indexes so a
+      // worker restart cannot accidentally reuse stale response bytes.
+      if(checkpoint.packet_artifact&&!checkpoint.persistence_intent&&!checkpoint.review_artifact&&!checkpoint.blocker) {
+        const captures=await rows(db,'procurement_public_captures',q=>q.in('run_id',checkpoint.run_ids??[]));
+        if(captures.some(capture=>!freshCapture(capture))) {
+          const source=await one(db,'procurement_sources',checkpoint.seed_source_id);
+          const runs=await rows(db,'procurement_runs',q=>q.eq('job_id',job.id));
+          checkpoint.previous_packets=[...(checkpoint.previous_packets??[]),checkpoint.packet_artifact];
+          checkpoint.page_offset=Math.max(-1,...runs.map(run=>run.page_index))+1;
+          checkpoint.queue=[publicUrl(source.url)];checkpoint.visited=[];checkpoint.run_ids=[];checkpoint.links=[];
+          delete checkpoint.packet_artifact;delete checkpoint.verification_failures;
+          checkpoint.stage='discovery_capture';checkpoint.next_action='Refreshing expired source evidence';
+        }
+      }
+      const saved=checked(await db.from('procurement_jobs').update({state:'pending',checkpoint})
+        .eq('id',job.id).eq('state','blocked').eq('updated_at',job.updated_at).select('id'));
+      if(saved.length!==1)throw Error('Concurrent source retry; refresh saved progress');
+      return {job_id:job.id,state:'pending'};
+    }
     if(job.checkpoint.stage==='discovery_review')return packet(requestId,input.task_id);
     if(job.state!=='blocked')return {job_id:job.id,state:job.state};
     const saved=checked(await db.from('procurement_jobs').update({state:'pending',checkpoint:{...job.checkpoint,resumed_by:actor}})

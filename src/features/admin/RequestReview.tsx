@@ -236,6 +236,14 @@ export function RequestReview({
             {data.tasks.reduce((n, t) => n + (t.pages || 0), 0)} saved pages.
             Source evidence is not proof of complete lead coverage.
           </p>
+          {data.automatic_county && data.check_updates === false && <p className="admin-notice">
+            Source-only run. Opportunity collection was not requested. Enable Check for lead updates for your next run.
+          </p>}
+          {data.automatic_county && <p className="admin-hint">
+            {new Set(data.tasks.filter(t => ['reviewed_with_results','reviewed_no_results'].includes(t.state)).map(t => t.source_id).filter(Boolean)).size} sources checked ·{' '}
+            {new Set(data.tasks.filter(t => ['source_missing','method_missing','blocked','partial'].includes(t.state)).map(t => t.source_id ?? t.location_name ?? t.id)).size} sources or locations incomplete.
+            {' '}Candidates require review before adding them to leads.
+          </p>}
           {sam && (
             <>
               <h3>SAM — Arkansas statewide</h3>
@@ -401,9 +409,13 @@ export function RequestReview({
             <div className="admin-task" key={t.id}>
               <div>
                 <strong>
-                  {title(t.category)} · {title(t.state)}
+                  {t.location_name && `${t.location_name} · `}{t.source_name && `${t.source_name} · `}
+                  {title(t.category)} · {data.automatic_county ?
+                    ({source_missing: 'Official website not yet verified', method_missing: 'Source not yet verified',
+                      reviewed_no_results: 'Checked—no matching opportunities', reviewed_with_results: 'Opportunities found',
+                      needs_interpretation: 'Reviewing collected evidence'} as Record<string,string>)[t.state] ?? title(t.state) : title(t.state)}
                 </strong>
-                <p>{t.reason}</p>
+                <p>{data.automatic_county && t.discovery_action ? t.discovery_action : t.reason}</p>
               </div>
               <div className="admin-inline">
                 {t.pages > 0 && !['source_entry'].includes(t.category) && (
@@ -421,7 +433,7 @@ export function RequestReview({
                   'method_missing',
                   'blocked',
                   'partial',
-                ].includes(t.state) && (
+                ].includes(t.state) && !data.automatic_county && (
                   <>
                     <button
                       type="button"
@@ -449,9 +461,15 @@ export function RequestReview({
                   </>
                 )}
               </div>
+              {data.automatic_county && t.discovery_state && ['source_missing','method_missing','blocked','partial'].includes(t.state) &&
+                <div className="admin-inline">
+                  <button type="button" className="text-button" disabled={busy || t.discovery_state !== 'blocked'} onClick={() => void perform(() =>
+                    workflowRequest(`/v1/requests/${id}/discover/resume`, { body: { task_id: t.id } }))}>Retry source</button>
+                  <button type="button" className="text-button" disabled={busy} onClick={() => openPacket(t, true)}>View source evidence</button>
+                </div>}
             </div>
           ))}
-          {!!data.tasks.some((t) =>
+          {!data.automatic_county && !!data.tasks.some((t) =>
             ['source_missing', 'method_missing'].includes(t.state),
           ) && (
             <details>
@@ -527,6 +545,7 @@ export function RequestReview({
               </button>
               {packet.discovery ? (
                 <SourceReview
+                  readOnly={data.automatic_county}
                   key={packet.data.packet_hash ?? packet.task.id}
                   packet={packet.data}
                   task={packet.task}
