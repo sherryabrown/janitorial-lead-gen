@@ -65,3 +65,12 @@ No unresolved implementation decision remains for this cleanup. The retained bun
 Bonfire supported access and Netlify production release remain separate user decisions under their existing plans. This work does not resume either.
 
 Proposed commit message: `fix: complete Admin wiring and retire old code`
+
+## Released preview — October 19, 2026
+
+- Implementation commit: `fc75adb1ffb5337bca3eea39cc09db477eeefc93` — `fix: complete Admin wiring and retire old code`, pushed to `codex/admin-county-trigger-ui`.
+- Render deployed first: `dep-dbb37e0m7kps73ash0sg`, exact implementation commit live at `2026-10-19T15:15:16.336Z`. Preflight found zero active worker leases; configuration preserved.
+- Netlify preview deployed afterward: `6ad634438ce2c7361dc11a6d`, https://bonfire-review--janitorial-lead-gen.netlify.app. Served bundle verified for schedule history, lightweight SAM status, existing automatic SAM imports and saved evidence; targets Render rather than localhost.
+- Release checks passed: preview HTTP 200, backend health HTTP 200, preview CORS HTTP 204 with the exact allowed origin.
+- Netlify production remains locked and unchanged at `6ad583d1b9bb1b307abcf1fd`. No migrations, AI budget changes or Bonfire access attempts occurred.
+- Private release receipts: `outputs/deployment/integration-remediation/`. These deployment checks supplement the automated and desktop/mobile/keyboard verification above; they did not initiate live procurement runs.
