@@ -10,7 +10,7 @@ async function body(request) {
   }
   try {return JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{throw new HttpError(400,'Invalid JSON');}
 }
-export function workflowServer({authenticate,workflow,imports,discovery,sam,samPacket,browser,attention,triggers,schedules,schedulerKey,aiPolicy,audit,db,kick=()=>{},allowedOrigins=[]}) {
+export function workflowServer({authenticate,workflow,imports,discovery,sam,samPacket,samReconcile,samHistory,browser,attention,triggers,schedules,schedulerKey,aiPolicy,audit,db,kick=()=>{},allowedOrigins=[]}) {
   return createServer(async(request,response)=>{
     response.setHeader('Content-Type','application/json');response.setHeader('Cache-Control','no-store');
     response.setHeader('X-Content-Type-Options','nosniff');
@@ -135,8 +135,18 @@ export function workflowServer({authenticate,workflow,imports,discovery,sam,samP
           if(!browser)throw new HttpError(503,'Browser continuation not configured');
           result=await browser.reconcileCapture(segments[2],segments[4],actor);
         }
+      } else if(request.method==='GET'&&url.pathname==='/v1/sam/requests') {
+        const offset=Number(url.searchParams.get('offset')??0),limit=Number(url.searchParams.get('limit')??50);
+        if(!Number.isInteger(offset)||offset<0||!Number.isInteger(limit)||limit<1||limit>100)throw new HttpError(400,'Invalid SAM history pagination');
+        if(!samHistory)throw new HttpError(503,'SAM history not configured');
+        result=await samHistory({offset,limit});
       } else if(request.method==='GET'&&segments.length===5&&segments[1]==='sam'&&segments[2]==='requests'&&uuid.test(segments[3])&&segments[4]==='packet') {
         result=await samPacket(segments[3]);
+      } else if(request.method==='POST'&&segments.length===5&&segments[1]==='sam'&&segments[2]==='requests'&&uuid.test(segments[3])&&segments[4]==='reconcile') {
+        if(!samReconcile)throw new HttpError(503,'SAM reconciliation not configured');
+        const action=()=>samReconcile(segments[3],actor);
+        result=await (audit?audit.run(segments[3],'reconcile',action,{actor_id:actor,reason:'manual'}):action());
+        if(triggers)await triggers.wake(segments[3],{reconciled:true});kick();
       } else if(request.method==='POST'&&url.pathname==='/v1/sam/requests') {
         result=await sam(input,actor,request.headers['idempotency-key']);await wakeRelated();kick();send(202,result);return;
       }

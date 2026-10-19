@@ -17,10 +17,11 @@ export function publicJobAction(job) {
   if (job.state === 'outcome_unknown' || stage === 'import_reconcile') return 'Reconcile saved evidence before retrying';
   if (stage === 'import_awaiting_approval') return 'Approve the exact tested batch hash';
   if (stage === 'discovery_review') return 'Review the saved official-source discovery packet';
+  if (stage === 'sam_review') return 'Review the saved statewide SAM candidates';
+  if (stage === 'sam_reconcile') return 'Review SAM access or reconcile its saved response before any new request';
   if (job.state === 'blocked') return 'Review the saved workflow blocker and server diagnostics before resuming';
   if (job.state === 'cancelled') return 'Resume the saved request when ready';
   if (stage === 'import_verified') return 'Review imported leads';
-  if (stage === 'sam_review') return 'Review the saved statewide SAM candidates';
   if (stage === 'discovery_collected') return 'Review captured category evidence';
   return 'Read saved workflow status and review evidence or required actions';
 }

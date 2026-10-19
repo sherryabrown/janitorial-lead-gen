@@ -4,6 +4,7 @@ import { resolveGeography, planSourceRoutes } from './geography-routing.mjs';
 import { validateRequestScope } from './request-scope.mjs';
 import { separateSamSource, buildKnownSourcePlan } from './known-source-execution.mjs';
 import { usageSummary,auditPhase } from './workflow-audit.mjs';
+import {samTrigger,samRequest} from './sam-request.mjs';
 
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 const next=state=>({pending:'Read saved progress',running:'Read saved progress',needs_review:'Review saved source evidence and candidates',
@@ -22,6 +23,10 @@ export function countyTriggers({db,discovery,workflow,audit}) {
   }
   async function stateSources() {return {items:await rpc('procurement_state_trigger_status',{})};}
   async function preview(input) {
+    if(input?.target_kind==='sam') {
+      const config=samTrigger(input);
+      return {config,preview_hash:hash(config),budget:{usd:0,calls:0},next_action:'Run separate statewide SAM search'};
+    }
     if(!input||!Array.isArray(input.county_ids)||!input.county_ids.length||input.county_ids.length>75||
       new Set(input.county_ids).size!==input.county_ids.length||input.county_ids.some(id=>typeof id!=='string'||!/^05\d{3}$/.test(id)))throw Error('Select unique Arkansas county IDs');
     if(typeof input.maintain_sources!=='boolean'||typeof input.check_updates!=='boolean'||!(input.maintain_sources||input.check_updates))throw Error('Choose trigger work');
@@ -69,14 +74,15 @@ export function countyTriggers({db,discovery,workflow,audit}) {
     if(existing){if(existing.submission_hash!==submissionHash)throw Error('Idempotency key reused for different input');return {trigger_id:existing.id};}
     const current=await preview(input);
     if(current.preview_hash!==input.preview_hash)throw Error('Scope changed; preview and confirm again');
-    const id=await rpc('submit_procurement_trigger',{p_actor:actor,p_key:key,p_hash:submissionHash,p_config:current.config});
+    const config=current.config.target_kind==='sam'?{...current.config,sam_filters:samRequest({category:current.config.requested_categories[0],publication_window:current.config.publication_window}).filters}:current.config;
+    const id=await rpc('submit_procurement_trigger',{p_actor:actor,p_key:key,p_hash:submissionHash,p_config:config});
     return {trigger_id:id,next_action:'Read saved progress'};
   }
   async function status(id) {
     const t=await one(db,'procurement_triggers',id);if(!t)throw Error('Trigger not found');
     const [children,usage]=await Promise.all([rows(db,'procurement_trigger_requests',q=>q.eq('trigger_id',id),'trigger_id,request_id,county_id,role,scope'),
       rows(db,'procurement_usage_ledger',q=>q.eq('trigger_id',id),'id,state,input_tokens,output_tokens,actual_usd,reserved_usd,usage')]);
-    const relatedState=(await stateSources()).items.filter(s=>s.county_ids.some(c=>t.config.county_ids.includes(c)));
+    const relatedState=t.target_kind==='sam'?[]:(await stateSources()).items.filter(s=>s.county_ids.some(c=>t.config.county_ids.includes(c)));
     return {id:t.id,target_kind:t.target_kind,config:t.config,state:t.state,created_at:t.created_at,
       children:children.map(c=>({request_id:c.request_id,county_id:c.county_id,role:c.role})),
       related_state_sources:relatedState.map(s=>({...s,evidence_policy:'Review saved source run; verify county work location and dates before import'})),
@@ -97,16 +103,22 @@ export function countyTriggers({db,discovery,workflow,audit}) {
       linked('procurement_schedules','id',scheduleIds,'id,name'),
       linked('procurement_trigger_requests','trigger_id',ids,'trigger_id,request_id')]);
     const requestIds=children.map(c=>c.request_id),targets=await linked('procurement_request_targets','search_request_id',requestIds,'id,search_request_id');
-    const [tasks,interpretations]=await Promise.all([
+    const [tasks,interpretations,samJobs]=await Promise.all([
       linked('procurement_coverage_tasks','target_id',targets.map(t=>t.id),'target_id,evidence'),
-      linked('procurement_interpretations','request_id',requestIds,'request_id,staging_receipt',q=>q.eq('is_current',true))]);
+      linked('procurement_interpretations','request_id',requestIds,'request_id,staging_receipt',q=>q.eq('is_current',true)),
+      linked('procurement_jobs','search_request_id',children.filter(c=>page.some(t=>t.id===c.trigger_id&&t.target_kind==='sam')).map(c=>c.request_id),'search_request_id,checkpoint')]);
     const summaries=new Map(ids.map(id=>[id,{usage:[],candidates:new Set(),evidence:new Set()}])),byRequest=new Map(children.map(c=>[c.request_id,c.trigger_id])),byTarget=new Map(targets.map(t=>[t.id,byRequest.get(t.search_request_id)])),names=new Map(saved.map(s=>[s.id,s.name]));
     for(const u of usage)summaries.get(u.trigger_id)?.usage.push(u);
     for(const i of interpretations)for(const id of i.staging_receipt?.intake_ids??[])summaries.get(byRequest.get(i.request_id))?.candidates.add(id);
     for(const t of tasks)for(const id of t.evidence?.run_ids??[])summaries.get(byTarget.get(t.target_id))?.evidence.add(id);
+    for(const j of samJobs) {
+      const summary=summaries.get(byRequest.get(j.search_request_id));
+      for(const id of j.checkpoint?.intake_ids??[])summary?.candidates.add(id);
+      for(const id of j.checkpoint?.run_ids??[])summary?.evidence.add(id);
+    }
     return {items:page.map(t=>{const summary=summaries.get(t.id);return {
       id:t.id,target_kind:t.target_kind,state:t.state,created_at:t.created_at,origin:t.origin,
-      county_count:t.config.county_ids.length,schedule_name:names.get(t.schedule_id)??null,
+      county_count:t.config.county_ids?.length??0,category:t.target_kind==='sam'?t.config.requested_categories[0]:null,schedule_name:names.get(t.schedule_id)??null,
       candidate_count:summary.candidates.size,evidence_count:summary.evidence.size,usage:usageSummary(summary.usage)
     };}),next_offset:values.length>limit?offset+limit:null};
   }
@@ -124,18 +136,33 @@ export function countyTriggers({db,discovery,workflow,audit}) {
     const operation=()=>rpc('control_procurement_trigger',{p_id:id,p_actor:actor,p_action:action});
     return child?audit.run(child.request_id,action,operation,{actor_id:actor,reason:'manual'}):operation();
   }
-  async function wake(requestId) {
+  async function wake(requestId,{reconciled=false}={}) {
     const child=(await rows(db,'procurement_trigger_requests',q=>q.eq('request_id',requestId)))[0];
     if(child)checked(await db.from('procurement_triggers').update({state:'pending'}).eq('id',child.trigger_id).in('state',['needs_review','partial','completed']));
+    if(child&&reconciled) {
+      const parent=await one(db,'procurement_triggers',child.trigger_id);
+      if(parent?.target_kind==='sam'&&parent.state==='outcome_unknown') {
+        const [jobs,held]=await Promise.all([rows(db,'procurement_jobs',q=>q.eq('search_request_id',requestId).eq('state','outcome_unknown'),'id'),
+          rows(db,'procurement_usage_ledger',q=>q.eq('trigger_id',parent.id).in('state',['reserved','outcome_unknown']),'id')]);
+        if(!jobs.length&&!held.length)checked(await db.from('procurement_triggers').update({state:'pending'}).eq('id',parent.id).eq('state','outcome_unknown'));
+      }
+    }
   }
   async function step() {
     const t=await rpc('claim_procurement_trigger',{});if(!t)return false;
     const children=await rows(db,'procurement_trigger_requests',q=>q.eq('trigger_id',t.id));
     let state='completed';
     try {
-      const data=await registry();
+      const data=t.target_kind==='sam'?null:await registry();
       for(const child of children) {
         const operation=async()=>{
+          if(child.role==='sam') {
+            const jobs=await rows(db,'procurement_jobs',q=>q.eq('search_request_id',child.request_id));
+            if(jobs.some(j=>j.state==='outcome_unknown'))state='outcome_unknown';
+            else if(jobs.some(j=>['pending','running'].includes(j.state)))state='pending';
+            else state='needs_review';
+            return;
+          }
           if(child.role==='state_research') {
             const records=await rows(db,'procurement_county_state_research',q=>q.eq('request_id',child.request_id));
             for(const record of records) {

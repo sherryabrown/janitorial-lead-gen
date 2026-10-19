@@ -5,12 +5,15 @@ import {
   acknowledged,
 } from '../../lib/procurement-workflow';
 import { CountySelector } from './CountySelector';
+import { SamSection } from './SamSection';
 import { TriggerForm } from './TriggerForm';
 import { ScheduleList, StateSourceList, ActivityList } from './ScheduleList';
 import { RunDetail } from './RunDetail';
 import { initialDraft, invalidDraft, resolvedConfig } from './model';
 import type {
   Draft,
+  AnySchedule,
+  SamSchedule,
   County,
   Preview,
   Schedule,
@@ -86,7 +89,7 @@ export default function AdminScreen({
     [editor, setEditor] = useState<Editor | null>(() => readEditor(owner)),
     [counties, setCounties] = useState<County[]>([]),
     [sources, setSources] = useState<StateSource[]>([]),
-    [schedules, setSchedules] = useState<Schedule[]>([]),
+    [schedules, setSchedules] = useState<AnySchedule[]>([]),
     [runs, setRuns] = useState<Run[]>([]),
     [status, setStatus] = useState<SchedulerStatus | null>(null),
     [scheduleOffset, setScheduleOffset] = useState<number | null>(null),
@@ -97,13 +100,37 @@ export default function AdminScreen({
     [notice, setNotice] = useState(''),
     [busy, setBusy] = useState(false),
     [selected, setSelected] = useState<string | null>(null),
+    [samEditor, setSamEditor] = useState<SamSchedule | null>(() => {
+      try {
+        const s = JSON.parse(
+          sessionStorage.getItem(`spin-admin-sam-editor:${owner}`) ?? 'null',
+        );
+        return s?.config?.target_kind === 'sam' &&
+          typeof s.id === 'string' &&
+          Number.isInteger(s.version)
+          ? s
+          : null;
+      } catch {
+        return null;
+      }
+    }),
     [loading, setLoading] = useState(true),
-    [registryState, setRegistryState] = useState<'loading' | 'ready' | 'error'>(
-      'loading',
-    ),
+    [registryState, setRegistryState] = useState<
+      'loading' | 'ready' | 'error'
+    >('loading'),
     [revision, setRevision] = useState(0);
   const detailRef = useRef<HTMLDivElement>(null),
     scopeRevision = useRef(0);
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(
+        `spin-admin-sam-editor:${owner}`,
+        JSON.stringify(samEditor),
+      );
+    } catch {
+      /* Keep mounted editor. */
+    }
+  }, [owner, samEditor]);
   const draft = editor?.draft ?? manual,
     saving = editor?.intent === 'schedule';
   useEffect(() => {
@@ -136,7 +163,9 @@ export default function AdminScreen({
       workflowRequest<{ items: StateSource[] }>('/v1/state-triggers', {
         signal: a.signal,
       }),
-      workflowRequest<Page<Schedule>>('/v1/schedules', { signal: a.signal }),
+      workflowRequest<Page<AnySchedule>>('/v1/schedules', {
+        signal: a.signal,
+      }),
       workflowRequest<Page<Run>>('/v1/triggers', { signal: a.signal }),
       workflowRequest<SchedulerStatus>('/v1/scheduler/status', {
         signal: a.signal,
@@ -158,7 +187,9 @@ export default function AdminScreen({
           setRunOffset(r.value.next_offset);
         }
         if (st.status === 'fulfilled') setStatus(st.value);
-        const failed = [c, s, sch, r, st].find((x) => x.status === 'rejected');
+        const failed = [c, s, sch, r, st].find(
+          (x) => x.status === 'rejected',
+        );
         if (failed?.status === 'rejected')
           setError(
             failed.reason instanceof Error
@@ -213,7 +244,9 @@ export default function AdminScreen({
     setError('');
     try {
       const p = await workflowRequest<Preview>(
-        mode === 'schedule' ? '/v1/schedules/preview' : '/v1/triggers/preview',
+        mode === 'schedule'
+          ? '/v1/schedules/preview'
+          : '/v1/triggers/preview',
         { body: mode === 'schedule' ? draft : resolvedConfig(draft) },
       );
       if (version !== scopeRevision.current) return;
@@ -277,21 +310,21 @@ export default function AdminScreen({
       setBusy(false);
     }
   };
-  const scheduleAction = async (s: Schedule, action: string) => {
+  const scheduleAction = async (s: AnySchedule, action: string) => {
     setBusy(true);
     setError('');
     try {
       const body = { expected_version: s.version },
         id = `schedule:${s.id}:${action}`;
-      const r = await workflowRequest<{ trigger_id?: string; state?: string }>(
-        `/v1/schedules/${s.id}/${action}`,
-        {
-          body,
-          ...(action === 'run-now'
-            ? { key: mutationKey(owner, id, body) }
-            : {}),
-        },
-      );
+      const r = await workflowRequest<{
+        trigger_id?: string;
+        state?: string;
+      }>(`/v1/schedules/${s.id}/${action}`, {
+        body,
+        ...(action === 'run-now'
+          ? { key: mutationKey(owner, id, body) }
+          : {}),
+      });
       if (action === 'run-now') {
         acknowledged(owner, id);
         if (r.trigger_id) setSelected(r.trigger_id);
@@ -311,7 +344,17 @@ export default function AdminScreen({
       setBusy(false);
     }
   };
-  const edit = async (s: Schedule) => {
+  const edit = async (s: AnySchedule) => {
+    if (s.config?.target_kind === 'sam') {
+      try {
+        setSamEditor(
+          await workflowRequest<SamSchedule>(`/v1/schedules/${s.id}`),
+        );
+      } catch (e) {
+        setError((e as Error).message);
+      }
+      return;
+    }
     setError('');
     try {
       const full = await workflowRequest<Schedule>(`/v1/schedules/${s.id}`);
@@ -359,7 +402,7 @@ export default function AdminScreen({
     setError('');
     try {
       if (kind === 'schedules') {
-        const p = await workflowRequest<Page<Schedule>>(
+        const p = await workflowRequest<Page<AnySchedule>>(
           `/v1/schedules?offset=${scheduleOffset}`,
         );
         setSchedules((x) => merge(x, p.items));
@@ -386,7 +429,8 @@ export default function AdminScreen({
           <p className="eyebrow">Admin</p>
           <h1>County checks</h1>
           <p>
-            Keep procurement sources current and check for new or changed leads.
+            Keep procurement sources current and check for new or changed
+            leads.
           </p>
         </div>
         <button className="text-button" type="button" onClick={onViewLeads}>
@@ -482,6 +526,14 @@ export default function AdminScreen({
           monthlyCap={status?.ai_policy?.monthly_usd}
         />
       </div>
+      <SamSection
+        owner={owner}
+        editing={samEditor}
+        onEdited={() => setSamEditor(null)}
+        onRun={setSelected}
+        onChanged={() => setRevision((x) => x + 1)}
+        onViewLeads={onViewLeads}
+      />
       <StateSourceList
         items={sources}
         counties={counties}

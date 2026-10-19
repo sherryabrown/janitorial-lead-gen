@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { adminMigrations } from '../helpers/admin-trigger-db.mjs';
 import { execFileSync, spawn } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
-import { createHmac, randomBytes, randomUUID } from 'node:crypto';
+import { createHmac, createHash, randomBytes, randomUUID } from 'node:crypto';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -13,6 +13,7 @@ import { countyTriggers } from '../../scripts/lib/county-triggers.mjs';
 import { workflowAudit } from '../../scripts/lib/workflow-audit.mjs';
 import { hostedWorkflow } from '../../scripts/lib/hosted-workflow.mjs';
 import { workflowServer } from '../../scripts/lib/workflow-http.mjs';
+import {statewideSam} from '../../scripts/lib/hosted-sam.mjs';
 
 const bin=process.env.ACCESS_TEST_PG_BIN || 'C:/Program Files/PostgreSQL/15/bin';
 const gateway=process.env.ACCESS_TEST_POSTGREST_BIN || resolve('outputs/procurement-access/local-access-runtime/postgrest/postgrest.exe');
@@ -130,7 +131,8 @@ try {
   sql("update procurement_jobs set state='cancelled'; update procurement_triggers set state='completed';");
   const db=createClient(`http://127.0.0.1:${httpPort}`,serverToken,{auth:{persistSession:false,autoRefreshToken:false},
     global:{fetch:(url,options)=>fetch(String(url).replace('/rest/v1/','/'),options)}});
-  const audit=workflowAudit(db),workflow=hostedWorkflow({db,audit,aiConfig:{enabled:false},reportError:()=>{}});
+  let samWorker;
+  const audit=workflowAudit(db),workflow=hostedWorkflow({db,audit,aiConfig:{enabled:false},processJob:(...args)=>samWorker.step(...args),reportError:()=>{}});
   const triggers=countyTriggers({db,audit,workflow,discovery:async()=>({state:'blocked'})});
   const schedules=procurementSchedules({db,triggers,now:()=>new Date('2026-10-13T14:00:00Z')});
   // Server-side preview uses the actual registry; bind its current revision.
@@ -152,6 +154,38 @@ try {
   await schedules.control(savedSchedule.body,'pause',{expected_version:1},first);
   assert.equal(await workflow.step(),false,'Pause stops queued automatic continuations');
   await schedules.control(savedSchedule.body,'archive',{expected_version:2},first);
+  // Same private wake/worker, actual SQL captures and audit, fixture SAM response.
+  // This proves isolated execution; it is not production/provider acceptance.
+  const samSource=randomUUID(),artifactBytes=new Map();let samCalls=0;
+  sql(`insert into procurement_sources(id,code,name,url,business_category)values('${samSource}','sam','SAM fixture','https://sam.gov','other_public');`);
+  const artifacts={put:async value=>{const bytes=Buffer.isBuffer(value)?value:Buffer.from(JSON.stringify(value)),path='artifacts/'+createHash('sha256').update(bytes).digest('hex');artifactBytes.set(path,bytes);return path;},get:async path=>artifactBytes.get(path)};
+  samWorker=statewideSam({db,project:'isolated',serverKey:()=> 'private-offline',artifacts,fetcher:async(_url,options)=>{
+    samCalls++;const input=JSON.parse(options.body),e=input.workflow_execution;
+    const job=(await db.from('procurement_jobs').select('*').eq('id',e.job_id).single()).data;
+    const detail={collector:'sam-search',kind:input.kind,filters:input.filters,workflow_attempt_id:e.attempt_id,
+      query_url:'https://api.sam.gov/opportunities/v2/search',state:'response_captured',upstream_status:200,complete_for_query:true,response:{totalRecords:0,opportunitiesData:[]}};
+    const inserted=await db.from('procurement_runs').insert({source_id:samSource,job_id:job.id,page_index:e.page_index,page_attempt:job.attempts,
+      started_at:new Date().toISOString(),status:'success',record_count:0,detail}).select('id').single();
+    assert.equal(inserted.error,null);
+    return new Response(JSON.stringify({run_id:inserted.data.id,captured:true,status:'success',record_count:0,...detail}),{status:200});
+  }});
+  const samInput={name:'Isolated SAM',enabled:true,config:{target_kind:'sam',requested_categories:['opportunity'],publication_window:{from:'2026-10-01',to:'2026-10-13'}},
+    recurrence:{timezone:'America/Chicago',frequency:'daily',local_times:['09:00']},window_policy:{opportunity:{lookback_days:30}}};
+  const sp=await schedules.preview(samInput),ss=await schedules.save(null,{...samInput,confirmed_scope:true,preview_hash:sp.preview_hash},first,'isolated-sam-schedule');
+  sql(`update procurement_schedules set next_due_at='2026-10-13T14:00:00Z' where id='${ss.id}';`);
+  const samArgs={p_actor:first,p_key:'private-sam-check',p_hash:'c'.repeat(64),p_config:{...sp.config,sam_filters:{state:'AR'}}};
+  for(const jwt of [undefined,nonMember,member])assert.ok([401,403].includes((await api('rpc/submit_procurement_trigger',jwt,samArgs)).status));
+  assert.equal((await wake()).status,202);assert.equal(await work,true);assert.equal(samCalls,1);
+  const so=(await schedules.occurrences(ss.id)).items;assert.equal(so.length,1);
+  const samParent=await triggers.status(so[0].trigger_id);assert.equal(samParent.children[0].county_id,null);
+  assert.equal(samParent.children[0].role,'sam');
+  await schedules.control(ss.id,'pause',{expected_version:1},first);assert.equal(await workflow.step(),false);
+  await schedules.control(ss.id,'resume',{expected_version:2},first);assert.equal(await workflow.step(),true);assert.equal(samCalls,1);
+  assert.equal(await triggers.step(),true);assert.equal((await triggers.status(samParent.id)).state,'needs_review');
+  const samSteps=await triggers.steps(samParent.id);assert.ok(samSteps.items.some(s=>s.phase==='fetch_api_page'));
+  assert.ok(samSteps.items.every(s=>s.usage.ai==='not_used'));
+  assert.equal((await wake()).status,202);await work;assert.equal(samCalls,1);assert.equal((await schedules.occurrences(ss.id)).items.length,1);
+  await schedules.control(ss.id,'archive',{expected_version:3},first);
   console.log(JSON.stringify({status:'passed',engine:'PostgreSQL 15 + PostgREST',checks:['anonymous reads/RPC denial','member and non-member reads/stages','signed expired and invalid JWT HTTP rejection','note ownership','atomic actor history','1005-row paged queue','service workflow access','Admin private table/RPC denial','Admin atomic replay','concurrent parent AI reservations and four-call cap','scheduling private tables/RPC denial and atomic replay','browser-independent private HTTP wake/shared worker/audit/replay/pause'],isolated_wake_and_stage_ms:isolatedWakeAndStageMs,production_contacted:false},null,2));
 } finally {
   if(backend)await new Promise(r=>backend.close(r));

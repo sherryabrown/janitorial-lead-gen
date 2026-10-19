@@ -5,7 +5,7 @@ export const adminMigrations=[
   '20261002000300_public_source_checks.sql','20261002000400_reconcile_known_gaps.sql',
   '20261004000100_source_gap_accountability.sql','20261004000200_ardot_known_adapter.sql',
   '20261004000300_known_source_interpretations.sql','20261005000100_known_source_workflow_repair.sql',
-  '20261007000100_hosted_procurement_workflow.sql','20261013000100_admin_county_triggers.sql','20261013000200_procurement_schedules.sql','20261013000300_procurement_scheduler_dispatch.sql'];
+  '20261007000100_hosted_procurement_workflow.sql','20261013000100_admin_county_triggers.sql','20261013000200_procurement_schedules.sql','20261013000300_procurement_scheduler_dispatch.sql','20261019000100_admin_sam_triggers.sql'];
 export async function adminDatabase() {
   const sql=new PGlite();
   await sql.exec(`create role anon;create role authenticated;create role service_role bypassrls;

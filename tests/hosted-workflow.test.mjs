@@ -19,6 +19,23 @@ async function call(server,path,{method='GET',headers={},input}={}) {
 }
 const actor=id(88),auth={authorization:'Bearer valid-session','content-type':'application/json'};
 
+test('SAM history and reconciliation retain bearer, pagination, saved-attempt and audit boundaries',async()=>{
+ let wakes=0,kicks=0,reconciled;
+ const server=workflowServer({authenticate:async()=>({id:actor}),kick:()=>{kicks++;},
+   samHistory:async options=>({items:[],...options}),samReconcile:async(...args)=>{reconciled=args;return {state:'pending'};},
+   triggers:{wake:async(request,options)=>{assert.equal(request,id(1));assert.equal(options.reconciled,true);wakes++;}},
+   audit:{run:async(request,phase,operation,meta)=>{assert.equal(request,id(1));assert.equal(phase,'reconcile');assert.equal(meta.actor_id,actor);return operation();}}});
+ try {
+   assert.equal((await call(server,'/v1/sam/requests')).status,401);
+   assert.equal((await call(server,'/v1/sam/requests?limit=500',{headers:auth})).status,400);
+   assert.equal((await call(server,'/v1/sam/requests?offset=2&limit=3',{headers:auth})).data.offset,2);assert.equal(kicks,0);
+   const route=`/v1/sam/requests/${id(1)}/reconcile`;
+   assert.equal((await call(server,route,{method:'POST',input:{}})).status,401);
+   assert.equal((await call(server,route,{method:'POST',headers:auth,input:{}})).status,200);
+   assert.deepEqual(reconciled,[id(1),actor]);assert.equal(wakes,1);assert.equal(kicks,1);
+ }finally{server.close();}
+});
+
 test('Admin collection uses the accepted shared browser path only and preserves legacy execution',async()=>{
  for(const [admin,accepted,expected] of [[true,false,0],[true,true,1],[true,undefined,0],[false,false,1]]) {
   let captured=0,claimed=false;

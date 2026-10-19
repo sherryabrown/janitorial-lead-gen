@@ -70,7 +70,7 @@ const server=workflowServer({workflow,imports,discovery,kick,triggers,schedules,
   browser,
   authenticate:async token=>{const {data,error}=await db.auth.getUser(token);return error?null:data.user;},
   allowedOrigins:(env.PROCUREMENT_ALLOWED_ORIGINS??'').split(',').filter(Boolean),
-  sam:sam.submit,samPacket:sam.packet});
+  sam:sam.submit,samPacket:sam.packet,samReconcile:sam.reconcile,samHistory:sam.history});
 server.requestTimeout=15000;server.headersTimeout=10000;
 server.listen(Number(env.PORT??8080),env.HOST??'0.0.0.0',()=>console.log('Procurement backend listening; frontend unchanged.'));
 if(benchmarking)void startupBrowserBenchmark({db,artifacts,id:env.PROCUREMENT_BROWSER_BENCHMARK_ID})

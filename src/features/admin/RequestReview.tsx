@@ -5,18 +5,29 @@ import {
   acknowledged,
 } from '../../lib/procurement-workflow';
 import { SourceReview } from './SourceReview';
-import type { RequestStatus, Packet, Task, ImportStatus, Job } from './types';
+import type {
+  RequestStatus,
+  Packet,
+  Task,
+  ImportStatus,
+  Job,
+  SamPacket,
+} from './types';
 import { title } from './model';
 export function RequestReview({
   id,
   owner,
   onViewLeads,
+  sam = false,
 }: {
   id: string;
   owner: string;
   onViewLeads: () => void;
+  sam?: boolean;
 }) {
   const [data, setData] = useState<RequestStatus | null>(null),
+    [samPacket, setSamPacket] = useState<SamPacket | null>(null),
+    [allowPartial, setAllowPartial] = useState(false),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
     [version, setVersion] = useState(0),
@@ -34,6 +45,16 @@ export function RequestReview({
     [sourceOffset, setSourceOffset] = useState<number | null>(0);
   useEffect(() => {
     const a = new AbortController();
+    setSamPacket(null);
+    setAllowPartial(false);
+    if (sam)
+      void workflowRequest<SamPacket>(`/v1/sam/requests/${id}/packet`, {
+        signal: a.signal,
+      })
+        .then((p) => {
+          if (!a.signal.aborted) setSamPacket(p);
+        })
+        .catch(() => {});
     void workflowRequest<RequestStatus>(`/v1/requests/${id}`, {
       signal: a.signal,
     })
@@ -54,7 +75,7 @@ export function RequestReview({
         if (!a.signal.aborted) setError(e.message);
       });
     return () => a.abort();
-  }, [id, version]);
+  }, [id, version, sam]);
   useEffect(() => {
     if (!job || !['pending', 'running'].includes(job.state)) return;
     const a = new AbortController(),
@@ -106,7 +127,8 @@ export function RequestReview({
         limitations:
           'Saved source evidence only; incomplete routes are not complete coverage',
         reviewed_by: owner,
-        run_ids: [],
+        run_ids: sam ? (samPacket?.run_ids ?? []) : [],
+        ...(sam ? { allow_partial: allowPartial } : {}),
         decisions: data.candidates
           .filter((c) => selected.includes(c.intake_id))
           .map((c) => ({
@@ -179,14 +201,109 @@ export function RequestReview({
             {data.tasks.reduce((n, t) => n + (t.pages || 0), 0)} saved pages.
             Source evidence is not proof of complete lead coverage.
           </p>
+          {sam && (
+            <>
+              <h3>SAM — Arkansas statewide</h3>
+              {samPacket ? (
+                <details>
+                  <summary>
+                    Saved SAM evidence · {samPacket.run_ids.length} pages ·{' '}
+                    {samPacket.partial
+                      ? 'Partial capture'
+                      : 'Terminal confirmed'}
+                  </summary>
+                  <p>
+                    {samPacket.category === 'award'
+                      ? 'Last modified dates'
+                      : 'Posted dates'}
+                    : {samPacket.publication_window?.from} through{' '}
+                    {samPacket.publication_window?.to} ·{' '}
+                    {samPacket.records ?? 'Unconfirmed'} captured records
+                  </p>
+                  <p>{samPacket.next_action}</p>
+                  {samPacket.captures.map((c) => (
+                    <p key={c.run_id}>
+                      {title(c.kind)} ·{' '}
+                      <a href={c.query_url} target="_blank" rel="noreferrer">
+                        Official query
+                      </a>
+                      <br />
+                      {JSON.stringify(c.filters)}
+                    </p>
+                  ))}
+                  {samPacket.candidates
+                    .filter((c) =>
+                      data.candidates.some(
+                        (i) => i.intake_id === c.intake_id,
+                      ),
+                    )
+                    .map((c) => (
+                      <details key={c.intake_id}>
+                        <summary>{c.title}</summary>
+                        <p>
+                          {c.agency} · {title(c.bid_type)}
+                        </p>
+                        <p>
+                          {JSON.stringify(c.work_performance_locations ?? [])}{' '}
+                          ·{' '}
+                          {c.deadline ??
+                            c.contract_end ??
+                            'Verify qualifying date'}
+                        </p>
+                        {c.source_url && (
+                          <a
+                            href={c.source_url}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            Official record
+                          </a>
+                        )}
+                      </details>
+                    ))}
+                </details>
+              ) : (
+                <p className="admin-hint">
+                  SAM evidence is not ready. Read saved progress; a missing
+                  packet is not a zero-result search.
+                </p>
+              )}
+              {data.jobs.some(
+                (j) =>
+                  j.state === 'outcome_unknown' &&
+                  j.stage === 'sam_reconcile',
+              ) && (
+                <button
+                  type="button"
+                  className="text-button"
+                  disabled={busy}
+                  onClick={() =>
+                    void perform(() =>
+                      workflowRequest(`/v1/sam/requests/${id}/reconcile`, {
+                        body: {},
+                      }),
+                    )
+                  }
+                >
+                  Reconcile saved SAM response
+                </button>
+              )}
+            </>
+          )}
           {data.jobs
             .filter((j) => !j.stage?.startsWith('import_'))
             .map((j) => (
               <div key={j.id}>
                 <p className="admin-hint">
-                  <strong>{title(j.stage ?? j.state)}</strong> | {j.next_action}
+                  <strong>{title(j.stage ?? j.state)}</strong> |{' '}
+                  {j.next_action}
                 </p>
-                {j.access_handoff_id && <SavedAccess job={j} onChange={() => setVersion(x => x + 1)} />}
+                {j.access_handoff_id && (
+                  <SavedAccess
+                    job={j}
+                    onChange={() => setVersion((x) => x + 1)}
+                  />
+                )}
               </div>
             ))}
           {data.tasks.map((t) => (
@@ -276,7 +393,10 @@ export function RequestReview({
               </button>
               <label>
                 Official seed
-                <select value={seed} onChange={(e) => setSeed(e.target.value)}>
+                <select
+                  value={seed}
+                  onChange={(e) => setSeed(e.target.value)}
+                >
                   <option value="">Choose a registered source</option>
                   {sources.map((s) => (
                     <option key={s.id} value={s.id}>
@@ -393,6 +513,17 @@ export function RequestReview({
           )}
           {selected.length > 0 && (
             <div className="admin-review-form">
+              {samPacket?.partial && (
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={allowPartial}
+                    onChange={(e) => setAllowPartial(e.target.checked)}
+                  />
+                  Review these saved partial SAM pages only; no complete
+                  statewide coverage is claimed.
+                </label>
+              )}
               <label>
                 Reason for processing reviewed candidates
                 <textarea
@@ -411,7 +542,13 @@ export function RequestReview({
               <button
                 type="button"
                 className="secondary-button"
-                disabled={busy || !reason.trim()}
+                disabled={
+                  busy ||
+                  !reason.trim() ||
+                  (sam &&
+                    (!samPacket?.run_ids.length ||
+                      (samPacket.partial && !allowPartial)))
+                }
                 onClick={prepare}
               >
                 Prepare tested import · {selected.length} selected
@@ -488,33 +625,93 @@ export function RequestReview({
     </section>
   );
 }
-type AccessStatus = { tenant: string; next: { action?: string }; hosted?: { recipe_current: boolean; session_current: boolean } };
-function SavedAccess({job,onChange}:{job:Job;onChange:()=>void}) {
-  const [access,setAccess]=useState<AccessStatus|null>(null),[busy,setBusy]=useState(false),[message,setMessage]=useState('');
-  const path=`/v1/access/${job.access_handoff_id}`;
-  const perform=async(action?:string)=>{
-    setBusy(true);setMessage('');
+type AccessStatus = {
+  tenant: string;
+  next: { action?: string };
+  hosted?: { recipe_current: boolean; session_current: boolean };
+};
+function SavedAccess({ job, onChange }: { job: Job; onChange: () => void }) {
+  const [access, setAccess] = useState<AccessStatus | null>(null),
+    [busy, setBusy] = useState(false),
+    [message, setMessage] = useState('');
+  const path = `/v1/access/${job.access_handoff_id}`;
+  const perform = async (action?: string) => {
+    setBusy(true);
+    setMessage('');
     try {
-      if(action) {
-        const result=await workflowRequest<{next_action?:string;state:string}>(`${path}/${action}`,{body:{}});
-        setMessage(result.next_action??title(result.state));onChange();
+      if (action) {
+        const result = await workflowRequest<{
+          next_action?: string;
+          state: string;
+        }>(`${path}/${action}`, { body: {} });
+        setMessage(result.next_action ?? title(result.state));
+        onChange();
       }
       setAccess(await workflowRequest<AccessStatus>(path));
-    }catch(error){setMessage((error as Error).message);}finally{setBusy(false);}
+    } catch (error) {
+      setMessage((error as Error).message);
+    } finally {
+      setBusy(false);
+    }
   };
-  return <div className="admin-review-form">
-    <button type="button" className="text-button" disabled={busy} onClick={()=>void perform()}>Check saved portal access</button>
-    {access && <>
-      <p>{access.tenant} · {access.next.action}</p>
-      <div className="admin-inline">
-        <button type="button" className="text-button" disabled={busy||!access.hosted?.recipe_current} onClick={()=>void perform('continue')}>Resume saved sign-in</button>
-        <button type="button" className="text-button" disabled={busy||!access.hosted?.session_current||job.capture_state==='captured'||!['pending','partial'].includes(job.state)} onClick={()=>void perform(`capture/${job.id}`)}>Capture saved method</button>
-        {job.capture_state && job.capture_state!=='captured' && <button type="button" className="text-button" disabled={busy} onClick={()=>void perform(`capture/${job.id}/reconcile`)}>Reconcile saved capture</button>}
-      </div>
-      <p className="admin-hint">Manual browser verification does not verify the hosted session. These actions resume the existing record; they do not create an account or approve unattended collection.</p>
-    </>}
-    {message && <p role="status">{message}</p>}
-  </div>;
+  return (
+    <div className="admin-review-form">
+      <button
+        type="button"
+        className="text-button"
+        disabled={busy}
+        onClick={() => void perform()}
+      >
+        Check saved portal access
+      </button>
+      {access && (
+        <>
+          <p>
+            {access.tenant} · {access.next.action}
+          </p>
+          <div className="admin-inline">
+            <button
+              type="button"
+              className="text-button"
+              disabled={busy || !access.hosted?.recipe_current}
+              onClick={() => void perform('continue')}
+            >
+              Resume saved sign-in
+            </button>
+            <button
+              type="button"
+              className="text-button"
+              disabled={
+                busy ||
+                !access.hosted?.session_current ||
+                job.capture_state === 'captured' ||
+                !['pending', 'partial'].includes(job.state)
+              }
+              onClick={() => void perform(`capture/${job.id}`)}
+            >
+              Capture saved method
+            </button>
+            {job.capture_state && job.capture_state !== 'captured' && (
+              <button
+                type="button"
+                className="text-button"
+                disabled={busy}
+                onClick={() => void perform(`capture/${job.id}/reconcile`)}
+              >
+                Reconcile saved capture
+              </button>
+            )}
+          </div>
+          <p className="admin-hint">
+            Manual browser verification does not verify the hosted session.
+            These actions resume the existing record; they do not create an
+            account or approve unattended collection.
+          </p>
+        </>
+      )}
+      {message && <p role="status">{message}</p>}
+    </div>
+  );
 }
 
 function InterpretationReview({
@@ -546,8 +743,8 @@ function InterpretationReview({
   )
     return (
       <p>
-        The saved review belongs to earlier captures. Refresh or reconcile that
-        review before adding decisions.
+        The saved review belongs to earlier captures. Refresh or reconcile
+        that review before adding decisions.
       </p>
     );
   if (!p)
@@ -636,32 +833,44 @@ function InterpretationReview({
         <details>
           <summary>Current projects from this saved listing</summary>
           <p className="admin-hint">
-            Listing captured. Project details and documents still need verification;
-            a listing alone does not establish a qualified lead. Opening the Portal
-            does not verify the server session.
+            Listing captured. Project details and documents still need
+            verification; a listing alone does not establish a qualified lead.
+            Opening the Portal does not verify the server session.
           </p>
-          <a href={packet.portal_url} target="_blank" rel="noreferrer">Open agency Portal</a>
+          <a href={packet.portal_url} target="_blank" rel="noreferrer">
+            Open agency Portal
+          </a>
           <ul>
-            {packet.project_links.filter(link => link.run_id === p.run_id).map(link => (
-              <li key={link.id}>
-                <a href={link.url} target="_blank" rel="noreferrer">{link.title}</a>
-                {' · Closes '}{link.closes}
-              </li>
-            ))}
+            {packet.project_links
+              .filter((link) => link.run_id === p.run_id)
+              .map((link) => (
+                <li key={link.id}>
+                  <a href={link.url} target="_blank" rel="noreferrer">
+                    {link.title}
+                  </a>
+                  {' · Closes '}
+                  {link.closes}
+                </li>
+              ))}
           </ul>
           <p className="admin-hint">
-            If a project asks for sign-in or security verification, complete the
-            official access action and retain the saved evidence for review.
-            No automatic challenge retries are performed.
+            If a project asks for sign-in or security verification, complete
+            the official access action and retain the saved evidence for
+            review. No automatic challenge retries are performed.
           </p>
         </details>
       )}
       <label>
         Decision
-        <select value={decision} onChange={(e) => setDecision(e.target.value)}>
+        <select
+          value={decision}
+          onChange={(e) => setDecision(e.target.value)}
+        >
           <option value="unresolved">Needs more evidence</option>
           <option value="exclude">Exclude this quoted record</option>
-          <option value="finding">Stage a candidate from this evidence</option>
+          <option value="finding">
+            Stage a candidate from this evidence
+          </option>
         </select>
       </label>
       <label>
@@ -674,13 +883,19 @@ function InterpretationReview({
       </label>
       <label>
         Reason
-        <textarea value={reason} onChange={(e) => setReason(e.target.value)} />
+        <textarea
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+        />
       </label>
       {decision === 'finding' && (
         <>
           <label>
             Official record identifier
-            <input value={record} onChange={(e) => setRecord(e.target.value)} />
+            <input
+              value={record}
+              onChange={(e) => setRecord(e.target.value)}
+            />
           </label>
           <label>
             Title
@@ -688,7 +903,10 @@ function InterpretationReview({
           </label>
           <label>
             Work county
-            <input value={county} onChange={(e) => setCounty(e.target.value)} />
+            <input
+              value={county}
+              onChange={(e) => setCounty(e.target.value)}
+            />
           </label>
           <label>
             Work city (when stated)
@@ -729,8 +947,8 @@ function InterpretationReview({
         Save evidence-backed decision
       </button>
       <p className="admin-hint">
-        Server validates the current packet, quoted evidence, work location and
-        dates. Staging a candidate does not import it.
+        Server validates the current packet, quoted evidence, work location
+        and dates. Staging a candidate does not import it.
       </p>
     </div>
   );

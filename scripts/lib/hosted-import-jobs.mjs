@@ -13,9 +13,11 @@ export function importJobs({db,project,transport,artifacts,samSavedRuns,rehearse
     if(review.request_id!==requestId || review.project_ref!==project)throw new Error('Review request/project mismatch');
     const interpretations=await rows(db,'procurement_interpretations',q=>q.eq('request_id',requestId).eq('is_current',true));
     const eligible=new Set(interpretations.flatMap(i=>i.staging_receipt?.intake_ids??[]));
+    const samJobs=await rows(db,'procurement_jobs',q=>q.eq('search_request_id',requestId));
+    if(samJobs.some(j=>j.dedupe_key?.startsWith('api-sam:'))&&!review.run_ids?.length)
+      throw Error('Review must bind this separate statewide SAM request and its exact saved runs');
     let runs=[];
     if(review.run_ids?.length) {
-      const samJobs=await rows(db,'procurement_jobs',q=>q.eq('search_request_id',requestId));
       const samJob=samJobs.find(j=>j.dedupe_key?.startsWith('api-sam:')&&j.checkpoint?.stage==='sam_review');
       if(!samJob||!samSavedRuns||hash([...review.run_ids].sort())!==hash([...(samJob.checkpoint.run_ids??[])].sort()))
         throw new Error('Review must bind this separate statewide SAM request and its exact saved runs');

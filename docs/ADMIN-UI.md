@@ -26,7 +26,7 @@ Bonfire Portal follow-up (October 19): category packets for `bonfire-projects-v1
 
 Saved browser jobs expose only their `access_handoff_id` and `capture_state` in request status. **Check saved portal access** reads the existing access record; it does not sign in or start collection. Explicit sign-in/capture/reconciliation buttons reuse the existing bearer routes and refresh saved status. Expired recipes disable hosted sign-in/capture, and a completed capture cannot be repeated through that action. The access response exposes recipe/session validity booleans and safe next action; credentials, recipe selectors, encrypted artifacts and cookies remain private. Manual verification does not grant unattended acceptance. These continuation changes require the matching backend release; browser fixtures do not establish production availability.
 
-Existing bearer authentication, allowed origins, audit and import guards apply. No schema migration or new secret is needed.
+Existing bearer authentication, allowed origins, audit and import guards apply. The original county UI additions need no migration or new secret; the separate SAM extension below requires its forward migration.
 
 - `GET /v1/requests/:id/sources?offset=0&limit=50`: registered official seed options associated with that saved request; bounded pagination, safe ID/code/name/URL only. No unrestricted source search.
 - Interpretation packets include safe current interpretation ID/hash/outcome counts. They do not expose saved result/private supporting artifact paths. `POST .../interpret` accepts `append_to_current:true` with `supersedes_id`; the server verifies the current revision and same packet, appends saved outcomes, and retains existing validation/CAS persistence. Existing non-append callers retain their behavior.
@@ -64,3 +64,15 @@ UI regressions now include independent list failure and registry connection labe
 ### State-source scope display correction
 
 State-source drafts restrict selection to their saved county associations. They now receive the full registry separately from their selectable association IDs. Registered counties outside that source scope are labeled `Not associated`; they do not trigger the registry-mismatch warning. The draft identifies its source and provides `Back to county checks`, which restores the independent manual selection. Actual-browser readback confirmed Faulkner and Saline remained selected, other registered counties became selectable again, and the false warning disappeared. No run or schedule was submitted during this correction. Follow-up UI suite: 53 tests passed.
+
+## SAM Admin extension — October 19, 2026
+
+Implemented locally; the SAM migration, private function and matching Render/backend and preview releases are prerequisites. Netlify production remains unchanged. Local/browser fixtures do not establish live provider access or scheduled execution.
+
+**SAM.gov — Arkansas statewide** is independent of county selections and registry availability. Choose Opportunities (posted dates) or Awards (last modification dates); forecasts continue through agency sources. Both use Arkansas performance location and NAICS 561720. Manual checks default to the last 30 calendar days including today. Confirm the category/window before submission. No AI is needed for collection; audit reports actual usage, with non-AI steps recorded as not used.
+
+SAM schedules reuse the existing cadence controls: multiple daily times, weekly weekdays, or monthly dates with the existing short-month rule, in America/Chicago. A new schedule starts paused. Its category-specific rolling lookback defaults to 30 days and freezes into explicit dates for each occurrence. County drafts remain selected when submitting or editing SAM. Shared schedule actions support edit, pause/resume, run now and archive.
+
+SAM history includes existing direct SAM requests as well as new Admin parents. Results show saved pages, counts, category/window, partial/terminal status, evidence and candidates. Preparing imports requires the exact captured run IDs and current candidate hashes; partial captures require explicit acknowledgment. Existing package testing and exact-hash approval remain required. Unknown fetch outcomes expose reconciliation of the saved audited attempt, never automatic resending.
+
+Additional authenticated routes: `GET /v1/sam/requests?offset=0&limit=50` and `POST /v1/sam/requests/:id/reconcile`. Saved review uses the existing packet endpoint. No credentials or raw private artifacts are exposed.

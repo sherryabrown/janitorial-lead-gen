@@ -1,4 +1,14 @@
 export type Category = 'forecast' | 'opportunity' | 'award';
+export type SamConfig = {
+  target_kind: 'sam';
+  requested_categories: ['opportunity' | 'award'];
+  publication_window: { from: string; to: string };
+};
+export type SamSchedule = Omit<Schedule, 'config' | 'window_policy'> & {
+  config: SamConfig;
+  window_policy: Record<string, { lookback_days: number }>;
+};
+export type AnySchedule = Schedule | SamSchedule;
 export type County = { id: string; name: string };
 export type ScopeCounty = County & {
   city_ids: string[];
@@ -63,6 +73,7 @@ export type Usage = {
   credit_unit?: string | null;
 };
 export type Run = {
+  category?: 'opportunity' | 'award' | null;
   id: string;
   state: string;
   created_at: string;
@@ -73,7 +84,7 @@ export type Run = {
   schedule_name?: string | null;
   origin?: string;
   usage?: Usage;
-  config?: Config;
+  config?: Config | SamConfig;
   children?: { request_id: string; county_id: string; role: string }[];
   next_action?: string;
   related_state_sources?: StateSource[];
@@ -139,6 +150,34 @@ export type RequestStatus = {
   next_offset: number | null;
   usage: Usage;
 };
+export type SamPacket = {
+  request_id: string;
+  category?: string;
+  publication_window?: { from: string; to: string };
+  records?: number | null;
+  run_ids: string[];
+  terminal_confirmed: boolean;
+  partial: boolean;
+  canonical_writes: number;
+  candidates: {
+    intake_id: string;
+    title: string;
+    agency?: string;
+    bid_type?: string;
+    source_url?: string;
+    deadline?: string;
+    contract_start?: string;
+    contract_end?: string;
+    work_performance_locations?: unknown[];
+  }[];
+  captures: {
+    run_id: string;
+    kind: string;
+    filters: Record<string, unknown>;
+    query_url: string;
+  }[];
+  next_action: string;
+};
 export type EvidencePage = {
   run_id: string;
   url: string;
@@ -147,7 +186,14 @@ export type EvidencePage = {
 };
 export type Packet = {
   portal_url?: string;
-  project_links?: { id: string; title: string; closes: string; url: string; run_id: string; content_sha256: string }[];
+  project_links?: {
+    id: string;
+    title: string;
+    closes: string;
+    url: string;
+    run_id: string;
+    content_sha256: string;
+  }[];
   version: number;
   packet_hash: string;
   category: Category;

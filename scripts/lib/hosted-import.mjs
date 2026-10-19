@@ -14,8 +14,9 @@ const tables=['procurement_sources','procurement_leads','procurement_intake_item
 export async function assertCurrentReview(db,review) {
   const interpretations=await rows(db,'procurement_interpretations',q=>q.eq('request_id',review.request_id).eq('is_current',true));
   const eligible=new Set(interpretations.flatMap(i=>i.staging_receipt?.intake_ids??[]));
+  const jobs=await rows(db,'procurement_jobs',q=>q.eq('search_request_id',review.request_id));
+  if(jobs.some(j=>j.dedupe_key?.startsWith('api-sam:'))&&!review.run_ids?.length)throw Error('Current SAM review run set required');
   if(review.run_ids?.length) {
-    const jobs=await rows(db,'procurement_jobs',q=>q.eq('search_request_id',review.request_id));
     const job=jobs.find(j=>j.dedupe_key?.startsWith('api-sam:')&&j.checkpoint?.stage==='sam_review');
     if(!job||hash([...review.run_ids].sort())!==hash([...(job.checkpoint.run_ids??[])].sort()))throw new Error('Current SAM review run set required');
     for(const id of job.checkpoint.intake_ids??[])eligible.add(id);

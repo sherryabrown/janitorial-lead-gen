@@ -94,6 +94,8 @@ const run = {
 };
 const bodies = [];
 let savedSchedule = false;
+let samSchedule = null;
+const samRun={...run,id:'sam-run',target_kind:'sam',county_count:0,config:{target_kind:'sam',requested_categories:['opportunity'],publication_window:{from:'2026-09-20',to:'2026-10-19'}},children:[{request_id:'sam-request',county_id:null,role:'sam'}]};
 const server = spawn(
   process.execPath,
   [
@@ -193,6 +195,8 @@ try {
         };
       else if (p.endsWith('/preview')) {
         const config = input.config ?? input;
+        if(config.target_kind==='sam')body={...input,config,preview_hash:'b'.repeat(64),next_due_at:input.enabled?'2026-10-20T14:00:00Z':null};
+        else
         body = {
           ...input,
           config: {
@@ -212,15 +216,18 @@ try {
           next_due_at: input.enabled ? '2026-10-20T14:00:00Z' : null,
         };
       } else if (p === '/v1/schedules' && req.method() === 'POST') {
-        savedSchedule = true;
-        Object.assign(schedule, input);
-        body = schedule;
+        if(input.config.target_kind==='sam'){samSchedule={...input,id:'sam-schedule',version:1,next_due_at:null};body=samSchedule;}
+        else {savedSchedule = true;Object.assign(schedule, input);body = schedule;}
       } else if (p === '/v1/schedules')
-        body = { items: savedSchedule ? [schedule] : [], next_offset: null };
+        body = { items: [...(savedSchedule ? [schedule] : []),...(samSchedule?[samSchedule]:[])], next_offset: null };
       else if (p === '/v1/triggers' && req.method() === 'POST')
-        body = { trigger_id: 'run' };
+        body = { trigger_id: input.target_kind==='sam'?'sam-run':'run' };
       else if (p === '/v1/triggers') body = { items: [run], next_offset: null };
       else if (p === '/v1/triggers/run') body = run;
+      else if(p==='/v1/triggers/sam-run')body=samRun;
+      else if(p==='/v1/triggers/sam-run/steps')body={items:[],next_cursor:null};
+      else if(p==='/v1/requests/sam-request')body={tasks:[],jobs:[{id:'sam-job',state:'blocked',stage:'sam_review',next_action:'Review saved statewide SAM candidates'}],candidates:[],total_candidates:0,next_offset:null};
+      else if(p==='/v1/sam/requests/sam-request/packet')body={request_id:'sam-request',category:'opportunity',publication_window:samRun.config.publication_window,records:17,run_ids:['sam-page'],terminal_confirmed:true,partial:false,canonical_writes:0,candidates:[],captures:[{run_id:'sam-page',kind:'opportunities',query_url:'https://api.sam.gov/opportunities/v2/search',filters:{state:'AR',ncode:'561720'}}],next_action:'Review actual work site and dates'};
       else if (p === '/v1/triggers/run/steps')
         body = {
           items: [
@@ -344,6 +351,24 @@ try {
   await page.getByText('Saved Morning checks — paused.').waitFor();
   assert.equal(savedSchedule, true);
   assert.equal(schedule.enabled, false);
+  const sam=page.getByRole('region',{name:'SAM statewide checks'});
+  await sam.getByRole('button',{name:'Run SAM now'}).focus();await page.keyboard.press('Tab');
+  assert.equal(await sam.getByRole('button',{name:'Save SAM schedule'}).evaluate(el=>el===document.activeElement),true);
+  await sam.getByRole('button',{name:'Run SAM now'}).click();await sam.getByRole('button',{name:'Confirm SAM run'}).click();
+  await page.getByText('SAM results',{exact:true}).waitFor();await page.getByText('Saved SAM evidence',{exact:false}).waitFor();
+  assert.equal(await page.getByRole('checkbox',{name:'Pulaski County',exact:true}).isChecked(),true);
+  await page.getByRole('button',{name:'Close details'}).click();
+  await sam.getByRole('button',{name:'Save SAM schedule'}).click();
+  await sam.getByLabel('Schedule name').fill('SAM weekly updates');
+  await sam.getByLabel('Frequency').selectOption('weekly');
+  for(const width of [1440,390,320]){
+    await page.setViewportSize({width,height:900});
+    await sam.scrollIntoViewIfNeeded();await page.screenshot({path:`${out}/sam-${width}.png`,fullPage:true});
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+  }
+  await sam.getByLabel('Frequency').selectOption('monthly');await sam.getByLabel('Day of month').fill('31');
+  await sam.getByRole('button',{name:'Review SAM schedule'}).click();await sam.getByRole('button',{name:'Confirm SAM schedule'}).click();
+  await sam.getByText('Saved SAM weekly updates — paused.').waitFor();assert.equal(samSchedule.enabled,false);
   for (const width of [390, 320]) {
     await page.setViewportSize({ width, height: 844 });
     await page.evaluate(() => window.scrollTo(0, 0));
@@ -358,7 +383,9 @@ try {
     assert.equal(sizes.scroll <= sizes.width, true, JSON.stringify(sizes));
   }
   assert.equal(errors.length, 0, errors.join('\n'));
-  assert.equal(bodies.filter((b) => b.path === '/v1/triggers').length, 1);
+  assert.equal(bodies.filter((b) => b.path === '/v1/triggers').length, 2);
+  assert.equal(bodies.filter(b=>b.path==='/v1/triggers'&&b.input.target_kind==='sam').length,1);
+  assert.equal(bodies.find(b=>b.path==='/v1/triggers'&&b.input.target_kind==='sam').input.county_ids,undefined);
   assert.equal(
     bodies.filter((b) => b.path === '/v1/triggers')[0].input.target_kind,
     'county_scope',

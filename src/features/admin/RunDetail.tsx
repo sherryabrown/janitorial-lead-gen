@@ -43,7 +43,9 @@ export function RunDetail({
       try {
         const start = pageStart.current;
         const [r, s] = await Promise.all([
-          workflowRequest<Run>(`/v1/triggers/${id}`, { signal: abort.signal }),
+          workflowRequest<Run>(`/v1/triggers/${id}`, {
+            signal: abort.signal,
+          }),
           workflowRequest<{ items: Step[]; next_cursor: string | null }>(
             `/v1/triggers/${id}/steps${start ? `?cursor=${start}` : ''}`,
             { signal: abort.signal },
@@ -158,20 +160,28 @@ export function RunDetail({
             >
               Refresh progress
             </button>
-            <button type="button" className="text-button" onClick={onViewLeads}>
+            <button
+              type="button"
+              className="text-button"
+              onClick={onViewLeads}
+            >
               View leads
             </button>
           </div>
           <details>
             <summary>
-              Saved scope · {run.config?.county_ids.length ?? 0} counties
+              Saved scope ·{' '}
+              {run.config?.target_kind === 'sam'
+                ? 'SAM — Arkansas statewide'
+                : `${run.config?.county_ids.length ?? 0} counties`}
             </summary>
-            {run.config?.counties?.map((c) => (
-              <p key={c.id}>
-                {c.name}:{' '}
-                {c.cities.map((x) => x.name).join(', ') || 'County sources'}
-              </p>
-            ))}
+            {run.config?.target_kind !== 'sam' &&
+              run.config?.counties?.map((c) => (
+                <p key={c.id}>
+                  {c.name}:{' '}
+                  {c.cities.map((x) => x.name).join(', ') || 'County sources'}
+                </p>
+              ))}
           </details>
           <details open>
             <summary>Steps · {steps.length}</summary>
@@ -229,12 +239,18 @@ export function RunDetail({
             </details>
           )}
           <label className="input-field">
-            <span>County/source results</span>
+            <span>
+              {run.target_kind === 'sam'
+                ? 'SAM results'
+                : 'County/source results'}
+            </span>
             <select value={child} onChange={(e) => setChild(e.target.value)}>
               {run.children?.map((c) => (
                 <option key={c.request_id} value={c.request_id}>
-                  {run.config?.counties?.find((x) => x.id === c.county_id)
-                    ?.name ?? c.county_id}{' '}
+                  {run.config?.target_kind === 'sam'
+                    ? 'Arkansas statewide'
+                    : (run.config?.counties?.find((x) => x.id === c.county_id)
+                        ?.name ?? c.county_id)}{' '}
                   · {title(c.role)}
                 </option>
               ))}
@@ -245,6 +261,7 @@ export function RunDetail({
               key={`${child}:${run.state}`}
               id={child}
               owner={owner}
+              sam={run.target_kind === 'sam'}
               onViewLeads={onViewLeads}
             />
           )}

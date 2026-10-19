@@ -1,4 +1,4 @@
-import type { Schedule, StateSource, Run, County } from './types';
+import type { AnySchedule, StateSource, Run, County } from './types';
 import { formatLocal, title, usageText } from './model';
 export function ScheduleList({
   items,
@@ -8,11 +8,11 @@ export function ScheduleList({
   onAction,
   busy,
 }: {
-  items: Schedule[];
+  items: AnySchedule[];
   more: boolean;
   onMore: () => void;
-  onEdit: (s: Schedule) => void;
-  onAction: (s: Schedule, a: string) => void;
+  onEdit: (s: AnySchedule) => void;
+  onAction: (s: AnySchedule, a: string) => void;
   busy: boolean;
 }) {
   return (
@@ -20,7 +20,8 @@ export function ScheduleList({
       <h2>Schedules</h2>
       {!items.filter((s) => !s.archived_at && !s.archived).length && (
         <p className="admin-hint">
-          Save a schedule from your selected scope. New schedules start paused.
+          Save a schedule from your selected scope. New schedules start
+          paused.
         </p>
       )}
       <div className="admin-rows">
@@ -31,9 +32,11 @@ export function ScheduleList({
               <div>
                 <strong>{s.name}</strong>
                 <p>
-                  {s.config.target_kind === 'state_source'
-                    ? 'State source'
-                    : `${s.config.county_ids.length} counties`}{' '}
+                  {s.config.target_kind === 'sam'
+                    ? `SAM · ${s.config.requested_categories[0] === 'award' ? 'Contract awards' : 'Opportunities'} · Arkansas statewide`
+                    : s.config.target_kind === 'state_source'
+                      ? 'State source'
+                      : `${s.config.county_ids.length} counties`}{' '}
                   · {title(s.recurrence.frequency)} ·{' '}
                   {s.enabled ? 'Enabled' : 'Paused'}
                 </p>
@@ -102,7 +105,8 @@ export function StateSourceList({
     <section className="admin-section" aria-label="Independent state sources">
       <h2>State sources</h2>
       <p className="admin-hint">
-        State sources are researched for new counties, then updated separately.
+        State sources are researched for new counties, then updated
+        separately.
       </p>
       {!items.length && (
         <p>No saved state sources yet. New findings will appear here.</p>
@@ -192,13 +196,16 @@ export function ActivityList({
             </strong>
             <p>
               {formatLocal(r.created_at)} ·{' '}
-              {r.county_count == null
-                ? 'Scope in details'
-                : `${r.county_count} counties`}
+              {r.target_kind === 'sam'
+                ? `SAM · ${r.category === 'award' ? 'Contract awards' : 'Opportunities'} · Arkansas statewide`
+                : r.county_count == null
+                  ? 'Scope in details'
+                  : `${r.county_count} counties`}
             </p>
             <small>
               {r.candidate_count ?? 'Unknown'} candidates |{' '}
-              {r.evidence_count ?? 'Unknown'} saved pages | {usageText(r.usage)}
+              {r.evidence_count ?? 'Unknown'} saved pages |{' '}
+              {usageText(r.usage)}
             </small>
           </div>
           <button
@@ -209,7 +216,9 @@ export function ActivityList({
           >
             {selected === r.id
               ? 'Hide details'
-              : ['needs_review', 'partial', 'outcome_unknown'].includes(r.state)
+              : ['needs_review', 'partial', 'outcome_unknown'].includes(
+                    r.state,
+                  )
                 ? 'Review results'
                 : 'View progress'}
           </button>

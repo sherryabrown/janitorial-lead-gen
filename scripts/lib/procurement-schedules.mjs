@@ -2,8 +2,9 @@ import { timingSafeEqual } from 'node:crypto';
 import { checked,one } from './hosted-store.mjs';
 import { hash } from './reviewed-batch.mjs';
 import { validateRecurrence,nextOccurrence,latestOccurrence,rollingWindows } from './schedule-recurrence.mjs';
+import {samRollingWindow,samRequest} from './sam-request.mjs';
 
-const scopeHash=config=>hash({target_kind:config.target_kind,state_trigger_id:config.state_trigger_id,counties:config.counties});
+const scopeHash=config=>hash(config.target_kind==='sam'?{target_kind:'sam',requested_categories:config.requested_categories}:{target_kind:config.target_kind,state_trigger_id:config.state_trigger_id,counties:config.counties});
 export function procurementSchedules({db,triggers,now=()=>new Date()}) {
   const rpc=async(name,args)=>checked(await db.rpc(name,args));
   async function preview(input) {
@@ -11,12 +12,14 @@ export function procurementSchedules({db,triggers,now=()=>new Date()}) {
     if(typeof input.name!=='string'||!input.name.trim()||input.name.trim().length>80||typeof input.enabled!=='boolean')throw Error('Schedule name and enabled state required');
     const config=input.config;
     if(!config?.requested_categories?.length)throw Error('Schedule trigger scope required');
-    const window_policy=Object.fromEntries(config.requested_categories.map(k=>[k,{from_offset_days:input.window_policy?.[k]?.from_offset_days,
+    const sam=config.target_kind==='sam';
+    const window_policy=Object.fromEntries(config.requested_categories.map(k=>[k,sam?{lookback_days:input.window_policy?.[k]?.lookback_days}:{from_offset_days:input.window_policy?.[k]?.from_offset_days,
       to_offset_days:input.window_policy?.[k]?.to_offset_days,date_basis:input.window_policy?.[k]?.date_basis}]));
-    const resolved=await triggers.preview({...config,search_windows:rollingWindows(window_policy,config.requested_categories,now())});
+    const resolved=await triggers.preview(sam?{...config,publication_window:samRollingWindow(window_policy,config.requested_categories[0],now())}:
+      {...config,search_windows:rollingWindows(window_policy,config.requested_categories,now())});
     const canonical={name:input.name.trim(),enabled:input.enabled,recurrence,config:resolved.config,window_policy,scope_hash:scopeHash(resolved.config)};
     return {...canonical,preview_hash:hash(canonical),next_due_at:input.enabled?nextOccurrence(recurrence,now()):null,
-      cities:resolved.config.counties.map(c=>({id:c.id,name:c.name,cities:c.cities})),
+      cities:resolved.config.counties?.map(c=>({id:c.id,name:c.name,cities:c.cities}))??[],
       monthly_short_month:'Dates 29–31 use the last day in shorter months'};
   }
   async function save(id,input,actor,key) {
@@ -61,9 +64,12 @@ export function procurementSchedules({db,triggers,now=()=>new Date()}) {
   async function enqueue(saved,{origin,actor,key,due,effective,next=null}) {
     let config=saved.config,blocker=null;
     try {
-      const preview=await triggers.preview({...saved.config,search_windows:rollingWindows(saved.window_policy,saved.config.requested_categories,effective)});
+      const preview=await triggers.preview(saved.config.target_kind==='sam'?{...saved.config,
+        publication_window:samRollingWindow(saved.window_policy,saved.config.requested_categories[0],effective)}:
+        {...saved.config,search_windows:rollingWindows(saved.window_policy,saved.config.requested_categories,effective)});
       if(scopeHash(preview.config)!==saved.scope_hash)blocker='scope_changed';
       config=preview.config;
+      if(config.target_kind==='sam')config={...config,sam_filters:samRequest({category:config.requested_categories[0],publication_window:config.publication_window}).filters};
     }catch {blocker='scope_unavailable';}
     return rpc('enqueue_procurement_schedule',{p_id:saved.id,p_version:saved.version,p_origin:origin,p_actor:actor,p_key:key,
       p_due:due,p_effective:effective,p_next:next,p_now:now().toISOString(),p_config:config,p_hash:hash(config),p_blocker:blocker});

@@ -64,7 +64,21 @@ Deno.serve(async req => {
   const { data: source, error: sourceError } = await db.from('procurement_sources').select('id').eq('code', config.source).single();
   if (sourceError || !source) return reply({ error: 'Source registry lookup failed; no SAM request sent' }, 500);
   const execution = body.execution;
-  let context: { job_id: string; coverage_task_id: string; page_index: number; page_attempt: number } | null = null;
+  let context: { job_id: string; coverage_task_id?: string; page_index: number; page_attempt: number } | null = null;
+  let workflowAttempt: string | null = null;
+  if (body.workflow_execution !== undefined) {
+    const e=body.workflow_execution;
+    if(execution!==undefined || !e || !/^[a-f0-9-]{36}$/i.test(e.job_id??'') || !/^[a-f0-9-]{36}$/i.test(e.attempt_id??'') || e.page_index!==offset)
+      return reply({error:'Invalid SAM workflow context'},400);
+    const {data:job,error}=await db.from('procurement_jobs').select('id,state,lease_token,lease_until,attempts,dedupe_key,checkpoint').eq('id',e.job_id).single();
+    if(error||!job||job.state!=='running'||job.lease_token!==e.lease_token||!Number.isFinite(Date.parse(job.lease_until??''))||Date.parse(job.lease_until??'')<=Date.now()||
+       !job.dedupe_key?.startsWith('api-sam:')||job.checkpoint?.stage!=='sam_reconcile'||job.checkpoint.request_attempt_id!==e.attempt_id||
+       job.checkpoint.kind!==(kind==='awards'?'award':'opportunity')||Object.keys(job.checkpoint.filters??{}).length!==Object.keys(filters).length||Object.entries(filters).some(([key,value])=>job.checkpoint.filters?.[key]!==value))
+      return reply({error:'SAM workflow lease or attempt changed; no request sent'},409);
+    const {data:prior,error:priorError}=await db.from('procurement_runs').select('id').eq('job_id',job.id).eq('page_index',offset).eq('page_attempt',job.attempts).maybeSingle();
+    if(priorError||prior)return reply({error:'SAM workflow page already attempted or requires reconciliation; no request sent'},409);
+    context={job_id:job.id,page_index:offset,page_attempt:job.attempts};workflowAttempt=e.attempt_id;
+  }
   if (execution !== undefined) {
     const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!execution || !uuid.test(execution.job_id) || !uuid.test(execution.task_id) ||
@@ -90,7 +104,7 @@ Deno.serve(async req => {
   // Write an audit record BEFORE sending the external request. A timeout remains visible.
   const { data: run, error: runError } = await db.from('procurement_runs').insert({
     source_id: source.id, started_at: started, status: 'partial', record_count: 0, ...context,
-    detail: { collector: 'sam-search', kind, query_url: safeUrl, filters, state: 'request_pending' },
+    detail: { collector: 'sam-search', kind, query_url: safeUrl, filters, state: 'request_pending',...(workflowAttempt?{workflow_attempt_id:workflowAttempt}:{}) },
   }).select('id').single();
   if (runError || !run) return reply({ error: 'Run capture failed; no SAM request sent' }, 500);
   let upstreamStatus: number | null = null;
@@ -116,7 +130,7 @@ Deno.serve(async req => {
     response = { message: 'SAM request timed out or failed at the network layer; no automatic retry was sent' };
   }
   const detail = { collector: 'sam-search', kind, query_url: safeUrl, filters, upstream_status: upstreamStatus,
-    complete_for_query: complete, state: 'response_captured', response };
+    complete_for_query: complete, state: 'response_captured', response,...(workflowAttempt?{workflow_attempt_id:workflowAttempt}:{}) };
   const { error: captureError } = await db.from('procurement_runs').update({
     finished_at: new Date().toISOString(), status, record_count: count, detail,
   }).eq('id', run.id);
