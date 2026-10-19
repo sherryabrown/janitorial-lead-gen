@@ -177,3 +177,7 @@ The Admin screen replaces the Generate frontend with the shared authenticated pr
 ## SAM Admin entry point (October 19, 2026)
 
 Admin now has an independent statewide SAM entry point using the existing SAM collector and shared worker/scheduler. It creates no county coverage tasks and performs no automatic import. Existing direct SAM clients remain supported. See [Admin controls](ADMIN-UI.md#sam-admin-extension--october-19-2026) and [SAM target contract](ADMIN-TRIGGERS.md#sam-target-extension--october-19-2026) for windows, schedules and audited reconciliation. The matching Supabase/Render release and live acceptance are recorded in [SAM deployment evidence](ADMIN-SAM-DEPLOYMENT.md); Netlify production remains unchanged.
+
+## SAM automatic canonical persistence (release pending)
+
+The separate SAM worker now continues `sam_stage` → saved `sam_review` compatibility checkpoint → server-owned automatic validation/import → original native-tested transaction/readback. SAM candidate staging no longer requires a human import approval. The compatibility checkpoint remains readable for older packets/direct reviewed-import clients; new automatic SAM parents finish after database verification. Non-SAM workflows and their approval contracts remain unchanged. See [Admin results](ADMIN-UI.md#automatic-sam-saving--october-19-2026-implementation-release-pending) for exclusions and legacy continuation.

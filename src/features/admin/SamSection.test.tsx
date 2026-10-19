@@ -5,7 +5,6 @@ import {
   fireEvent,
   render,
   screen,
-  within,
 } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { SamSection } from './SamSection';
@@ -78,13 +77,9 @@ it('reuses schedule fields for multiple daily times and saves a paused rolling a
   fireEvent.change(screen.getByLabelText('Local time 2'), {
     target: { value: '14:00' },
   });
-  fireEvent.click(
-    screen.getByRole('button', { name: 'Review SAM schedule' }),
-  );
+  fireEvent.click(screen.getByRole('button', { name: 'Review SAM schedule' }));
   await screen.findByText('Confirm statewide SAM contract awards');
-  fireEvent.click(
-    screen.getByRole('button', { name: 'Confirm SAM schedule' }),
-  );
+  fireEvent.click(screen.getByRole('button', { name: 'Confirm SAM schedule' }));
   await act(async () => {});
   expect(mock.request.mock.calls[1][1].body).toMatchObject({
     enabled: false,
@@ -124,79 +119,69 @@ it('restores the independent manual SAM draft and exposes original requests with
   );
   expect(p.onRun).toHaveBeenCalledWith('real-parent');
 });
-it('SAM import preparation binds saved runs and requires explicit partial evidence review', async () => {
+it('SAM shows automatic verified results without import approval controls', async () => {
   mock.request.mockImplementation(async (path) =>
     path.endsWith('/packet')
       ? {
           request_id: 'sam-request',
+          category: 'opportunity',
           run_ids: ['run-a'],
-          partial: true,
-          terminal_confirmed: false,
+          partial: false,
+          terminal_confirmed: true,
           candidates: [],
           captures: [],
-          next_action: 'Review partial saved pages',
-        }
-      : path === '/v1/requests/sam-request'
-        ? {
-            tasks: [],
-            jobs: [],
-            candidates: [
+          next_action: 'View saved leads',
+          automatic: {
+            state: 'succeeded',
+            stage: 'import_verified',
+            verified: true,
+            added: 1,
+            updated: 2,
+            unchanged: 3,
+            exclusions: [
               {
-                intake_id: 'intake-a',
-                intake_hash: 'payload-hash',
-                title: 'Janitorial contract',
-                state: 'pending_review',
+                intake_id: 'excluded',
+                title: 'Missing location',
+                reason:
+                  'Official work-performance evidence does not establish Arkansas.',
               },
             ],
-            total_candidates: 1,
-            next_offset: null,
-          }
-        : path.endsWith('/prepare')
-          ? { job_id: 'import-job' }
-          : {
-              job_id: 'import-job',
-              stage: 'import_prepare',
-              state: 'pending',
+          },
+        }
+      : {
+          tasks: [],
+          jobs: [],
+          candidates: [
+            {
+              intake_id: 'a',
+              title: 'Janitorial contract',
+              state: 'pending_review',
             },
+          ],
+          total_candidates: 1,
+          next_offset: null,
+        },
   );
+  const view = vi.fn();
   render(
-    <RequestReview
-      id="sam-request"
-      owner="sam-user"
-      sam
-      onViewLeads={() => {}}
-    />,
+    <RequestReview id="sam-request" owner="sam-user" sam onViewLeads={view} />,
   );
-  fireEvent.click(
-    await screen.findByRole('checkbox', { name: /Janitorial contract/ }),
-  );
-  fireEvent.change(
-    screen.getByLabelText('Reason for processing reviewed candidates'),
-    { target: { value: 'Reviewed saved work-site and dates' } },
-  );
-  const prepare = screen.getByRole('button', {
-    name: /Prepare tested import/,
-  });
-  expect((prepare as HTMLButtonElement).disabled).toBe(true);
-  fireEvent.click(
-    screen.getByRole('checkbox', {
-      name: /Review these saved partial SAM pages only/,
-    }),
-  );
-  expect((prepare as HTMLButtonElement).disabled).toBe(false);
-  fireEvent.click(prepare);
-  await act(async () => {});
-  const body = mock.request.mock.calls.find((c) =>
-    c[0].endsWith('/prepare'),
-  )?.[1].body;
-  expect(body).toMatchObject({
-    run_ids: ['run-a'],
-    allow_partial: true,
-    decisions: [{ intake_id: 'intake-a', intake_hash: 'payload-hash' }],
-  });
+  expect(await screen.findByText('Database results verified.')).toBeTruthy();
   expect(
-    within(screen.getByRole('region', { name: 'Saved results' })).queryByText(
-      'Imported successfully',
-    ),
+    screen.getByText('1 added � 2 updated � 3 unchanged � 1 excluded'),
+  ).toBeTruthy();
+  expect(screen.queryByRole('checkbox')).toBeNull();
+  expect(
+    screen.queryByLabelText('Reason for processing reviewed candidates'),
   ).toBeNull();
+  expect(
+    screen.queryByRole('button', {
+      name: /Prepare tested import|Approve this tested import/,
+    }),
+  ).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'View saved leads' }));
+  expect(view).toHaveBeenCalled();
+  expect(mock.request.mock.calls.some((c) => c[0].includes('/prepare'))).toBe(
+    false,
+  );
 });

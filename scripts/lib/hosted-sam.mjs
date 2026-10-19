@@ -6,7 +6,7 @@ import {resolveSamAwardLinks} from './api-record-links.mjs';
 import {samRequest} from './sam-request.mjs';
 import {auditPhase} from './workflow-audit.mjs';
 import {randomUUID} from 'node:crypto';
-export function statewideSam({db,project,serverKey,artifacts,fetcher=fetch}) {
+export function statewideSam({db,project,serverKey,artifacts,fetcher=fetch,automaticImport}) {
   async function history({offset=0,limit=50}={}) {
     const jobs=checked(await db.from('procurement_jobs').select('id,search_request_id,state,checkpoint,created_at').like('dedupe_key','api-sam:%')
       .order('created_at',{ascending:false}).order('id').range(offset,offset+limit));
@@ -25,16 +25,26 @@ export function statewideSam({db,project,serverKey,artifacts,fetcher=fetch}) {
     const ids=c.intake_ids??[];
     const candidates=ids.length?await rows(db,'procurement_intake_items',q=>q.in('id',ids)):[];
     if(candidates.length!==ids.length)throw new Error('SAM candidate readback incomplete');
-    const request=await one(db,'procurement_search_requests',requestId);
+    const request=await one(db,'procurement_search_requests',requestId),automatic=await automaticStatus(c,job);
     return {request_id:requestId,category:c.kind,publication_window:request?.search_windows?.[c.kind],pages:c.pages??runs.length,records:c.records??null,run_ids:c.run_ids,terminal_confirmed:c.terminal_confirmed,
-      partial:!c.terminal_confirmed,canonical_writes:0,
+      partial:!c.terminal_confirmed,...automatic,
       candidates:candidates.map(i=>({intake_id:i.id,intake_hash:hash(i.payload),status:i.status,
         source_id:i.source_id,title:i.payload.title,agency:i.payload.agency,bid_type:i.payload.bid_type,
         source_url:i.payload.source_url,deadline:i.payload.deadline,contract_start:i.payload.contract_start,
         contract_end:i.payload.contract_end,work_performance_locations:i.payload.work_performance_locations,
         notice:i.payload.sam_notice_evidence?.record,award:i.payload.sam_api_evidence?.latest_action})),
       captures:runs.map(r=>({run_id:r.run_id,kind:r.kind,filters:r.filters,query_url:r.query_url})),
-      next_action:'Review service, Arkansas work location, dates and notice classification; prepare the exact reviewed import package'};
+      next_action:automatic.next_action};
+  }
+  async function automaticStatus(c,samJob) {
+    const job=c.automatic_import_job_id?await one(db,'procurement_jobs',c.automatic_import_job_id):null;
+    const receipt=job?.checkpoint?.receipt,counts=receipt?.verified?receipt.counts:null;
+    return {canonical_writes:counts?(counts.actual_new_leads??0)+(counts.evidence_updates??0):0,
+      automatic:{job_id:job?.id??null,state:job?.state??(c.automatic_completed?'succeeded':samJob?.state==='blocked'?'blocked':'pending'),stage:job?.checkpoint?.stage??'sam_validate',
+        added:counts?.actual_new_leads??0,updated:counts?.evidence_updates??0,unchanged:counts?.unchanged_leads??0,
+        exclusions:c.automatic_exclusions??[],verified:Boolean(receipt?.verified||c.automatic_completed),
+        partial:!c.terminal_confirmed,collection_blocker:c.collection_blocker??null,can_continue:!c.automatic_import_job_id&&!c.automatic_completed&&samJob?.state==='blocked'},
+      next_action:!job&&!c.automatic_completed&&samJob?.state==='blocked'?'Continue automatic saving of these saved results without a new search':job?.state==='succeeded'||c.automatic_completed?'View saved leads and validation results':job?.state==='blocked'||job?.state==='outcome_unknown'?'Automatic saving stopped; inspect saved evidence or reconcile the database result':'SAM results are being validated and saved automatically'};
   }
   async function savedRuns(c) {
     if(!c.capture_artifacts?.length)throw new Error('Saved SAM page evidence required');
@@ -74,13 +84,19 @@ export function statewideSam({db,project,serverKey,artifacts,fetcher=fetch}) {
     const id=checked(await db.rpc('submit_procurement_sam_request',{p_actor:actor,p_key:key,p_hash:hash(input),p_kind:input.category,
       p_window:{...window,date_basis:'publication'},p_filters:filters}));
     return {request_id:id,state:'pending',statewide_sam:{separate:true,included_in_geography_coverage:false},
-      next_action:'Read request status; review saved SAM runs through the existing separate statewide intake/import workflow'};
+      next_action:'Read request status; valid SAM results are automatically saved after validation'};
   }
   async function consume(c,save,data,ok) {
     if(data.run_id) {
       const run=await one(db,'procurement_runs',data.run_id);
       if(!run || run.detail?.collector!=='sam-search'||c.request_job_id&&
         (run.job_id!==c.request_job_id||run.detail.workflow_attempt_id!==c.request_attempt_id||hash(run.detail.filters)!==hash(c.filters)))throw new Error('SAM audit readback failed');
+      if(!ok||run.detail.upstream_status!==200){
+        c.failed_capture_run_id=data.run_id;c.collection_blocker='A later SAM page was not successful; only earlier audited pages can be saved.';
+        if(c.capture_artifacts?.length){c.stage='sam_stage';c.terminal_confirmed=false;await save('pending');}
+        else {c.next_action='SAM provider response was not successful; inspect saved access diagnostics';await save('blocked');}
+        return;
+      }
       c.run_ids=[...new Set([...(c.run_ids??[]),data.run_id])];c.capture_artifact=await artifacts.put(data);
       c.capture_artifacts=[...new Set([...(c.capture_artifacts??[]),c.capture_artifact])];
     }
@@ -93,7 +109,7 @@ export function statewideSam({db,project,serverKey,artifacts,fetcher=fetch}) {
       c.filters={...c.filters,offset:c.filters.offset+1};c.stage='sam_collect';await save('pending');return;
     }
     c.stage='sam_stage';c.terminal_confirmed=assessment.state==='complete';
-    c.next_action=c.terminal_confirmed?'Review saved statewide SAM captures and explicitly approve any tested import':
+    c.next_action=c.terminal_confirmed?'Automatically validate and save captured SAM results':
       'SAM page bound reached; partial capture is not complete statewide coverage';
     await save('pending');
   }
@@ -114,9 +130,31 @@ export function statewideSam({db,project,serverKey,artifacts,fetcher=fetch}) {
     if(changed.length!==1)throw Error('SAM reconciliation changed concurrently; reread saved status');
     return {request_id:requestId,state,next_action:c.next_action};
   }
+  async function processSaved(requestId) {
+    const job=(await rows(db,'procurement_jobs',q=>q.eq('search_request_id',requestId))).find(j=>j.dedupe_key===`api-sam:${requestId}`);
+    if(job?.checkpoint?.stage!=='sam_review')throw Error('Saved staged SAM results required; collection is not restarted');
+    const request=await one(db,'procurement_search_requests',requestId);
+    if(request.workflow_control?.cancelled)throw Error('Cancelled SAM request cannot process');
+    const link=(await rows(db,'procurement_trigger_requests',q=>q.eq('request_id',requestId)))[0];
+    if(link){const parent=await one(db,'procurement_triggers',link.trigger_id);
+      if(parent.state==='cancelled'||parent.origin==='scheduled'&&!checked(await db.rpc('procurement_scheduled_trigger_runnable',{p_id:parent.id})))throw Error('Paused or cancelled SAM work cannot process');}
+    if(job.checkpoint.automatic_import_job_id||job.checkpoint.automatic_completed||['pending','running'].includes(job.state))return {request_id:requestId,state:job.state};
+    if(job.state!=='blocked')throw Error('Only saved staged SAM results can continue');
+    const changed=checked(await db.from('procurement_jobs').update({state:'pending',updated_at:new Date().toISOString()}).eq('id',job.id).eq('updated_at',job.updated_at).eq('state','blocked').select('id'));
+    if(changed.length!==1)throw Error('SAM processing changed concurrently; read saved results');
+    return {request_id:requestId,state:'pending'};
+  }
   async function step(job,c,save) {
-    if(c.stage==='sam_review') {await save('blocked');return;}
-    if(c.stage==='sam_stage') {await auditPhase('stage',()=>stage(c));await save('blocked');return;}
+    if(c.stage==='sam_review') {
+      if(!automaticImport){await save('blocked');return;}
+      if(!c.automatic_import_job_id&&!c.automatic_completed){
+        const result=await automaticImport(job.search_request_id);
+        c.automatic_import_job_id=result.job_id;c.automatic_exclusions=result.exclusions;
+        c.automatic_completed=!result.job_id;
+      }
+      c.next_action='SAM results are saved automatically after validation';await save('succeeded');return;
+    }
+    if(c.stage==='sam_stage') {await auditPhase('stage',()=>stage(c));await save(automaticImport?'pending':'blocked');return;}
     if(!['sam_collect','sam_reconcile'].includes(c.stage))throw new Error('Unknown SAM checkpoint');
     if(c.stage==='sam_reconcile') {c.next_action='Inspect SAM audit runs for this saved attempt before resending';await save('outcome_unknown');return;}
     c.stage='sam_reconcile';c.attempted_at=new Date().toISOString();c.request_attempt_id=randomUUID();c.request_job_id=job.id;await save('running');
@@ -139,5 +177,5 @@ export function statewideSam({db,project,serverKey,artifacts,fetcher=fetch}) {
       await save('outcome_unknown');
     }
   }
-  return {submit,step,savedRuns,packet,reconcile,history};
+  return {submit,step,savedRuns,packet,reconcile,history,processSaved};
 }

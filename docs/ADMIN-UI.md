@@ -76,3 +76,11 @@ SAM schedules reuse the existing cadence controls: multiple daily times, weekly 
 SAM history includes existing direct SAM requests as well as new Admin parents. Results show saved pages, counts, category/window, partial/terminal status, evidence and candidates. Preparing imports requires the exact captured run IDs and current candidate hashes; partial captures require explicit acknowledgment. Existing package testing and exact-hash approval remain required. Unknown fetch outcomes expose reconciliation of the saved audited attempt, never automatic resending.
 
 Additional authenticated routes: `GET /v1/sam/requests?offset=0&limit=50` and `POST /v1/sam/requests/:id/reconcile`. Saved review uses the existing packet endpoint. No credentials or raw private artifacts are exposed.
+
+## Automatic SAM saving — October 19, 2026 (implementation; release pending)
+
+SAM opportunities and awards now continue from capture through validation, native SQL testing, transactional import and verified readback without candidate selection, a review reason, new-lead checkbox or batch approval. Search/schedule scope confirmation remains. The results view reports verified added/updated/unchanged counts and per-record exclusions; collecting records alone is not a successful database import. Other source review flows retain their existing approval controls.
+
+The server records `sam-automatic-v1` authority instead of claiming a human review. Missing Arkansas performance evidence, unsupported classification, unknown janitorial service or conflicting canonical identity remain exceptions. Valid records in the same capture continue independently. Official evidence remains available; no extra AI calls are introduced. Existing user/sales fields retain the current importer protections.
+
+Legacy staged SAM results offer **Continue automatic saving**, using saved evidence only. This is a continuation of the automatic policy, not per-record approval. Paused/cancelled scheduled work and uncertain imports cannot be restarted through it. Collection and database outcomes remain separate, including partial capture and unresolved write outcomes.

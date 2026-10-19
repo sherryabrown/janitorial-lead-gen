@@ -95,7 +95,7 @@ const run = {
 const bodies = [];
 let savedSchedule = false;
 let samSchedule = null;
-const samRun={...run,id:'sam-run',target_kind:'sam',county_count:0,config:{target_kind:'sam',requested_categories:['opportunity'],publication_window:{from:'2026-09-20',to:'2026-10-19'}},children:[{request_id:'sam-request',county_id:null,role:'sam'}]};
+const samRun={...run,id:'sam-run',state:'completed',next_action:'View automatically saved leads',target_kind:'sam',county_count:0,config:{target_kind:'sam',requested_categories:['opportunity'],publication_window:{from:'2026-09-20',to:'2026-10-19'}},children:[{request_id:'sam-request',county_id:null,role:'sam'}]};
 const server = spawn(
   process.execPath,
   [
@@ -226,8 +226,8 @@ try {
       else if (p === '/v1/triggers/run') body = run;
       else if(p==='/v1/triggers/sam-run')body=samRun;
       else if(p==='/v1/triggers/sam-run/steps')body={items:[],next_cursor:null};
-      else if(p==='/v1/requests/sam-request')body={tasks:[],jobs:[{id:'sam-job',state:'blocked',stage:'sam_review',next_action:'Review saved statewide SAM candidates'}],candidates:[],total_candidates:0,next_offset:null};
-      else if(p==='/v1/sam/requests/sam-request/packet')body={request_id:'sam-request',category:'opportunity',publication_window:samRun.config.publication_window,records:17,run_ids:['sam-page'],terminal_confirmed:true,partial:false,canonical_writes:0,candidates:[],captures:[{run_id:'sam-page',kind:'opportunities',query_url:'https://api.sam.gov/opportunities/v2/search',filters:{state:'AR',ncode:'561720'}}],next_action:'Review actual work site and dates'};
+      else if(p==='/v1/requests/sam-request')body={tasks:[],jobs:[{id:'sam-job',state:'succeeded',stage:'sam_review',next_action:'View automatically saved SAM results'}],candidates:[],total_candidates:0,next_offset:null};
+      else if(p==='/v1/sam/requests/sam-request/packet')body={request_id:'sam-request',category:'opportunity',publication_window:samRun.config.publication_window,records:17,run_ids:['sam-page'],terminal_confirmed:true,partial:false,canonical_writes:1,automatic:{state:'succeeded',stage:'import_verified',verified:true,added:1,updated:0,unchanged:0,exclusions:[]},candidates:[],captures:[{run_id:'sam-page',kind:'opportunities',query_url:'https://api.sam.gov/opportunities/v2/search',filters:{state:'AR',ncode:'561720'}}],next_action:'Review actual work site and dates'};
       else if (p === '/v1/triggers/run/steps')
         body = {
           items: [
@@ -356,6 +356,11 @@ try {
   assert.equal(await sam.getByRole('button',{name:'Save SAM schedule'}).evaluate(el=>el===document.activeElement),true);
   await sam.getByRole('button',{name:'Run SAM now'}).click();await sam.getByRole('button',{name:'Confirm SAM run'}).click();
   await page.getByText('SAM results',{exact:true}).waitFor();await page.getByText('Saved SAM evidence',{exact:false}).waitFor();
+  const savedSam=page.getByRole('region',{name:'Saved results'});await savedSam.getByText('Database results verified.').waitFor();
+  assert.equal(await savedSam.getByRole('button',{name:/Prepare tested import|Approve this tested import/}).count(),0);
+  assert.equal(await savedSam.getByRole('checkbox').count(),0);
+  for(const width of [1440,390,320]){await page.setViewportSize({width,height:900});await savedSam.scrollIntoViewIfNeeded();await page.screenshot({path:`${out}/automatic-sam-${width}.png`,fullPage:true});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);}
+  await page.setViewportSize({width:1440,height:900});
   assert.equal(await page.getByRole('checkbox',{name:'Pulaski County',exact:true}).isChecked(),true);
   await page.getByRole('button',{name:'Close details'}).click();
   await sam.getByRole('button',{name:'Save SAM schedule'}).click();

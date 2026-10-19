@@ -151,6 +151,18 @@ export type RequestStatus = {
   usage: Usage;
 };
 export type SamPacket = {
+  automatic?: {
+    job_id?: string | null;
+    collection_blocker?: string | null;
+    can_continue?: boolean;
+    state: string;
+    stage: string;
+    verified: boolean;
+    added: number;
+    updated: number;
+    unchanged: number;
+    exclusions: { intake_id: string; title: string; reason: string }[];
+  };
   request_id: string;
   category?: string;
   publication_window?: { from: string; to: string };

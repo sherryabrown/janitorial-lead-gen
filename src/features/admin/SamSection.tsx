@@ -253,7 +253,7 @@ export function SamSection({
         <h2>SAM.gov — Arkansas statewide</h2>
         <p className="admin-hint">
           Janitorial work in Arkansas · NAICS 561720. Runs independently of
-          county searches. Imports require review.
+          county searches. Valid results save automatically.
         </p>
         {notice && (
           <p role="status" className="admin-notice">
@@ -417,7 +417,7 @@ export function SamSection({
                 </strong>
                 <p>
                   {formatLocal(h.created_at)} ·{' '}
-                  {h.stage === 'sam_review' ? 'Ready for review' : h.state}
+                  {h.stage === 'sam_review' ? (h.state === 'succeeded' ? 'Collected' : 'Awaiting automatic saving') : h.state}
                 </p>
               </div>
               <button

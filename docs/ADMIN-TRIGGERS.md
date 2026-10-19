@@ -83,3 +83,11 @@ Schedules reuse the existing recurrence/table/dispatcher contract, with one cate
 Migration `20261019000100_admin_sam_triggers.sql` wraps existing atomic submission/baseline RPCs, retains non-SAM implementations, and binds SAM run writes to the live leased job/page/attempt. Overlapping unresolved SAM work in the same category blocks new submission rather than concealing an unknown outcome. Reconciliation consumes one matching audited response with compare-and-set state; it does not contact SAM again. The shared audit, pause guards, worker, import approval and AI settings remain authoritative.
 
 Release order: forward migration, private `sam-search` function, matching Render backend, then Netlify draft preview. Check existing rows against the new constraints before migration. The matching release, both real manual categories and one browser-closed scheduled occurrence passed; see [live evidence](ADMIN-SAM-DEPLOYMENT.md).
+
+## Automatic SAM persistence extension (release pending)
+
+No schedule config/opt-in or schema change is required. The existing SAM worker stages immutable evidence, then internally creates a deterministic automatic import job. Its server-owned policy binds exact audited runs/current intake hashes, factual scope/classification decisions and initiating identity. It uses the original planner, native rehearsal, exact tested package hash, restricted transaction and readback. Public reviewed-import preparation cannot grant automatic authority with a client flag; non-SAM/direct reviewed imports still await approval.
+
+`POST /v1/sam/requests/:id/process` is authenticated and resumes only eligible saved staged SAM results without any fetch or broad workflow restart. It checks cancellation/scheduled runnable state, preserves import identities and wakes the shared worker. It does not resume unrelated failed manual import jobs.
+
+SAM packets retain saved evidence after automatic processing and expose safe `automatic` status, verified write counts, exclusions and continuation availability. SAM parents stay pending through active import work, complete after verified processing and report partial/unknown outcomes separately. Superseded definite manual preparation failures do not keep a successfully auto-processed SAM parent in needs-review; uncertain writes are never ignored.

@@ -5,7 +5,8 @@ import {validLinkState,awardRecordLink} from './api-record-links.mjs';
 
 export const hash=value=>createHash('sha256').update(typeof value==='string'?value:JSON.stringify(stable(value))).digest('hex');
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
-const need=(condition,message)=>{if(!condition) throw new Error(message);};
+export class BatchValidationError extends Error {}
+const need=(condition,message)=>{if(!condition) throw new BatchValidationError(message);};
 const idFor=(batch,source,external)=>{
   const h=hash([batch,source,external]);return `${h.slice(0,8)}-${h.slice(8,12)}-5${h.slice(13,16)}-a${h.slice(17,20)}-${h.slice(20,32)}`;
 };

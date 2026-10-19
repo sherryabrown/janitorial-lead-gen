@@ -33,7 +33,7 @@ const provider=name=>({key:env[`${name}_API_KEY`],model:env[`${name}_MODEL`],rat
   inputUsdPerMillion:Number(env[`${name}_INPUT_USD_PER_MILLION`]),outputUsdPerMillion:Number(env[`${name}_OUTPUT_USD_PER_MILLION`])});
 const aiConfig={enabled:env.PROCUREMENT_AI_ENABLED==='true',monthlyUsd:Number(env.PROCUREMENT_MONTHLY_AI_USD??0),
   openai:provider('OPENAI'),anthropic:provider('ANTHROPIC')};
-const sam=statewideSam({db,project,serverKey:()=>env.SUPABASE_SERVICE_ROLE_KEY,artifacts});
+const sam=statewideSam({db,project,serverKey:()=>env.SUPABASE_SERVICE_ROLE_KEY,artifacts,automaticImport:id=>imports.prepareAutomatic(id)});
 const imports=importJobs({db,project,transport,artifacts,samSavedRuns:sam.savedRuns,
   rehearse:rehearsalPool?nativeRehearsal(rehearsalPool):null});
 const workflow=hostedWorkflow({db,project,serverKey:()=>env.SUPABASE_SERVICE_ROLE_KEY,artifacts,aiConfig,audit,processJob:(job,c,save)=>
@@ -70,7 +70,7 @@ const server=workflowServer({workflow,imports,discovery,kick,triggers,schedules,
   browser,
   authenticate:async token=>{const {data,error}=await db.auth.getUser(token);return error?null:data.user;},
   allowedOrigins:(env.PROCUREMENT_ALLOWED_ORIGINS??'').split(',').filter(Boolean),
-  sam:sam.submit,samPacket:sam.packet,samReconcile:sam.reconcile,samHistory:sam.history});
+  sam:sam.submit,samPacket:sam.packet,samReconcile:sam.reconcile,samHistory:sam.history,samProcess:sam.processSaved});
 server.requestTimeout=15000;server.headersTimeout=10000;
 server.listen(Number(env.PORT??8080),env.HOST??'0.0.0.0',()=>console.log('Procurement backend listening; frontend unchanged.'));
 if(benchmarking)void startupBrowserBenchmark({db,artifacts,id:env.PROCUREMENT_BROWSER_BENCHMARK_ID})

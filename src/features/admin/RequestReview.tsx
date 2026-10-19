@@ -93,6 +93,28 @@ export function RequestReview({
       clearTimeout(timer);
     };
   }, [job]);
+  useEffect(() => {
+    if (
+      !sam ||
+      !samPacket ||
+      !['pending', 'running'].includes(samPacket.automatic?.state ?? '')
+    )
+      return;
+    const abort = new AbortController();
+    const timer = setTimeout(() => {
+      void workflowRequest<SamPacket>(`/v1/sam/requests/${id}/packet`, {
+        signal: abort.signal,
+      })
+        .then(setSamPacket)
+        .catch((e) => {
+          if (!abort.signal.aborted) setError(e.message);
+        });
+    }, 3000);
+    return () => {
+      clearTimeout(timer);
+      abort.abort();
+    };
+  }, [id, sam, samPacket]);
   const perform = async (action: () => Promise<unknown>, reload = true) => {
     setBusy(true);
     setError('');
@@ -204,6 +226,67 @@ export function RequestReview({
           {sam && (
             <>
               <h3>SAM — Arkansas statewide</h3>
+              {samPacket?.automatic && (
+                <div className="admin-notice" aria-label="Automatic SAM saving">
+                  <p>
+                    {samPacket.automatic.verified
+                      ? 'Database results verified.'
+                      : samPacket.next_action}
+                  </p>
+                  <p>
+                    {samPacket.automatic.added} added �{' '}
+                    {samPacket.automatic.updated} updated �{' '}
+                    {samPacket.automatic.unchanged} unchanged �{' '}
+                    {samPacket.automatic.exclusions.length} excluded
+                  </p>
+                  {samPacket.automatic.collection_blocker && <p>{samPacket.automatic.collection_blocker}</p>}
+                  {samPacket.automatic.exclusions.map((x) => (
+                    <p key={x.intake_id}>
+                      <strong>{x.title}</strong>: {x.reason}
+                    </p>
+                  ))}
+                  <button
+                    type="button"
+                    className="text-button"
+                    onClick={onViewLeads}
+                  >
+                    View saved leads
+                  </button>
+                  {samPacket.automatic.can_continue && (
+                    <button
+                      type="button"
+                      className="text-button"
+                      disabled={busy}
+                      onClick={() =>
+                        void perform(() =>
+                          workflowRequest(`/v1/sam/requests/${id}/process`, {
+                            body: {},
+                          }),
+                        )
+                      }
+                    >
+                      Continue automatic saving
+                    </button>
+                  )}
+                  {samPacket.automatic.stage === 'import_reconcile' && samPacket.automatic.job_id && (
+                    <button
+                      type="button"
+                      className="text-button"
+                      disabled={busy}
+                      onClick={() =>
+                        void perform(() =>
+                          workflowRequest(
+                            `/v1/imports/${samPacket.automatic?.job_id}/reconcile`,
+                            { body: {} },
+                          ),
+                        )
+                      }
+                    >
+                      Reconcile saved database result
+                    </button>
+                  )}
+                </div>
+              )}
               {samPacket ? (
                 <details>
                   <summary>
@@ -233,9 +316,7 @@ export function RequestReview({
                   ))}
                   {samPacket.candidates
                     .filter((c) =>
-                      data.candidates.some(
-                        (i) => i.intake_id === c.intake_id,
-                      ),
+                      data.candidates.some((i) => i.intake_id === c.intake_id),
                     )
                     .map((c) => (
                       <details key={c.intake_id}>
@@ -244,8 +325,7 @@ export function RequestReview({
                           {c.agency} · {title(c.bid_type)}
                         </p>
                         <p>
-                          {JSON.stringify(c.work_performance_locations ?? [])}{' '}
-                          ·{' '}
+                          {JSON.stringify(c.work_performance_locations ?? [])} ·{' '}
                           {c.deadline ??
                             c.contract_end ??
                             'Verify qualifying date'}
@@ -270,8 +350,7 @@ export function RequestReview({
               )}
               {data.jobs.some(
                 (j) =>
-                  j.state === 'outcome_unknown' &&
-                  j.stage === 'sam_reconcile',
+                  j.state === 'outcome_unknown' && j.stage === 'sam_reconcile',
               ) && (
                 <button
                   type="button"
@@ -295,8 +374,7 @@ export function RequestReview({
             .map((j) => (
               <div key={j.id}>
                 <p className="admin-hint">
-                  <strong>{title(j.stage ?? j.state)}</strong> |{' '}
-                  {j.next_action}
+                  <strong>{title(j.stage ?? j.state)}</strong> | {j.next_action}
                 </p>
                 {j.access_handoff_id && (
                   <SavedAccess
@@ -393,10 +471,7 @@ export function RequestReview({
               </button>
               <label>
                 Official seed
-                <select
-                  value={seed}
-                  onChange={(e) => setSeed(e.target.value)}
-                >
+                <select value={seed} onChange={(e) => setSeed(e.target.value)}>
                   <option value="">Choose a registered source</option>
                   {sources.map((s) => (
                     <option key={s.id} value={s.id}>
@@ -472,26 +547,27 @@ export function RequestReview({
               )}
             </div>
           )}
-          {data.candidates.map((c) => (
-            <label className="admin-candidate" key={c.intake_id}>
-              <input
-                type="checkbox"
-                checked={selected.includes(c.intake_id)}
-                disabled={c.state !== 'pending_review'}
-                onChange={(e) =>
-                  setSelected((x) =>
-                    e.target.checked
-                      ? [...x, c.intake_id]
-                      : x.filter((id) => id !== c.intake_id),
-                  )
-                }
-              />
-              <span>
-                <strong>{c.title}</strong>
-                <small>{title(c.state)}</small>
-              </span>
-            </label>
-          ))}
+          {!sam &&
+            data.candidates.map((c) => (
+              <label className="admin-candidate" key={c.intake_id}>
+                <input
+                  type="checkbox"
+                  checked={selected.includes(c.intake_id)}
+                  disabled={c.state !== 'pending_review'}
+                  onChange={(e) =>
+                    setSelected((x) =>
+                      e.target.checked
+                        ? [...x, c.intake_id]
+                        : x.filter((id) => id !== c.intake_id),
+                    )
+                  }
+                />
+                <span>
+                  <strong>{c.title}</strong>
+                  <small>{title(c.state)}</small>
+                </span>
+              </label>
+            ))}
           {data.next_offset !== null && (
             <button
               type="button"
@@ -511,7 +587,7 @@ export function RequestReview({
               More candidates
             </button>
           )}
-          {selected.length > 0 && (
+          {!sam && selected.length > 0 && (
             <div className="admin-review-form">
               {samPacket?.partial && (
                 <label>
@@ -555,7 +631,7 @@ export function RequestReview({
               </button>
             </div>
           )}
-          {job && (
+          {!sam && job && (
             <div className="admin-confirm">
               <h3>{title(job.stage)}</h3>
               <p>{job.next_action}</p>
@@ -743,8 +819,8 @@ function InterpretationReview({
   )
     return (
       <p>
-        The saved review belongs to earlier captures. Refresh or reconcile
-        that review before adding decisions.
+        The saved review belongs to earlier captures. Refresh or reconcile that
+        review before adding decisions.
       </p>
     );
   if (!p)
@@ -854,23 +930,18 @@ function InterpretationReview({
               ))}
           </ul>
           <p className="admin-hint">
-            If a project asks for sign-in or security verification, complete
-            the official access action and retain the saved evidence for
-            review. No automatic challenge retries are performed.
+            If a project asks for sign-in or security verification, complete the
+            official access action and retain the saved evidence for review. No
+            automatic challenge retries are performed.
           </p>
         </details>
       )}
       <label>
         Decision
-        <select
-          value={decision}
-          onChange={(e) => setDecision(e.target.value)}
-        >
+        <select value={decision} onChange={(e) => setDecision(e.target.value)}>
           <option value="unresolved">Needs more evidence</option>
           <option value="exclude">Exclude this quoted record</option>
-          <option value="finding">
-            Stage a candidate from this evidence
-          </option>
+          <option value="finding">Stage a candidate from this evidence</option>
         </select>
       </label>
       <label>
@@ -883,19 +954,13 @@ function InterpretationReview({
       </label>
       <label>
         Reason
-        <textarea
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-        />
+        <textarea value={reason} onChange={(e) => setReason(e.target.value)} />
       </label>
       {decision === 'finding' && (
         <>
           <label>
             Official record identifier
-            <input
-              value={record}
-              onChange={(e) => setRecord(e.target.value)}
-            />
+            <input value={record} onChange={(e) => setRecord(e.target.value)} />
           </label>
           <label>
             Title
@@ -903,10 +968,7 @@ function InterpretationReview({
           </label>
           <label>
             Work county
-            <input
-              value={county}
-              onChange={(e) => setCounty(e.target.value)}
-            />
+            <input value={county} onChange={(e) => setCounty(e.target.value)} />
           </label>
           <label>
             Work city (when stated)
@@ -947,8 +1009,8 @@ function InterpretationReview({
         Save evidence-backed decision
       </button>
       <p className="admin-hint">
-        Server validates the current packet, quoted evidence, work location
-        and dates. Staging a candidate does not import it.
+        Server validates the current packet, quoted evidence, work location and
+        dates. Staging a candidate does not import it.
       </p>
     </div>
   );

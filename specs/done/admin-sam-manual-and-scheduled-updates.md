@@ -136,3 +136,5 @@ Live acceptance completed after the authorized forward migration, private functi
 Proposed commit message: `feat: add SAM Admin runs and schedules`.
 
 Final aggregate verification: `npm run check` passed (59 UI tests, 270 workflow tests, SQL import/upsert checks, lint/typecheck and production build). A Windows sandbox module-cache failure was resolved by rerunning the complete command outside the sandbox. Forward migration/private function, Render and draft preview deployed after successful production-row preflight. Live acceptance passed under explicit user authorization. Final Cron evidence: one accepted HTTP 202 delivery, four successful Cron executions in the acceptance window, and exactly one saved scheduled occurrence. See the deployment evidence for run IDs and cleanup.
+
+Follow-up: [automatic validated SAM imports](../todo/sam-automatic-validated-imports.md) replaces the SAM-only manual review/approval behavior described in this historical implementation. Existing import validation, deduplication and non-SAM approvals remain.

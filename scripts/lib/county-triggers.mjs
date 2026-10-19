@@ -157,9 +157,13 @@ export function countyTriggers({db,discovery,workflow,audit}) {
       for(const child of children) {
         const operation=async()=>{
           if(child.role==='sam') {
-            const jobs=await rows(db,'procurement_jobs',q=>q.eq('search_request_id',child.request_id));
-            if(jobs.some(j=>j.state==='outcome_unknown'))state='outcome_unknown';
+            const savedJobs=await rows(db,'procurement_jobs',q=>q.eq('search_request_id',child.request_id));
+            const autoVerified=savedJobs.some(j=>j.checkpoint?.automatic&&j.checkpoint?.receipt?.verified);
+            const jobs=savedJobs.filter(j=>!(autoVerified&&!j.checkpoint?.automatic&&j.state==='blocked'&&
+              j.checkpoint?.stage==='import_prepare'&&j.checkpoint?.error_code==='workflow_stage_failed'));
+            if(jobs.some(j=>j.state==='outcome_unknown'||j.checkpoint?.stage==='import_reconcile'))state='outcome_unknown';
             else if(jobs.some(j=>['pending','running'].includes(j.state)))state='pending';
+            else if(jobs.every(j=>j.state==='succeeded'))state=jobs.some(j=>j.checkpoint?.automatic_exclusions?.length||j.checkpoint?.terminal_confirmed===false)?'partial':'completed';
             else state='needs_review';
             return;
           }

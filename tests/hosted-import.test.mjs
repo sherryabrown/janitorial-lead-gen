@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { prepareImport,applyImport } from '../scripts/lib/hosted-import.mjs';
+import {automaticSamReview,samAutomaticPolicy} from '../scripts/lib/sam-automatic-import.mjs';
 import { importJobs } from '../scripts/lib/hosted-import-jobs.mjs';
 import { makeInterpretationPacket } from '../scripts/lib/known-source-workflow.mjs';
 import { planInterpretationIntake } from '../scripts/lib/interpretation-intake.mjs';
@@ -131,4 +132,53 @@ test('approval binds all package inputs and native receipt; outdated or no longe
   f.before.procurement_interpretations[0].is_current=false;
   await assert.rejects(applyImport({...f,packageData:p,approval:prepared.approval_sha256}),/Current request candidate/);
   assert.equal(writes,0);
+});
+
+
+test('automatic SAM policy validates each saved record and prepares a native-tested package without approval',async()=>{
+  const f=setup(),capture=JSON.parse(readFileSync('tests/fixtures/sam/20bc470d-bfd8-4bd7-a4e0-926cdcd3696d.json','utf8'));
+  const candidate={...f.item,...samIntakeRows(collectRuns([capture],[capture.run_id]),code=>f.before.procurement_sources.find(s=>s.code===code).id)[0]};
+  const invalid={...structuredClone(candidate),id:id(76)};invalid.external_id+='-invalid';invalid.payload.work_performance_locations=[{state_code:'TX'}];
+  f.before.procurement_intake_items=[candidate,invalid];
+  f.before.procurement_jobs=[{search_request_id:f.review.request_id,dedupe_key:'api-sam:test',checkpoint:{stage:'sam_review',run_ids:[capture.run_id],intake_ids:[candidate.id,invalid.id]}}];
+  const request={id:f.review.request_id,initiated_by:f.actor};
+  const built=automaticSamReview({request,candidates:[candidate,invalid],runs:[capture],snapshot:f.before,partial:false});
+  assert.equal(built.review.decisions.length,1);assert.equal(built.exclusions.length,1);
+  assert.match(built.exclusions[0].reason,/Arkansas/);assert.equal(built.review.decisions[0].new_bid_type,'historical_opportunity');
+  assert.equal(built.review.decisions[0].approve_new,true);assert.match(built.review.decisions[0].request_match_reason,/performance/);
+  assert.equal(built.review.reviewed_by,`system:${samAutomaticPolicy}`);
+  assert.equal(built.key,automaticSamReview({request,candidates:[invalid,candidate],runs:[capture],snapshot:f.before,partial:false}).key);
+  const path=await f.artifacts.put([capture]);
+  const c={stage:'import_prepare',actor_id:f.actor,review:built.review,runs_artifact:path,automatic:{policy:samAutomaticPolicy,key:built.key,exclusions:built.exclusions}};
+  const states=[];await importJobs(f).step({id:id(70)},c,async state=>states.push(state));
+  assert.equal(c.stage,'import_apply');assert.deepEqual(states,['pending']);assert.equal(c.test.status,'native_tests_passed');
+  assert.equal(c.authorization.tested_sha256,c.approval_sha256);
+  const pkg=JSON.parse((await f.artifacts.get(c.package_artifact)).toString());
+  assert.equal(pkg.review.reviewed_by,`system:${samAutomaticPolicy}`);assert.equal(pkg.review.authorization.kind,'automatic_sam_policy');
+  assert.equal(pkg.manifest.summary.new_leads,1);
+});
+
+test('automatic SAM never infers open status from Active, office geography or unknown service',()=>{
+  const f=setup(),capture=JSON.parse(readFileSync('tests/fixtures/sam/20bc470d-bfd8-4bd7-a4e0-926cdcd3696d.json','utf8'));
+  const candidate={...f.item,...samIntakeRows(collectRuns([capture],[capture.run_id]),code=>f.before.procurement_sources.find(s=>s.code===code).id)[0]};
+  const run=changes=>{const i=structuredClone(candidate);changes(i.payload);return automaticSamReview({request:{id:f.review.request_id},candidates:[i],runs:[capture],snapshot:f.before,partial:false});};
+  for(const change of [p=>{p.naics='999999';},p=>{p.work_performance_locations=[];},p=>{p.sam_notice_evidence.record.responseDeadLine=null;},p=>{p.sam_notice_evidence.record.type='Special Notice';}]){
+    const result=run(change);assert.equal(result.review.decisions.length,0);assert.equal(result.exclusions.length,1);
+  }
+});
+
+
+test('automatic SAM awards use full existing identities and preserve sales fields without notice classification',()=>{
+  const f=setup(),capture=JSON.parse(readFileSync('tests/fixtures/sam/40f1f909-b0cf-41b7-bf4d-8fc4c0d2f4fa.json','utf8'));
+  const candidate={...f.item,...samIntakeRows(collectRuns([capture],[capture.run_id],{allow_partial:true}),code=>f.before.procurement_sources.find(s=>s.code===code).id)[0]};
+  f.before.procurement_intake_items=[candidate];
+  const input={request:{id:f.review.request_id,initiated_by:f.actor},candidates:[candidate],runs:[capture],snapshot:f.before,partial:true};
+  const built=automaticSamReview(input);assert.equal(built.review.decisions.length,1);assert.equal(built.review.allow_partial,true);
+  assert.equal(built.review.decisions[0].new_bid_type,undefined);
+  const manifest=planReviewedBatch(f.before,built.review,[capture]);assert.ok(manifest.records[0].identity);
+  f.before.procurement_leads=[{id:id(77),source_id:candidate.source_id,external_id:manifest.records[0].external_id,
+    payload:manifest.records[0].payload,status:'interested',sales_note:'Keep this note',search_term_used:manifest.records[0].search_term_used}];
+  const repeated=planReviewedBatch(f.before,automaticSamReview(input).review,[capture]);
+  assert.equal(repeated.summary.new_leads,0);assert.equal(repeated.records[0].id,id(77));
+  assert.deepEqual(repeated.records[0].payload,f.before.procurement_leads[0].payload);
 });

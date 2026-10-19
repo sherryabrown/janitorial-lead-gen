@@ -41,3 +41,17 @@ test('saved statewide SAM pages stage immutable candidates and reject audit drif
   tables.procurement_runs[0].detail={...capture,upstream_status:403};
   await assert.rejects(sam.savedRuns(c),/saved audit/);
 });
+
+
+test('a definite later-page failure preserves the successful prefix for partial automatic saving',async()=>{
+  const filters={state:'AR',ncode:'561720',limit:100,offset:1};let run;
+  const db={from(){const q={select(){return q;},eq(){return q;},maybeSingle:async()=>({data:run})};return q;}};
+  const sam=statewideSam({db,project:'isolated',serverKey:()=> 'private-test',artifacts:{},fetcher:async(_url,options)=>{
+    const body=JSON.parse(options.body);run={id:id(60),job_id:id(61),detail:{collector:'sam-search',filters,workflow_attempt_id:body.workflow_execution.attempt_id,upstream_status:429}};
+    return new Response(JSON.stringify({run_id:run.id,upstream_status:429}),{status:429});
+  }});
+  const c={stage:'sam_collect',kind:'opportunity',filters,capture_artifacts:['good-prefix'],run_ids:[id(62)],pages:1};
+  const states=[];await sam.step({id:id(61),lease_token:id(63)},c,async state=>states.push(state));
+  assert.equal(c.stage,'sam_stage');assert.equal(c.terminal_confirmed,false);assert.equal(c.failed_capture_run_id,id(60));
+  assert.deepEqual(c.run_ids,[id(62)]);assert.deepEqual(c.capture_artifacts,['good-prefix']);assert.deepEqual(states,['running','pending']);
+});
