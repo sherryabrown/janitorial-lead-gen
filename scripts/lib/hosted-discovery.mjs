@@ -46,7 +46,8 @@ export function reviewedDiscoverySource(task,spec,sources,associations) {
   if(source)return source;
   if(!spec.existing_id)return undefined;
   const seed=sources.find(s=>s.id===spec.existing_id&&s.code===spec.code);
-  if(!seed||!associations.some(a=>a.source_id===seed.id))throw new Error('Existing official seed must belong to this request');
+  if(!seed||!associations.some(a=>a.source_id===seed.id)&&!task.evidence?.registered_source_ids?.includes(seed.id))
+    throw new Error('Existing official seed must belong to this request or its saved registry route');
   return seed;
 }
 export function automaticRouteAssociation(capability,source,existingCaps) {

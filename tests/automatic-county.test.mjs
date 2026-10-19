@@ -4,7 +4,7 @@ import {proposeAutomaticListing,inspectAutomaticListing} from '../scripts/lib/au
 import {countyProfile,directoryWebsite,resolveOfficialDirectory,countyDirectory,municipalWebsite,municipalLookup} from '../scripts/lib/official-directory.mjs';
 import {publicDiscovery,publicReview} from '../scripts/lib/official-link-discovery.mjs';
 import {createHash} from 'node:crypto';
-import {automaticRouteAssociation} from '../scripts/lib/hosted-discovery.mjs';
+import {automaticRouteAssociation,reviewedDiscoverySource} from '../scripts/lib/hosted-discovery.mjs';
 import {capabilityCoversRoute} from '../scripts/lib/known-source-execution.mjs';
 const url='https://agency.example/bids';
 const listing='<main><h1>Open bids</h1><p>1 open bids</p><table><tr><th>Bid number</th><th>Title</th><th>Work county</th><th>Deadline</th></tr><tr><td>26-1</td><td><a href="/bid/26-1">Janitorial services</a></td><td>Saline</td><td>2026-11-30</td></tr></table></main>';
@@ -16,6 +16,11 @@ test('automatic shared method retains its original route and only adds explicitl
   assert.equal(capabilityCoversRoute(merged,'county'),true);assert.equal(capabilityCoversRoute(merged,'other'),false);
   assert.equal(capabilityCoversRoute({...merged,verification_evidence:{route_geography_ids:['other']}},'other'),false);
   assert.equal(automaticRouteAssociation(old,{id:'source'},[]),old);
+});
+test('saved registry route can reuse its official seed in a new request without accepting unrelated client IDs',()=>{
+  const seed={id:'seed',code:'official'},spec={existing_id:'seed',code:'official'};
+  assert.equal(reviewedDiscoverySource({evidence:{registered_source_ids:['seed']}},spec,[seed],[]),seed);
+  assert.throws(()=>reviewedDiscoverySource({evidence:{registered_source_ids:['other']}},spec,[seed],[]),/must belong/);
 });
 test('automatic method verifies structured identities, actual work location, official links and terminal count',()=>{
   const {spec,listing:result}=proposeAutomaticListing(Buffer.from(listing),url);

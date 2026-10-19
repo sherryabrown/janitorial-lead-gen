@@ -30,6 +30,8 @@ No general paid web-search capability was introduced. Locations without an autho
 
 The initial live preview attempt (`7a6d2d9d-13c9-476f-9091-be69fe4e05a5`) exposed shared-route registration and invalid-AI quotation blockers; the follow-up fixes above address both. Its acceptance helper then requested a nonexistent `/status` endpoint after settlement; the correct route is `/v1/requests/:id`. No repeat or schedule was created by that attempt, and its temporary actor was soft-deleted. This attempt is not a successful acceptance result. Native recovery acceptance and 29 focused tests passed, including invalid AI and budget exhaustion retaining a valid candidate without canonical writes.
 
+A later live attempt exposed a saved registry seed that was valid for its persisted route but not yet associated with the new request. Discovery now accepts that server-owned route evidence while continuing to reject unrelated client source IDs; the existing native registration transaction creates the association. Twenty focused tests and native acceptance passed after explicitly expiring the fixture method before its scheduled run. The full recovery check passed 68 UI and 296 workflow tests plus SQL/lint/build; final targeted checks cover the subsequent seed correction.
+
 No migration, dependency, account or budget change. Netlify production remains unchanged. Keep the plan in todo until required acceptance passes, and record any remaining blockers rather than treating them as zero results.
 
 Proposed commit message: `feat: automate county source collection`

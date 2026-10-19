@@ -71,7 +71,8 @@ export function publicDiscovery({db,artifacts,persist,reconcileHandoffs,resolveS
     if(request.workflow_control?.cancelled||!['source_missing','method_missing','blocked'].includes(task.state))throw new Error('Only active saved gaps require research');
     let source=task.source_id&&await one(db,'procurement_sources',task.source_id);
     if(!source&&input.seed_source_id) {
-      if(!(await rows(db,'procurement_request_sources',q=>q.eq('search_request_id',requestId).eq('source_id',input.seed_source_id))).length)
+      if(!(await rows(db,'procurement_request_sources',q=>q.eq('search_request_id',requestId).eq('source_id',input.seed_source_id))).length&&
+          !task.evidence?.registered_source_ids?.includes(input.seed_source_id))
         throw new Error('New-source research requires an associated official seed');
       source=await one(db,'procurement_sources',input.seed_source_id);
     }

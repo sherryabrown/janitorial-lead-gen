@@ -48,6 +48,9 @@ export async function verifyAutomaticCounty({db,artifacts,audit,livePool,rehears
   const before=calls.length;await discovery(child.request_id,{task_id:checked(await db.from('procurement_jobs').select('checkpoint').eq('search_request_id',child.request_id).eq('kind','discover'))[0].checkpoint.task_id},actor);
   assert.equal(calls.length,before,'Saved discovery replay does not refetch');
   const directoryReads=calls.filter(url=>url.includes('arcounties.org')).length;
+  // A later request must reverify an expired registered method without requiring
+  // an already-existing request/source association or another directory lookup.
+  await livePool.query("update procurement_source_capabilities set verified_at='2026-09-01T00:00:00Z',verified_until='2026-10-01T00:00:00Z' where id=$1",[capabilities[0].id]);
   const schedules=procurementSchedules({db,triggers,now:()=>new Date('2026-10-13T14:00:00Z')});
   const input={name:'Automatic county isolated',enabled:true,config:{...config,county_ids:['05001']},
     recurrence:{timezone:'America/Chicago',frequency:'daily',local_times:['09:00']},window_policy:{opportunity:{from_offset_days:0,to_offset_days:365,date_basis:'deadline'}}};
