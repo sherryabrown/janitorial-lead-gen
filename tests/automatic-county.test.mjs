@@ -106,7 +106,7 @@ test('explicit retry refreshes stale captures with new indexes without discardin
     const db={from(table){let update;const filters=[];
       const result=()=>{const found=data[table].filter(row=>filters.every(f=>f(row)));if(update)found.forEach(row=>Object.assign(row,update));return {data:found};};
       const q={select:()=>q,update:value=>{update=value;return q;},eq:(key,value)=>{filters.push(row=>row[key]===value);return q;},
-        in:(key,values)=>{filters.push(row=>values.includes(row[key]));return q;},range:()=>q,order:()=>q,
+        in:(key,values)=>{filters.push(row=>values.includes(row[key]));return q;},range:()=>q,order:key=>{if(table==='procurement_public_captures')assert.equal(key,'run_id');return q;},
         maybeSingle:async()=>({data:result().data[0]}),single:async()=>({data:result().data[0]}),then:(resolve,reject)=>Promise.resolve(result()).then(resolve,reject)};return q;}};
     await publicDiscovery({db}).resume('request',{task_id:'task'},'actor');
     assert.equal(job.state,'pending');

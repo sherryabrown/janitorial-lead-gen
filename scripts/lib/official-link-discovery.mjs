@@ -249,7 +249,7 @@ export function publicDiscovery({db,artifacts,persist,reconcileHandoffs,resolveS
       // write. Retain every old packet/run and reserve new page indexes so a
       // worker restart cannot accidentally reuse stale response bytes.
       if(checkpoint.packet_artifact&&!checkpoint.persistence_intent&&!checkpoint.review_artifact&&!checkpoint.blocker) {
-        const captures=await rows(db,'procurement_public_captures',q=>q.in('run_id',checkpoint.run_ids??[]));
+        const captures=await rows(db,'procurement_public_captures',q=>q.in('run_id',checkpoint.run_ids??[]),'*',{order:'run_id'});
         if(captures.some(capture=>!freshCapture(capture))) {
           const source=await one(db,'procurement_sources',checkpoint.seed_source_id);
           const runs=await rows(db,'procurement_runs',q=>q.eq('job_id',job.id));
