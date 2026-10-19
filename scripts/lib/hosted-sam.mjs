@@ -41,7 +41,7 @@ export function statewideSam({db,project,serverKey,artifacts,fetcher=fetch,autom
     const receipt=job?.checkpoint?.receipt,counts=receipt?.verified?receipt.counts:null;
     return {canonical_writes:counts?(counts.actual_new_leads??0)+(counts.evidence_updates??0):0,
       automatic:{job_id:job?.id??null,state:job?.state??(c.automatic_completed?'succeeded':samJob?.state==='blocked'?'blocked':'pending'),stage:job?.checkpoint?.stage??'sam_validate',
-        added:counts?.actual_new_leads??0,updated:counts?.evidence_updates??0,unchanged:counts?.unchanged_leads??0,
+        added:counts?.actual_new_leads??0,updated:counts?.evidence_updates??0,unchanged:counts?Math.max(0,counts.actual_processed-counts.actual_new_leads-counts.evidence_updates):0,
         exclusions:c.automatic_exclusions??[],verified:Boolean(receipt?.verified||c.automatic_completed),
         partial:!c.terminal_confirmed,collection_blocker:c.collection_blocker??null,can_continue:!c.automatic_import_job_id&&!c.automatic_completed&&samJob?.state==='blocked'},
       next_action:!job&&!c.automatic_completed&&samJob?.state==='blocked'?'Continue automatic saving of these saved results without a new search':job?.state==='succeeded'||c.automatic_completed?'View saved leads and validation results':job?.state==='blocked'||job?.state==='outcome_unknown'?'Automatic saving stopped; inspect saved evidence or reconcile the database result':'SAM results are being validated and saved automatically'};

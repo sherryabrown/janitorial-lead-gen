@@ -55,3 +55,14 @@ test('a definite later-page failure preserves the successful prefix for partial 
   assert.equal(c.stage,'sam_stage');assert.equal(c.terminal_confirmed,false);assert.equal(c.failed_capture_run_id,id(60));
   assert.deepEqual(c.run_ids,[id(62)]);assert.deepEqual(c.capture_artifacts,['good-prefix']);assert.deepEqual(states,['running','pending']);
 });
+
+
+test('SAM packet counts provenance-only canonical matches as unchanged, not as missing results',async()=>{
+  const capture=JSON.parse(readFileSync('tests/fixtures/sam/20bc470d-bfd8-4bd7-a4e0-926cdcd3696d.json','utf8'));
+  const requestId=id(72),autoId=id(73),tables={procurement_jobs:[{id:id(74),search_request_id:requestId,dedupe_key:`api-sam:${requestId}`,state:'succeeded',checkpoint:{stage:'sam_review',run_ids:[capture.run_id],capture_artifacts:['page'],terminal_confirmed:true,intake_ids:[],automatic_import_job_id:autoId}},
+    {id:autoId,state:'succeeded',checkpoint:{stage:'import_verified',receipt:{verified:true,counts:{actual_new_leads:0,evidence_updates:0,unchanged_leads:0,actual_processed:1}}}}],
+    procurement_runs:[{id:capture.run_id,detail:capture}],procurement_search_requests:[{id:requestId,search_windows:{opportunity:{}}}]};
+  const db={from(table){const predicates=[];let single=false;const q={select(){return q;},eq(k,v){predicates.push(r=>r[k]===v);return q;},order(){return q;},range(){return q;},maybeSingle(){single=true;return q;},then(resolve){const found=(tables[table]??[]).filter(r=>predicates.every(p=>p(r)));resolve({data:single?found[0]:found});}};return q;}};
+  const sam=statewideSam({db,artifacts:{get:async()=>Buffer.from(JSON.stringify(capture))}});
+  const packet=await sam.packet(requestId);assert.equal(packet.automatic.unchanged,1);assert.equal(packet.canonical_writes,0);assert.equal(packet.automatic.verified,true);
+});
