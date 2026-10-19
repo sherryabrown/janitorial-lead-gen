@@ -8,7 +8,7 @@ Planning began October 13, 2026. Parts 01/02 and scheduler acceptance are comple
 
 ## Product decisions and scope
 
-October 19 follow-up: [Automatic county source discovery and collection](automatic-county-source-discovery-and-collection.md) plans removal of technical seed/method setup from normal county runs, with Saline live acceptance. Its automatic verification requirements supersede the human source-review requirement below only after implementation and acceptance; non-SAM lead-import approval and explicit source-only schedule behavior remain unchanged. This is planned work, not a claim of current automatic discovery coverage.
+October 19 follow-up: [Automatic county source discovery and collection](automatic-county-source-discovery-and-collection.md) is released to Render and the approved preview. The normal county path replaces technical seed/method setup with supported automatic discovery/verification; non-SAM lead-import approval and explicit source-only schedule behavior remain unchanged. Fresh Saline manual/repeat/one scheduled occurrence passed execution checks, but full coverage and reliable later recurrences remain blocked. See the child plan's return checkpoint and dated report; this is not a claim of universal source coverage or completed acceptance.
 
 Replace the disabled Generate entry in the Contracts summary strip with Admin. Keep existing queue filters, selection, notes, Companies and email previews intact. Admin spans the work area without the lead detail sidebar. Returning to a queue restores its context. Use existing typography, CSS tokens, neutral surfaces and #FF914D for selected counties and the principal action. Avoid a CRM dashboard or a pile of status cards.
 

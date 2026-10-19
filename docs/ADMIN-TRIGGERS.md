@@ -94,6 +94,8 @@ SAM packets retain saved evidence after automatic processing and expose safe `au
 
 The automatic SAM extension is released to the existing Render backend, local backend and approved Netlify draft preview. [Live acceptance and recovery evidence](ADMIN-SAM-AUTOMATIC-DEPLOYMENT.md) records actual canonical readback, scheduled execution and cleanup. Netlify production remains unchanged.
 
-## Automatic county discovery — preview acceptance in progress
+## Automatic county discovery — preview coverage incomplete
 
 See [the current build checkpoint](reviews/2026-10-19-automatic-county-build.md). County and county state-research discovery use durable `discovery_resolve`, `discovery_capture`, `discovery_verify`, `discovery_save` and `discovery_collect` stages with `county-public-v1` provenance. Existing registry rehearsal/readback and collection/interpretation services are reused. Migration `20261019000200` aligns three private database functions with verified shared-route associations; it adds no tables or client permissions and preserves the SAM baseline wrapper. Request status adds `automatic_county`, `check_updates` and task `source_name`, `location_name`, `discovery_state`, `discovery_action` fields. Old clients may ignore these additive fields. Unknown formats/access remain blocked; collection does not bypass non-SAM import approval or expand AI budgets.
+
+The supported release passed fresh Saline manual/repeat/single scheduled execution checks. Resolved `superseded` tasks remain stored but are omitted from normal automatic-county status. Saline's Alexander/Shannon Hills source-entry fetches still leave unknown jobs, so the existing schedule overlap guard can skip later occurrences with `previous_run_active`. This is an unresolved recurrence limitation, not completed unattended acceptance. See the return checkpoint before expanding live schedules.

@@ -1,6 +1,6 @@
 # County checks Admin UI
 
-Implemented locally October 18, 2026; release pending. Scheduler activation and browser-closed/restart acceptance remain the existing [part 02 production evidence](ADMIN-SCHEDULING-DEPLOYMENT.md). This UI does not enable a production recurrence by itself.
+The Admin UI is available in the approved Netlify preview with its matching Render backend. Netlify production remains unchanged. Scheduler activation and browser-closed/restart acceptance remain the existing [part 02 production evidence](ADMIN-SCHEDULING-DEPLOYMENT.md); current county coverage and recurrence limits are recorded in the [October 19 release report](reviews/2026-10-19-automatic-county-build.md). Opening this UI does not enable a recurrence by itself.
 
 ## Use
 
@@ -39,7 +39,7 @@ Existing bearer authentication, allowed origins, audit and import guards apply. 
 
 `VITE_PROCUREMENT_API_URL` is a public origin, defaulting to the existing Render backend. It must be HTTPS, or localhost HTTP for development; credentials, paths and query strings are rejected. The client gets the current Supabase access token per request and refreshes once on 401. No privileged key belongs in a Vite variable. Existing Supabase frontend configuration stays required.
 
-Deploy this backend version before the frontend so review metadata/append semantics, official seed options and policy/count projections are available. Configure the exact deployed frontend origin in `PROCUREMENT_ALLOWED_ORIGINS` (the current Render value was found empty during local readback); preserve the scheduler wake key, AI settings and budgets. The local correction deliberately does not change that production setting. No Render/Netlify deployment, commit, push or production schedule was performed by the UI build. Existing scheduler production acceptance is reused explicitly, not represented as a new live UI test. Roll back frontend and backend together if reverting the append-review API.
+Deploy matching backend changes before the frontend so review metadata/append semantics and policy/count projections are available. The approved preview's exact origin is allowed by Render and its connection passed live readback; preserve the scheduler wake key, AI settings and budgets. The initial UI build was local, and subsequent releases are recorded in the linked deployment reports. The October 19 county release verified manual/repeat/one browser-closed scheduled execution while retaining the documented coverage/recurrence blockers. Netlify production remains unchanged. Roll back frontend and backend together if reverting the append-review API.
 
 After an authorized deployment, read back authenticated county/state/schedule/activity/status and packet routes, confirm no secrets, then verify the production Admin screen. Any live test run/schedule needs a scoped maintenance-only fixture and cleanup; do not silently enable county research, AI or imports as a smoke test. The coordinator remains in todo until this coordinated production readback is complete.
 
@@ -106,6 +106,6 @@ Automatic SAM progress polls the new lightweight saved-status route and reloads 
 
 The map still uses all 75 official county identities and the same exact projected boundaries. Build-time removal of exactly collinear forward vertices reduces its JSON from 949,687 to 604,290 bytes without approximation or new runtime dependencies.
 
-## Automatic county source work — preview acceptance in progress
+## Automatic county source work — preview coverage incomplete
 
-The [automatic county build](reviews/2026-10-19-automatic-county-build.md) adds directory-based official website resolution and verification of supported public listings. Normal county results show location/source names and saved evidence instead of requesting seed URLs and technical method setup. Unsupported or inaccessible sources remain incomplete; they are not zero-result searches. Both work options collect opportunities; source-only configurations continue to perform only maintenance. Non-SAM lead import still requires approval. See the report for deployment/acceptance status; Netlify production is unchanged.
+The released [automatic county build](reviews/2026-10-19-automatic-county-build.md) adds directory-based official website resolution and verification of supported public listings. Normal county results show location/source names and saved evidence instead of requesting seed URLs and technical method setup. Captured websites are labeled separately from opportunity checks; resolved historical gaps are omitted from current results. Unsupported or inaccessible sources remain incomplete. Enable both work options to maintain sources and collect opportunities; source-only configurations perform only maintenance. Non-SAM lead import still requires approval. Saline manual/repeat/one scheduled occurrence ran, but broader coverage and later recurrences remain blocked by the documented source/unknown-outcome limits. Netlify production is unchanged.

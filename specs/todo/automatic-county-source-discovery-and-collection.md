@@ -1,8 +1,18 @@
 # Automatic county source discovery and opportunity collection
 
-Status: planned October 19, 2026. Three implementation phases; keep in todo until automated, visual and live acceptance passes. Netlify production must remain unchanged.
+Status: in progress October 19, 2026. Supported implementation is released to Render/Netlify preview; automated, visual and single-occurrence execution checks passed. Full coverage and unattended recurrence remain blocked by the return checkpoint below. Keep in todo. Netlify production must remain unchanged.
 
-Implementation checkpoint: [build, release and verification report](../../docs/reviews/2026-10-19-automatic-county-build.md). Supported public discovery/verification and automatic collection are implemented and released to Render/Netlify preview; isolated manual/scheduled acceptance and browser visual checks passed. Live Saline verification exposed additional routing, interpretation and coverage limitations; follow-up acceptance is in progress. Do not interpret this checkpoint as universal source coverage or move the plan to done before the remaining gates pass. Netlify production remains unchanged.
+Implementation checkpoint: [build, release and verification report](../../docs/reviews/2026-10-19-automatic-county-build.md). Fresh Saline manual, repeat and one browser-closed scheduled run settled without runtime exceptions. Benton and Bryant completed verified checks; broader coverage is incomplete. The disposable schedule is archived. Do not interpret this checkpoint as universal source coverage or move the plan to done before the remaining gates pass. Netlify production remains unchanged.
+
+### Return checkpoint — remaining coverage work
+
+Resume from the released code and saved live evidence; do not repeat the same broad source queries as a substitute for addressing these gaps.
+
+1. Read-only source-entry failures for Alexander and Shannon Hills leave `outcome_unknown` jobs. The existing `create_procurement_schedule_occurrence` overlap guard treats these as a previous active run and skips later occurrences. Establish a bounded, evidence-backed terminal/reconciliation path for public GET failures while preserving unknown AI charges, writes and all import guards. Add a regression proving a second scheduled occurrence can check independent sources after a harmless fetch failure; do not simply remove the overlap guard or clear uncertain side effects.
+2. The captured Saline County listing still uses a generic method and its AI interpretation fails evidence validation. Reuse the supported structured listing verifier/parser to establish valid scope/date/work-location results without changing budgets or accepting fabricated quotations. The Housing Authority and UA Little Rock also retain unresolved interpretation evidence.
+3. Extend saved-provenance handling for public cross-host canonical redirects and unsupported listing formats. Haskell/Bauxite redirects, oversized School District content and empty/failed responses remain incomplete. Retain fetch bounds and paused protected-portal access.
+4. Traskwood and Tull have no unique website in the authoritative directory response. Extend an existing trusted-directory or approved bounded-research capability; request a concrete provider/cost decision before adding a new paid dependency. Do not ask the user to supply individual URLs.
+5. Share identical source/method/query acquisitions across geographic routes. Source identity and intake deduplication already work, but equivalent route tasks can still fetch the same endpoint separately.
 
 ## Initiating request
 

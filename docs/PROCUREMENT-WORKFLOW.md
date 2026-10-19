@@ -6,7 +6,7 @@ This is the current operating procedure. **Policy scope:** manual decision/appro
 
 For hosted routes/configuration/current local behavior use [PROCUREMENT-BACKEND.md](PROCUREMENT-BACKEND.md). Operator commands retain their reviewed import boundaries. Historical fixed-batch tools are audit reproduction only.
 
-The pending [automatic county extension](reviews/2026-10-19-automatic-county-build.md) resolves official directory websites and validates supported public listing methods without operator source setup. It reuses native registry rehearsal/readback and the collection/intake path described here. This changes county source maintenance, not non-SAM canonical import authority. Unsupported sites remain explicit coverage gaps. See the linked checkpoint for live acceptance and release status.
+The preview [automatic county extension](reviews/2026-10-19-automatic-county-build.md) resolves official directory websites and validates supported public listing methods without operator source setup. It reuses native registry rehearsal/readback and the collection/intake path described here. This changes county source maintenance, not non-SAM canonical import authority. Fresh Saline manual/repeat/one scheduled execution checks completed, but unsupported sources, interpretation gaps and unknown read outcomes holding later recurrences remain unresolved. See the linked report and return checkpoint; Netlify production is unchanged.
 
 ## What must be true
 
