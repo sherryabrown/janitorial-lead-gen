@@ -324,15 +324,16 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
         if(result.unresolved.length && aiConfig?.enabled && !listingNeedsDetail) {
           const automaticCounty=['county_scope','state_research'].includes(request.workflow_control?.admin_policy);
           let response;
-          const budgetResult=()=>({...result,unresolved:result.unresolved.map(item=>({...item,reason:`${item.reason}; AI budget reached`}))});
+          const limitedResult=()=>({...result,unresolved:result.unresolved.map(item=>({...item,
+            reason:`${item.reason}; ${checkpoint.ai_output_rejected?'AI response could not be validated; saved evidence retained':'AI budget reached'}`}))});
           try {
-            response=automaticCounty&&checkpoint.ai_budget_reached?budgetResult():
+            response=automaticCounty&&(checkpoint.ai_budget_reached||checkpoint.ai_output_rejected)?limitedResult():
               await auditPhase('ai_interpretation',()=>ai({db,requestId:request.id,actor:request.initiated_by,packet:p,config:aiConfig}),{task_id:task.id,source_id:p.source_id,reason:'provider'});
           }
           catch(error) {
-            if(!automaticCounty||error.code!=='ai_budget_reached')throw error;
-            checkpoint.ai_budget_reached=true;
-            response=budgetResult();
+            if(!automaticCounty||!['ai_budget_reached','ai_output_rejected'].includes(error.code))throw error;
+            checkpoint[error.code]=true;
+            response=limitedResult();
           }
           const proposed={...result,...response,coverage:'partial'};
           if(automaticCounty) {

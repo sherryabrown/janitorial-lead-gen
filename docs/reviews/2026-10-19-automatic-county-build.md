@@ -32,6 +32,8 @@ The initial live preview attempt (`7a6d2d9d-13c9-476f-9091-be69fe4e05a5`) expose
 
 A later live attempt exposed a saved registry seed that was valid for its persisted route but not yet associated with the new request. Discovery now accepts that server-owned route evidence while continuing to reject unrelated client source IDs; the existing native registration transaction creates the association. Twenty focused tests and native acceptance passed after explicitly expiring the fixture method before its scheduled run. The full recovery check passed 68 UI and 296 workflow tests plus SQL/lint/build; final targeted checks cover the subsequent seed correction.
 
+The scheduled occurrence also produced a provider-truncated response with known actual usage. County processing now discards such output, retains deterministic evidence and makes no further AI calls in that process checkpoint. Actual usage remains recorded; uncertain/missing-usage outcomes are still held. Thirty-one targeted tests passed. The intermediate manual/repeat/scheduled runs settled, produced one browser-closed occurrence and retained import guards; their disposable schedule was archived and actor soft-deleted. Their parent discovery failure means they do not establish final end-to-end acceptance of the seed correction.
+
 No migration, dependency, account or budget change. Netlify production remains unchanged. Keep the plan in todo until required acceptance passes, and record any remaining blockers rather than treating them as zero results.
 
 Proposed commit message: `feat: automate county source collection`

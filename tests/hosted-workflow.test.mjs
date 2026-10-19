@@ -241,6 +241,15 @@ test('database budget refusal is identified without sending inference or switchi
     fetcher:async url=>{urls.push(url);return new Response(JSON.stringify({input_tokens:100}));}}),{code:'ai_budget_reached'});
   assert.equal(urls.length,1);assert.match(urls[0],/input_tokens/);
 });
+test('truncated AI output retains actual usage and cannot become an interpretation',async()=>{
+  const packet=makeInterpretationPacket(context()),writes=[];
+  const rate={key:'fixture',model:'fixture',rateVersion:'offline',inputUsdPerMillion:1,outputUsdPerMillion:1};
+  const db={rpc:async()=>({data:{}}),from:()=>({update:value=>({eq:async()=>{writes.push(value);return {data:null};}})})};
+  await assert.rejects(boundedInterpretation({db,requestId:packet.request_id,actor,packet,config:{enabled:true,monthlyUsd:10,openai:rate},
+    fetcher:async url=>new Response(JSON.stringify(url.includes('input_tokens')?{input_tokens:100}:
+      {status:'incomplete',usage:{input_tokens:100,output_tokens:2000},output:[]}))}),{code:'ai_output_rejected'});
+  assert.equal(writes.length,1);assert.equal(writes[0].state,'completed');assert.ok(writes[0].actual_usd>0);
+});
 
 
 test('uncertain automatic SAM imports expose a specific safe continuation without a failed provider attempt',async()=>{

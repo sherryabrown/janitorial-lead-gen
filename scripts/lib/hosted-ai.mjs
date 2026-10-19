@@ -85,13 +85,17 @@ export async function boundedInterpretation({db,requestId,actor,packet,config,fe
       throw new Error('Provider usage missing; reservation retained');
     const actual=(usage.input_tokens*c.inputUsdPerMillion+usage.output_tokens*c.outputUsdPerMillion)/1e6;
     checked(await db.from('procurement_usage_ledger').update({state:'completed',actual_usd:actual,usage}).eq('id',id));
-    if(usage.input_tokens>count || usage.output_tokens>2000 || actual>reserved || data.status==='incomplete' || data.stop_reason==='max_tokens')
-      throw new Error('Provider exceeded reserved bounds or truncated output; review manually');
+    if(usage.input_tokens>count || usage.output_tokens>2000 || actual>reserved || data.status==='incomplete' || data.stop_reason==='max_tokens') {
+      const error=Error('Provider exceeded reserved bounds or truncated output; review manually');error.code='ai_output_rejected';throw error;
+    }
     const text=provider==='openai'?data.output?.flatMap(o=>o.content??[]).filter(c=>c.type==='output_text').map(c=>c.text).join(''):
       data.content?.filter(c=>c.type==='text').map(c=>c.text).join('');
-    const parsed=JSON.parse(text);
-    if(Object.keys(parsed).sort().join(',')!=='exclusions,findings,unresolved' ||
-      !['findings','exclusions','unresolved'].every(k=>Array.isArray(parsed[k])))throw new Error('Invalid interpretation schema');
+    let parsed;
+    try {parsed=JSON.parse(text);}catch {const error=Error('Invalid interpretation JSON');error.code='ai_output_rejected';throw error;}
+    if(Object.keys(parsed??{}).sort().join(',')!=='exclusions,findings,unresolved' ||
+      !['findings','exclusions','unresolved'].every(k=>Array.isArray(parsed[k]))) {
+      const error=Error('Invalid interpretation schema');error.code='ai_output_rejected';throw error;
+    }
     return parsed;
   }
   throw new Error('Primary and backup unavailable');
