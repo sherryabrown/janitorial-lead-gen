@@ -1,5 +1,7 @@
 # Registered-source access onboarding and collection
 
+Current scope note (October 19): provider-specific open actions below remain distinct from completed Admin/scheduler/SAM infrastructure. Bonfire access work is paused during integration cleanup; do not repeat signup, challenges or imports from historical instructions. SAM automatic persistence remains independent and unchanged.
+
 Bonfire follow-up: [Portal opportunity collection](bonfire-euna-portal-opportunity-collection.md) owns the verified directory-to-Portal route and protected project/hosted acceptance. See [October 19 access results](../../docs/SOURCE-ACCESS-LIVE-STATUS.md#latest-bonfire-check--october-19-2026); optional business setup is skippable, while current project access remains challenged. Do not repeat the historical signup/import or infer hosted acceptance from a public listing.
 
 > Shared UI/execution integration is owned by [UI-managed procurement workflow](ui-managed-procurement-workflow.md). This file retains provider-specific pending actions and evidence. Its UI exclusion applies to this operational continuation; do not rebuild completed infrastructure or treat provider batches as prerequisites for the new UI workflow.

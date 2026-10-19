@@ -26,7 +26,9 @@ export function RunDetail({
     [busy, setBusy] = useState(false),
     [refresh, setRefresh] = useState(0);
   const changedRef = useRef(changed),
-    pageStart = useRef<string | null>(null);
+    pageStart = useRef<string | null>(null),
+    pageGeneration = useRef(0),
+    morePending = useRef(false);
   useEffect(() => {
     changedRef.current = changed;
   }, [changed]);
@@ -35,8 +37,9 @@ export function RunDetail({
     let timer: ReturnType<typeof setTimeout>,
       delay = 2500,
       previous = '';
+    const epoch = ++pageGeneration.current;
     pageStart.current = null;
-    setRun(null);
+    morePending.current = false;
     setSteps([]);
     setError('');
     const load = async () => {
@@ -76,6 +79,7 @@ export function RunDetail({
     };
     void load();
     return () => {
+      pageGeneration.current = epoch + 1;
       abort.abort();
       clearTimeout(timer);
     };
@@ -93,13 +97,16 @@ export function RunDetail({
     }
   };
   const more = async () => {
-    if (!cursor) return;
+    if (!cursor || morePending.current) return;
+    const generation = pageGeneration.current;
+    morePending.current = true;
     const start = cursor;
     try {
       const s = await workflowRequest<{
         items: Step[];
         next_cursor: string | null;
       }>(`/v1/triggers/${id}/steps?cursor=${start}`);
+      if (generation !== pageGeneration.current) return;
       pageStart.current = start;
       setSteps((x) => [
         ...x,
@@ -107,8 +114,8 @@ export function RunDetail({
       ]);
       setCursor(s.next_cursor);
     } catch (e) {
-      setError((e as Error).message);
-    }
+      if (generation === pageGeneration.current) setError((e as Error).message);
+    } finally { if (generation === pageGeneration.current) morePending.current = false; }
   };
   return (
     <section
@@ -127,6 +134,7 @@ export function RunDetail({
           {error}
         </p>
       )}
+      {!run && <button type="button" className="text-button" onClick={() => setRefresh(n => n + 1)}>Retry progress</button>}
       {run && (
         <>
           <p>
@@ -258,7 +266,8 @@ export function RunDetail({
           </label>
           {child && (
             <RequestReview
-              key={`${child}:${run.state}`}
+              key={child}
+              refreshSignal={run.state}
               id={child}
               owner={owner}
               sam={run.target_kind === 'sam'}

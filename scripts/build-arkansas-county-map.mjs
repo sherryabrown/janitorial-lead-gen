@@ -1,3 +1,4 @@
+import { compactCountyPath } from './lib/county-map-path.mjs';
 import { createHash } from 'node:crypto';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { GIS_BASE, arcgisQuery } from './lib/arkansas-municipalities.mjs';
@@ -80,7 +81,7 @@ const counties = geo.features
         .replace(/\b\w/g, (c) => c.toUpperCase())
         .toLowerCase()
         .replace(/(^|\s)\w/g, (c) => c.toUpperCase()),
-      path,
+      path: compactCountyPath(path),
     };
   })
   .sort((a, b) => a.name.localeCompare(b.name));
@@ -98,7 +99,7 @@ const asset = {
     fetched_at: new Date().toISOString(),
     sha256: createHash('sha256').update(raw).digest('hex'),
     projection:
-      'Equirectangular, standard parallel 35N; shared global 0.1 SVG-unit grid; consecutive duplicate vertices removed; all rings retained, evenodd fill',
+      'Equirectangular, standard parallel 35N; shared global 0.1 SVG-unit grid; consecutive duplicate and exactly collinear forward vertices removed; all rings retained, evenodd fill',
     command: 'node scripts/build-arkansas-county-map.mjs',
     count: 75,
     viewBox: `0 0 ${Math.ceil((maxX - minX) * scale + 30)} ${Math.ceil((maxY - minY) * scale + 30)}`,

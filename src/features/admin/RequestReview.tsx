@@ -19,15 +19,16 @@ export function RequestReview({
   owner,
   onViewLeads,
   sam = false,
+  refreshSignal,
 }: {
   id: string;
   owner: string;
   onViewLeads: () => void;
   sam?: boolean;
+  refreshSignal?: string;
 }) {
   const [data, setData] = useState<RequestStatus | null>(null),
     [samPacket, setSamPacket] = useState<SamPacket | null>(null),
-    [allowPartial, setAllowPartial] = useState(false),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
     [version, setVersion] = useState(0),
@@ -42,11 +43,18 @@ export function RequestReview({
     [job, setJob] = useState<ImportStatus | null>(null),
     [seed, setSeed] = useState(''),
     [sources, setSources] = useState<{ id: string; name: string }[]>([]),
-    [sourceOffset, setSourceOffset] = useState<number | null>(0);
+    [sourceOffset, setSourceOffset] = useState<number | null>(0),
+    [notice, setNotice] = useState('');
+  const dataRef = useRef<RequestStatus | null>(null), selectedRef = useRef(selected),
+    generation = useRef(0), packetRead = useRef(0), candidatePaging = useRef(false);
+  selectedRef.current = selected;
+
   useEffect(() => {
     const a = new AbortController();
+    const epoch = ++generation.current;
+    candidatePaging.current = false;
     setSamPacket(null);
-    setAllowPartial(false);
+    setError('');
     if (sam)
       void workflowRequest<SamPacket>(`/v1/sam/requests/${id}/packet`, {
         signal: a.signal,
@@ -54,28 +62,37 @@ export function RequestReview({
         .then((p) => {
           if (!a.signal.aborted) setSamPacket(p);
         })
-        .catch(() => {});
-    void workflowRequest<RequestStatus>(`/v1/requests/${id}`, {
-      signal: a.signal,
-    })
+        .catch((e) => { if (!a.signal.aborted) setError(e.message); });
+    const read = async () => {
+      const needed = Math.max(50, dataRef.current?.candidates.length ?? 0);
+      let result = await workflowRequest<RequestStatus>(`/v1/requests/${id}`, { signal: a.signal });
+      while (result.next_offset !== null && result.candidates.length < needed) {
+        const page = await workflowRequest<RequestStatus>(`/v1/requests/${id}?offset=${result.next_offset}`, { signal: a.signal });
+        result = { ...page, candidates: [...result.candidates, ...page.candidates] };
+      }
+      return result;
+    };
+    void read()
       .then((r) => {
         if (!a.signal.aborted) {
-          setData(r);
-          setSelected([]);
-          const pending = r.jobs.find((j) => j.stage?.startsWith('import_'));
+          const previous = dataRef.current;
+          const valid = selectedRef.current.filter(id => r.candidates.some(c => c.intake_id === id && c.state === 'pending_review' && c.intake_hash === previous?.candidates.find(old => old.intake_id === id)?.intake_hash));
+          if (valid.length !== selectedRef.current.length) setNotice('Some selected candidates changed. Review and select their current evidence; your written notes are kept.');
+          dataRef.current = r; setData(r); setSelected(valid);
+          const pending = !sam ? r.jobs.find((j) => j.stage?.startsWith('import_')) : undefined;
           if (pending)
             void workflowRequest<ImportStatus>(`/v1/imports/${pending.id}`, {
               signal: a.signal,
             })
-              .then(setJob)
-              .catch(() => {});
+              .then(value => { if (!a.signal.aborted) setJob(value); })
+              .catch((e) => { if (!a.signal.aborted) setError(e.message); });
         }
       })
       .catch((e) => {
         if (!a.signal.aborted) setError(e.message);
       });
-    return () => a.abort();
-  }, [id, version, sam]);
+    return () => { a.abort(); generation.current = epoch + 1; };
+  }, [id, version, sam, refreshSignal]);
   useEffect(() => {
     if (!job || !['pending', 'running'].includes(job.state)) return;
     const a = new AbortController(),
@@ -83,7 +100,7 @@ export function RequestReview({
         void workflowRequest<ImportStatus>(`/v1/imports/${job.job_id}`, {
           signal: a.signal,
         })
-          .then(setJob)
+          .then(value => { if (!a.signal.aborted) setJob(value); })
           .catch((e) => {
             if (!a.signal.aborted) setError(e.message);
           });
@@ -94,26 +111,20 @@ export function RequestReview({
     };
   }, [job]);
   useEffect(() => {
-    if (
-      !sam ||
-      !samPacket ||
-      !['pending', 'running'].includes(samPacket.automatic?.state ?? '')
-    )
-      return;
+    if (!sam || !samPacket || !['pending', 'running'].includes(samPacket.automatic?.state ?? '')) return;
     const abort = new AbortController();
     const timer = setTimeout(() => {
-      void workflowRequest<SamPacket>(`/v1/sam/requests/${id}/packet`, {
-        signal: abort.signal,
-      })
-        .then(setSamPacket)
-        .catch((e) => {
-          if (!abort.signal.aborted) setError(e.message);
-        });
+      if (document.hidden) { setSamPacket(p => p ? { ...p } : p); return; }
+      void workflowRequest<Pick<SamPacket, 'automatic' | 'next_action' | 'evidence_key' | 'collection_pending'>>(`/v1/sam/requests/${id}/status`, { signal: abort.signal })
+        .then(async status => {
+          if (abort.signal.aborted) return;
+          if (status.evidence_key && status.evidence_key !== samPacket.evidence_key) {
+            const fresh = await workflowRequest<SamPacket>(`/v1/sam/requests/${id}/packet`, { signal: abort.signal });
+            if (!abort.signal.aborted) setSamPacket(fresh);
+          } else setSamPacket(p => p ? { ...p, ...status } : p);
+        }).catch(e => { if (!abort.signal.aborted) setError(e.message); });
     }, 3000);
-    return () => {
-      clearTimeout(timer);
-      abort.abort();
-    };
+    return () => { clearTimeout(timer); abort.abort(); };
   }, [id, sam, samPacket]);
   const perform = async (action: () => Promise<unknown>, reload = true) => {
     setBusy(true);
@@ -132,8 +143,10 @@ export function RequestReview({
       const path = discovery
         ? `/v1/requests/${id}/discovery/tasks/${task.id}/packet`
         : `/v1/requests/${id}/tasks/${task.id}/packet`;
+      const read = ++packetRead.current;
+      const revision = generation.current;
       const p = await workflowRequest<Packet>(path);
-      setPacket({ task, data: p, discovery });
+      if (read === packetRead.current && revision === generation.current) setPacket({ task, data: p, discovery });
     }, false);
   const prepare = () =>
     void perform(async () => {
@@ -149,8 +162,7 @@ export function RequestReview({
         limitations:
           'Saved source evidence only; incomplete routes are not complete coverage',
         reviewed_by: owner,
-        run_ids: sam ? (samPacket?.run_ids ?? []) : [],
-        ...(sam ? { allow_partial: allowPartial } : {}),
+        run_ids: [],
         decisions: data.candidates
           .filter((c) => selected.includes(c.intake_id))
           .map((c) => ({
@@ -209,6 +221,7 @@ export function RequestReview({
           Refresh results
         </button>
       </div>
+      {notice && <p role="status">{notice}</p>}
       {error && (
         <p role="alert" className="admin-error">
           {error}
@@ -287,7 +300,7 @@ export function RequestReview({
                   )}
                 </div>
               )}
-              {samPacket ? (
+              {samPacket?.collection_pending ? <p role="status">{samPacket.next_action}</p> : samPacket ? (
                 <details>
                   <summary>
                     Saved SAM evidence · {samPacket.run_ids.length} pages ·{' '}
@@ -508,7 +521,7 @@ export function RequestReview({
               <button
                 type="button"
                 className="text-button"
-                onClick={() => setPacket(null)}
+                onClick={() => { packetRead.current++; setPacket(null); }}
               >
                 Close evidence
               </button>
@@ -574,13 +587,15 @@ export function RequestReview({
               className="text-button"
               onClick={() =>
                 void perform(async () => {
-                  const p = await workflowRequest<RequestStatus>(
-                    `/v1/requests/${id}?offset=${data.next_offset}`,
-                  );
-                  setData({
-                    ...p,
-                    candidates: [...data.candidates, ...p.candidates],
-                  });
+                  if (candidatePaging.current) return;
+                  candidatePaging.current = true;
+                  const revision = generation.current;
+                  try {
+                    const p = await workflowRequest<RequestStatus>(`/v1/requests/${id}?offset=${data.next_offset}`);
+                    if (revision !== generation.current) return;
+                    const fresh = { ...p, candidates: [...data.candidates, ...p.candidates.filter(c => !data.candidates.some(old => old.intake_id === c.intake_id))] };
+                    dataRef.current = fresh; setData(fresh);
+                  } finally { if (revision === generation.current) candidatePaging.current = false; }
                 }, false)
               }
             >
@@ -589,17 +604,6 @@ export function RequestReview({
           )}
           {!sam && selected.length > 0 && (
             <div className="admin-review-form">
-              {samPacket?.partial && (
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={allowPartial}
-                    onChange={(e) => setAllowPartial(e.target.checked)}
-                  />
-                  Review these saved partial SAM pages only; no complete
-                  statewide coverage is claimed.
-                </label>
-              )}
               <label>
                 Reason for processing reviewed candidates
                 <textarea
@@ -619,11 +623,7 @@ export function RequestReview({
                 type="button"
                 className="secondary-button"
                 disabled={
-                  busy ||
-                  !reason.trim() ||
-                  (sam &&
-                    (!samPacket?.run_ids.length ||
-                      (samPacket.partial && !allowPartial)))
+                  busy || !reason.trim()
                 }
                 onClick={prepare}
               >

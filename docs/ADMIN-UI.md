@@ -94,3 +94,14 @@ The shared worker checks public project URLs from verified saved listing rows on
 Category packet `detail_collection` is presentation metadata alongside the unchanged immutable listing packet. It contains per-project states and signed evidence descriptors, never raw document bytes. Selecting a saved document calls authenticated `POST /v1/requests/:request/tasks/:task/supporting-evidence` with its descriptor; packet/method/signature/hash verification precedes bounded plain review text, with no provider fetch. Exact project/document quotations supplement listing evidence for the existing reviewed candidate flow. A listing alone cannot establish a lead.
 
 The existing explicit `supporting-captures` action can reconcile a matching blocked public attempt after a successful recapture. An uncertain attempt requires `saved_evidence` with a valid exact-packet receipt and performs readback without resending. Checkpoint changes use compare-and-swap; current interpretations stay intact. This does not renew private access or enable unattended protected collection. Feature commit `954c35b` is deployed to Render and the approved [shared draft](https://bonfire-review--janitorial-lead-gen.netlify.app). Protected access acceptance remains blocked; Netlify production is unchanged. SAM automatic saving remains separate.
+
+
+## Integration remediation (local build, October 19)
+
+Schedule rows now expand saved occurrence and change history using existing authenticated endpoints. History includes blocked/no-run outcomes, paginated results and links to saved runs. Show archived schedules exposes retained history without adding an unarchive action. All displayed history times use America/Chicago, matching existing formatting.
+
+Background run transitions retain an open source/candidate review. Refresh retains typed notes and loaded list ranges; changed candidate hashes invalidate selection with a notice. Initial failed progress reads and saved SAM/import reads expose retry without submitting new work. Returning to Contracts explicitly revalidates the existing queue even when realtime is disconnected.
+
+Automatic SAM progress polls the new lightweight saved-status route and reloads verified full evidence when its identity changes. Collection-pending, failed reads and confirmed empty results remain distinct. Release the matching Render backend before this frontend. This build makes no deployment and leaves Netlify production unchanged.
+
+The map still uses all 75 official county identities and the same exact projected boundaries. Build-time removal of exactly collinear forward vertices reduces its JSON from 949,687 to 604,290 bytes without approximation or new runtime dependencies.

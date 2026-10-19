@@ -151,6 +151,8 @@ export type RequestStatus = {
   usage: Usage;
 };
 export type SamPacket = {
+  collection_pending?: boolean;
+  evidence_key?: string | null;
   automatic?: {
     job_id?: string | null;
     collection_blocker?: string | null;

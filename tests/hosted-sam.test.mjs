@@ -73,3 +73,26 @@ test('uncertain import guard prevents another provider send and preserves the un
   const c={stage:'sam_collect'};await assert.rejects(sam.step({},c,async()=>{}),/Reconcile prior import/);
   assert.equal(sends,0);assert.equal(c.stage,'sam_collect');assert.equal(c.request_attempt_id,undefined);
 });
+
+
+test('automatic status reads no capture artifacts or intake bodies at small and large evidence sizes',async()=>{
+  for(const size of [1,1000]) {
+    const requestId=id(80),autoId=id(81),capture=JSON.parse(readFileSync('tests/fixtures/sam/20bc470d-bfd8-4bd7-a4e0-926cdcd3696d.json','utf8'));
+    const entries=Array.from({length:size},(_,i)=>({id:id(100+i),payload:{title:'Cleaning',sam_notice_evidence:{record:{description:'x'.repeat(1000)}}}}));
+    const tables={procurement_jobs:[{id:id(82),search_request_id:requestId,dedupe_key:`api-sam:${requestId}`,state:'blocked',checkpoint:{stage:'sam_review',kind:'opportunity',run_ids:[capture.run_id],capture_artifacts:['page'],intake_ids:entries.map(i=>i.id),automatic_import_job_id:autoId}},
+      {id:autoId,state:'running',checkpoint:{stage:'import_prepare'}}],procurement_intake_items:entries,procurement_runs:[{id:capture.run_id,detail:capture}],procurement_search_requests:[{id:requestId,search_windows:{opportunity:{}}}]};
+    let reads=0,artifacts=0;const touched=[];
+    const db={from(table){reads++;touched.push(table);const predicates=[];let single=false,from=0,to=Infinity;const q={select(){return q;},eq(k,v){predicates.push(r=>r[k]===v);return q;},in(k,v){predicates.push(r=>v.includes(r[k]));return q;},order(){return q;},range(a,b){from=a;to=b;return q;},maybeSingle(){single=true;return q;},then(resolve){const found=(tables[table]??[]).filter(r=>predicates.every(p=>p(r))).slice(from,to+1);resolve({data:single?found[0]:found});}};return q;}};
+    const sam=statewideSam({db,artifacts:{get:async()=>{artifacts++;return Buffer.from(JSON.stringify(capture));}}});
+    const full=await sam.packet(requestId),fullBytes=Buffer.byteLength(JSON.stringify(full));
+    const fullReads=reads;reads=0;artifacts=0;touched.length=0;
+    let light;
+    for(let i=0;i<3;i++)light=await sam.status(requestId);
+    assert.equal(reads,6);assert.equal(artifacts,0);assert.ok(touched.every(t=>t==='procurement_jobs'));
+    assert.equal(light.evidence_key,full.evidence_key);assert.equal(light.automatic.state,'running');
+    assert.ok(!('candidates' in light));assert.ok(Buffer.byteLength(JSON.stringify(light))<fullBytes);
+    console.log(JSON.stringify({sam_status_measurement:{candidates:size,full_reads:fullReads,status_reads_per_poll:2,full_bytes:fullBytes,status_bytes:Buffer.byteLength(JSON.stringify(light)),status_artifact_reads:0}}));
+    tables.procurement_jobs[0].checkpoint.stage='sam_collect';tables.procurement_jobs[0].state='running';
+    const pending=await sam.packet(requestId);assert.equal(pending.collection_pending,true);assert.equal(pending.automatic.state,'running');assert.equal(pending.terminal_confirmed,false);
+  }
+});

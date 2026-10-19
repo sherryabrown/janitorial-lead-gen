@@ -28,5 +28,3 @@ export function ModeSwitch({ workMode, onChange }: { workMode: WorkMode; onChang
     </div>
   );
 }
-
-export { ComingSoon };

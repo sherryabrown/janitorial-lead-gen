@@ -1,6 +1,6 @@
 # Arkansas Admin: county triggers and activity
 
-Planning began October 13, 2026. Current status: parts 01/02 are deployed, and production scheduling acceptance passed October 18. Part 03 (Admin UI/map) is implemented locally; its verification and release status are recorded in [the UI build report](../../docs/reviews/2026-10-18-admin-ui-build.md). The coordinated frontend/backend production release/readback remains outstanding. This is a coordinated three-part implementation; build the numbered plans in order. The dispatcher is active; no production recurrence is enabled by the plan itself.
+Planning began October 13, 2026. Parts 01/02 and scheduler acceptance are complete; part 03 is implemented and available in the approved preview. SAM automatic persistence has its own completed plan and deployment evidence. This parent retains the coordinated **Netlify production** release decision, intentionally outstanding; it is not an instruction to rebuild completed parts. Current local remediation is tracked in [the integration review plan](../done/integration-review-remediation-and-cleanup.md). See [Admin UI](../../docs/ADMIN-UI.md) and dated deployment reports for source, preview and production status.
 
 ## Initiating request
 

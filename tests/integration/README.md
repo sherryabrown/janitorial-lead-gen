@@ -16,4 +16,9 @@ Set `ACCESS_TEST_URL`, `ACCESS_TEST_ANON_KEY`, `ACCESS_TEST_SERVICE_KEY`, and `A
 
 Run either access command in a separate shell/process without the offline suite's `NODE_OPTIONS` preload. Never remove the guard from default tests. The Supabase suite creates two temporary Auth users and records derived from sanitized procurement evidence; cleanup targets only their generated identities. Inspect cleanup failures before rerunning.
 
-Successful offline checks do not satisfy this gate. After this gate succeeds, apply the reviewed forward migrations through the authorized deployment process, refresh the private access inventory and verify the live anonymous/authenticated boundary. Keep paid Generate disabled.
+Successful offline checks do not satisfy this gate. After this gate succeeds, apply the reviewed forward migrations through the authorized deployment process, refresh the private access inventory and verify the live anonymous/authenticated boundary. The old Generate handler is retired; Admin uses the existing authenticated workflow. Companies/email previews remain future functionality.
+
+
+The current `local-access.mjs` harness lists and applies the forward migrations required by its scheduler, automatic SAM, native validation and access tests. Use that harness for the full current application gate; the optional hosted Auth lifecycle instructions above describe their narrower historical Auth/RLS fixture, not the full current schema.
+
+Run `node tests/integration/admin-ui-browser.mjs` for desktop/mobile/keyboard acceptance against intercepted fixture HTTP. It uses the real app with a fixture session and blocks unexpected external requests; it does not prove deployed provider access or production imports.

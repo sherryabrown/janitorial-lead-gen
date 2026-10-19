@@ -17,16 +17,26 @@ export function statewideSam({db,project,serverKey,artifacts,fetcher=fetch,autom
       return {request_id:j.search_request_id,category,publication_window:request?.search_windows?.[category],state:j.state,stage:j.checkpoint?.stage,
         created_at:j.created_at,parent_trigger_id:links.find(l=>l.request_id===j.search_request_id)?.trigger_id??null};}),next_offset:jobs.length>limit?offset+limit:null};
   }
+  const evidenceKey = c => hash([c.run_ids ?? [], c.capture_artifacts ?? [], c.intake_ids ?? [], c.terminal_confirmed ?? false]);
+  async function status(requestId) {
+    const job=checked(await db.from('procurement_jobs').select('id,state,checkpoint').eq('search_request_id',requestId).eq('dedupe_key',`api-sam:${requestId}`).maybeSingle());
+    if(!job)throw new Error('SAM request not found');
+    const c=job.checkpoint;
+    if(c.stage!=='sam_review')return {request_id:requestId,collection_pending:true,evidence_key:null,
+      automatic:{state:job.state,stage:c.stage,verified:false,added:0,updated:0,unchanged:0,exclusions:[],can_continue:false},
+      next_action:['pending','running'].includes(job.state)?'SAM collection is in progress; saved evidence is not ready yet':'SAM collection stopped; review saved progress before continuing'};
+    return {request_id:requestId,collection_pending:false,evidence_key:evidenceKey(c),...await automaticStatus(c,job)};
+  }
   async function packet(requestId) {
     const jobs=await rows(db,'procurement_jobs',q=>q.eq('search_request_id',requestId));
     const job=jobs.find(j=>j.dedupe_key===`api-sam:${requestId}`&&j.checkpoint?.stage==='sam_review');
-    if(!job)throw new Error('Persisted separate SAM review candidates required');
+    if(!job)return {...await status(requestId),run_ids:[],candidates:[],captures:[],terminal_confirmed:false,partial:true,canonical_writes:0};
     const c=job.checkpoint,runs=await savedRuns(c);
     const ids=c.intake_ids??[];
     const candidates=ids.length?await rows(db,'procurement_intake_items',q=>q.in('id',ids)):[];
     if(candidates.length!==ids.length)throw new Error('SAM candidate readback incomplete');
     const request=await one(db,'procurement_search_requests',requestId),automatic=await automaticStatus(c,job);
-    return {request_id:requestId,category:c.kind,publication_window:request?.search_windows?.[c.kind],pages:c.pages??runs.length,records:c.records??null,run_ids:c.run_ids,terminal_confirmed:c.terminal_confirmed,
+    return {request_id:requestId,collection_pending:false,evidence_key:evidenceKey(c),category:c.kind,publication_window:request?.search_windows?.[c.kind],pages:c.pages??runs.length,records:c.records??null,run_ids:c.run_ids,terminal_confirmed:c.terminal_confirmed,
       partial:!c.terminal_confirmed,...automatic,
       candidates:candidates.map(i=>({intake_id:i.id,intake_hash:hash(i.payload),status:i.status,
         source_id:i.source_id,title:i.payload.title,agency:i.payload.agency,bid_type:i.payload.bid_type,
@@ -178,5 +188,5 @@ export function statewideSam({db,project,serverKey,artifacts,fetcher=fetch,autom
       await save('outcome_unknown');
     }
   }
-  return {submit,step,savedRuns,packet,reconcile,history,processSaved};
+  return {submit,step,savedRuns,packet,status,reconcile,history,processSaved};
 }

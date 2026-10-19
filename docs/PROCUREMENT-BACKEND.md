@@ -4,7 +4,7 @@ Backend code contract, updated October 18, 2026. Scheduler deployment/live accep
 
 ## Responsibilities and authentication
 
-The existing app reads canonical leads through Supabase queue/detail RPCs and persists stages/notes through authenticated database APIs. The hosted backend collects source evidence, stages reviewed candidates and prepares/applies exact approved imports. Candidate intake is not the canonical lead queue. Companies and email previews remain disabled future functionality. The local Admin UI replaces Generate using this shared workflow; the legacy `spin_generate_contracts` function remains dormant and undeployed. See [Admin UI and release checks](ADMIN-UI.md).
+The existing app reads canonical leads through Supabase queue/detail RPCs and persists stages/notes through authenticated database APIs. The hosted backend collects source evidence, stages reviewed candidates and prepares/applies exact approved imports. Candidate intake is not the canonical lead queue. Companies and email previews remain disabled future functionality. The local Admin UI replaces Generate using this shared workflow; the undeployed legacy `spin_generate_contracts` implementation has been retired locally. See [Admin UI and release checks](ADMIN-UI.md).
 
 `npm run workflow:server` starts `scripts/workflow-server.mjs`. `/health` is public process health only. Every `/v1` route requires a Supabase user access token in `Authorization: Bearer <token>`; all signed-in users can operate the shared workflow and actions record the actor. Exact configured origins only; no cookie authentication. Direct HTTP failures are sanitized. Worker failures expose a controlled action, `workflow_stage_failed` code and diagnostic UUID; exception text stays in private server logs. Import/status and attention projections also suppress old arbitrary checkpoint error messages.
 
@@ -110,3 +110,8 @@ These reports document prior observations, not fresh live checks:
 Provider-specific Bonfire/Euna work is separate and paused in scope for this effort. UI collection wiring and scheduling remain future work. Existing source coverage and pending candidates must continue to report actual partial/unresolved states.
 
 For local release validation use `npm run check`; applicable disposable access checks are separate. Offline success is not live deployment/provider acceptance. [Development workflow](development-workflow.md), [research/import contract](PROCUREMENT-WORKFLOW.md), and [private access lifecycle](SOURCE-ACCESS.md) retain their responsibilities.
+
+
+## Saved SAM status reads (local implementation, October 19)
+
+`GET /v1/sam/requests/:id/status` is authenticated and read-only. It returns collection readiness, an evidence identity, and current automatic-import state/counts from existing jobs. It reads no capture artifacts or intake payloads and never kicks collection/import. `/packet` remains the verified full-evidence reader; during collection it returns an explicit pending projection, not a successful empty result. The UI polls status and reloads evidence only when its identity changes. Deploy the matching backend before releasing this frontend; this cleanup build itself does not deploy.

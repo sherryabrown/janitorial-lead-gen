@@ -145,7 +145,7 @@ try {
   const preview=await schedules.preview(input);
   sql("update procurement_schedules set config="+literal(preview.config)+",scope_hash='"+preview.scope_hash+"' where id='"+savedSchedule.body+"';");
   const wakeKey=randomBytes(32).toString('hex');let work;
-  backend=workflowServer({schedules,schedulerKey:wakeKey,kick:()=>{work=workflow.step();}});
+  backend=workflowServer({schedules,authenticate:async jwt=>jwt===nonMember?{id:first}:null,samStatus:id=>samWorker.status(id),schedulerKey:wakeKey,kick:()=>{work=workflow.step();}});
   await new Promise(r=>backend.listen(0,'127.0.0.1',r));
   const wake=()=>fetch(`http://127.0.0.1:${backend.address().port}/internal/procurement-scheduler/tick`,{method:'POST',headers:{'Content-Type':'application/json','x-procurement-scheduler-key':wakeKey},body:'{}'});
   const wakeStarted=Date.now();
@@ -158,6 +158,12 @@ try {
   await schedules.control(savedSchedule.body,'pause',{expected_version:1},first);
   assert.equal(await workflow.step(),false,'Pause stops queued automatic continuations');
   await schedules.control(savedSchedule.body,'archive',{expected_version:2},first);
+  const adminRead=path=>fetch(`http://127.0.0.1:${backend.address().port}${path}`,{headers:{Authorization:`Bearer ${nonMember}`}});
+  const historyResponse=await adminRead(`/v1/schedules/${savedSchedule.body}/occurrences`);
+  assert.equal(historyResponse.status,200);assert.equal((await historyResponse.json()).items[0].trigger_id,occurrences.items[0].trigger_id);
+  const eventsResponse=await adminRead(`/v1/schedules/${savedSchedule.body}/events`);
+  assert.equal(eventsResponse.status,200);assert.ok((await eventsResponse.json()).items.some(e=>e.action==='archive'));
+
   // Same private wake/worker, actual SQL captures and audit, fixture SAM response.
   // This proves isolated execution; it is not production/provider acceptance.
   const samSource=randomUUID(),artifactBytes=new Map();let samCalls=0,samRows=[];
@@ -215,6 +221,10 @@ try {
     const child=(await triggers.status(manual.trigger_id)).children[0];
     const packet=await samWorker.packet(child.request_id);assert.equal(packet.automatic.verified,true);assert.equal(packet.automatic.added,1);assert.equal(packet.automatic.exclusions.length,1);
     assert.equal(packet.automatic.stage,'import_verified');
+    const statusResponse=await adminRead(`/v1/sam/requests/${child.request_id}/status`);
+    assert.equal(statusResponse.status,200);const savedStatus=await statusResponse.json();
+    assert.equal(savedStatus.automatic.added,1);assert.equal(savedStatus.automatic.verified,true);assert.equal(savedStatus.evidence_key,packet.evidence_key);assert.equal(savedStatus.candidates,undefined);
+
     const repeat=await triggers.submit({...mp.config,confirmed_scope:true,preview_hash:mp.preview_hash},first,'automatic-manual-sam');assert.equal(repeat.trigger_id,manual.trigger_id);
     // A scheduled capture of the same canonical notice must update/link rather than duplicate.
     samRows=[notice];const preview=await schedules.preview({...samInput,name:'Automatic scheduled SAM'});

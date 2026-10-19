@@ -1,10 +1,12 @@
+> October 19 cleanup status: Admin, the shared backend, scheduler and automatic SAM path are implemented. Older checkpoints below are dated history, not current deployment instructions. Remaining provider acceptance stays in the [Bonfire Portal plan](bonfire-euna-portal-opportunity-collection.md), currently paused. Netlify production remains unchanged. Current local improvements are owned by [integration remediation](../done/integration-review-remediation-and-cleanup.md); do not rebuild native rehearsal or restore manual SAM approvals.
+
 Historical October 8 API-link repair completion: six corrections preserved; approved hosted evidence import/readback/replay and user project-name click verified. Snapshot fix `15e0869` is live on Render Free. The saved SAM notice package is now approved, imported and reconciled; stale award evidence remains correctly blocked. Repair owner: `specs/done/api-procurement-lead-links.md`. Earlier continuation notes below are historical checkpoints.
 
 # UI-managed Arkansas procurement workflow
 
 ## Current scope — October 13, 2026
 
-Code cleanup precedes further integration. Companies and email previews remain future functionality. Bonfire/Euna access verification is deferred in [its separate plan](bonfire-euna-agency-explorer-access-verification.md); no access retry, credential change or provider inquiry is a current action under this plan. Current implementation is described in [PROCUREMENT-BACKEND.md](../../docs/PROCUREMENT-BACKEND.md). Dated deployment and acceptance claims below are evidence, not a fresh live-state check.
+Code cleanup precedes further integration. Companies and email previews remain future functionality. Bonfire/Euna access verification is deferred in [its separate plan](../archive/bonfire-euna-agency-explorer-access-verification.md); no access retry, credential change or provider inquiry is a current action under this plan. Current implementation is described in [PROCUREMENT-BACKEND.md](../../docs/PROCUREMENT-BACKEND.md). Dated deployment and acceptance claims below are evidence, not a fresh live-state check.
 
 The [second-pass cleanup](../done/second-pass-code-review-cleanup.md) is complete. Next: plan the requested UI/backend integration separately. Preserve completed pilot results; do not repeat their imports.
 

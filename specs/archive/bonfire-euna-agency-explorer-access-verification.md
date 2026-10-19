@@ -1,6 +1,6 @@
 # Bonfire/Euna Agency Explorer access verification
 
-Status: superseded as the active implementation plan by [Bonfire/Euna Portal opportunity collection](bonfire-euna-portal-opportunity-collection.md). Original verification requests and historical context below are retained; use the Portal-first plan for new implementation.
+Status: superseded as the active implementation plan by [Bonfire/Euna Portal opportunity collection](../todo/bonfire-euna-portal-opportunity-collection.md). Original verification requests and historical context below are retained; use the Portal-first plan for new implementation.
 
 ## Original requests
 

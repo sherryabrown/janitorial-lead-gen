@@ -1,6 +1,6 @@
 # Bonfire/Euna Portal opportunity collection
 
-Planning observations: October 18-19, 2026, America/New_York. This is the active Bonfire implementation plan. It supersedes the earlier [Agency Explorer verification-only plan](bonfire-euna-agency-explorer-access-verification.md), whose original requests and evidence remain historical context. It is independent of the Admin production-release coordinator and general cleanup.
+Planning observations: October 18-19, 2026, America/New_York. This is the active Bonfire implementation plan. It supersedes the earlier [Agency Explorer verification-only plan](../archive/bonfire-euna-agency-explorer-access-verification.md), whose original requests and evidence remain historical context. It is independent of the Admin production-release coordinator and general cleanup.
 
 ## Active return plan — October 19, 2026
 

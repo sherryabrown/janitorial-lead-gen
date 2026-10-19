@@ -94,6 +94,8 @@ const run = {
 };
 const bodies = [];
 let savedSchedule = false;
+let failRunRead = true;
+let queueReads = 0;
 let samSchedule = null;
 const samRun={...run,id:'sam-run',state:'completed',next_action:'View automatically saved leads',target_kind:'sam',county_count:0,config:{target_kind:'sam',requested_categories:['opportunity'],publication_window:{from:'2026-09-20',to:'2026-10-19'}},children:[{request_id:'sam-request',county_id:null,role:'sam'}]};
 const server = spawn(
@@ -149,12 +151,12 @@ try {
     if (url.origin === origin) return route.continue();
     let body = [];
     if (url.hostname.endsWith('.supabase.co')) {
-      if (url.pathname.includes('procurement_queue_page'))
-        body = {
+      if (url.pathname.includes('procurement_queue_page')) {
+        queueReads++; body = {
           rows: [mapping.procurement_leads[1]],
           total: 1,
           counts: { new: 1 },
-        };
+        }; }
       else if (url.pathname.includes('/auth/v1/user')) body = user;
       else if (url.pathname.includes('/procurement_leads'))
         body = mapping.procurement_leads[1];
@@ -218,12 +220,18 @@ try {
       } else if (p === '/v1/schedules' && req.method() === 'POST') {
         if(input.config.target_kind==='sam'){samSchedule={...input,id:'sam-schedule',version:1,next_due_at:null};body=samSchedule;}
         else {savedSchedule = true;Object.assign(schedule, input);body = schedule;}
-      } else if (p === '/v1/schedules')
-        body = { items: [...(savedSchedule ? [schedule] : []),...(samSchedule?[samSchedule]:[])], next_offset: null };
+      } else if (p.endsWith('/occurrences') && url.searchParams.has('offset')) body={items:[{id:'linked',due_at:'2026-10-19T12:00:00Z',state:'queued',trigger_id:'run'}],next_offset:null};
+      else if (p.endsWith('/occurrences')) body={items:[{id:'blocked',due_at:'2026-10-19T12:00:00Z',state:'blocked',reason:'scope_changed',missed_from:'2026-10-18T12:00:00Z',missed_through:'2026-10-19T12:00:00Z'}],next_offset:1};
+      else if (p.endsWith('/events')) body={items:[{id:'event',action:'archive',version:2,at:'2026-10-19T12:00:00Z'}],next_offset:null};
+      else if (p === '/v1/schedules')
+        body = { items: [...(savedSchedule ? [schedule] : []),...(samSchedule?[samSchedule]:[]),{...schedule,id:'archived',name:'Archived checks',archived_at:'2026-10-19T12:00:00Z'}], next_offset: null };
       else if (p === '/v1/triggers' && req.method() === 'POST')
         body = { trigger_id: input.target_kind==='sam'?'sam-run':'run' };
       else if (p === '/v1/triggers') body = { items: [run], next_offset: null };
-      else if (p === '/v1/triggers/run') body = run;
+      else if (p === '/v1/triggers/run') {
+        if(failRunRead){failRunRead=false;await route.fulfill({status:503,contentType:'application/json',headers:{'access-control-allow-origin':origin},body:'{}'});return;}
+        body=run;
+      }
       else if(p==='/v1/triggers/sam-run')body=samRun;
       else if(p==='/v1/triggers/sam-run/steps')body={items:[],next_cursor:null};
       else if(p==='/v1/requests/sam-request')body={tasks:[],jobs:[{id:'sam-job',state:'succeeded',stage:'sam_review',next_action:'View automatically saved SAM results'}],candidates:[],total_candidates:0,next_offset:null};
@@ -325,6 +333,8 @@ try {
   await page.screenshot({ path: out + '/desktop.png', fullPage: true });
   await page.getByRole('button', { name: 'Confirm and run now' }).click();
   await page.getByRole('region', { name: 'Run details' }).waitFor();
+  await page.getByRole('region', { name: 'Run details' }).getByRole('alert').waitFor();
+  await page.getByRole('button', { name: 'Retry progress' }).click();
   await page.getByRole('region', { name: 'Saved results' }).waitFor();
   await page.getByRole('button',{name:'Check saved portal access'}).click();
   assert.equal(await page.getByRole('button',{name:'Resume saved sign-in'}).isDisabled(),true);
@@ -335,6 +345,12 @@ try {
   assert.equal(await page.getByRole('link',{name:'Natural Steps Park Management'}).getAttribute('href'),'https://littlerock.bonfirehub.com/opportunities/249097');
   await page.getByLabel('Saved project or document evidence').selectOption('0');
   await page.getByText(/PDF page 1: Official janitorial work scope/).waitFor();
+  await page.getByLabel('Exact project/document quotation').fill('Official janitorial work scope in Little Rock.');
+  run.state='partial';
+  await page.getByRole('button',{name:'Refresh progress',exact:true}).click();
+  await page.getByRole('heading',{name:'Partial',exact:true}).waitFor();
+  assert.equal(await page.getByLabel('Exact project/document quotation').inputValue(),'Official janitorial work scope in Little Rock.');
+
   for(const width of [1440,390,320]) {
     await page.setViewportSize({width,height:900});
     await page.getByRole('link',{name:'Open agency Portal'}).focus();
@@ -356,6 +372,24 @@ try {
   await page.getByText('Saved Morning checks — paused.').waitFor();
   assert.equal(savedSchedule, true);
   assert.equal(schedule.enabled, false);
+  await page.getByRole('button',{name:'History for Morning checks'}).click();
+  await page.getByText(/No run was created/).waitFor();
+  await page.getByRole('button',{name:'More occurrences'}).click();
+  await page.getByRole('button',{name:'View run',exact:true}).waitFor();
+  for(const width of [1440,390,320]){
+    await page.setViewportSize({width,height:900});
+    await page.getByRole('region',{name:'Schedule history'}).scrollIntoViewIfNeeded();
+    await page.screenshot({path:`${out}/schedule-history-${width}.png`,fullPage:true});
+    await page.getByRole('region',{name:'Schedule history'}).screenshot({path:`${out}/schedule-history-detail-${width}.png`});
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+  }
+  await page.getByRole('checkbox',{name:'Show archived schedules'}).check();
+  await page.getByRole('button',{name:'History for Archived checks'}).focus();
+  await page.keyboard.press('Enter');
+  await page.getByRole('region',{name:'Schedule history'}).waitFor();
+  assert.equal(await page.getByRole('button',{name:'Edit Archived checks'}).isDisabled(),true);
+  await page.getByRole('button',{name:'History for Archived checks'}).click();
+  await page.setViewportSize({width:1440,height:900});
   const sam=page.getByRole('region',{name:'SAM statewide checks'});
   await sam.getByRole('button',{name:'Run SAM now'}).focus();await page.keyboard.press('Tab');
   assert.equal(await sam.getByRole('button',{name:'Save SAM schedule'}).evaluate(el=>el===document.activeElement),true);
@@ -392,6 +426,10 @@ try {
     }));
     assert.equal(sizes.scroll <= sizes.width, true, JSON.stringify(sizes));
   }
+  const readsBeforeReturn=queueReads;
+  await page.getByRole('button',{name:'Back to contracts'}).click();
+  await page.getByRole('region',{name:'Research context'}).waitFor();
+  assert.ok(queueReads>readsBeforeReturn,'Returning to leads revalidates even without realtime');
   assert.equal(errors.length, 0, errors.join('\n'));
   assert.equal(bodies.filter((b) => b.path === '/v1/triggers').length, 2);
   assert.equal(bodies.filter(b=>b.path==='/v1/triggers'&&b.input.target_kind==='sam').length,1);
@@ -407,6 +445,11 @@ try {
         passed: true,
         widths: [1440, 390, 320],
         keyboard: true,
+        scheduleHistory: true,
+        archivedHistory: true,
+        reviewDraftRetained: true,
+        initialReadRetry: true,
+        queueRefreshWithoutRealtime: true,
         scopeConfirmation: true,
         manualTriggerCount: 1,
         multipleDailyTimes: true,

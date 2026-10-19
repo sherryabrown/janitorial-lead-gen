@@ -12,7 +12,7 @@
 
 **Saved source/access handoff → reconcile existing access → signup or resume → verify email/approval → verify usable portal/API → save reusable method → bounded capture → interpretation → persisted results → reviewed import.**
 
-Implement one shared access lifecycle. Agent/browser actions and human actions advance the same saved record; do not build a separate signup implementation for every agency. Future geography requests reuse the source, account reference and verified method, checking current access before collection. SAM stays on its separate manual Arkansas-wide path.
+Implement one shared access lifecycle. Agent/browser actions and human actions advance the same saved record; do not build a separate signup implementation for every agency. Future geography requests reuse the source, account reference and verified method, checking current access before collection. SAM stays independent: Arkansas-wide manual and scheduled runs now save validated results automatically. County tasks do not collect SAM.
 
 **In scope:** registered Arkansas sources and their existing researched handoffs; authorized routine free registration/API applications; independent email/approval/access checkpoints; private durable resume; minimal supported portal/API execution; existing result persistence/import; tests and bounded live proof. Public access remains preferred when it provides the needed data.
 

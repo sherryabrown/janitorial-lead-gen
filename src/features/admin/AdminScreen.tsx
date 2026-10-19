@@ -118,9 +118,14 @@ export default function AdminScreen({
     [registryState, setRegistryState] = useState<
       'loading' | 'ready' | 'error'
     >('loading'),
-    [revision, setRevision] = useState(0);
+    [revision, setRevision] = useState(0),
+    [connectionRevision, setConnectionRevision] = useState(0),
+    [paging, setPaging] = useState(false);
   const detailRef = useRef<HTMLDivElement>(null),
-    scopeRevision = useRef(0);
+    scopeRevision = useRef(0),
+    collectionGeneration = useRef(0),
+    pagingRef = useRef(false),
+    loaded = useRef({ schedules: 50, triggers: 50 });
   useEffect(() => {
     try {
       sessionStorage.setItem(
@@ -155,53 +160,44 @@ export default function AdminScreen({
   }, [editor, owner]);
   useEffect(() => {
     const a = new AbortController();
-    setError('');
     void Promise.allSettled([
-      workflowRequest<{ counties: County[] }>('/v1/counties', {
-        signal: a.signal,
-      }),
-      workflowRequest<{ items: StateSource[] }>('/v1/state-triggers', {
-        signal: a.signal,
-      }),
-      workflowRequest<Page<AnySchedule>>('/v1/schedules', {
-        signal: a.signal,
-      }),
-      workflowRequest<Page<Run>>('/v1/triggers', { signal: a.signal }),
-      workflowRequest<SchedulerStatus>('/v1/scheduler/status', {
-        signal: a.signal,
-      }),
-    ])
-      .then(([c, s, sch, r, st]) => {
-        if (a.signal.aborted) return;
-        if (c.status === 'fulfilled') {
-          setCounties(c.value.counties);
-          setRegistryState('ready');
-        } else setRegistryState('error');
-        if (s.status === 'fulfilled') setSources(s.value.items);
-        if (sch.status === 'fulfilled') {
-          setSchedules(sch.value.items);
-          setScheduleOffset(sch.value.next_offset);
-        }
-        if (r.status === 'fulfilled') {
-          setRuns(r.value.items);
-          setRunOffset(r.value.next_offset);
-        }
-        if (st.status === 'fulfilled') setStatus(st.value);
-        const failed = [c, s, sch, r, st].find(
-          (x) => x.status === 'rejected',
-        );
-        if (failed?.status === 'rejected')
-          setError(
-            failed.reason instanceof Error
-              ? failed.reason.message
-              : 'Some Admin data could not load. Retry the connection.',
-          );
-      })
-      .finally(() => {
-        if (!a.signal.aborted) setLoading(false);
-      });
+      workflowRequest<{ counties: County[] }>('/v1/counties', { signal: a.signal }),
+      workflowRequest<SchedulerStatus>('/v1/scheduler/status', { signal: a.signal }),
+    ]).then(([c, st]) => {
+      if (a.signal.aborted) return;
+      if (c.status === 'fulfilled') { setCounties(c.value.counties); setRegistryState('ready'); }
+      else { setRegistryState('error'); setError(c.reason.message); }
+      if (st.status === 'fulfilled') setStatus(st.value);
+      else setError(st.reason.message);
+    });
     return () => a.abort();
-  }, [revision]);
+  }, [connectionRevision]);
+  useEffect(() => {
+    const a = new AbortController();
+    const epoch = ++collectionGeneration.current;
+    pagingRef.current = true; setPaging(true);
+    const range = async <T,>(kind: 'schedules' | 'triggers'): Promise<Page<T>> => {
+      let offset: number | null = 0;
+      const items: T[] = [];
+      do {
+        const page: Page<T> = await workflowRequest(`/v1/${kind}${offset ? `?offset=${offset}` : ''}`, { signal: a.signal });
+        items.push(...page.items); offset = page.next_offset;
+      } while (offset !== null && offset < loaded.current[kind]);
+      return { items, next_offset: offset };
+    };
+    void Promise.allSettled([
+      workflowRequest<{ items: StateSource[] }>('/v1/state-triggers', { signal: a.signal }),
+      range<AnySchedule>('schedules'), range<Run>('triggers'),
+    ]).then(([s, sch, r]) => {
+      if (a.signal.aborted) return;
+      if (s.status === 'fulfilled') setSources(s.value.items);
+      if (sch.status === 'fulfilled') { setSchedules(sch.value.items); setScheduleOffset(sch.value.next_offset); }
+      if (r.status === 'fulfilled') { setRuns(r.value.items); setRunOffset(r.value.next_offset); }
+      const failed = [s, sch, r].find(x => x.status === 'rejected');
+      if (failed?.status === 'rejected') setError(failed.reason instanceof Error ? failed.reason.message : 'Some Admin data could not load. Retry the connection.');
+    }).finally(() => { if (!a.signal.aborted) { setLoading(false); setPaging(false); pagingRef.current = false; } });
+    return () => { a.abort(); collectionGeneration.current = epoch + 1; };
+  }, [revision, connectionRevision]);
   useEffect(() => {
     if (selected)
       detailRef.current?.scrollIntoView?.({
@@ -399,24 +395,25 @@ export default function AdminScreen({
     scopeRevision.current++;
   };
   const loadMore = async (kind: 'schedules' | 'triggers') => {
-    setError('');
+    if (pagingRef.current) return;
+    const offset = kind === 'schedules' ? scheduleOffset : runOffset;
+    if (offset === null) return;
+    const generation = collectionGeneration.current;
+    pagingRef.current = true; setPaging(true); setError('');
     try {
       if (kind === 'schedules') {
-        const p = await workflowRequest<Page<AnySchedule>>(
-          `/v1/schedules?offset=${scheduleOffset}`,
-        );
-        setSchedules((x) => merge(x, p.items));
-        setScheduleOffset(p.next_offset);
+        const p = await workflowRequest<Page<AnySchedule>>(`/v1/schedules?offset=${offset}`);
+        if (generation !== collectionGeneration.current) return;
+        loaded.current.schedules = offset + Math.max(p.items.length, 1);
+        setSchedules(x => merge(x, p.items)); setScheduleOffset(p.next_offset);
       } else {
-        const p = await workflowRequest<Page<Run>>(
-          `/v1/triggers?offset=${runOffset}`,
-        );
-        setRuns((x) => merge(x, p.items));
-        setRunOffset(p.next_offset);
+        const p = await workflowRequest<Page<Run>>(`/v1/triggers?offset=${offset}`);
+        if (generation !== collectionGeneration.current) return;
+        loaded.current.triggers = offset + Math.max(p.items.length, 1);
+        setRuns(x => merge(x, p.items)); setRunOffset(p.next_offset);
       }
-    } catch (e) {
-      setError((e as Error).message);
-    }
+    } catch (e) { if (generation === collectionGeneration.current) setError((e as Error).message); }
+    finally { if (generation === collectionGeneration.current) { pagingRef.current = false; setPaging(false); } }
   };
   const sourceScope =
     draft.config.target_kind === 'state_source'
@@ -448,7 +445,7 @@ export default function AdminScreen({
           <button
             type="button"
             className="text-button"
-            onClick={() => setRevision((x) => x + 1)}
+            onClick={() => { setError(''); setConnectionRevision(x => x + 1); }}
           >
             Retry Admin connection
           </button>
@@ -541,7 +538,9 @@ export default function AdminScreen({
         onView={setSelected}
       />
       <ScheduleList
+        onView={setSelected}
         items={schedules}
+        paging={paging}
         more={scheduleOffset !== null}
         onMore={() => void loadMore('schedules')}
         onEdit={(s) => void edit(s)}
@@ -552,6 +551,7 @@ export default function AdminScreen({
         items={runs}
         onView={(id) => setSelected((x) => (x === id ? null : id))}
         selected={selected}
+        paging={paging}
         more={runOffset !== null}
         onMore={() => void loadMore('triggers')}
       />

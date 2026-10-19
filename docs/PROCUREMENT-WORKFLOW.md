@@ -2,7 +2,7 @@
 
 For login/API setup and verified authenticated capture, use [SOURCE-ACCESS.md](SOURCE-ACCESS.md). Access tracking never imports a lead. Saved API/browser captures feed the existing interpretation, immutable intake and exact-package reviewed import below; current schema, tests, scoped authority and readback remain required.
 
-This is the current operating procedure. It supersedes batch-specific preparation/import instructions in historical reports. It does not promise flawless source data or uninterrupted APIs. It requires clear failures, protected user data, explicit approvals, and verifiable outcomes.
+This is the current operating procedure. **Policy scope:** manual decision/approval instructions below apply to non-SAM reviewed workflows and operator CLI batches. Admin SAM manual and scheduled runs use server-owned automatic validation and exact tested-package authority without human import approval. Both retain validation, duplicate protection and verified readback. It supersedes batch-specific preparation/import instructions in historical reports. It does not promise flawless source data or uninterrupted APIs. It requires clear failures, protected user data, explicit approvals, and verifiable outcomes.
 
 For hosted routes/configuration/current local behavior use [PROCUREMENT-BACKEND.md](PROCUREMENT-BACKEND.md). Operator commands retain their reviewed import boundaries. Historical fixed-batch tools are audit reproduction only.
 
@@ -172,11 +172,11 @@ All signed-in accounts may read shared procurement data and use the validated si
 
 Queue results use 50-row pages with server-side filters and full-data counts. Checkbox selection applies only to explicitly checked records across visited pages; changing filters clears it. Sorting has a record-ID tie breaker. Each RPC is snapshot-consistent, but separate pages are not one frozen snapshot: concurrent inserts or edits can move records between pages. Refresh reconciles current results; it is not a bulk export. Detail payloads load on selection.
 
-The Admin screen replaces the Generate frontend with the shared authenticated procurement workflow. Keep the legacy `spin_generate_contracts` function undeployed; its prompt, migrations and historical tables are retained for a separately coordinated retirement. No paid generation service is activated. See [Admin UI](ADMIN-UI.md).
+The Admin screen replaces the Generate frontend with the shared authenticated procurement workflow. The obsolete local `spin_generate_contracts` implementation and prompt were retired after the October 19 read-only inventory confirmed it was undeployed. Historical migrations and tables remain; no remote data or function was deleted. No paid generation service is activated. See [Admin UI](ADMIN-UI.md).
 
 ## SAM Admin entry point (October 19, 2026)
 
-Admin now has an independent statewide SAM entry point using the existing SAM collector and shared worker/scheduler. It creates no county coverage tasks and performs no automatic import. Existing direct SAM clients remain supported. See [Admin controls](ADMIN-UI.md#sam-admin-extension--october-19-2026) and [SAM target contract](ADMIN-TRIGGERS.md#sam-target-extension--october-19-2026) for windows, schedules and audited reconciliation. The matching Supabase/Render release and live acceptance are recorded in [SAM deployment evidence](ADMIN-SAM-DEPLOYMENT.md); Netlify production remains unchanged.
+Admin now has an independent statewide SAM entry point using the existing SAM collector and shared worker/scheduler. It creates no county coverage tasks and automatically imports validated results for manual and scheduled runs. Existing direct SAM clients remain supported. See [Admin controls](ADMIN-UI.md#sam-admin-extension--october-19-2026) and [SAM target contract](ADMIN-TRIGGERS.md#sam-target-extension--october-19-2026) for windows, schedules and audited reconciliation. The matching Supabase/Render release and live acceptance are recorded in [SAM deployment evidence](ADMIN-SAM-DEPLOYMENT.md); Netlify production remains unchanged.
 
 ## SAM automatic canonical persistence
 

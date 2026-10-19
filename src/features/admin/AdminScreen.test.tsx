@@ -602,3 +602,42 @@ it('separates source-scope restrictions from registry availability and restores 
   ).toHaveProperty('disabled', false);
   expect(screen.queryByText(/Some county IDs are unavailable/)).toBeNull();
 });
+
+
+it('preserves loaded schedule pages after a control refresh without refetching the county registry', async () => {
+  const original = mocks.request.getMockImplementation()!;
+  const firstPage = Array.from({ length: 50 }, (_, i) => ({ ...schedule, id: `s${i}`, name: `Saved ${i}` }));
+  mocks.request.mockImplementation(async (p, o) => {
+    if (p === '/v1/schedules') return { items: firstPage, next_offset: 50 };
+    if (p === '/v1/schedules?offset=50') return { items: [{ ...schedule, id: 'last', name: 'Later page' }], next_offset: null };
+    if (p.endsWith('/pause')) return {};
+    return original(p, o);
+  });
+  await start();
+  fireEvent.click(screen.getByRole('button', { name: 'More schedules' }));
+  await screen.findByText('Later page');
+  fireEvent.click(screen.getAllByRole('button', { name: /^Pause$/ })[0]);
+  await waitFor(() => expect(mocks.request.mock.calls.filter(([p]) => p === '/v1/schedules?offset=50')).toHaveLength(2));
+  expect(screen.getByText('Later page')).toBeTruthy();
+  expect(mocks.request.mock.calls.filter(([p]) => p === '/v1/counties')).toHaveLength(1);
+});
+
+it('ignores late paging results after a schedule refresh', async () => {
+  const original = mocks.request.getMockImplementation()!;
+  let resolvePage!: (value: unknown) => void;
+  let refreshed = false;
+  mocks.request.mockImplementation((p, o) => {
+    if (p.endsWith('/pause')) return Promise.resolve({});
+    if (p === '/v1/schedules') return Promise.resolve({ items: [schedule], next_offset: refreshed ? null : 50 });
+    if (p === '/v1/schedules?offset=50') return new Promise(resolve => { resolvePage = resolve; });
+    return original(p, o);
+  });
+  await start();
+  fireEvent.click(screen.getByRole('button', { name: 'More schedules' }));
+  expect(screen.getByRole('button', { name: 'More schedules' })).toHaveProperty('disabled', true);
+  refreshed = true;
+  fireEvent.click(screen.getByRole('button', { name: /^Pause$/ }));
+  await waitFor(() => expect(screen.queryByRole('button', { name: 'More schedules' })).toBeNull());
+  resolvePage({ items: [{ ...schedule, id: 'stale', name: 'Stale schedule' }], next_offset: 100 });
+  await waitFor(() => expect(screen.queryByText('Stale schedule')).toBeNull());
+});

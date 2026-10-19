@@ -966,7 +966,7 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
         >
           {workMode === 'contracts' ? (
             contractView === 'admin' ? (
-              <Suspense fallback={<p role="status">Loading Admin…</p>}><AdminScreen owner={session.user.id} onViewLeads={() => setContractView(contractFilters.status)} /></Suspense>
+              <Suspense fallback={<p role="status">Loading Admin…</p>}><AdminScreen owner={session.user.id} onViewLeads={() => { setContractView(contractFilters.status); void refreshContracts(); }} /></Suspense>
             ) : (
               <>
               <ContractFiltersBar

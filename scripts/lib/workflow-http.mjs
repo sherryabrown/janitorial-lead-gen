@@ -10,7 +10,7 @@ async function body(request) {
   }
   try {return JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{throw new HttpError(400,'Invalid JSON');}
 }
-export function workflowServer({authenticate,workflow,imports,discovery,sam,samPacket,samReconcile,samHistory,samProcess,browser,attention,triggers,schedules,schedulerKey,aiPolicy,audit,db,kick=()=>{},allowedOrigins=[]}) {
+export function workflowServer({authenticate,workflow,imports,discovery,sam,samPacket,samStatus,samReconcile,samHistory,samProcess,browser,attention,triggers,schedules,schedulerKey,aiPolicy,audit,db,kick=()=>{},allowedOrigins=[]}) {
   return createServer(async(request,response)=>{
     response.setHeader('Content-Type','application/json');response.setHeader('Cache-Control','no-store');
     response.setHeader('X-Content-Type-Options','nosniff');
@@ -142,6 +142,9 @@ export function workflowServer({authenticate,workflow,imports,discovery,sam,samP
         if(!Number.isInteger(offset)||offset<0||!Number.isInteger(limit)||limit<1||limit>100)throw new HttpError(400,'Invalid SAM history pagination');
         if(!samHistory)throw new HttpError(503,'SAM history not configured');
         result=await samHistory({offset,limit});
+      } else if(request.method==='GET'&&segments.length===5&&segments[1]==='sam'&&segments[2]==='requests'&&uuid.test(segments[3])&&segments[4]==='status') {
+        if(!samStatus)throw new HttpError(503,'SAM status not configured');
+        result=await samStatus(segments[3]);
       } else if(request.method==='GET'&&segments.length===5&&segments[1]==='sam'&&segments[2]==='requests'&&uuid.test(segments[3])&&segments[4]==='packet') {
         result=await samPacket(segments[3]);
       } else if(request.method==='POST'&&segments.length===5&&segments[1]==='sam'&&segments[2]==='requests'&&uuid.test(segments[3])&&segments[4]==='reconcile') {
