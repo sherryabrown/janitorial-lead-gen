@@ -80,13 +80,14 @@ export async function verifyEvidenceSpans(packet,result,{loadSupporting}={}) {
 export const extractionKey=(packet,spec)=>hash({source:packet.source_id,method:packet.method_id,
   method_version:packet.method_version,spec,parser:'hosted-facts-v1',
   policy:spec.response_format==='bonfire-projects-v1'?'bonfire-detail-required-v1':'routine-janitorial-v1',
-  pages:packet.pages.map(p=>({url:p.url,hash:p.content_sha256}))});
+  pages:packet.pages.map(p=>({url:p.url,hash:p.content_sha256,...(p.interpretation_spec?{interpretation_spec:p.interpretation_spec}:{})}))});
 
 export async function extractFacts(packet,spec) {
   const facts=[];
   for(const [pageIndex,page] of packet.pages.entries()) {
     let records;
-    if(spec.response_format==='county-listing-v1')records=inspectAutomaticListing(page.body,spec).records;
+    if(page.interpretation_spec)records=inspectAutomaticListing(page.body,page.interpretation_spec).records;
+    else if(spec.response_format==='county-listing-v1')records=inspectAutomaticListing(page.body,spec).records;
     else if(spec.response_format==='bonfire-projects-v1')records=inspectPublicBonfireProjects(page.body,spec).records;
     else if(spec.response_format==='bonfire-contracts-v1')records=inspectPublicBonfireContracts(page.body,spec).records;
     else if(spec.response_format==='html-table-v1')records=inspectPublicHtmlTable(page.body,spec).records;
@@ -123,6 +124,13 @@ export function evaluateFacts(packet,extraction) {
       continue;
     }
     const record=fact.record;
+    if(packet.automatic_county && record?.deadline && packet.query_window?.date_basis==='deadline') {
+      const date=String(record.deadline),window=packet.query_window;
+      if(/^\d{4}-\d{2}-\d{2}$/.test(date)&&Number.isFinite(Date.parse(date))&&new Date(date).toISOString().slice(0,10)===date&&(date<window.from||date>window.to)) {
+        result.exclusions.push({reason:'Official listing deadline is outside the requested window',evidence:[{run_id:page.run_id,locator:fact.locator,excerpt:fact.excerpt.slice(0,2000)}]});
+        continue;
+      }
+    }
     if(record && janitorial.test(fact.title) && (record.id||record.record_id) &&
         (record.source_url||record.url) && (record.work_city||record.work_county||record.work_performance_locations)) {
       const rawEvidence=[{run_id:page.run_id,locator:fact.locator,excerpt:fact.excerpt.slice(0,2000)}];

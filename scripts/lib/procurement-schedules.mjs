@@ -62,6 +62,7 @@ export function procurementSchedules({db,triggers,now=()=>new Date()}) {
       p_next:next,p_now:now().toISOString()});return get(id);
   }
   async function enqueue(saved,{origin,actor,key,due,effective,next=null}) {
+    if(saved.config.target_kind==='county_scope')await rpc('reconcile_procurement_county_reads',{p_schedule:saved.id});
     let config=saved.config,blocker=null;
     try {
       const preview=await triggers.preview(saved.config.target_kind==='sam'?{...saved.config,

@@ -1,6 +1,8 @@
 import { createHash } from 'node:crypto';
 import { JSDOM } from 'jsdom';
 import { safePublicUrl } from './known-source-execution.mjs';
+import {lookup} from 'node:dns/promises';
+import {isIP} from 'node:net';
 
 const acceptable = /^(text\/(html|plain|xml)|application\/(pdf|xml|xhtml\+xml))(;|$)/i;
 
@@ -28,11 +30,27 @@ export function semanticPublicHash(sourceCode, body) {
   if (!values.length) return createHash('sha256').update(body).digest('hex');
   return createHash('sha256').update(JSON.stringify(values)).digest('hex');
 }
-export async function fetchPublicCheck(contract, requestedUrl, fetcher = fetch) {
+export async function researchDestination(value,resolveHost=lookup) {
+  try {
+    const url=new URL(value),host=url.hostname;
+    if(!safePublicUrl(value,[host])||isIP(host.replace(/^\[|\]$/g,''))||!host.includes('.')||/(?:^|\.)(localhost|local|internal|lan|home)$/i.test(host))return false;
+    const addresses=await resolveHost(host,{all:true,verbatim:true});
+    return addresses.length>0&&addresses.every(({address})=>{
+      if(isIP(address)===6)return /^[23][0-9a-f]{3}:/i.test(address);
+      if(isIP(address)!==4)return false;
+      const [a,b]=address.split('.').map(Number);
+      return !(a===0||a===10||a===127||a===169&&b===254||a===172&&b>=16&&b<=31||a===192&&[0,168].includes(b)||a===100&&b>=64&&b<=127||a>=224||a===198&&[18,19].includes(b));
+    });
+  }catch{return false;}
+}
+export async function fetchPublicCheck(contract, requestedUrl, fetcher = fetch,{resolveHost=lookup,researchEntry}={}) {
   if (contract.runner_id !== 'public-fetch' || !safePublicUrl(requestedUrl, contract.allowed_hosts))
     throw new Error('Unreviewed public check URL');
   let url = requestedUrl;
   const redirects = [];
+  const research=researchEntry&&safePublicUrl(researchEntry,[new URL(researchEntry).hostname]);
+  if(research&&new URL(url).hostname.replace(/^www\./,'')!==new URL(researchEntry).hostname.replace(/^www\./,'')&&
+      !await researchDestination(url,resolveHost))return {state:'blocked',reason:'Public research destination could not be validated',requested_url:requestedUrl,final_url:url,redirects};
   for (let hop = 0; hop <= 2; hop++) {
     let response;
     try {
@@ -49,7 +67,7 @@ export async function fetchPublicCheck(contract, requestedUrl, fetcher = fetch) 
       if (!location || hop === 2) return { state: 'partial', reason: 'Redirect limit or missing location',
         requested_url: requestedUrl, final_url: url, redirects, upstream_status: response.status };
       const next = new URL(location, url).toString();
-      if (!safePublicUrl(next, contract.allowed_hosts))
+      if (!safePublicUrl(next, contract.allowed_hosts)&&!(research&&await researchDestination(next,resolveHost)))
         return { state: 'blocked', reason: 'Redirect leaves reviewed public hosts',
           requested_url: requestedUrl, final_url: url, redirects, upstream_status: response.status };
       redirects.push(next); url = next; continue;

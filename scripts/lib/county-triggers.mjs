@@ -132,6 +132,7 @@ export function countyTriggers({db,discovery,workflow,audit}) {
     return {items:page.map(s=>({...s,usage:usageSummary(usage.filter(u=>u.step_id===s.id))})),next_cursor:values.length>limit?String(page.at(-1).sequence):null};
   }
   async function control(id,action,actor) {
+    if(action==='resume')await rpc('reconcile_procurement_county_reads',{p_trigger:id});
     const child=(await rows(db,'procurement_trigger_requests',q=>q.eq('trigger_id',id)))[0];
     const operation=()=>rpc('control_procurement_trigger',{p_id:id,p_actor:actor,p_action:action});
     return child?audit.run(child.request_id,action,operation,{actor_id:actor,reason:'manual'}):operation();

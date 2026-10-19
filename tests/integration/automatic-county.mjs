@@ -7,6 +7,7 @@ import {postgresTransport} from '../../scripts/lib/hosted-import.mjs';
 import {nativeRehearsal} from '../../scripts/lib/native-sql-rehearsal.mjs';
 import {checked} from '../../scripts/lib/hosted-store.mjs';
 import {procurementSchedules} from '../../scripts/lib/procurement-schedules.mjs';
+import {randomUUID} from 'node:crypto';
 
 export async function verifyAutomaticCounty({db,artifacts,audit,livePool,rehearsalPool,actor,config}) {
   const project='zreplhkoxswtzxlchtjf',errors=[],calls=[];
@@ -50,10 +51,19 @@ export async function verifyAutomaticCounty({db,artifacts,audit,livePool,rehears
   const directoryReads=calls.filter(url=>url.includes('arcounties.org')).length;
   await livePool.query("insert into procurement_geographies(id,kind,name,dataset_url,dataset_version,dataset_hash) values('05003','county','Ashley County','fixture','1','shared-route')");
   await livePool.query("update procurement_source_capabilities set route_geography_id='05003',verification_evidence=verification_evidence || '{\"route_geography_ids\":[\"05001\",\"05003\"]}'::jsonb where id=$1",[capabilities[0].id]);
+  const sharedCity='ARM'+ 'c'.repeat(32);
+  await livePool.query("insert into procurement_geographies(id,kind,name,incorporated,dataset_url,dataset_version,dataset_hash) values($1,'municipality','Fixture City',true,'https://gis.arkansas.gov/arcgis/rest/services/FEATURESERVICES/Boundaries/FeatureServer/41','fixture','shared-city')",[sharedCity]);
+  await livePool.query("insert into procurement_place_counties(place_id,county_id) values($1,'05001')",[sharedCity]);
+  await livePool.query("update procurement_source_capabilities set verification_evidence=verification_evidence || jsonb_build_object('route_geography_ids',jsonb_build_array('05001','05003',$1::text)) where id=$2",[sharedCity,capabilities[0].id]);
   // A later request must reverify an expired registered method without requiring
   // an already-existing request/source association or another directory lookup.
   await livePool.query("update procurement_source_capabilities set verified_at='2026-09-01T00:00:00Z',verified_until='2026-10-01T00:00:00Z' where id=$1",[capabilities[0].id]);
-  const schedules=procurementSchedules({db,triggers,now:()=>new Date('2026-10-13T14:00:00Z')});
+  const offline={...checked(await db.from('procurement_sources').select('*').eq('id',sources[0].id).single()),
+    id:randomUUID(),identity_key:randomUUID(),config:{},code:'automatic-offline',name:'Offline county website',url:'https://offline.example/'};
+  checked(await db.from('procurement_sources').insert(offline));
+  const rootReads=calls.filter(url=>url==='https://county.example/').length;
+  let scheduleAt='2026-10-13T14:00:00Z';
+  const schedules=procurementSchedules({db,triggers,now:()=>new Date(scheduleAt)});
   const input={name:'Automatic county isolated',enabled:true,config:{...config,county_ids:['05001']},
     recurrence:{timezone:'America/Chicago',frequency:'daily',local_times:['09:00']},window_policy:{opportunity:{from_offset_days:0,to_offset_days:365,date_basis:'deadline'}}};
   const scheduledPreview=await schedules.preview(input);
@@ -66,7 +76,9 @@ export async function verifyAutomaticCounty({db,artifacts,audit,livePool,rehears
   const scheduledChildren=checked(await db.from('procurement_trigger_requests').select('*').eq('trigger_id',occurrences.items[0].trigger_id));
   const scheduledStatus=await workflow.status(scheduledChildren.find(c=>c.role==='county').request_id);
   assert.equal(scheduledStatus.total_candidates,1);
-  assert.equal(scheduledStatus.tasks.filter(task=>task.state==='method_missing').length,0,'Shared-route method gaps reconcile after activation');
+  assert.equal(calls.filter(url=>url==='https://county.example/').length-rootReads,1,'City/county discovery and collection share one actual page acquisition');
+  assert.ok((await livePool.query("select count(*)::integer as n from procurement_runs r join procurement_jobs j on j.id=r.job_id where j.search_request_id=$1 and r.detail ? 'reused_run_id'",[scheduledChildren.find(c=>c.role==='county').request_id])).rows[0].n>0,'Per-route runs retain capture reuse provenance');
+  assert.equal(scheduledStatus.tasks.filter(task=>task.source_id===sources[0].id&&task.state==='method_missing').length,0,'Shared-route method gaps reconcile after activation');
   assert.equal(scheduledStatus.tasks.some(task=>task.state==='superseded'),false,'Resolved historic gaps are omitted from current county results');
   assert.equal(checked(await db.from('procurement_source_capabilities').select('route_geography_id').eq('id',capabilities[0].id).single()).route_geography_id,'05003','Native shared-route registration retains original method identity');
   const guardClient=await livePool.connect();
@@ -83,6 +95,29 @@ export async function verifyAutomaticCounty({db,artifacts,audit,livePool,rehears
   assert.equal(calls.filter(url=>url.includes('arcounties.org')).length,directoryReads,'Verified method reused on scheduled run');
   assert.equal(checked(await db.from('procurement_sources').select('id').eq('url','https://county.example/')).length,1);
   assert.equal(checked(await db.from('procurement_leads').select('id').eq('source_id',sources[0].id)).length,0);
+  const scheduledRequest=scheduledChildren.find(c=>c.role==='county').request_id;
+  const failed=(await livePool.query("select j.id,j.task_id from procurement_jobs j join procurement_coverage_tasks t on t.id=j.task_id where j.search_request_id=$1 and t.source_id=$2 and t.kind='source_entry'",[scheduledRequest,offline.id])).rows[0];
+  assert.ok(failed,'Offline entry is checked independently');
+  assert.equal((await livePool.query('select state from procurement_jobs where id=$1',[failed.id])).rows[0].state,'partial','Read-only failure cannot hold future schedules');
+  // Reproduce an older deployment's documented failed GET for native recovery.
+  await livePool.query("update procurement_jobs set state='outcome_unknown' where id=$1",[failed.id]);
+  await livePool.query("update procurement_runs set detail=detail || '{\"state\":\"request_pending\"}'::jsonb where job_id=$1",[failed.id]);
+  await livePool.query("update procurement_triggers set state='outcome_unknown' where id=$1",[occurrences.items[0].trigger_id]);
+  const protectedClient=await livePool.connect();
+  try {
+    await protectedClient.query('begin');
+    await protectedClient.query("insert into procurement_jobs(search_request_id,kind,state,dedupe_key,checkpoint) values($1,'process','outcome_unknown','fixture-uncertain-effect','{\"stage\":\"import_reconcile\"}')",[scheduledRequest]);
+    await protectedClient.query('select reconcile_procurement_county_reads($1,null)',[schedule.id]);
+    assert.equal((await protectedClient.query('select state from procurement_triggers where id=$1',[occurrences.items[0].trigger_id])).rows[0].state,'outcome_unknown','True unknown effects keep the overlap guard');
+  } finally {await protectedClient.query('rollback');protectedClient.release();}
+  scheduleAt='2026-10-14T14:00:00Z';await schedules.tick();await schedules.tick();
+  for(let n=0;n<100;n++)if(!await workflow.step()&&!await triggers.step())break;
+  if(errors.length)throw errors[0];
+  const repeated=await schedules.occurrences(schedule.id);
+  assert.equal(repeated.items.length,2);assert.ok(repeated.items.every(o=>o.trigger_id&&o.state==='queued'),'Second occurrence runs after safe failed-read reconciliation');
+  assert.equal((await livePool.query('select state from procurement_jobs where id=$1',[failed.id])).rows[0].state,'partial');
+  assert.equal(checked(await db.rpc('reconcile_procurement_county_reads',{p_schedule:schedule.id})),0,'Reconciliation replays without new work');
+  assert.equal((await livePool.query("select has_function_privilege('authenticated','reconcile_procurement_county_reads(uuid,uuid)','EXECUTE') as allowed")).rows[0].allowed,false);
   await schedules.control(schedule.id,'archive',{expected_version:schedule.version},actor);
   return {source_count:sources.length,candidates:status.total_candidates,scheduled_candidates:scheduledStatus.total_candidates,canonical_writes:0};
 }

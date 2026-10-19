@@ -7,6 +7,7 @@ import {safePublicUrl,adapterContract,separateSamSource} from './known-source-ex
 import {validateHandoff,discoveryView} from './public-source-discovery.mjs';
 import {fetchPublicCheck} from './public-source-check.mjs';
 import {automaticCountyPolicy,proposeAutomaticListing} from './automatic-public-method.mjs';
+import {requestPublicCapture} from './public-capture-reuse.mjs';
 const relevant=/procure|bid|solicitat|contract|forecast|award|purchas|janitorial|custodial|cleaning|developer|\bapi\b|vendor|register/i;
 const key=(request,task)=>`api-workflow:discovery:${request}:${task}`;
 const freshCapture=capture=>Number.isFinite(Date.parse(capture.retrieved_at))&&Date.now()-Date.parse(capture.retrieved_at)<=30*86400000;
@@ -50,7 +51,7 @@ export function validateDiscoveryReview(packet,input,task) {
   return {sourceSpec,capability:saved,handoffs:input.handoffs};
 }
 // One page per durable worker stage. No paid search, browser, signup or lead coverage.
-export function publicDiscovery({db,artifacts,persist,reconcileHandoffs,resolveSeed,collect,continueCollection,fetcher=fetch}) {
+export function publicDiscovery({db,artifacts,persist,reconcileHandoffs,resolveSeed,collect,continueCollection,fetcher=fetch,resolveHost}) {
   async function scope(requestId,taskId) {
     const request=await one(db,'procurement_search_requests',requestId),task=await one(db,'procurement_coverage_tasks',taskId);
     const target=task&&await one(db,'procurement_request_targets',task.target_id);
@@ -111,6 +112,12 @@ export function publicDiscovery({db,artifacts,persist,reconcileHandoffs,resolveS
     await save(c.stage==='discovery_verify'?'pending':'blocked');
   }
   async function step(job,c,save) {
+    if(c.automation_policy===automaticCountyPolicy&&['discovery_resolve','discovery_capture','discovery_verify'].includes(c.stage)) {
+      const {task}=await scope(job.search_request_id,c.task_id);
+      if(['superseded','reviewed_no_results','reviewed_with_results'].includes(task.state)) {
+        c.stage='discovery_satisfied';c.next_action='Source coverage was resolved by the existing verified method';await save('succeeded');return;
+      }
+    }
     if(c.stage==='discovery_resolve') {
       let result;
       if(c.seed_intent) {
@@ -198,7 +205,9 @@ export function publicDiscovery({db,artifacts,persist,reconcileHandoffs,resolveS
       run=checked(await db.from('procurement_runs').insert({source_id:source.id,job_id:job.id,coverage_task_id:c.task_id,page_index:pageIndex,
         page_attempt:1,started_at:new Date().toISOString(),status:'partial',record_count:0,
         detail:{collector:'official-link-discovery',scope:'research_only',state:'request_pending',requested_url:url}}).select('*').single());
-      const capture=await auditPhase('research_fetch',()=>fetchPublicCheck({runner_id:'public-fetch',allowed_hosts:allowedHosts,max_bytes:2000000},url,fetcher),{source_id:source.id,task_id:c.task_id});
+      const reusable=c.automation_policy===automaticCountyPolicy?await requestPublicCapture(db,{requestId:job.search_request_id,sourceId:source.id,url,maxBytes:2000000,allowedHosts,research:true}):null;
+      const capture=await auditPhase(reusable?'compare':'research_fetch',()=>reusable??fetchPublicCheck({runner_id:'public-fetch',allowed_hosts:allowedHosts,max_bytes:2000000},url,fetcher,
+        {resolveHost,researchEntry:c.automation_policy===automaticCountyPolicy?source.url:undefined}),{source_id:source.id,task_id:c.task_id,reason:reusable?'request_capture_reuse':'deterministic'});
       if(capture.state!=='captured') {
         checked(await db.from('procurement_runs').update({status:'blocked',finished_at:new Date().toISOString(),detail:{collector:'official-link-discovery',
           scope:'research_only',state:capture.state,reason:capture.reason,requested_url:url}}).eq('id',run.id));
@@ -206,15 +215,17 @@ export function publicDiscovery({db,artifacts,persist,reconcileHandoffs,resolveS
       }
       await artifacts.put(capture.body);
       checked(await db.from('procurement_public_captures').insert({run_id:run.id,source_id:source.id,requested_url:url,final_url:capture.final_url,
-        content_type:capture.content_type,content_sha256:capture.content_sha256,content_base64:capture.body.toString('base64')}));
+        content_type:capture.content_type,content_sha256:capture.content_sha256,content_base64:capture.body.toString('base64'),...(capture.reused_run_id?{retrieved_at:capture.retrieved_at}:{})}));
       checked(await db.from('procurement_runs').update({status:'review_required',finished_at:new Date().toISOString(),detail:{collector:'official-link-discovery',scope:'research_only',
-        state:'content_saved',requested_url:url,final_url:capture.final_url,content_sha256:capture.content_sha256,upstream_status:200}}).eq('id',run.id));
+        state:'content_saved',requested_url:url,final_url:capture.final_url,content_sha256:capture.content_sha256,upstream_status:200,
+        redirects:capture.redirects,...(capture.reused_run_id?{reused_run_id:capture.reused_run_id}:{})}}).eq('id',run.id));
     }
     const capture=checked(await db.from('procurement_public_captures').select('*').eq('run_id',run.id).single());
+    if(c.automation_policy===automaticCountyPolicy)c.observed_hosts=[...new Set([...(c.observed_hosts??[]),new URL(capture.final_url).hostname])];
     const links=/html/i.test(capture.content_type)?officialLinks(Buffer.from(capture.content_base64,'base64'),capture.final_url):[];
     c.visited.push(url);c.queue.shift();c.run_ids.push(run.id);
     c.links=[...new Map([...c.links,...links.map(l=>({...l,from_run_id:run.id}))].map(l=>[l.url,l])).values()].slice(0,100);
-    for(const l of links)if(new URL(l.url).hostname.replace(/^www\./,'')===host.replace(/^www\./,'')&&!/signup|register|login|sign.?in|logout|payment|subscribe|submit|delete|create.account/i.test(l.url)&&
+    for(const l of links)if((c.automation_policy===automaticCountyPolicy||new URL(l.url).hostname.replace(/^www\./,'')===host.replace(/^www\./,''))&&!/signup|register|login|sign.?in|logout|payment|subscribe|submit|delete|create.account/i.test(l.url)&&
       !c.visited.includes(l.url)&&!c.queue.includes(l.url)&&c.queue.length+c.visited.length<10){
       c.observed_hosts=[...new Set([...(c.observed_hosts??[]),new URL(l.url).hostname])];c.queue.push(l.url);
     }

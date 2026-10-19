@@ -6,10 +6,36 @@ import { readFileSync } from 'node:fs';
 import { makeInterpretationPacket, validateInterpretation, manualSpecFromInterpretation, samStageScope } from '../scripts/lib/known-source-workflow.mjs';
 import { planManual } from '../scripts/lib/research-persistence.mjs';
 import { planReviewedBatch, hash } from '../scripts/lib/reviewed-batch.mjs';
+import {extractFacts,evaluateFacts,verifyEvidenceSpans} from '../scripts/lib/hosted-interpretation.mjs';
 
 const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 const bytes=Buffer.from('<html><title>Bid list</title><main><table><thead><tr><th>Bid #</th><th>Description</th></tr></thead><tbody><tr><td>24-17</td><td>Janitorial services</td></tr></tbody></table></main></html>');
 const sha=b=>createHash('sha256').update(b).digest('hex');
+
+test('automatic county reuses the structured verifier for captured generic methods without changing standalone packets',async()=>{
+  const body=Buffer.from('<main><h1>Bids</h1><p>All current and active bid opportunities are listed below.</p><table id="rpfbids"><thead><tr><th>Description</th><th>Opening Date/Time</th><th>Closing Date/Time</th></tr></thead><tbody><tr data-exp="20250930"><td><a href="/bid_detail_T4_R1.php">Janitorial services</a></td><td>September 1, 2025</td><td>September 30, 2025</td></tr></tbody></table></main>');
+  const ctx=context(body);ctx.capability.method_spec={version:1,runner_id:'public-fetch'};
+  ctx.task.query_window={from:'2026-10-01',to:'2027-10-01',date_basis:'deadline'};
+  const standalone=makeInterpretationPacket(ctx);assert.equal(standalone.pages[0].interpretation_spec,undefined);
+  ctx.request.workflow_control={admin_policy:'county_scope'};
+  const packet=makeInterpretationPacket(ctx);assert.notEqual(packet.packet_hash,standalone.packet_hash);
+  assert.equal(packet.pages[0].interpretation_spec.response_format,'county-listing-v1');
+  assert.equal(ctx.capability.method_spec.response_format,undefined,'Registered method remains unchanged');
+  const result=evaluateFacts(packet,await extractFacts(packet,ctx.capability.method_spec));
+  assert.equal(result.coverage,'complete');assert.equal(result.findings.length,0);assert.equal(result.exclusions.length,1);
+  validateInterpretation(packet,result);await verifyEvidenceSpans(packet,result);
+});
+
+test('actual captured Saline listing reviews all 21 records without AI or inferred work sites',async()=>{
+  const metadata=JSON.parse(readFileSync('tests/fixtures/county/saline-public-bids.json'));
+  const ctx=context(readFileSync('tests/fixtures/county/saline-public-bids.html'));
+  ctx.captures[0].requested_url=metadata.url;ctx.captures[0].final_url=metadata.url;
+  ctx.request.workflow_control={admin_policy:'county_scope'};ctx.capability.method_spec={version:1,runner_id:'public-fetch'};
+  ctx.task.query_window={from:'2026-10-19',to:'2027-10-19',date_basis:'deadline'};
+  const packet=makeInterpretationPacket(ctx),facts=await extractFacts(packet,ctx.capability.method_spec),result=evaluateFacts(packet,facts);
+  assert.equal(facts.facts.length,21);assert.equal(result.exclusions.length,21);assert.equal(result.findings.length,0);
+  assert.equal(result.coverage,'complete');validateInterpretation(packet,result);await verifyEvidenceSpans(packet,result);
+});
 
 test('Bonfire packet exposes every current project only from hash-verified listing evidence',()=>{
   const body=Buffer.from(JSON.stringify({success:1,payload:{projects:{

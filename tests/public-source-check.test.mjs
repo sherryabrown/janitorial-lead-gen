@@ -1,9 +1,26 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { adapterContract, buildKnownSourcePlan, registeredEntryContract, safePublicUrl } from '../scripts/lib/known-source-execution.mjs';
-import { fetchPublicCheck, semanticPublicHash } from '../scripts/lib/public-source-check.mjs';
+import { fetchPublicCheck, semanticPublicHash,researchDestination } from '../scripts/lib/public-source-check.mjs';
 
 const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
+
+test('county public research follows recorded public redirects but rejects private, credentialed and local destinations',async()=>{
+  const url='https://official.example/',contract={runner_id:'public-fetch',allowed_hosts:['official.example'],max_bytes:2000};
+  const publicDns=async()=>[{address:'8.8.8.8',family:4}],calls=[];
+  const fetcher=async target=>{calls.push(target);return target===url?new Response(null,{status:302,headers:{location:'https://canonical.example/bids'}}):new Response('<main>Official bids</main>',{headers:{'content-type':'text/html'}});};
+  const result=await fetchPublicCheck(contract,url,fetcher,{researchEntry:url,resolveHost:publicDns});
+  assert.equal(result.state,'captured');assert.deepEqual(result.redirects,['https://canonical.example/bids']);assert.equal(calls.length,2);
+  for(const address of ['127.0.0.1','10.0.0.1','169.254.169.254','172.16.0.1','192.168.1.1','::1','fc00::1','::ffff:127.0.0.1']) {
+    assert.equal(await researchDestination('https://canonical.example/',async()=>[{address}]),false);
+  }
+  for(const target of ['https://localhost/','https://127.0.0.1/','https://[::1]/','http://canonical.example/','https://canonical.example/?token=secret'])
+    assert.equal(await researchDestination(target,publicDns),false);
+  calls.length=0;
+  assert.equal((await fetchPublicCheck(contract,url,fetcher,{researchEntry:url,resolveHost:async()=>[{address:'10.0.0.1'}]})).state,'blocked');
+  assert.equal(calls.length,1,'Private target is never fetched');
+  assert.equal((await fetchPublicCheck({...contract,research_entry_url:url},url,fetcher)).state,'blocked','Stored method fields cannot grant redirect authority');
+});
 const source={id:id(1),code:'tasd-public-board',name:'TASD board',
   url:'https://www.tasd7.net/page/school-board-resources/',
   source_coverage_areas:[{area_type:'city',city_name:'Texarkana',state_code:'AR'}]};

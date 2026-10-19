@@ -1,5 +1,9 @@
 import { manualSpecFromInterpretation } from './known-source-workflow.mjs';
 import { planManual } from './research-persistence.mjs';
+import {hash} from './reviewed-batch.mjs';
+
+const factualPayload=value=>Object.fromEntries(Object.entries(value).filter(([key])=>!['known_source_interpretation','manual_capture'].includes(key)));
+const evidenceKey=evidence=>hash(evidence.map(e=>({url:e.url,content_sha256:e.content_sha256,locator:e.locator,excerpt:e.excerpt})));
 
 export function planInterpretationIntake(packet,result,before,evidencePaths,options={}) {
   const spec=manualSpecFromInterpretation(packet,result,before.project_ref,evidencePaths,options);
@@ -8,7 +12,9 @@ export function planInterpretationIntake(packet,result,before,evidencePaths,opti
   for(const f of spec.findings) {
     const versions=before.procurement_intake_items.filter(i=>i.source_id===packet.source_id&&
       (i.external_id===f.external_id||i.payload?.manual_capture?.record_external_id===f.external_id));
-    const same=versions.find(i=>i.payload?.known_source_interpretation?.finding_hash===f.payload.known_source_interpretation.finding_hash);
+    const same=versions.find(i=>i.payload?.known_source_interpretation?.finding_hash===f.payload.known_source_interpretation.finding_hash||
+      packet.automatic_county&&Array.isArray(i.payload?.manual_capture?.evidence)&&i.payload?.manual_capture?.request_ids?.includes(packet.request_id)&&
+      hash(factualPayload(i.payload))===hash(factualPayload(f.payload))&&evidenceKey(i.payload.manual_capture.evidence)===evidenceKey(f.evidence));
     if(same) {receipt.existing_preserved++;receipt.intake_ids.push(same.id);continue;}
     const prior=versions.sort((a,b)=>(b.created_at??'').localeCompare(a.created_at??'')||b.id.localeCompare(a.id))[0];
     if(prior) {

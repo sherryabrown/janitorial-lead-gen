@@ -3,7 +3,7 @@ import { checked,rows,one,sha } from './hosted-store.mjs';
 import { hash } from './reviewed-batch.mjs';
 import { discoveryView,validateHandoff } from './public-source-discovery.mjs';
 import { planRegistry,persistenceSql,verifyPersistence } from './research-persistence.mjs';
-import { adapterContract } from './known-source-execution.mjs';
+import { adapterContract,capabilityCoversRoute,separateSamSource } from './known-source-execution.mjs';
 import { schemaHash } from './hosted-import.mjs';
 import {publicDiscovery} from './official-link-discovery.mjs';
 import {rehearsalBlueprint,rehearsalPolicy} from './native-sql-rehearsal.mjs';
@@ -117,7 +117,17 @@ async function resolveDiscoverySeed({db,project,artifacts,transport,rehearse,req
   const task=await one(db,'procurement_coverage_tasks',taskId),target=task&&await one(db,'procurement_request_targets',task.target_id);
   if(target?.search_request_id!==requestId)throw Error('Directory task scope mismatch');
   const geo=await one(db,'procurement_geographies',task.route_geography_id);
-  const resolved=await resolveOfficialDirectory(geo,{fetcher,capture:e=>artifacts.put(e)});
+  const registered=await rows(db,'procurement_sources'),priorMethods=await rows(db,'procurement_source_capabilities');
+  const known=registered.filter(source=>!separateSamSource(source)&&priorMethods.some(method=>method.source_id===source.id&&method.kind===task.kind&&
+    capabilityCoversRoute(method,geo.id)&&method.verification_evidence&&Object.keys(method.verification_evidence).length));
+  if(known.length===1) {
+    checked(await db.from('procurement_coverage_tasks').update({evidence:{...task.evidence,
+      registered_source_ids:[...new Set([...(task.evidence?.registered_source_ids??[]),known[0].id])],seed_basis:'registered_method_route'}}).eq('id',task.id));
+    return {state:'resolved',source_id:known[0].id,url:known[0].url};
+  }
+  const parents=geo.kind==='municipality'?await rows(db,'procurement_place_counties',q=>q.eq('place_id',geo.id),'county_id',{order:'county_id'}):[];
+  const countyReferences=parents.length?await rows(db,'procurement_geographies',q=>q.in('id',parents.map(p=>p.county_id))):[];
+  const resolved=await resolveOfficialDirectory(geo,{fetcher,countyReferences,capture:e=>artifacts.put(e)});
   const directoryArtifact=await artifacts.put(resolved);
   if(resolved.state!=='resolved')return {...resolved,pages:undefined,directory_artifact:directoryArtifact};
   const sources=await rows(db,'procurement_sources'),requests=await rows(db,'procurement_search_requests',q=>q.eq('id',requestId));

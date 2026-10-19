@@ -104,3 +104,11 @@ Snapshot: finished repeat run e4170033-1636-471e-a8ee-b2a9bd0b1f77. Website regi
 | Little Rock public contracts | Little Rock | Source could not be verified automatically; supported listing evidence is missing — No supported opportunity listing heading |
 | UAMS procurement | Little Rock | Source could not be verified automatically; supported listing evidence is missing — No supported opportunity listing heading |
 | UA Little Rock bids and awards | Saline County | Document exceeds verified byte bound — No supported opportunity listing heading |
+
+## Return implementation — acceptance in progress
+
+The follow-up fixes public-read terminal states and private historical reconciliation, structured Saline listing interpretation, evidenced public redirect/linked-host traversal, official county-directory fallback, and shared acquisitions with same-request candidate deduplication. No new provider, table, budget or import authority was added. All behavior outside automatic county collection is preserved.
+
+Verification before release: `npm run check` passed (69 UI tests, 306 workflow tests, SQL replay/concurrency suites, TypeScript/build); `npm run test:access` passed against native PostgreSQL, including a second scheduled occurrence after an audited read failure and preservation of real unknown import/usage holds. Browser desktop/mobile/320px/keyboard verification passed. The literal captured Saline table produces 21 evidenced exclusions with no AI for the requested future window. This fixture result is not a claim of complete live coverage.
+
+Migration 003 adds only a private reconciliation RPC; matching migration/worker order and rollback compatibility are documented in ADMIN-TRIGGERS. Live Saline return verification follows the coordinated Render-first/Netlify-preview release. Keep the plan in todo until that evidence is evaluated.

@@ -75,27 +75,32 @@ export function municipalWebsite(body,geography) {
   }
   const unique=[...new Set(urls)];return unique.length===1?unique[0]:null;
 }
-export async function resolveOfficialDirectory(geography,{fetcher=fetch,capture=async()=>{}}={}) {
+export function countyMunicipalLinks(body,url,geography) {
+  return document(body,url,doc=>[...new Set([...doc.querySelectorAll('a[href]')].filter(a=>
+    normalize(a.textContent).replace(/^(?:city|town) of /,'').replace(/ (?:official )?(?:website|web site)$/,'')===normalize(geography.name))
+    .map(publicLink).filter(Boolean))]);
+}
+export async function resolveOfficialDirectory(geography,{fetcher=fetch,capture=async()=>{},countyReferences=[]}={}) {
   if(geography?.state_code!=='AR'||!geography.source_active||!['county','municipality'].includes(geography.kind))
     return {state:'blocked',reason:'Official directory resolution does not support this geography'};
   const pages=[];
-  async function read(url) {
-    const result=await fetchPublicCheck({runner_id:'public-fetch',allowed_hosts:[new URL(url).hostname],max_bytes:2_000_000},url,fetcher);
+  async function read(url,research=false) {
+    const result=await fetchPublicCheck({runner_id:'public-fetch',allowed_hosts:[new URL(url).hostname],max_bytes:2_000_000},url,fetcher,{researchEntry:research?url:undefined});
     if(result.state!=='captured')return result;
     const evidence={url:result.final_url,content_sha256:result.content_sha256,content_type:result.content_type,body:result.body.toString('base64')};
     await capture(evidence);pages.push(evidence);return result;
   }
   let url=geography.kind==='county'?countyDirectory:municipalDirectory;
   let result=await read(url);
-  if(result.state!=='captured')return {state:'blocked',reason:'Official directory unavailable',pages};
+  if(result.state!=='captured'&&geography.kind==='county')return {state:'blocked',reason:'Official directory unavailable',pages};
   if(geography.kind==='county') {
     url=countyProfile(result.body,geography);
     if(!url)return {state:'blocked',reason:'County is not identified in the official directory',pages};
     result=await read(url);
     if(result.state!=='captured')return {state:'blocked',reason:'County directory profile unavailable',pages};
   }
-  let website=directoryWebsite(result.body,url,geography);
-  if(!website&&geography.kind==='municipality') {
+  let website=result.state==='captured'?directoryWebsite(result.body,url,geography):null;
+  if(!website&&geography.kind==='municipality'&&result.state==='captured') {
     try {
       const lookup=municipalLookup(result.body,geography.name);
       const response=await fetchPublicCheck({runner_id:'public-fetch',allowed_hosts:['www.armunileague.org'],max_bytes:2_000_000,response_format:'supporting-document-v1'},lookup.url,
@@ -103,11 +108,29 @@ export async function resolveOfficialDirectory(geography,{fetcher=fetch,capture=
           if(destination!==lookup.url)throw Error('Directory POST redirect rejected');
           return fetcher(destination,{...options,method:'POST',headers:{...options.headers,'Content-Type':'application/x-www-form-urlencoded'},body:lookup.form.toString()});
         });
-      if(response.state!=='captured')return {state:'blocked',reason:'Municipal directory lookup unavailable',pages};
-      const evidence={url:response.final_url,content_sha256:response.content_sha256,content_type:response.content_type,body:response.body.toString('base64')};
-      await capture(evidence);pages.push(evidence);website=municipalWebsite(response.body,geography);
-    }catch{return {state:'blocked',reason:'Municipal directory could not verify this location',pages};}
+      if(response.state==='captured') {
+        const evidence={url:response.final_url,content_sha256:response.content_sha256,content_type:response.content_type,body:response.body.toString('base64')};
+        await capture(evidence);pages.push(evidence);website=municipalWebsite(response.body,geography);
+      }
+    }catch{/* Preserve municipal evidence and continue the bounded county-directory fallback. */}
+  }
+  if(!website&&geography.kind==='municipality') {
+    const found=[];
+    for(const county of countyReferences.slice(0,2)) {
+      const resolved=await resolveOfficialDirectory(county,{fetcher,capture:async e=>{pages.push(e);await capture(e);}});
+      if(resolved.state!=='resolved')continue;
+      const home=await read(resolved.url,true);if(home.state!=='captured')continue;
+      found.push(...countyMunicipalLinks(home.body,home.final_url,geography));
+      const index=document(home.body,home.final_url,doc=>[...doc.querySelectorAll('a[href]')].filter(a=>
+        /cities|towns|municipalities|communities/i.test(a.textContent)).map(publicLink).find(link=>link&&
+          new URL(link).hostname.replace(/^www\./,'')===new URL(home.final_url).hostname.replace(/^www\./,'')));
+      if(index&&index!==home.final_url) {
+        const extra=await read(index,true);
+        if(extra.state==='captured')found.push(...countyMunicipalLinks(extra.body,extra.final_url,geography));
+      }
+    }
+    const unique=[...new Set(found)];if(unique.length===1)website=unique[0];
   }
   return website?{state:'resolved',url:website,pages,geography_id:geography.id}:
-    {state:'blocked',reason:'Official directory did not provide a unique website for this location; automated research capability needs extension',pages};
+    {state:'blocked',reason:'No unique official website was published in the checked directories; procurement coverage remains incomplete',pages};
 }

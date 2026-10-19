@@ -12,6 +12,7 @@ import { inspectPublicBonfireProjects, inspectPublicBonfireContracts } from './p
 import { fetchPublicCheck, semanticPublicHash, semanticSources } from './public-source-check.mjs';
 import { inspectArdotEntry, fetchArdotPage } from './ardot-table.mjs';
 import { collectKnownApi } from './known-access-run.mjs';
+import {requestPublicCapture} from './public-capture-reuse.mjs';
 
 
 // Shared adapter orchestration. CLI credentials and output are injected, never read here.
@@ -29,6 +30,7 @@ async function rpc(name, args) {
 }
 const request = (await rows('procurement_search_requests', '*', q => q.eq('id', requestId)))[0];
 if (!request) throw new Error('Search request does not exist');
+const automaticCounty=['county_scope','state_research'].includes(request.workflow_control?.admin_policy);
 const targets = await rows('procurement_request_targets', '*', q => q.eq('search_request_id', requestId));
 if (!targets.length || targets.some(t => !t.geography_id || t.state === 'needs_review'))
   throw new Error('Request needs confirmed, resolved geography targets');
@@ -127,7 +129,13 @@ if (command === 'plan') {
           if (inserted.error || !inserted.data)
             throw new Error(`Cannot audit public request; no fetch sent: ${inserted.error?.message ?? 'no row returned'}`);
           run = inserted.data;
-          const capture = await auditPhase('fetch_page',()=>fetchPublicCheck(contract, url,fetcher),{source_id:source.id,task_id:task.id});
+          // Reuse only hash-verified bytes from this request and exact source/URL.
+          // Each route still receives its own audited run and interpretation.
+          const reusable=automaticCounty?await requestPublicCapture(db,{requestId,sourceId:source.id,url,maxBytes:contract.max_bytes,allowedHosts:contract.allowed_hosts,
+            allowJson:['bonfire-projects-v1','bonfire-contracts-v1','supporting-document-v1'].includes(contract.response_format)}):null;
+          const capture = await auditPhase(reusable?'compare':'fetch_page',()=>reusable??fetchPublicCheck(contract, url,fetcher,
+            {researchEntry:automaticCounty&&task.kind==='source_entry'?source.url:undefined}),
+            {source_id:source.id,task_id:task.id,reason:reusable?'request_capture_reuse':'deterministic'});
           if (capture.state === 'captured') {
             let listing = null, listingError = null;
             if (contract.response_format) {
@@ -151,6 +159,7 @@ if (command === 'plan') {
               run_id: run.id, source_id: source.id, requested_url: url,
               final_url: capture.final_url, content_type: capture.content_type,
               content_sha256: capture.content_sha256, content_base64: capture.body.toString('base64'),
+              ...(capture.reused_run_id?{retrieved_at:capture.retrieved_at}:{}),
             });
             if (stored.error) throw new Error(`Public capture ${run.id} storage uncertain; inspect before retrying`);
             const detail = { collector: task.kind === 'source_entry' ? 'registry-entry' : 'public-fetch',
@@ -160,6 +169,7 @@ if (command === 'plan') {
               content_type: capture.content_type, content_sha256: capture.content_sha256,
               semantic_sha256: semanticHash,
               bytes: capture.bytes,
+              ...(capture.reused_run_id?{reused_run_id:capture.reused_run_id}:{}),
               ...(contract.response_format ? { response_format: contract.response_format,
                 listing_count: listing?.records.length ?? null,
                 listing_terminal: listing?.terminal === true,
@@ -175,8 +185,9 @@ if (command === 'plan') {
           } else {
             const detail = { collector: task.kind === 'source_entry' ? 'registry-entry' : 'public-fetch',
               scope: task.kind === 'source_entry' ? 'entry_only' : 'verified_method',
-              state: capture.state === 'outcome_unknown' ?
+              state: automaticCounty && capture.state === 'outcome_unknown' ? 'read_failed' : capture.state === 'outcome_unknown' ?
               'request_pending' : 'response_captured', requested_url: url, final_url: capture.final_url,
+              ...(automaticCounty && capture.state === 'outcome_unknown' ? {read_only:true,outcome:'no_confirmed_content'} : {}),
               redirects: capture.redirects, upstream_status: capture.upstream_status ?? null,
               reason: capture.reason, parser_version: contract.parser_version,
               check_when: contract.check_when, query_window: task.query_window };

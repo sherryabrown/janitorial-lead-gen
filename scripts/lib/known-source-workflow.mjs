@@ -5,6 +5,7 @@ import { safeMetadata, publicUrl } from './research-persistence.mjs';
 import { zeroEvidence, validateZeroBasis } from './interpretation-evidence.mjs';
 import {verifyPacketLink,validLinkState,packetLink} from './api-record-links.mjs';
 import { inspectPublicBonfireProjects } from './public-bonfire-projects.mjs';
+import { proposeAutomaticListing } from './automatic-public-method.mjs';
 
 const sha = /^[a-f0-9]{64}$/;
 const need = (condition, message) => { if (!condition) throw new Error(message); };
@@ -27,18 +28,26 @@ export function makeInterpretationPacket({ request, task, job, source, capabilit
     'Verified method must match the routed task');
   need(runs.length > 0 && runs.length === captures.length && runs.length <= 30,
     'Bounded saved captures are required');
+  const automaticCounty=['county_scope','state_research'].includes(request.workflow_control?.admin_policy);
   const pages = runs.map((run, index) => {
     need(run.job_id === job.id && run.coverage_task_id === task.id &&
       run.source_id === source.id && run.page_index === index,
     'Pages must belong to the selected job in order');
     const capture = captures[index];
-    const review = captureReview(capture, run, task, source, capability.method_spec);
+    let spec=capability.method_spec;
+    let review = captureReview(capture, run, task, source, spec);
+    let derived;
+    if(automaticCounty&&task.kind==='opportunity'&&spec.runner_id==='public-fetch'&&!spec.response_format&&/html/i.test(capture.content_type)) {
+      try {derived=proposeAutomaticListing(review.body,capture.final_url).spec;} catch {/* Unsupported content retains the existing interpretation path. */}
+      if(derived){spec=derived;review=captureReview(capture,run,task,source,spec);}
+    }
     return { run_id: run.id, page_index: index, url: capture.final_url,
       retrieved_at: capture.retrieved_at, content_sha256: capture.content_sha256,
       content_type: capture.content_type, review: review.markdown,
+      ...(derived?{interpretation_spec:derived}:{}),
       extension: review.extension, body: review.body,
       zero_evidence: zeroEvidence(review.body, capture.content_type, source.code, run.page_index,
-        review.markdown, capability.method_spec, review.summary) };
+        review.markdown, spec, review.summary) };
   });
   const complete = job.state === 'succeeded' && task.evidence?.terminal_confirmed === true &&
     task.pages_reviewed === pages.length && task.evidence?.run_ids?.length === pages.length &&
@@ -48,7 +57,7 @@ export function makeInterpretationPacket({ request, task, job, source, capabilit
     service_scope: request.service_scope, method_id: capability.id,
     method_version: capability.parser_version,
     pages: pages.map(({ url, content_sha256, page_index }) => ({ url, content_sha256, page_index })),
-    complete };
+    complete,...(automaticCounty?{interpretation_policy:'county-structured-v1',page_specs:pages.map(p=>p.interpretation_spec??null)}:{}) };
   const packet_hash = hash(identity);
   return { version: 2, packet_hash, request_id: request.id, task_id: task.id,
     source_id: source.id, source_code: source.code, category: task.kind,
@@ -58,7 +67,7 @@ export function makeInterpretationPacket({ request, task, job, source, capabilit
     method_version: capability.parser_version, method_guidance: capability.method_spec?.interpretation_guidance ??
       source.config?.known_source_review?.interpretation_guidance ?? null,
     complete, limitation: complete ? null : 'Captured pages are partial; no zero-result conclusion is allowed',
-    pages,
+    pages,...(automaticCounty?{automatic_county:true}:{}),
     ...(capability.method_spec?.response_format === 'bonfire-projects-v1' ? {
       project_links: pages.flatMap(page => inspectPublicBonfireProjects(page.body, capability.method_spec).records
         .map(row => ({...row,run_id:page.run_id,content_sha256:page.content_sha256}))),

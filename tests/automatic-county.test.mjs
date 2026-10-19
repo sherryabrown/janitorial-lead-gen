@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {proposeAutomaticListing,inspectAutomaticListing} from '../scripts/lib/automatic-public-method.mjs';
-import {countyProfile,directoryWebsite,resolveOfficialDirectory,countyDirectory,municipalWebsite,municipalLookup} from '../scripts/lib/official-directory.mjs';
+import {countyProfile,directoryWebsite,resolveOfficialDirectory,countyDirectory,municipalDirectory,municipalWebsite,municipalLookup} from '../scripts/lib/official-directory.mjs';
 import {publicDiscovery,publicReview} from '../scripts/lib/official-link-discovery.mjs';
 import {createHash} from 'node:crypto';
 import {automaticRouteAssociation,reviewedDiscoverySource} from '../scripts/lib/hosted-discovery.mjs';
@@ -64,6 +64,19 @@ test('directory rejects ambiguous, unrelated and unsafe websites',()=>{
   assert.equal(directoryWebsite(Buffer.from('<h2>Other County</h2><a href="https://wrong.example">www.wrong.example</a>'),countyDirectory,geo),null);
   assert.equal(directoryWebsite(Buffer.from('<h2>Saline</h2><p><a href="https://127.0.0.1/">www.local</a></p>'),countyDirectory,geo),null);
   assert.equal(directoryWebsite(Buffer.from('<h2>Saline</h2><p><a href="https://a.example/">www.a.example</a><a href="https://b.example/">www.b.example</a></p>'),countyDirectory,geo),null);
+});
+
+test('a city absent from the municipal website directory resolves through its authoritative county without guessed domains',async()=>{
+  const city={id:'city',kind:'municipality',name:'Fixture Town',state_code:'AR',source_active:true},county={id:'05001',kind:'county',name:'Arkansas County',state_code:'AR',source_active:true};
+  const pages=[],calls=[];
+  const result=await resolveOfficialDirectory(city,{countyReferences:[county],capture:async page=>pages.push(page),fetcher:async url=>{
+    calls.push(url);const html=url===municipalDirectory?'<main>Member directory temporarily lacks a website</main>':
+      url===countyDirectory?'<div class="county"><a href="/counties/arkansas/">Arkansas County</a></div>':
+      url==='https://www.arcounties.org/counties/arkansas/'?'<h2>Arkansas County</h2><p><a href="https://county.example/">www.county.example</a></p>':
+      url==='https://county.example/'?'<main><a href="https://town.example/">City of Fixture Town</a></main>':null;
+    assert.ok(html,`No guessed destination: ${url}`);return new Response(html,{headers:{'content-type':'text/html'}});
+  }});
+  assert.equal(result.state,'resolved',JSON.stringify({reason:result.reason,calls}));assert.equal(result.url,'https://town.example/');assert.equal(pages.length,4);assert.equal(calls.length,4);
 });
 
 test('automatic saved capture advances through verification, registration and collection without a review submission',async()=>{

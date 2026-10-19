@@ -414,7 +414,8 @@ export function RequestReview({
                     ({source_missing: 'Official website not yet verified', method_missing: 'Source not yet verified',
                       reviewed_no_results: 'Checked—no matching opportunities', reviewed_with_results: 'Opportunities found',
                       needs_interpretation: t.category === 'source_entry' ? 'Website captured; opportunity checks shown separately' : 'Reviewing collected evidence',
-                      unchecked: 'Waiting to check', partial: 'Incomplete coverage'} as Record<string,string>)[t.state] ?? title(t.state) : title(t.state)}
+                      unchecked: 'Waiting to check', partial: t.category === 'source_entry' ? 'Website unavailable or incomplete' : 'Incomplete coverage',
+                      blocked: 'Access or verification required'} as Record<string,string>)[t.state] ?? title(t.state) : title(t.state)}
                 </strong>
                 <p>{data.automatic_county && t.discovery_action ? t.discovery_action : t.reason}</p>
               </div>
