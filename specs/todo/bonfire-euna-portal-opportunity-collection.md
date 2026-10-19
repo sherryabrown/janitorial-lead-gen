@@ -2,6 +2,77 @@
 
 Planning observations: October 18-19, 2026, America/New_York. This is the active Bonfire implementation plan. It supersedes the earlier [Agency Explorer verification-only plan](bonfire-euna-agency-explorer-access-verification.md), whose original requests and evidence remain historical context. It is independent of the Admin production-release coordinator and general cleanup.
 
+## Active return plan — October 19, 2026
+
+This section supersedes stale checkpoint statements below about deployment and the order of remaining work. Keep this existing plan in `todo`; do not restart the superseded Agency Explorer spec.
+
+### Latest initiating prompt
+
+> [$plan-code](C:\Users\sherr\.agents\skills\plan-code\SKILL.md) update the appropriate specs/todo/ doc to return to Bonfire/Euna. Please review what is still blocking it and determine the next steps to get it working. Keep Netlify production unchanged.
+
+### Reviewed baseline and exact blockers
+
+This planning pass inspected current shared browser/workflow/supporting-capture code, Admin review, the private nonsecret saved preflight/release receipts, and the completed SAM release documentation. It did not read current private credentials, refresh database access state, launch a provider browser, renew access, run collection, or deploy. Expiry/access values below are the latest **saved observations**, not fresh live readback.
+
+| Area | Established evidence | What remains |
+| --- | --- | --- |
+| Agency -> registration -> Portal | Little Rock route and actual Murphy tenant already observed; optional business fields need no submission. | Reuse direct verified tenant Portal; revisit directory only if identity/link changes. |
+| Public Little Rock listing | Existing vetted `public-fetch` resource and parser captured five projects in the saved October 19 check. | Re-read current listing through existing bounded collector; do not assume the same projects or count remain. |
+| Manual protected access | User confirmed details/documents open after waiting for and completing the checkbox. | This does not supply a saved machine capture or Render access proof. |
+| Private access lifecycle | Saved preflight at 04:20 UTC: recipe expired October 16; session expired October 9; last hosted capture required human verification. | Read current records first; reconcile any newer intent, then evidence-based recipe/method/session revalidation. Do not extend expiry to permit a probe. |
+| Hosted protected retrieval | Existing headless Playwright worker has no interactive challenge handoff; no accepted unattended capability. | Establish a legitimate usable detail/document route in the existing environment before enabling unattended execution. Current Cloudflare documentation still excludes automated frameworks from production challenge solving. |
+| Durable collection | Saved listing project links and guarded explicit supporting capture exist. | Implement resumable bounded listing-derived detail/document work, not the historical fixed project or an unlimited crawler. |
+| Admin/scheduler | Shared `canCaptureWorker` gate is implemented and wired; acceptance proof is private, method/recipe-specific and Render service/commit-specific. | No capability has passed it. Prove hosted capture/readback, then second-request reuse and scoped manual/scheduled acceptance. |
+| Release | Bonfire release receipt records Render `d3e586c`, draft connection HTTP 200/CORS 204. Later SAM release documents Render/draft on `c40c341`; HEAD `bd40610` adds documentation. | Earlier “local and undeployed” text is historical. Verify actual deployed revision before execution; a new commit invalidates old environment-bound acceptance proof and needs fresh acceptance. |
+| Murphy USA | Correct tenant is `murphyusa.bonfirehub.com`; only empty My Opportunities was observed. | Confirm public filter/terminal coverage; retain routing comparison only, with no corporate scope expansion. |
+
+### Three remaining phases, in execution order
+
+**1. Access decision and useful saved evidence.** Read current existing handoff/capability/recipe/session and unresolved intent using existing private services. Read the current public listing once and retain actual terminal/partial evidence. Resolve a current detail link from that saved listing, not project `169158`, `249097` or another historical ID copied into a method. Inspect permitted public detail/document links through the existing supporting capture before requiring protected access. Never treat an HTTP 200 shell as content. Reuse manual assisted capture where already supported, with real official evidence and original hashes; this provides useful results but does not enable unattended scheduling.
+
+If protected access is necessary, revalidate only observed supported navigation/credentials. Do not manufacture fresh expiry or transfer browser clearance. After prerequisites are valid, make at most one bounded hosted access attempt, preserving its audit/readback and resource cleanup. If a challenge appears, stop that route, save the precise human-required outcome and do not retry on polling, new requests or scheduler ticks. Reuse the existing prepared support inquiry as the next external action when no usable supported route is established: update its historical project reference to a currently evidenced URL and ask the provider/tenant about permitted bounded reads, feed/export or another supported access procedure. **Do not assume a Bonfire API exists or make API acquisition a prerequisite.** The old support message is unsent; contacting support still requires explicit user instruction. No new browser infrastructure, proxy, paid service or account is authorized by this plan.
+
+Phase 1 delivers a factual route matrix and decision: public path usable; protected hosted path usable; or assisted-only with an exact unresolved external dependency. Continue independent checkpoint/UI work when hosted access is blocked, but leave protected automation disabled and this plan in todo.
+
+**2. Finish the existing collection continuation.** Implement the remaining Phase 2 requirements below using current jobs, artifacts, supporting capture, browser service, audit, packet and scheduler. Store bounded per-project progress tied to source/tenant, request/task, immutable listing hash, official project ID and method version. Resume after restart without repeat captures/intake. Preserve successful listing/detail evidence when another document fails; unresolved descriptions remain unresolved without paid inference on missing content. Test pause/cancel before each external action and unknown-attempt reconciliation before resending. Retain clear existing Admin actions for saved evidence, official Portal, access and explicit continuation. Keep the capability gate closed unless real hosted evidence satisfies it. Document any required private method change separately from code changes.
+
+Preserve the completed **SAM automatic validated import** path (`specs/done/sam-automatic-validated-imports.md`). SAM-only system authorization must not be generalized to Bonfire. Existing non-SAM reviewed imports and exact tested-package approval remain in scope unchanged; do not reintroduce SAM approval controls. Preserve AI settings/budgets, county/state ownership, Companies and email previews.
+
+**3. Verify, then release only to the authorized targets.** Extend existing tests and browser harness as specified below. Validate saved listing -> new current project -> necessary document -> interpretation/intake, duplicate execution and a second request. Run `npm run check` and isolated `npm run test:access`; record current results rather than copying prior counts. Perform desktop/mobile/keyboard checks when UI changes. For any subsequently authorized backend/draft release, verify the actual deployed commit first, then generate fresh environment-bound protected capture proof on that commit before enabling that capability. Never weaken `environmentId`/method/recipe/readback/freshness checks to carry proof across a release. Prove one small Admin manual run and one disposable browser-closed scheduled occurrence using the same worker, then pause/archive the test schedule. Record source coverage, verified receipt/readback, actual AI usage and cleanup; unrelated schedules stay untouched.
+
+Netlify production must remain unchanged: no production publish, unlock, domain change or production configuration update. Use the existing approved draft origin and Render/Supabase infrastructure; do not repeat CORS changes unless a real mismatch is observed. This planning request does not deploy or authorize support messages. Verify production's current locked deploy before/after any later draft release; use recorded `6ad583d1b9bb1b307abcf1fd` only as historical evidence until read back.
+
+### Completion and blocker reporting
+
+- Done requires current useful detail/document evidence, second-request reuse/deduplication, accepted hosted capability on the released commit, and real scoped manual/scheduled acceptance. Public listing or assisted capture alone is partial delivery.
+- When blocked, report the exact current URL/project and capture timestamp, public versus protected outcome, last attempted stage/failure code, whether any write was sent, preserved evidence, and the next specific user/provider action. Exclude credentials, cookies, flow tokens and private artifact contents from public documentation.
+- A provider response or another supported access route remains an external dependency, not an assumed outcome or a reason to build speculative infrastructure. Do not mark unknown coverage as zero opportunities.
+- No new product decision is needed for Portal navigation. A new access service, cost, account, support submission or change to non-SAM approval behavior requires a separate scoped user decision if it becomes necessary.
+
+Current web recheck: the [official Portal](https://littlerock.bonfirehub.com/portal/?tab=openOpportunities) returned its JavaScript-dependent shell to the research reader; this is not a fresh complete listing or protected capture. [Cloudflare's supported-browser guidance](https://developers.cloudflare.com/cloudflare-challenges/reference/supported-browsers/) continues to state that automated browsers/frameworks are unsupported for production challenge solving. These checks establish neither current Render access nor provider API availability.
+
+## Return-build checkpoint — October 19, 2026, 14:16 UTC onward
+
+**Partial implementation; required external access/live acceptance remains blocked. Keep in todo.** No commit, push, deployment or hosting configuration change was made in this return build.
+
+Fresh evidence:
+
+- Existing private records were read first: zero unreconciled account submissions; recipe expiry October 16 and session expiry October 9 remain unchanged. The last protected hosted capture is still blocked/not saved with `human_verification_required`. No browser launch or new hosted capture was attempted with expired access.
+- Public listing fetched once at 14:16 UTC: five projects, terminal state, unchanged SHA-256 `ff51d2db82e0f6efe27a7b988aa8e3ac726f043dd1854724c75f5494591b2c3b`. At 14:17:17 UTC one existing bounded public fetch of listing-derived project `249097` returned HTTP 403. No retry/challenge interaction, database/provider write, application AI call or import followed. This is not a fresh Render-browser result; manual access remains user-confirmed separately.
+- Current Render release read back as live `c40c341c1a8b56343d01058322e661ef1331d025`; Netlify production remains locked on `6ad583d1b9bb1b307abcf1fd`. No provider method/session/capability expiry or hosted acceptance was promoted.
+
+Local implementation:
+
+- `bonfire-detail-continuation.mjs` runs through the existing workflow worker at the Bonfire interpretation boundary: one public resource per lease, listing-derived current project IDs, exact packet/method/parser binding, saved intent before send, and durable per-project checkpoints. No new worker, scheduler, table, provider integration or browser infrastructure.
+- A blocked/unknown attempt holds this source/method across ticks and later requests; other sources retain their work. Lost final checkpoints conservatively require receipt reconciliation. Schedule pause/request cancellation are checked before external fetch; the existing audit records fetch phase and actual AI ledger behavior. No AI is spent guessing missing detail content.
+- Supporting documents are at most four literal same-reviewed-host public PDFs per current saved project, bound through signed/hash-verified parent evidence. Foreign, tokenized/query and unlinked document URLs are rejected. Dynamic/protected attachments and document overflow remain partial; this does not claim complete document discovery or protected access.
+- Explicit successful supporting recapture can resume the matching saved public checkpoint with CAS, preserving existing reviewed interpretations. Unknown attempts require exact signed saved-evidence readback without a resend. Signed parent/document provenance rebinds to identical listing/method evidence on a second request without changing original retrieval time. Hosted session/acceptance gates are unchanged.
+- Admin packet metadata exposes detail/access states and saved evidence descriptors. Selecting a document loads bounded plain review text through authenticated `supporting-evidence`, without provider fetch or raw bytes. Existing exact quotation/date/work-location/candidate/import validation still applies. SAM automatic saving and all non-SAM approval guards remain unchanged.
+
+Verification: `npm run test:access` passed actual isolated PostgreSQL 15/PostgREST, including automatic SAM manual/scheduled native imports and private JSON hold containment/checkpoint CAS/stale-write rejection, with no production contact. The targeted supporting/workflow suite passed 29 tests. Existing browser acceptance passed desktop 1440px, mobile 390px/320px, keyboard focus, evidence selection/read, no overflow and preserved county/SAM behavior; screenshots inspected. Final `npm run check` passed: lint, 59 UI tests, 283 workflow tests, SQL regression suites, TypeScript and production build. Existing lazy Admin/map bundle warning remains (about 1.01 MB / 214 KB gzip). `git diff --check` passed. Initial sandbox temporary-cache failure and the corrected request-options type error were not counted as passes. Netlify production was read back unchanged and locked again after verification.
+
+Remaining: establish supported current protected detail/document access, evidence-based private recipe/method/session revalidation, fresh capture/readback on the actual deployed commit, genuine second-request protected reuse and scoped live manual/browser-closed scheduled acceptance. The local public continuation is not proof those requirements passed. The support inquiry was updated with current evidence and is still unsent; no vendor API is assumed or required as the only possible solution. No new infrastructure/account/spend is authorized. Murphy's earlier observed routing/empty My Opportunities result was retained, not represented as a fresh verified zero public listing.
+
 ## Implementation checkpoint — October 19, 2026
 
 ### Resume checkpoint after manual-access confirmation
@@ -16,7 +87,7 @@ Implemented in this continuation:
 - Listing-only Bonfire interpretation keeps all project titles unresolved for detail review rather than title-only exclusion; its cache policy changed only for this parser. Missing protected content does not consume paid inference. Existing reviewed positives and other providers' behavior are retained.
 - Actual saved-state preflight: recipe expired October 16, session October 9; latest hosted capture still requires human verification; no unattended acceptance. Zero new browser launches, challenge attempts, provider/database writes or deployment. Public listing remained available with the same five projects/hash. Local preflight of real saved metadata is not represented as a new deployed Render capture.
 
-Still blocked/unfinished: the headless hosted worker has no interactive Cloudflare handoff. No supported unattended path has been demonstrated, and expired access cannot be renewed from manual-browser clearance. Durable listing-derived detail/document continuation, real second-request reuse and scoped manual/scheduled acceptance remain unfinished. Backend/frontend changes are local and undeployed; no Production Netlify deployment. The existing assisted import and unsent support message are preserved. Keep this plan in todo.
+Still blocked/unfinished: the headless hosted worker has no interactive Cloudflare handoff. No supported unattended path has been demonstrated, and expired access cannot be renewed from manual-browser clearance. Durable listing-derived detail/document continuation, real second-request reuse and scoped manual/scheduled acceptance remain unfinished. At that checkpoint backend/frontend changes were local and undeployed; subsequent release evidence is summarized in the active return plan above. No Production Netlify deployment. The existing assisted import and unsent support message are preserved. Keep this plan in todo.
 
 Verification for this continuation: final `npm run check` passed (55 UI tests, 266 workflow tests, SQL regressions, TypeScript and production build). `npm run test:access` passed isolated PostgreSQL/PostgREST and scheduler checks with no production contact. Extended existing browser fixture passed at desktop 1440px, mobile 390px/320px and keyboard; saved-access controls and project links were checked and screenshots inspected. The 37 targeted portal/workflow/supporting tests passed, including later-challenge revocation, unchanged legacy workflow execution and no inference for missing Bonfire details. `git diff --check` passed. Existing lazy Admin/map bundle-size warning remains. No real manual/scheduled protected acceptance or fresh hosted capture is claimed.
 
@@ -64,7 +135,7 @@ Preserve public Bonfire reads that already work. Preserve other providers' acces
 | The official Little Rock procurement page links directly to the Portal. In the current unsigned-in Codex browser the Portal rendered actual opportunity rows and project links. | Portal/listing reachability is observed, not just user reported. Public discovery can proceed independently of account-profile setup. |
 | One listing link, project `247783`, led to `Performing security verification` in the Codex in-app browser. No challenge interaction/retry was performed. | Project/document access remains a separate observed blocker. This is a navigation probe, not a janitorial candidate or proof the user's normal browser fails. |
 | Euna's public supplier Login link led to its account login page. An authenticated Agency Explorer/Murphy USA route was not observed in this planning session. | Verify the precise directory agency identity and Portal destination using the existing account during implementation; do not guess Murphy's tenant URL. |
-| `known-source-collection.mjs` returns `awaiting_browser_capture`; `hosted-workflow.mjs` calls `captureBrowser` only when `!request.workflow_control?.admin_trigger_id`. | Fixing a private recipe alone will not make protected collection run from Admin. A narrowly accepted capability path is required. |
+| `known-source-collection.mjs` returns `awaiting_browser_capture`; `hosted-workflow.mjs` calls `captureBrowser` for Admin only when the shared `canCaptureBrowser(job_id)` acceptance predicate passes (non-Admin retains its existing path). | The narrow gate is already implemented; fixing a recipe alone does not satisfy its genuine hosted acceptance/readback requirements. |
 | `hosted-browser.mjs` navigates to saved capture URLs, permits at most two pages per capture, saves partial coverage and has audited lease/reconciliation/session cleanup. | Discover current project URLs from saved listing evidence; do not replace the bound with an unlimited crawler or use live arbitrary URLs from a client. |
 | Existing Bonfire parsers and interpretation/import services preserve IDs, evidence, date and actual work-location checks. | Reuse them; agency state and a title alone do not establish a qualified lead. |
 
@@ -169,9 +240,12 @@ Next implementation prompt:
 ```text
 $build-code specs/todo/bonfire-euna-portal-opportunity-collection.md
 
-Implement the Portal-first Bonfire/Euna plan using existing accounts and services.
+Resume the active return plan at the top of this spec using current deployed code, existing accounts and services.
+Read current saved access before any attempt; preserve completed SAM automatic imports.
 Skip optional agency/business-profile setup and use the verified agency Portal.
-Preserve other source behavior, AI budgets and review/import guards.
+Preserve other source behavior, AI budgets and existing non-SAM review/import guards.
+Establish a supported current detail/document route; stop on challenges without retry loops.
+Do not assume a vendor API exists or send the unsent support inquiry without instruction.
 Complete the required real acceptance and leave the plan in todo if a required
 hosted access gate remains blocked. Do not deploy production Netlify.
 Report changes, evidence, remaining blockers and the proposed commit message.

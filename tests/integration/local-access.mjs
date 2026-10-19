@@ -227,8 +227,22 @@ try {
     const scheduleChild=(await triggers.status(occurrence.trigger_id)).children[0];
     const scheduledPacket=await samWorker.packet(scheduleChild.request_id);assert.equal(scheduledPacket.automatic.verified,true);assert.equal(scheduledPacket.automatic.added,0);
     await schedules.control(schedule.id,'archive',{expected_version:1},first);
+    // The public Bonfire continuation uses existing private checkpoints, not a new table.
+    // Exercise the actual JSON containment and compare-and-swap HTTP filters.
+    const holdJob=randomUUID(),hold={source_id:samSource,method_hash:'a'.repeat(64)};
+    const checkpoint={stage:'interpret',bonfire_access_holds:[hold]};
+    const held=await db.from('procurement_jobs').insert({id:holdJob,search_request_id:child.request_id,
+      dedupe_key:`api-workflow:hold-fixture:${holdJob}`,kind:'process',state:'blocked',checkpoint});
+    assert.equal(held.error,null);
+    const matching=await db.from('procurement_jobs').select('id').eq('kind','process')
+      .contains('checkpoint',{bonfire_access_holds:[hold]}).neq('id',randomUUID()).limit(1);
+    assert.equal(matching.error,null);assert.equal(matching.data[0].id,holdJob);
+    const reconcile=()=>db.from('procurement_jobs').update({checkpoint:{...checkpoint,bonfire_access_holds:[]},state:'pending'})
+      .eq('id',holdJob).eq('state','blocked').eq('checkpoint',JSON.stringify(checkpoint)).select('id');
+    const reconciled=await reconcile();assert.equal(reconciled.error,null);assert.equal(reconciled.data.length,1);
+    const stale=await reconcile();assert.equal(stale.error,null);assert.equal(stale.data.length,0,'Stale reconciliation cannot overwrite a changed checkpoint');
   }finally {await livePool.end();await rehearsalPool.end();}
-  console.log(JSON.stringify({status:'passed',engine:'PostgreSQL 15 + PostgREST',checks:['anonymous reads/RPC denial','member and non-member reads/stages','signed expired and invalid JWT HTTP rejection','note ownership','atomic actor history','1005-row paged queue','service workflow access','Admin private table/RPC denial','Admin atomic replay','concurrent parent AI reservations and four-call cap','scheduling private tables/RPC denial and atomic replay','browser-independent private HTTP wake/shared worker/audit/replay/pause','nonempty automatic SAM manual/scheduled native validation/write/readback/deduplication'],isolated_wake_and_stage_ms:isolatedWakeAndStageMs,production_contacted:false},null,2));
+  console.log(JSON.stringify({status:'passed',engine:'PostgreSQL 15 + PostgREST',checks:['anonymous reads/RPC denial','member and non-member reads/stages','signed expired and invalid JWT HTTP rejection','note ownership','atomic actor history','1005-row paged queue','service workflow access','Admin private table/RPC denial','Admin atomic replay','concurrent parent AI reservations and four-call cap','scheduling private tables/RPC denial and atomic replay','browser-independent private HTTP wake/shared worker/audit/replay/pause','nonempty automatic SAM manual/scheduled native validation/write/readback/deduplication','private detail hold containment and checkpoint CAS/stale-write rejection'],isolated_wake_and_stage_ms:isolatedWakeAndStageMs,production_contacted:false},null,2));
 } finally {
   if(backend)await new Promise(r=>backend.close(r));
   if(server && server.exitCode===null && server.signalCode===null) {server.kill();await new Promise(r=>server.once('exit',r));}

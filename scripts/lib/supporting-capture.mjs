@@ -8,7 +8,7 @@ import { inspectPublicBonfireProjects } from './public-bonfire-projects.mjs';
 import { JSDOM } from 'jsdom';
 
 // Supporting evidence supplements a saved category capture; it never establishes coverage.
-export function supportingCapture({artifacts,serverKey,loadReviewedIntake,fetcher=fetch}) {
+export function supportingCapture({artifacts,serverKey,loadReviewedIntake,fetcher=fetch,beforeFetch=async()=>{}}) {
   const signature=receipt=>{
     const key=typeof serverKey==='function'?serverKey():serverKey;
     if(!key)throw new Error('Private supporting evidence signing key required');
@@ -51,6 +51,20 @@ export function supportingCapture({artifacts,serverKey,loadReviewedIntake,fetche
     return {item,evidence};
   }
   return {
+    async documentLinks(context,packet,evidence) {
+      const body=await this.load(context,packet,evidence),spec=contract(context);
+      if(!/^text\/html|^application\/xhtml/i.test(evidence.content_type))return [];
+      const dom=new JSDOM(body.toString('utf8'));
+      try {
+        return [...new Set([...dom.window.document.querySelectorAll('a[href]')].flatMap(a=>{
+          try {
+            const url=new URL(a.getAttribute('href'),evidence.url);
+            // Only literal public document links, never account actions or tokenized downloads.
+            return !url.search&&!url.hash&&safePublicUrl(url.href,spec.allowed_hosts)&&/\.pdf$/i.test(url.pathname)?[url.href]:[];
+          }catch{return [];}
+        }))];
+      }finally{dom.window.close();}
+    },
     async portable(context,packet,evidence) {
       // Only the server can promote an already verified, packet-bound capture.
       await this.load(context,packet,evidence);
@@ -69,8 +83,16 @@ export function supportingCapture({artifacts,serverKey,loadReviewedIntake,fetche
           ['url','content_sha256','content_type','retrieved_at','local_path'].some(key=>evidence[key]!==portable[key]))
         throw new Error('Reusable supporting evidence does not match current listing and method');
       await document(portable,spec);
+      let parent_evidence=portable.original.parent_evidence;
+      if(parent_evidence) {
+        const originalParent=await signed(parent_evidence.capture_receipt);
+        if(originalParent.parent_evidence)throw new Error('Nested supporting project provenance is not permitted');
+        await document(originalParent,spec);
+        const parentReceipt={...originalParent,...identity(packet),actor:'verified-cache'};
+        parent_evidence={...parent_evidence,capture_receipt:await artifacts.put({...parentReceipt,signature:signature(parentReceipt)})};
+      }
       // Historical retrieval time is preserved; this records reuse, never a fresh fetch.
-      const receipt={...portable.original,...identity(packet),actor:'verified-cache',
+      const receipt={...portable.original,...identity(packet),actor:'verified-cache',...(parent_evidence?{parent_evidence}:{}),
         reused_from:{portable_receipt:evidence.reusable_receipt,original_capture_receipt:portable.original_capture_receipt}};
       const capture_receipt=await artifacts.put({...receipt,signature:signature(receipt)});
       const {reusable_receipt,...saved}=evidence;
@@ -80,10 +102,14 @@ export function supportingCapture({artifacts,serverKey,loadReviewedIntake,fetche
       const spec=contract(context);
       if(input?.packet_hash!==packet.packet_hash || !safePublicUrl(input?.url,spec.allowed_hosts))
         throw new Error('Supporting URL must belong to the verified method and exact packet');
-      if(context.capability.method_spec.response_format==='bonfire-projects-v1' &&
-          !packet.pages.some(page=>sha(page.body)===page.content_sha256 &&
-            inspectPublicBonfireProjects(page.body,context.capability.method_spec).records.some(row=>row.url===input.url)))
-        throw new Error('Bonfire project must appear in the hash-verified saved listing');
+      if(context.capability.method_spec.response_format==='bonfire-projects-v1') {
+        const listed=url=>packet.pages.some(page=>sha(page.body)===page.content_sha256 &&
+          inspectPublicBonfireProjects(page.body,context.capability.method_spec).records.some(row=>row.url===url));
+        if(input.parent_evidence) {
+          if(!listed(input.parent_evidence.url)||!(await this.documentLinks(context,packet,input.parent_evidence)).includes(input.url))
+            throw new Error('Bonfire document must be linked by a verified saved current project');
+        }else if(!listed(input.url))throw new Error('Bonfire project must appear in the hash-verified saved listing');
+      }
       const intent={kind:'supporting-capture-intent-v1',...identity(packet),actor,url:input.url,
         created_at:new Date().toISOString(),method_hash:hash(context.capability.method_spec)};
       const intent_path=await artifacts.put({...intent,signature:signature(intent)});
@@ -103,6 +129,7 @@ export function supportingCapture({artifacts,serverKey,loadReviewedIntake,fetche
           content_sha256:receipt.content_sha256,content_type:receipt.content_type,retrieved_at:receipt.retrieved_at,local_path};
       }
       const outcome=await auditPhase('fetch_document',async()=>{
+        await beforeFetch();
         const fetched=await fetchPublicCheck(spec,input.url,fetcher);
         if(context.capability.method_spec.response_format==='bonfire-projects-v1' && fetched.state==='captured') {
           let accessPage=fetched.final_url!==input.url;
@@ -122,7 +149,8 @@ export function supportingCapture({artifacts,serverKey,loadReviewedIntake,fetche
       },{source_id:context.source.id,task_id:context.task.id});
       const {body,...audit}=outcome;
       const receipt={kind:'supporting-capture-v1',...identity(packet),actor,retrieved_at:new Date().toISOString(),
-        intent_path,method_hash:hash(context.capability.method_spec),...audit,...(body?{local_path:await artifacts.put(body)}:{})};
+        intent_path,method_hash:hash(context.capability.method_spec),...audit,
+        ...(input.parent_evidence?{parent_evidence:input.parent_evidence}:{}),...(body?{local_path:await artifacts.put(body)}:{})};
       const capture_receipt=await artifacts.put({...receipt,signature:signature(receipt)});
       if(outcome.state!=='captured')return {state:outcome.state,reason:outcome.reason,capture_receipt,lead_coverage:false};
       return {state:'captured',lead_coverage:false,capture_receipt,url:receipt.final_url,
@@ -132,6 +160,10 @@ export function supportingCapture({artifacts,serverKey,loadReviewedIntake,fetche
     async load(context,packet,evidence) {
       const spec=contract(context);
       const receipt=await signed(evidence.capture_receipt);
+      if(receipt.parent_evidence) {
+        if(!(await this.documentLinks(context,packet,receipt.parent_evidence)).includes(receipt.requested_url))
+          throw new Error('Supporting parent document provenance changed');
+      }
       const reused=receipt.capture_mode==='reviewed_saved_document';
       if(reused) {
         const {evidence:original}=await reviewedDocument(receipt.saved_document_origin,packet.source_id,receipt.final_url);

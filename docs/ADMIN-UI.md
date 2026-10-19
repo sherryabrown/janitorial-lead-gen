@@ -14,7 +14,7 @@ State sources are managed separately from county drafts and show related countie
 
 Activity opens frozen scope, children and paged steps. Polling runs only for the active viewed nonterminal run, with backoff. Actual AI usage, tokens, USD, unknown usage and held reservations remain distinct. Credits appear only if the provider actually supplied a unit. Missing official seeds/access/verification remain gaps. Evidence and source content are displayed as text. Review uses saved packet hashes, literal evidence, current interpretation revisions and existing guarded source registration. Source verification appears only after persisted registry readback. An interpretation adds outcomes without discarding previous reviewed outcomes. Candidate staging is separate from preparing a tested import and approving its exact hash; uncertain imports expose reconciliation.
 
-Returning to Contracts restores its current filters, page, selected record and bulk checks. Manual drafts and uncertain submission keys are retained per signed-in user in session storage; storage restrictions fall back to mounted/in-memory state. The schedule editor has an independent draft. Companies and email previews remain future functionality; Bonfire/Euna remains deferred.
+Returning to Contracts restores its current filters, page, selected record and bulk checks. Manual drafts and uncertain submission keys are retained per signed-in user in session storage; storage restrictions fall back to mounted/in-memory state. The schedule editor has an independent draft. Companies and email previews remain future functionality; Bonfire/Euna implementation is active under its separate plan; protected hosted execution remains unaccepted.
 
 ## Map asset
 
@@ -86,3 +86,11 @@ The server records `sam-automatic-v1` authority instead of claiming a human revi
 Legacy staged SAM results offer **Continue automatic saving**, using saved evidence only. This is a continuation of the automatic policy, not per-record approval. Paused/cancelled scheduled work and uncertain imports cannot be restarted through it. Collection and database outcomes remain separate, including partial capture and unresolved write outcomes.
 
 The automatic SAM extension is released to the existing Render backend, local backend and approved Netlify draft preview. [Live acceptance and recovery evidence](ADMIN-SAM-AUTOMATIC-DEPLOYMENT.md) records actual canonical readback, scheduled execution and cleanup. Netlify production remains unchanged.
+
+### Bonfire saved detail continuation (local return build)
+
+The shared worker checks public project URLs from verified saved listing rows one resource per lease, then at most four literal same-host public PDFs per project. It preserves listing/project evidence when another resource is blocked. Blocked or unknown attempts hold this source/method across ticks and later requests. Missing dynamic/protected documents and overflow remain partial.
+
+Category packet `detail_collection` is presentation metadata alongside the unchanged immutable listing packet. It contains per-project states and signed evidence descriptors, never raw document bytes. Selecting a saved document calls authenticated `POST /v1/requests/:request/tasks/:task/supporting-evidence` with its descriptor; packet/method/signature/hash verification precedes bounded plain review text, with no provider fetch. Exact project/document quotations supplement listing evidence for the existing reviewed candidate flow. A listing alone cannot establish a lead.
+
+The existing explicit `supporting-captures` action can reconcile a matching blocked public attempt after a successful recapture. An uncertain attempt requires `saved_evidence` with a valid exact-packet receipt and performs readback without resending. Checkpoint changes use compare-and-swap; current interpretations stay intact. This does not renew private access or enable unattended protected collection. Release is required before these local changes appear on the shared draft. SAM automatic saving remains separate.

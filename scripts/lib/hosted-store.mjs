@@ -11,6 +11,8 @@ export const checked = response => {
 // Public status is derived from state, including checkpoints saved by older workers.
 // Never publish arbitrary exception text retained in a checkpoint.
 export function publicJobAction(job) {
+  if(job.checkpoint?.bonfire_access_holds?.length)
+    return 'Bonfire project access needs review; inspect saved listing and capture evidence before resuming';
   if(job.checkpoint?.hosted_browser_attempt?.failure_code==='human_verification_required')
     return 'Official project verification is required; review saved evidence and access before explicitly resuming';
   const stage = job.checkpoint?.stage ?? '';

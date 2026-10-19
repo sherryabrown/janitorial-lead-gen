@@ -202,9 +202,11 @@ it('sends an explicit append against the current review rather than replacing pr
   ).toBe(false);
 });
 it('shows current Bonfire project actions without treating browser navigation as verified collection', async () => {
-  mocked.request.mockImplementation(async path => path.endsWith('/packet') ? {
+  const evidence={url:'https://town.bonfirehub.com/docs/scope.pdf',capture_receipt:'artifacts/'+'c'.repeat(64),content_sha256:'d'.repeat(64),content_type:'application/pdf',retrieved_at:'2026-10-19T14:00:00Z',local_path:'artifacts/'+'d'.repeat(64)};
+  mocked.request.mockImplementation(async path => path.endsWith('/supporting-evidence') ? {review:'PDF page 1: Janitorial work in Little Rock.'} : path.endsWith('/packet') ? {
     ...packet,portal_url:'https://town.bonfirehub.com/portal/?tab=openOpportunities',
     project_links:[{id:'249097',title:'Park Management',closes:'2026-11-13 10:30:00',url:'https://town.bonfirehub.com/opportunities/249097',run_id:packet.pages[0].run_id,content_sha256:'a'.repeat(64)}],
+    detail_collection:{complete:true,reason:'One document still needs official access',projects:[{id:'249097',state:'captured',evidence:[evidence]}]},
   } : {tasks:[task],jobs:[],candidates:[],total_candidates:0,next_offset:null});
   render(<RequestReview id="request" owner="reviewer" onViewLeads={()=>{}} />);
   fireEvent.click(await screen.findByRole('button',{name:'Review captured evidence'}));
@@ -214,6 +216,12 @@ it('shows current Bonfire project actions without treating browser navigation as
   expect(screen.getByRole('link',{name:'Open agency Portal'}).getAttribute('target')).toBe('_blank');
   expect(screen.getByText(/Opening the Portal does not verify the server session/)).toBeTruthy();
   expect(mocked.request.mock.calls.some(c=>/session|capture|imports/.test(c[0]))).toBe(false);
+  expect(screen.getByText(/Details saved/)).toBeTruthy();
+  expect(screen.getByText('One document still needs official access')).toBeTruthy();
+  fireEvent.change(screen.getByLabelText('Saved project or document evidence'),{target:{value:'0'}});
+  await screen.findByText('PDF page 1: Janitorial work in Little Rock.');
+  expect(mocked.request.mock.calls.find(c=>c[0].endsWith('/supporting-evidence'))?.[1]).toEqual({body:evidence});
+  expect(mocked.request.mock.calls.some(c=>/supporting-captures|imports|\/access\//.test(c[0]))).toBe(false);
 });
 it('checks saved access without signing in automatically and disables expired hosted actions',async()=>{
   mocked.request.mockImplementation(async path=>path.startsWith('/v1/access/')?{

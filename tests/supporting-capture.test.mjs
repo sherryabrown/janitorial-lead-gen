@@ -8,6 +8,7 @@ import { context,result } from './helpers/known-workflow.mjs';
 import { intakeBefore } from './helpers/known-workflow.mjs';
 import { planInterpretationIntake } from '../scripts/lib/interpretation-intake.mjs';
 import { validateFindingBounds,hostedWorkflow } from '../scripts/lib/hosted-workflow.mjs';
+import {continueBonfireDetails} from '../scripts/lib/bonfire-detail-continuation.mjs';
 
 function fixture(fetcher=async()=>new Response('{"award_date":"2026-10-03"}',{headers:{'Content-Type':'application/json'}})) {
   const ctx=context();
@@ -20,6 +21,84 @@ function fixture(fetcher=async()=>new Response('{"award_date":"2026-10-03"}',{he
   const service=supportingCapture({artifacts,serverKey:()=> 'private-test-key',fetcher});
   return {ctx,packet,saved,artifacts,service};
 }
+
+function bonfireFixture(fetcher) {
+  const f=fixture(fetcher);
+  const body=Buffer.from(JSON.stringify({success:1,payload:{projects:Object.fromEntries([101,102].map(id=>[id,
+    {ProjectID:String(id),ProjectName:`Park management ${id}`,DateClose:'2026-11-13 10:30:00'}]))}}));
+  f.ctx.capability.method_spec={...f.ctx.capability.method_spec,response_format:'bonfire-projects-v1',max_records:100,
+    allowed_hosts:['town.bonfirehub.com'],urls:['https://town.bonfirehub.com/PublicPortal/getOpenPublicOpportunitiesSectionData']};
+  Object.assign(f.ctx.captures[0],{content_base64:body.toString('base64'),content_sha256:sha(body),content_type:'application/json'});
+  f.ctx.runs[0].detail.content_sha256=sha(body);f.packet=makeInterpretationPacket(f.ctx);
+  return f;
+}
+
+test('Bonfire continuation saves listing-derived details/documents across leases and verifies reusable parent provenance',async()=>{
+  const calls=[];
+  const f=bonfireFixture(async url=>{calls.push(url);return new Response(url.endsWith('.pdf')?'%PDF- official scope':
+    '<html><title>Park management</title><a href="/docs/scope.pdf">Scope</a><a href="https://foreign.gov/bad.pdf">Bad</a><a href="/docs/private.pdf?token=secret">Private</a></html>',
+    {headers:{'Content-Type':url.endsWith('.pdf')?'application/pdf':'text/html'}});});
+  let checkpoint={},writes=[],returned;
+  const step=async()=>{
+    // Simulate durable checkpoint read on a new worker lease.
+    checkpoint=JSON.parse(JSON.stringify(checkpoint));
+    returned=await continueBonfireDetails({context:f.ctx,packet:f.packet,supporting:f.service,checkpoint,
+      save:async state=>{writes.push(state);},actor:'worker'});
+  };
+  for(let n=0;n<10&&!returned;n++)await step();
+  assert.equal(returned,true);assert.equal(calls.length,4);
+  assert.deepEqual(calls,['https://town.bonfirehub.com/opportunities/101','https://town.bonfirehub.com/docs/scope.pdf',
+    'https://town.bonfirehub.com/opportunities/102','https://town.bonfirehub.com/docs/scope.pdf']);
+  assert.equal(writes[0],'running');assert.deepEqual(checkpoint.bonfire_access_holds,[]);
+  const progress=checkpoint.bonfire_details[f.packet.task_id];assert.equal(progress.complete,true);
+  assert.equal(progress.projects[0].documents.length,1);
+  const doc=progress.projects[0].documents[0].evidence;
+  assert.match((await f.service.load(f.ctx,f.packet,doc)).toString(),/official scope/);
+  const portable=await f.service.portable(f.ctx,f.packet,doc);
+  const later={...f.packet,request_id:'second-request',task_id:'second-task',packet_hash:'b'.repeat(64)};
+  const reused=await f.service.rebind(f.ctx,later,portable);
+  assert.deepEqual(await f.service.load(f.ctx,later,reused),await f.service.load(f.ctx,f.packet,doc));
+  assert.equal(reused.retrieved_at,doc.retrieved_at);assert.equal(calls.length,4);
+  await step();assert.equal(calls.length,4);
+  await assert.rejects(f.service.capture(f.ctx,f.packet,{packet_hash:f.packet.packet_hash,url:'https://town.bonfirehub.com/docs/unlinked.pdf',
+    parent_evidence:progress.projects[0].evidence},'worker'),/linked by a verified/);
+  assert.equal(calls.length,4);
+});
+
+test('Bonfire challenge and uncertain fetch stop this source across ticks and new requests without losing the listing',async()=>{
+  for(const failure of ['challenge','network']) {
+    let calls=0;
+    const f=bonfireFixture(async()=>{calls++;if(failure==='network')throw Error('network');
+      return new Response('<html><title>Just a moment</title>Performing security verification</html>',{headers:{'Content-Type':'text/html'}});});
+    const checkpoint={};
+    const args={context:f.ctx,packet:f.packet,supporting:f.service,checkpoint,save:async()=>{},actor:'worker'};
+    assert.equal(await continueBonfireDetails(args),false);
+    assert.equal(await continueBonfireDetails(args),true);
+    assert.equal(calls,1);assert.equal(checkpoint.bonfire_access_holds.length,1);
+    assert.equal(checkpoint.bonfire_details[f.packet.task_id].projects[1].state,'pending');
+    const second={};
+    await continueBonfireDetails({...args,packet:{...f.packet,request_id:'second'},checkpoint:second,priorHold:async()=>true});
+    assert.equal(calls,1);assert.equal(second.bonfire_details[f.packet.task_id].complete,true);
+    assert.match(f.packet.pages[0].review,/Park management/);
+  }
+});
+
+test('Bonfire lost receipt blocks replay; pause before fetch is safely resumable and listing changes are rejected',async()=>{
+  let calls=0;
+  const f=bonfireFixture(async()=>{calls++;return new Response('details',{headers:{'Content-Type':'text/plain'}});});
+  const checkpoint={};
+  const args={context:f.ctx,packet:f.packet,supporting:f.service,checkpoint,save:async()=>{},actor:'worker'};
+  // Simulate process death after the persisted intent, before a final result checkpoint.
+  await assert.rejects(continueBonfireDetails({...args,save:async state=>{if(state==='running')throw Error('lost lease');}}),/lost lease/);
+  assert.equal(await continueBonfireDetails(args),true);assert.equal(calls,0);
+  const paused=supportingCapture({artifacts:f.artifacts,serverKey:'private-test-key',fetcher:async()=>{calls++;throw Error('no send');},
+    beforeFetch:async()=>{const e=Error('paused');e.code='schedule_paused';throw e;}});
+  const clean={};
+  await assert.rejects(continueBonfireDetails({...args,checkpoint:clean,supporting:paused}),e=>e.code==='schedule_paused');
+  assert.deepEqual(clean.bonfire_access_holds,[]);assert.equal(clean.bonfire_details[f.packet.task_id].projects[0].state,'pending');
+  assert.equal(calls,0);
+  await assert.rejects(continueBonfireDetails({...args,packet:{...f.packet,packet_hash:'changed'}}),/listing or method changed/);
+});
 
 test('Bonfire supporting capture accepts current saved projects, rejects historical and client-forged destinations before fetching',async()=>{
   let fetches=0;
@@ -183,7 +262,7 @@ test('an exactly reviewed structured row is replaced rather than left as an ambi
 });
 
 test('the worker reuses a signed cached positive without AI, stages once and preserves lease checkpoints',async()=>{
-  let aiCalls=0,reportedError;
+  let aiCalls=0,reportedError,publicRecovered=false,supportingCalls=0;
   const f=fixture(async()=>new Response('{"site":"Texarkana","deadline":"2026-10-30"}',{headers:{'Content-Type':'application/json'}}));
   const capture=await f.service.capture(f.ctx,f.packet,{packet_hash:f.packet.packet_hash,url:'https://example.gov/detail'},'reviewer');
   const review=result(f.packet);review.findings[0].supporting_evidence=[{...capture,locator:'saved document',excerpt:'{"site":"Texarkana","deadline":"2026-10-30"}'}];
@@ -192,7 +271,7 @@ test('the worker reuses a signed cached positive without AI, stages once and pre
   f.ctx.request.workflow_control={};f.ctx.request.initiated_by='reviewer';
   f.ctx.task.query_window=f.ctx.request.search_windows.opportunity;f.ctx.task.state='needs_interpretation';
   const later=makeInterpretationPacket(f.ctx),cached=cacheReviewedFacts({version:1,facts:[]},f.packet,review,{portableSupporting:new Map([['24-17',[portable]]])});
-  const worker={id:'worker',search_request_id:f.ctx.request.id,state:'running',lease_token:'lease',checkpoint:{stage:'interpret'}};
+  const worker={id:'worker',kind:'process',dedupe_key:`api-workflow:${f.ctx.request.id}`,search_request_id:f.ctx.request.id,state:'running',lease_token:'lease',checkpoint:{stage:'interpret'}};
   const tables={procurement_search_requests:[f.ctx.request],procurement_request_targets:[{id:f.ctx.task.target_id,search_request_id:f.ctx.request.id}],
     procurement_coverage_tasks:[f.ctx.task],procurement_jobs:[f.ctx.job,worker],procurement_sources:[f.ctx.source],
     procurement_source_capabilities:[f.ctx.capability],procurement_runs:f.ctx.runs,procurement_public_captures:f.ctx.captures,
@@ -200,11 +279,14 @@ test('the worker reuses a signed cached positive without AI, stages once and pre
     procurement_interpretations:[],procurement_intake_items:[],procurement_request_sources:[],procurement_usage_ledger:[],procurement_intake_leads:[]};
   let claim=true,savedInterpretation;
   const db={from(table){
-    const filters=[];let single=false,operation;
-    const query={select(){return this;},eq(k,v){filters.push(r=>r[k]===v);return this;},in(k,v){filters.push(r=>v.includes(r[k]));return this;},
+    const filters=[];let single=false,operation,update;
+    const query={select(){return this;},eq(k,v){filters.push(r=>k==='checkpoint'?JSON.stringify(r[k])===v:r[k]===v);return this;},in(k,v){filters.push(r=>v.includes(r[k]));return this;},
+      neq(k,v){filters.push(r=>r[k]!==v);return this;},limit(){return this;},
+      contains(k,v){filters.push(r=>v.bonfire_access_holds.every(h=>r[k]?.bonfire_access_holds?.some(saved=>Object.entries(h).every(([key,value])=>saved[key]===value))));return this;},
       order(){return this;},range(){return this;},maybeSingle(){single=true;return this;},
+      update(value){update=value;return this;},
       upsert(value){operation=()=>{for(const row of [].concat(value))if(!tables[table].some(r=>r.id===row.id))tables[table].push(row);};return this;},
-      then(resolve,reject){return Promise.resolve().then(()=>{operation?.();const data=(tables[table]??[]).filter(r=>filters.every(fn=>fn(r)));return {data:single?data[0]??null:data};}).then(resolve,reject);}};
+      then(resolve,reject){return Promise.resolve().then(()=>{operation?.();const data=(tables[table]??[]).filter(r=>filters.every(fn=>fn(r)));if(update)data.forEach(row=>Object.assign(row,update));return {data:single?data[0]??null:data};}).then(resolve,reject);}};
     return query;
   },async rpc(name,args){
     if(name==='claim_procurement_workflow_job'){const data=claim?worker:null;claim=false;return {data};}
@@ -215,6 +297,7 @@ test('the worker reuses a signed cached positive without AI, stages once and pre
     throw Error('Unexpected fixture RPC');
   }};
   const workflow=hostedWorkflow({db,project:'zreplhkoxswtzxlchtjf',serverKey:()=> 'private-test-key',artifacts:f.artifacts,
+    supportingFetch:async()=>{supportingCalls++;return publicRecovered?new Response('<html><title>Facilities maintenance services</title><main>Official scope</main></html>',{headers:{'Content-Type':'text/html'}}):new Response('Blocked',{status:403});},
     aiConfig:{enabled:true},reportError:(_id,error)=>{reportedError=error;},ai:async()=>{aiCalls++;throw Error('Ambiguous row requires AI review');}});
   assert.equal(await workflow.step(),true);
   assert.equal(aiCalls,0);assert.equal(worker.state,'pending');assert.equal(worker.checkpoint.cache_hits,1);
@@ -227,12 +310,37 @@ test('the worker reuses a signed cached positive without AI, stages once and pre
   // Listing-only Bonfire gaps never spend another AI call guessing inaccessible details.
   const row={ProjectID:'249097',ProjectName:'Facilities maintenance services',DateClose:'2026-10-30 17:00:00'};
   const listing=Buffer.from(JSON.stringify({success:1,payload:{projects:{249097:row}}}));
-  Object.assign(f.ctx.capability.method_spec,{response_format:'bonfire-projects-v1',max_records:100});
+  Object.assign(f.ctx.capability.method_spec,{response_format:'bonfire-projects-v1',max_records:100,
+    urls:['https://example.gov/PublicPortal/getOpenPublicOpportunitiesSectionData']});
   Object.assign(f.ctx.captures[0],{content_base64:listing.toString('base64'),content_sha256:sha(listing),content_type:'application/json'});
   f.ctx.runs[0].detail.content_sha256=sha(listing);
   const listingPacket=makeInterpretationPacket(f.ctx);
   tables.procurement_extraction_cache=[{cache_key:extractionKey(listingPacket,f.ctx.capability.method_spec),facts:{version:1,facts:[{page_index:0,record:row,title:row.ProjectName,excerpt:JSON.stringify(row),locator:'row 1'}]}}];
   claim=true;worker.checkpoint={stage:'interpret'};
   await workflow.step();assert.equal(aiCalls,1);assert.equal(worker.state,'pending',reportedError?.message);
+  assert.equal(worker.checkpoint.bonfire_details[f.ctx.task.id].projects[0].state,'blocked');
+  claim=true;await workflow.step();assert.equal(aiCalls,1);
   assert.deepEqual(worker.checkpoint.interpreted_task_ids,[f.ctx.task.id]);assert.equal(tables.procurement_intake_items.length,1);
+  const savedReview={id:'preserved',is_current:true,request_id:f.ctx.request.id,task_id:f.ctx.task.id,packet_hash:listingPacket.packet_hash,
+    result:{findings:[],exclusions:[],unresolved:[{reason:'Previously reviewed scope'}]}};
+  tables.procurement_interpretations.push(savedReview);
+  publicRecovered=true;worker.state='blocked';
+  const captured=await workflow.captureSupporting(f.ctx.request.id,f.ctx.task.id,{packet_hash:listingPacket.packet_hash,url:listingPacket.project_links[0].url},'reviewer');
+  assert.equal(captured.continuation,'saved');assert.equal(worker.state,'pending');assert.deepEqual(worker.checkpoint.bonfire_access_holds,[]);
+  assert.deepEqual(worker.checkpoint.interpreted_task_ids,[]);
+  claim=true;await workflow.step();
+  assert.equal(tables.procurement_intake_items.length,1);assert.equal(aiCalls,1);
+  assert.deepEqual(worker.checkpoint.interpreted_task_ids,[f.ctx.task.id],reportedError?.stack??JSON.stringify(worker.checkpoint));
+  assert.equal(tables.procurement_interpretations[0],savedReview);
+  const read=await workflow.readSupporting(f.ctx.request.id,f.ctx.task.id,captured);
+  assert.match(read.review,/Official scope/);
+  await assert.rejects(workflow.readSupporting(f.ctx.request.id,f.ctx.task.id,{...captured,content_sha256:'f'.repeat(64)}),/provenance/);
+  const progress=worker.checkpoint.bonfire_details[f.ctx.task.id];
+  progress.projects[0].state='attempt_pending';worker.state='blocked';
+  worker.checkpoint.bonfire_access_holds=[{source_id:f.packet.source_id,method_hash:progress.method_hash}];
+  const calls=supportingCalls,input={packet_hash:listingPacket.packet_hash,url:listingPacket.project_links[0].url};
+  await assert.rejects(workflow.captureSupporting(f.ctx.request.id,f.ctx.task.id,input,'reviewer'),/Reconcile the saved uncertain capture/);
+  const reconciled=await workflow.captureSupporting(f.ctx.request.id,f.ctx.task.id,{...input,saved_evidence:captured},'reviewer');
+  assert.equal(reconciled.continuation,'saved');assert.equal(supportingCalls,calls);
+  assert.deepEqual(worker.checkpoint.bonfire_access_holds,[]);
 });

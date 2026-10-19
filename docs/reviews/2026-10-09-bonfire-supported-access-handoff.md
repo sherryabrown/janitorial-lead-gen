@@ -26,6 +26,10 @@ Official documentation reviewed October 9:
 - [Render WebSockets](https://render.com/docs/websocket): transport is available, not proof of a working interactive browser.
 - [Euna Procurement support](https://procurement-help.eunasolutions.com/hc/en-us) and its [request form](https://procurement-help.eunasolutions.com/hc/en-us/requests/new).
 
+## October 19 return-build update
+
+The inquiry below is still **unsent**. User-confirmed manual project/document access after completing the checkbox is retained. Fresh private readback still shows expired hosted access and the earlier `human_verification_required` capture. One fresh public fetch returned HTTP 403 for current listing-derived project 249097 on October 19 at 14:17:17 UTC. No hosted attempt or challenge retry followed. The draft now uses that current example and separates these observations; no API availability is assumed.
+
 ## Ready-to-submit request
 
 **Destination:** Euna Procurement support request form above, or `support.procurement@eunasolutions.com` as listed in that official help center.
@@ -34,7 +38,7 @@ Official documentation reviewed October 9:
 
 > We have an existing vendor account for the City of Little Rock portal at https://littlerock.bonfirehub.com/. We want to retrieve procurement notices and supporting documents for our internal janitorial lead-management application, using bounded, read-only requests. We are not submitting bids or trying to bypass security controls.
 >
-> Our account can sign in and open projects in a normal interactive browser. Our hosted Chromium/Playwright worker on Render encounters a Cloudflare security-verification page when opening project details after sign-in. Example: https://littlerock.bonfirehub.com/opportunities/169158. We have stopped automated retries.
+> Our existing account can open project details and documents in a normal browser after the user completes verification. Our last saved hosted Chromium/Playwright project capture on Render required human verification; its recipe/session have since expired, and we have not retried that hosted route. A separate single bounded public read on October 19, 2026 at 14:17 UTC returned HTTP 403 for a current Portal-listed project: https://littlerock.bonfirehub.com/opportunities/249097. We have stopped automated retries. Please advise on a supported retrieval path; we are not assuming an API exists.
 >
 > Please confirm:
 > 1. Is there an official vendor API, feed or export available to our existing account for Little Rock? Please provide documentation and access requirements.

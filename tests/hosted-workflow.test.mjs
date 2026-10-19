@@ -80,6 +80,20 @@ test('supporting capture endpoint requires sign-in, records actor and does not w
   assert.equal(response.status,200);assert.equal(recorded[3],actor);assert.equal(response.data.lead_coverage,false);
   assert.equal(kicks,0);server.close();
 });
+
+test('saved supporting evidence reads require sign-in and never wake provider collection',async()=>{
+  let kicks=0,recorded;
+  const server=workflowServer({authenticate:async()=>({id:actor}),kick:()=>{kicks++;},workflow:{
+    readSupporting:async(...args)=>{recorded=args;return {review:'PDF page 1: Official saved text'};}}});
+  try {
+    const path=`/v1/requests/${id(1)}/tasks/${id(3)}/supporting-evidence`;
+    assert.equal((await call(server,path,{method:'POST',input:{}})).status,401);
+    const input={capture_receipt:'artifacts/'+'a'.repeat(64)};
+    const result=await call(server,path,{method:'POST',headers:auth,input});
+    assert.equal(result.status,200);assert.deepEqual(recorded,[id(1),id(3),input]);assert.equal(kicks,0);
+    assert.equal(result.data.review,'PDF page 1: Official saved text');
+  }finally{server.close();}
+});
 test('HTTP contract validates sessions, denies origins/anonymous callers, preserves actor and strips raw packet bytes',async()=>{
   const recorded=[];
   const server=workflowServer({allowedOrigins:['https://existing.netlify.app'],authenticate:async token=>token==='valid-session'?{id:actor}:null,

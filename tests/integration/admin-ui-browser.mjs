@@ -267,9 +267,12 @@ try {
         };
       else if (p === '/v1/access/saved-access')
         body = {tenant:'littlerock.bonfirehub.com',next:{action:'Revalidate the expired reviewed portal recipe before hosted sign-in'},hosted:{recipe_current:false,session_current:false}};
+      else if(p === '/v1/requests/request/tasks/task/supporting-evidence')
+        body = {review:'PDF page 1: Official janitorial work scope in Little Rock. Long source text remains readable on mobile.'};
       else if (p === '/v1/requests/request/tasks/task/packet')
         body = {version:2,packet_hash:'a'.repeat(64),category:'opportunity',task_id:'task',request_id:'request',complete:true,
           portal_url:'https://littlerock.bonfirehub.com/portal/?tab=openOpportunities',
+          detail_collection:{complete:true,reason:'One document still needs official access; saved evidence retained',projects:[{id:'249097',state:'captured',evidence:[{url:'https://littlerock.bonfirehub.com/docs/scope.pdf',capture_receipt:'artifacts/'+'c'.repeat(64),content_sha256:'d'.repeat(64),content_type:'application/pdf',retrieved_at:'2026-10-19T14:00:00Z',local_path:'artifacts/'+'d'.repeat(64)}]}]},
           pages:[{run_id:'listing',url:'https://littlerock.bonfirehub.com/PublicPortal/getOpenPublicOpportunitiesSectionData',review:'Saved public listing: Natural Steps Park Management; project details need verification'}],
           project_links:[{id:'249097',title:'Natural Steps Park Management',closes:'2026-11-13 16:30:00',url:'https://littlerock.bonfirehub.com/opportunities/249097',run_id:'listing',content_sha256:'b'.repeat(64)}]};
       else throw Error('Unexpected fixture route ' + p);
@@ -330,6 +333,8 @@ try {
   await page.getByRole('button',{name:'Review captured evidence'}).click();
   await page.getByText('Current projects from this saved listing').click();
   assert.equal(await page.getByRole('link',{name:'Natural Steps Park Management'}).getAttribute('href'),'https://littlerock.bonfirehub.com/opportunities/249097');
+  await page.getByLabel('Saved project or document evidence').selectOption('0');
+  await page.getByText(/PDF page 1: Official janitorial work scope/).waitFor();
   for(const width of [1440,390,320]) {
     await page.setViewportSize({width,height:900});
     await page.getByRole('link',{name:'Open agency Portal'}).focus();

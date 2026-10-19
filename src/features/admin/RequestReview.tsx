@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   workflowRequest,
   mutationKey,
@@ -811,7 +811,16 @@ function InterpretationReview({
     [county, setCounty] = useState(''),
     [city, setCity] = useState(''),
     [date, setDate] = useState(''),
-    [basis, setBasis] = useState('');
+    [basis, setBasis] = useState(''),
+    [supportingIndex, setSupportingIndex] = useState(''),
+    [supportingQuote, setSupportingQuote] = useState(''),
+    [supportingPreview, setSupportingPreview] = useState(''),
+    [supportingLocator, setSupportingLocator] = useState('saved document');
+  const supportingRead = useRef(0);
+  const savedSupporting = packet.detail_collection?.projects.flatMap(project => project.evidence) ?? [];
+  const selectedSupporting = supportingIndex === '' ? undefined : savedSupporting[Number(supportingIndex)];
+  const selectedProject = packet.detail_collection?.projects.find(project => project.evidence.some(evidence => evidence.capture_receipt === selectedSupporting?.capture_receipt));
+  const supportingProjectUrl = packet.project_links?.find(project => project.id === selectedProject?.id)?.url;
   const p = packet.pages[page];
   if (
     packet.current_interpretation &&
@@ -832,7 +841,9 @@ function InterpretationReview({
     );
   const submit = () => {
     const evidence = [{ run_id: p.run_id, locator, excerpt: quote }],
-      item = { reason, evidence };
+      item = { reason, evidence, ...(selectedSupporting ? {
+        supporting_evidence: [{ ...selectedSupporting, excerpt: supportingQuote, locator: supportingLocator }],
+      } : {}) };
     const field = (
       {
         published: 'published_date',
@@ -867,7 +878,7 @@ function InterpretationReview({
                 payload: {
                   title: name,
                   bid_type: packet.category,
-                  source_url: p.url,
+                  source_url: supportingProjectUrl ?? p.url,
                   work_state: 'AR',
                   work_county: county,
                   work_city: city || undefined,
@@ -926,15 +937,42 @@ function InterpretationReview({
                   </a>
                   {' · Closes '}
                   {link.closes}
+                  {packet.detail_collection?.projects.find(project => project.id === link.id) && (
+                    <span> · {({ captured: 'Details saved', pending: 'Not checked', blocked: 'Access required', outcome_unknown: 'Capture needs reconciliation', attempt_pending: 'Capture needs reconciliation', partial: 'Incomplete capture' } as Record<string,string>)[packet.detail_collection.projects.find(project => project.id === link.id)!.state] ?? 'Not checked'}</span>
+                  )}
                 </li>
               ))}
           </ul>
+          {packet.detail_collection?.reason && <p role="status">{packet.detail_collection.reason}</p>}
+          {packet.detail_collection?.projects.some(project => project.document_overflow) && <p className="admin-hint">More documents are linked than this bounded capture includes. Document coverage is partial.</p>}
           <p className="admin-hint">
             If a project asks for sign-in or security verification, complete the
             official access action and retain the saved evidence for review. No
             automatic challenge retries are performed.
           </p>
         </details>
+      )}
+      {savedSupporting.length > 0 && (
+        <>
+          <label>Saved project or document evidence
+            <select value={supportingIndex} onChange={e => {
+              const index=e.target.value,read=++supportingRead.current;
+              setSupportingIndex(index);setSupportingQuote('');setSupportingPreview(index===''?'':'Loading saved evidence…');
+              if(index!=='')void workflowRequest<{review:string}>(`/v1/requests/${packet.request_id}/tasks/${packet.task_id}/supporting-evidence`,
+                {body:savedSupporting[Number(index)]}).then(result=>{
+                  if(read===supportingRead.current)setSupportingPreview(result.review);
+                }).catch(()=>{if(read===supportingRead.current)setSupportingPreview('Saved evidence could not load. Select it again to retry.');});
+            }}>
+              <option value="">Use listing evidence only</option>
+              {savedSupporting.map((document, index) => <option key={document.capture_receipt} value={index}>{document.url}</option>)}
+            </select>
+          </label>
+          {selectedSupporting && <>
+            <pre className="admin-evidence">{supportingPreview}</pre>
+            <label>Exact project/document quotation<textarea value={supportingQuote} onChange={e => setSupportingQuote(e.target.value)} /></label>
+            <label>Project/document evidence location<input value={supportingLocator} onChange={e => setSupportingLocator(e.target.value)} /></label>
+          </>}
+        </>
       )}
       <label>
         Decision
@@ -1001,6 +1039,7 @@ function InterpretationReview({
           !p.review.includes(quote) ||
           !locator.trim() ||
           !reason.trim() ||
+          (selectedSupporting && (!supportingQuote.trim() || supportingQuote.length > 2000 || !supportingLocator.trim())) ||
           (decision === 'finding' &&
             (!record || !name || !county || !date || !basis))
         }

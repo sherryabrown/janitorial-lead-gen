@@ -101,6 +101,8 @@ export function workflowServer({authenticate,workflow,imports,discovery,sam,samP
             result={...packet,pages:packet.pages.map(({body,extension,raw_file,content_base64,...page})=>page)};
           } else if(request.method==='POST'&&segments.length===6&&segments[5]==='supporting-captures')
             result=await workflow.captureSupporting(id,segments[4],input,actor);
+          else if(request.method==='POST'&&segments.length===6&&segments[5]==='supporting-evidence')
+            result=await workflow.readSupporting(id,segments[4],input);
           else if(request.method==='POST'&&segments.length===6&&segments[5]==='interpret')
             result=await workflow.interpret(id,segments[4],input,actor);
         } else if(request.method==='POST'&&segments.length===5&&segments[3]==='imports'&&segments[4]==='prepare') {

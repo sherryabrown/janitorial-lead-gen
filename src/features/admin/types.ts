@@ -197,6 +197,24 @@ export type EvidencePage = {
   content_sha256?: string;
 };
 export type Packet = {
+  detail_collection?: {
+    complete: boolean;
+    reason?: string;
+    projects: {
+      id: string;
+      state: string;
+      documents_complete?: boolean;
+      document_overflow?: boolean;
+      evidence: {
+        url: string;
+        capture_receipt: string;
+        content_sha256: string;
+        content_type: string;
+        retrieved_at: string;
+        local_path: string;
+      }[];
+    }[];
+  };
   portal_url?: string;
   project_links?: {
     id: string;

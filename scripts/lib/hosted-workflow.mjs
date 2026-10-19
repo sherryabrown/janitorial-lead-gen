@@ -8,13 +8,14 @@ import { executeKnownSources } from './known-source-collection.mjs';
 import { makeInterpretationPacket,validateInterpretation } from './known-source-workflow.mjs';
 import { persistInterpretation } from './interpretation-store.mjs';
 import { planInterpretationIntake } from './interpretation-intake.mjs';
-import { extractFacts,evaluateFacts,extractionKey,verifyEvidenceSpans,cacheReviewedFacts } from './hosted-interpretation.mjs';
+import { extractFacts,evaluateFacts,extractionKey,verifyEvidenceSpans,cacheReviewedFacts,evidenceText } from './hosted-interpretation.mjs';
 import { boundedInterpretation } from './hosted-ai.mjs';
 import { accessNext } from './source-access.mjs';
 import { recordAccessEvent } from './source-access-store.mjs';
 import { supportingCapture } from './supporting-capture.mjs';
 import {packetLink} from './api-record-links.mjs';
 import {portalRecipe,matchingSession} from './portal-session.mjs';
+import {continueBonfireDetails} from './bonfire-detail-continuation.mjs';
 
 export function validateFindingBounds(packet,result,{verifiedSupporting=false}={}) {
   const basis=packet.query_window.date_basis??'published';
@@ -35,8 +36,8 @@ export function validateFindingBounds(packet,result,{verifiedSupporting=false}={
       throw new Error('Finding actual work location is unverified or outside requested geography');
   }
 }
-export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=boundedInterpretation,processJob,captureBrowser,canCaptureBrowser,audit,reportError=(id,error)=>console.error('Workflow stage failed',id,error)}) {
-  const supporting=supportingCapture({artifacts,serverKey,loadReviewedIntake:async id=>{
+export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=boundedInterpretation,processJob,captureBrowser,canCaptureBrowser,audit,supportingFetch=fetch,reportError=(id,error)=>console.error('Workflow stage failed',id,error)}) {
+  const supporting=supportingCapture({artifacts,serverKey,fetcher:supportingFetch,loadReviewedIntake:async id=>{
     const item=await one(db,'procurement_intake_items',id);
     if(!item)return null;
     const links=await rows(db,'procurement_intake_leads',q=>q.eq('intake_id',id));
@@ -64,11 +65,22 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
     return {request,task,job:jobs[0],source,capability,runs:runIds.map(id=>runs.find(r=>r.id===id)),captures:runIds.map(id=>captures.find(c=>c.run_id===id))};
   }
   async function packet(requestId,taskId) {
-    const packet=makeInterpretationPacket(await context(requestId,taskId));
+    const ctx=await context(requestId,taskId),packet=makeInterpretationPacket(ctx);
+    let detail_collection;
+    if(packet.project_links) {
+      const parent=(await rows(db,'procurement_jobs',q=>q.eq('dedupe_key',`api-workflow:${requestId}`),'checkpoint'))[0];
+      const progress=parent?.checkpoint?.bonfire_details?.[taskId];
+      if(progress?.packet_hash===packet.packet_hash&&progress.method_hash===hash({id:ctx.capability.id,version:ctx.capability.parser_version,spec:ctx.capability.method_spec})) {
+        detail_collection={complete:progress.complete,reason:progress.reason,projects:progress.projects.map(project=>({
+          id:project.id,state:project.state,documents_complete:project.documents_complete,document_overflow:project.document_overflow,
+          evidence:[project,...project.documents].filter(d=>d.evidence).map(d=>d.evidence),
+        }))};
+      }
+    }
     const current=(await rows(db,'procurement_interpretations',q=>q.eq('request_id',requestId).eq('task_id',taskId).eq('is_current',true),'id,packet_hash,result'))[0];
     // The immutable packet hash remains unchanged. A review revision explicitly supersedes
     // the current interpretation; only matching-packet outcomes may be appended by the UI.
-    return {...packet,current_interpretation:current?{id:current.id,packet_hash:current.packet_hash,counts:Object.fromEntries(['findings','exclusions','unresolved'].map(k=>[k,current.result[k].length]))}:null};
+    return {...packet,...(detail_collection?{detail_collection}:{}),current_interpretation:current?{id:current.id,packet_hash:current.packet_hash,counts:Object.fromEntries(['findings','exclusions','unresolved'].map(k=>[k,current.result[k].length]))}:null};
   }
   async function sourceOptions(requestId,{offset=0,limit=50}={}) {
     if(!await one(db,'procurement_search_requests',requestId))throw Error('Request not found');
@@ -79,7 +91,49 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
   }
   async function captureSupporting(requestId,taskId,input,actor) {
     const ctx=await context(requestId,taskId);
-    return supporting.capture(ctx,makeInterpretationPacket(ctx),input,actor);
+    const p=makeInterpretationPacket(ctx),bonfire=ctx.capability.method_spec.response_format==='bonfire-projects-v1';
+    const parent=bonfire?(await rows(db,'procurement_jobs',q=>q.eq('dedupe_key',`api-workflow:${requestId}`)))[0]:null;
+    const checkpoint=parent&&structuredClone(parent.checkpoint),progress=checkpoint?.bonfire_details?.[taskId];
+    const project=progress?.projects.find(project=>project.url===input.url||project.documents.some(d=>d.url===input.url));
+    const previous=project?.url===input.url?project:project?.documents.find(d=>d.url===input.url);
+    if(bonfire&&['attempt_pending','outcome_unknown'].includes(previous?.state)&&!input.saved_evidence)
+      throw Error('Reconcile the saved uncertain capture with its verified receipt before sending another request');
+    let outcome;
+    if(bonfire&&input.saved_evidence) {
+      if(input.packet_hash!==p.packet_hash||input.saved_evidence.url!==input.url)throw Error('Exact saved packet and destination required');
+      await supporting.load(ctx,p,input.saved_evidence);
+      outcome={...Object.fromEntries(['capture_receipt','url','content_sha256','content_type','retrieved_at','local_path']
+        .map(key=>[key,input.saved_evidence[key]])),state:'captured',lead_coverage:false,fresh_capture:false};
+    }else outcome=await supporting.capture(ctx,p,input,actor);
+    // An explicit successful recapture can reconcile only this request's matching
+    // public attempt. It never renews a hosted session or grants browser acceptance.
+    if(bonfire&&outcome.state==='captured') {
+      if(parent&&['pending','blocked'].includes(parent.state)&&progress?.packet_hash===p.packet_hash&&project&&
+          progress.method_hash===hash({id:ctx.capability.id,version:ctx.capability.parser_version,spec:ctx.capability.method_spec})&&
+          !(await one(db,'procurement_search_requests',requestId)).workflow_control?.cancelled) {
+        const target=project.url===outcome.url?project:project.documents.find(d=>d.url===outcome.url);
+        target.evidence=outcome;target.state='captured';target.capture_receipt=outcome.capture_receipt;delete target.reason;
+        if(target===project) {
+          const links=await supporting.documentLinks(ctx,p,outcome);
+          project.documents=links.slice(0,4).map(url=>project.documents.find(d=>d.url===url)??{url,state:'pending'});
+          project.document_overflow=links.length>4;project.documents_complete=project.documents.length===0;
+        }
+        progress.complete=false;delete progress.reason;
+        checkpoint.bonfire_access_holds=(checkpoint.bonfire_access_holds??[]).filter(h=>h.source_id!==p.source_id||h.method_hash!==progress.method_hash);
+        checkpoint.interpreted_task_ids=(checkpoint.interpreted_task_ids??[]).filter(id=>id!==taskId);
+        checkpoint.bonfire_resume_tasks=[...new Set([...(checkpoint.bonfire_resume_tasks??[]),taskId])];
+        checkpoint.stage='interpret';
+        const changed=checked(await db.from('procurement_jobs').update({checkpoint,state:'pending'})
+          .eq('id',parent.id).eq('state',parent.state).eq('checkpoint',JSON.stringify(parent.checkpoint)).select('id'));
+        return {...outcome,continuation:changed.length?'saved':'Refresh saved workflow; its checkpoint changed during capture'};
+      }
+    }
+    return outcome;
+  }
+  async function readSupporting(requestId,taskId,evidence) {
+    const ctx=await context(requestId,taskId),p=makeInterpretationPacket(ctx);
+    const body=await supporting.load(ctx,p,evidence);
+    return {review:(await evidenceText({...evidence,body})).map(page=>`${page.locator}: ${page.text}`).join('\n').slice(0,30000)};
   }
   async function stage(packet,result) {
     if(!result.findings.length)return {inserted:0,existing_preserved:0,intake_ids:[]};
@@ -205,7 +259,25 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
         const task=data.tasks.find(t=>t.category!=='source_entry'&&!done.has(t.id)&&
           (t.state==='needs_interpretation'||t.state==='partial'&&checkpoint.browser_task_ids?.includes(t.id)));
         if(!task){checkpoint.next_action=data.next_action;await save('blocked');return true;}
-        const p=await packet(request.id,task.id),ctx=await context(request.id,task.id),key=extractionKey(p,ctx.capability.method_spec);
+        const ctx=await context(request.id,task.id),p=makeInterpretationPacket(ctx),key=extractionKey(p,ctx.capability.method_spec);
+        if(ctx.capability.method_spec.response_format==='bonfire-projects-v1') {
+          const guarded=supportingCapture({artifacts,serverKey,fetcher:supportingFetch,beforeFetch:async()=>{
+            if((await one(db,'procurement_search_requests',request.id)).workflow_control?.cancelled) {
+              const error=Error('Request cancelled before project fetch');error.code='request_cancelled';throw error;
+            }
+          }});
+          const detailsDone=await continueBonfireDetails({context:ctx,packet:p,supporting:guarded,checkpoint,save,actor:request.initiated_by,
+            priorHold:async hold=>{
+              const previous=checked(await db.from('procurement_jobs').select('id').eq('kind','process')
+                .contains('checkpoint',{bonfire_access_holds:[hold]}).neq('id',job.id).limit(1));
+              return previous.length>0;
+            }});
+          if(!detailsDone)return true;
+          if(checkpoint.bonfire_resume_tasks?.includes(task.id)) {
+            const current=(await rows(db,'procurement_interpretations',q=>q.eq('request_id',request.id).eq('task_id',task.id).eq('is_current',true),'id'))[0];
+            if(current){checkpoint.interpreted_task_ids=[...done,task.id];await save('pending');return true;}
+          }
+        }
         let cached=checked(await db.from('procurement_extraction_cache').select('*').eq('cache_key',key).maybeSingle());
         const cacheUsed=Boolean(cached);
         if(!cached) {
@@ -239,6 +311,7 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
         checkpoint.interpreted_task_ids=[...done,task.id];await save('pending');
       } else throw new Error('Unsupported saved workflow stage');
     } catch(error) {
+      if(error.code==='request_cancelled'){await save('cancelled');return true;}
       if(error.code==='schedule_paused') {await save('pending');return true;}
       if(error.code==='sam_import_reconciliation_required'&&checkpoint.stage.startsWith('sam_')){
         checkpoint.error_code=error.code;checkpoint.next_action='Reconcile the previous SAM database result before collecting or saving more SAM records';
@@ -273,5 +346,5 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
     await recordAccessEvent(db,h,{...event,next_action:`${event.next_action} (recorded by ${actor})`});
     return access(id);
   }
-  return {submit,preview:input=>geographyRequest(db,'preview',input),context,packet,sourceOptions,captureSupporting,interpret,status,control,step,access,accessEvent};
+  return {submit,preview:input=>geographyRequest(db,'preview',input),context,packet,sourceOptions,captureSupporting,readSupporting,interpret,status,control,step,access,accessEvent};
 }
