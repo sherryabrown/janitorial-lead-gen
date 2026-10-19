@@ -213,6 +213,7 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
         checkpoint.interpreted_task_ids=[...done,task.id];await save('pending');
       } else throw new Error('Unsupported saved workflow stage');
     } catch(error) {
+      if(error.code==='schedule_paused') {await save('pending');return true;}
       checkpoint.error_code='workflow_stage_failed';
       checkpoint.diagnostic_id=randomUUID();
       checkpoint.next_action='Review the saved workflow blocker and server diagnostics before resuming';
@@ -222,7 +223,8 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
     } finally {clearInterval(timer);}
     return true;
     };
-    return audit?audit.run(request.id,checkpoint.stage,execute,{job_id:job.id,job_attempt:job.attempts,outcome:()=>checkpoint.error_code?'failed':'completed',diagnostic:()=>checkpoint.diagnostic_id,summary:()=>checkpoint}):execute();
+    try {return await (audit?audit.run(request.id,checkpoint.stage,execute,{job_id:job.id,job_attempt:job.attempts,outcome:()=>checkpoint.error_code?'failed':'completed',diagnostic:()=>checkpoint.diagnostic_id,summary:()=>checkpoint}):execute());}
+    catch(error){if(error.code==='schedule_paused'){await save('pending');return true;}throw error;}
   }
   async function access(id) {
     const h=await one(db,'procurement_access_handoffs',id);

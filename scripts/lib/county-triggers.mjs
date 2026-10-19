@@ -146,8 +146,8 @@ export function countyTriggers({db,discovery,workflow,audit}) {
       const usage=await rows(db,'procurement_usage_ledger',q=>q.eq('trigger_id',t.id),'id,state');
       if(usage.some(u=>['reserved','outcome_unknown'].includes(u.state)))state='outcome_unknown';
       if(!await rpc('checkpoint_procurement_trigger',{p_id:t.id,p_lease:t.lease_token,p_state:state,p_checkpoint:{stage:'review'}}))throw Error('Trigger lease lost');
-    } catch {
-      await rpc('checkpoint_procurement_trigger',{p_id:t.id,p_lease:t.lease_token,p_state:'partial',p_checkpoint:{stage:'review',error_code:'trigger_stage_failed'}});
+    } catch(error) {
+      await rpc('checkpoint_procurement_trigger',{p_id:t.id,p_lease:t.lease_token,p_state:error.code==='schedule_paused'?'pending':'partial',p_checkpoint:{stage:'review',...(error.code==='schedule_paused'?{}:{error_code:'trigger_stage_failed'})}});
     }
     return true;
   }

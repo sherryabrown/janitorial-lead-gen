@@ -35,6 +35,9 @@ export function workflowAudit(db) {
     const link=(await rows(db,'procurement_trigger_requests',q=>q.eq('request_id',requestId)))[0];
     if(!link)return operation();
     const parent=(await rows(db,'procurement_triggers',q=>q.eq('id',link.trigger_id),'id,initiated_by,origin,state'))[0];
+    if(parent.origin==='scheduled'&&meta.reason!=='manual'&&!await rpc('procurement_scheduled_trigger_runnable',{p_id:link.trigger_id})) {
+      const error=Error('Scheduled execution paused; no new operation started');error.code='schedule_paused';throw error;
+    }
     if(parent.state==='cancelled'&&!['cancel','resume'].includes(phase))throw Error('Trigger cancelled; no new operation started');
     const stepId=await rpc('begin_procurement_step',{p_input:{trigger_id:link.trigger_id,request_id:requestId,
       county_id:link.county_id,actor_id:meta.actor_id??parent.initiated_by,origin:parent.origin,execution:meta.reason==='manual'?'user':'worker',phase,

@@ -1,6 +1,6 @@
 # Admin trigger execution API
 
-Local code contract, October 13, 2026. Part 01 only: no Admin screen or scheduler is released here. The forward migration is prepared and tested locally; this document does not claim production deployment.
+Parts 01/02 backend contract, updated October 18, 2026. Admin/scheduling migrations are installed; host rollout is documented in [the deployment record](ADMIN-SCHEDULING-DEPLOYMENT.md). No Admin screen or recurring scheduler is activated.
 
 All endpoints use the existing Supabase bearer authentication and exact allowed origins. Every signed-in user can manage triggers; no extra Admin role is introduced. Tables, audit records, research checkpoints, usage reservations and submission/control RPCs remain server-only. Existing standalone geography/SAM/lead APIs keep their behavior.
 
@@ -9,7 +9,7 @@ All endpoints use the existing Supabase bearer authentication and exact allowed 
 | Method/path | Purpose |
 | --- | --- |
 | GET `/v1/counties` | Active county IDs/names, no map geometry. |
-| GET `/v1/state-triggers` | Independently managed saved state-source targets and related counties/latest run. Scheduling is unavailable in this part. |
+| GET `/v1/state-triggers` | Independently managed saved state-source targets and related counties/latest run. Includes configured schedule/next-due state. |
 | POST `/v1/triggers/preview` | Read-only resolved county/city scope, current revision hash and planned routes. No external fetch or AI call. |
 | POST `/v1/triggers` | Confirm preview and submit immutable run with `Idempotency-Key`. Returns 202 and `trigger_id`. |
 | GET `/v1/triggers?offset=0&limit=50` | Recent runs; maximum limit 100. |
@@ -34,7 +34,7 @@ Preview body:
 
 Run submission sends the same inputs plus `preview_hash` and `confirmed_scope:true`. Preview includes all active incorporated city IDs and names grouped by county. A changed municipality selection/revision requires preview again. Same key/input replays the saved run even after a later registry change; changed input under that key is rejected. Unknown submission response must be retried with that same key.
 
-For an independent state-source run, use `target_kind:"state_source"`, the saved `/v1/state-triggers` item's ID as `state_trigger_id`, its single category and associated county IDs. The backend uses the saved source identity and one state route; the work-location scope remains those counties, not statewide geographic certainty. Each run uses current methods from the shared source planner. Source-target scheduling belongs to part 02.
+For an independent state-source run, use `target_kind:"state_source"`, the saved `/v1/state-triggers` item's ID as `state_trigger_id`, its single category and associated county IDs. The backend uses the saved source identity and one state route; the work-location scope remains those counties, not statewide geographic certainty. Each run uses current methods from the shared source planner. Source-target schedules use the part 02 API below.
 
 ## Execution and review
 
@@ -46,7 +46,7 @@ Maintain sources delegates missing/expired methods to existing bounded official-
 
 Use existing child request packet/interpret/discovery review and exact import endpoints in [PROCUREMENT-BACKEND.md](PROCUREMENT-BACKEND.md). Reviewed import remains explicit; canonical sales fields, schema checks, rehearsal, unknown-commit reconciliation and readback are preserved. Request mutations wake the related parent summary without resuming a cancelled parent. Parent `needs_review` is separate from verified import or complete county coverage.
 
-Worker traffic runs bounded stages as before; it also reconciles parent runs. This part has no browser-independent recurring wake, schedule CRUD or always-on execution guarantee. Those are part 02 requirements.
+Worker traffic runs bounded stages as before; it also reconciles parent runs. Part 02 adds durable schedule CRUD and private wake, described below. Production browser-independent execution remains gated on deployment and live acceptance.
 
 ## Audit and billing
 
@@ -59,3 +59,17 @@ Step/trigger usage shows `ai` as `not_used`, `used` or `unknown`; actual input/o
 ## Local verification
 
 The Admin tests use the real baseline/migration chain in offline PGlite and the shared planner. The real isolated PostgreSQL/PostgREST gate also verifies private access denial, atomic replay and concurrent shared AI reservations. No production/provider action is needed for these gates. Apply the forward migration and deploy the reviewed backend separately when authorized; parts 02/03 depend on this API.
+
+## Durable scheduling API (part 02, local)
+
+Schedules reuse trigger preview, coordinator, source adapters, step audits and usage envelopes. Production activation is separate; see [deployment record](ADMIN-SCHEDULING-DEPLOYMENT.md). No Admin screen is introduced in this part.
+
+Authenticated routes: GET/POST `/v1/schedules`; POST `/v1/schedules/preview`; GET `/v1/schedules/:id`; GET `/:id/occurrences` and `/:id/events`; POST `/:id/update`, `/:id/pause`, `/:id/resume`, `/:id/archive`, `/:id/run-now`. Create and Run now require `Idempotency-Key`; edits/controls/Run now require `expected_version`. Save requires `confirmed_scope:true` and the schedule `preview_hash`. Lists use offset/limit (maximum 100). GET `/v1/scheduler/status` reports activation/extension/delivery state and whether the backend private key is configured; it exposes no secrets.
+
+Schedule preview/save accepts `name`, boolean `enabled`, the existing trigger `config`, `recurrence` and `window_policy`. Example recurrence: `{"timezone":"America/Chicago","frequency":"daily","local_times":["09:00","16:00"]}`. Weekly uses one local time and unique `weekdays` (Sunday 0–Saturday 6); monthly uses one time and `month_day` (1–31). Dates 29–31 use the last valid day of shorter months. DST gap times run at the first valid minute afterward; repeated times run once at their first instant. `window_policy` maps each requested category to `from_offset_days`, `to_offset_days`, `date_basis`; offsets are bounded -366 through 1096 and resolve from the occurrence's Central local date. The same trigger preview validates windows and shows county/cities. Changed registry scope pauses for a new reviewed preview.
+
+State targets use `target_kind:"state_source"` and the saved `state_trigger_id`. Discovery does not create/enable a recurrence; at most one unarchived schedule exists per saved source/category target. Associated counties share one source occurrence; recurring county collection excludes state sources and reuses initial state-research checkpoints.
+
+Run now uses the saved current scope, produces a manual occurrence even while paused and preserves next due. Reusing its key replays the original occurrence. Edit/pause/archive use CAS; active snapshots and history remain intact. Pause/archive blocks further automatic sends, while explicit manual review/reconciliation and already-sent outcomes remain available. Resume computes the next future time and does not replay paused backlog. Owner deletion/revocation disables automatic execution. Active/unknown prior outcomes skip overlapping occurrences.
+
+The private POST `/internal/procurement-scheduler/tick` accepts an empty JSON object and only the separately configured `x-procurement-scheduler-key`, rejecting browser origins and user JWTs. One server-side dispatcher wakes due schedules and pending shared work, with no browser timer or new collector. Tables and all scheduling RPCs remain server-only.

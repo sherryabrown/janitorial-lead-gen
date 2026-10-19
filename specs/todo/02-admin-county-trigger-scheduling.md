@@ -27,3 +27,15 @@ SQL/service tests with injected clock/transport: concurrent identical ticks crea
 Reviewable deployment record must include extension state, fixed dispatcher job/function SQL, exact wake destination and secret reference (no secret value), lifecycle rollback/pause procedure and measured tick/worker limits. Deploy/enable only within authorized environment scope after local gates. Live acceptance: app closed, one due occurrence queued/executed, step usage available, duplicate tick/restart harmless, pause stops next occurrence, cleanup restores test schedule only. If infrastructure cannot be verified, leave activation blocked with concrete reason and keep plan in todo; do not call a schedule UI alone complete.
 
 Done when scheduling persists, executes and resumes independently of the app using shared work/logs, and recurrence/recovery/privacy checks pass. No generic always-on browser polling or new paid host.
+
+## Implementation status — October 13, 2026
+
+Local persistence, recurrence service, authenticated management endpoints, private wake, dispatcher delivery state and shared worker pause/recovery integration are implemented. No UI changes in this part. [API contract](../../docs/ADMIN-TRIGGERS.md) and [deployment record](../../docs/ADMIN-SCHEDULING-DEPLOYMENT.md) describe behavior and reviewed activation/rollback SQL.
+
+Read-only production inspection found Vault installed and pg_cron/pg_net available but not installed; Admin trigger/schedule tables are not deployed. No production writes or recurring jobs were enabled. Browser-independent local HTTP/real PostgreSQL execution and access verification passed; the production app-closed acceptance gate remains outstanding. Keep this plan in todo until that gate passes.
+
+Final local gates: `npm run check` passed (21 app tests, 257 workflow tests, SQL gates, lint/build); `npm run test:access` passed including browser-independent HTTP wake/shared planning/audit/replay/pause against isolated PostgreSQL/PostgREST. Deployment record contains the measured local wake/stage time and configured bounds. Production activation/live acceptance remains blocked; no migrations, keys or Cron jobs were written to production.
+
+## Host deployment update — October 18, 2026
+
+Commit/push and Render/Netlify deployment authorized. The three Admin trigger/scheduling migrations are installed and recorded in production migration history; readback confirms scheduler disabled. Older migration-history gaps remain unchanged. `npm run check` passed again before release. Host deploy receipts/live readback are retained privately under outputs/deployment/admin-scheduling/. Recurring-job activation and the required production app-closed acceptance remain outstanding, so this plan stays in todo.

@@ -1,3 +1,4 @@
+import { procurementSchedules } from './lib/procurement-schedules.mjs';
 import { countyTriggers } from './lib/county-triggers.mjs';
 import { workflowAudit } from './lib/workflow-audit.mjs';
 import { one } from './lib/hosted-store.mjs';
@@ -42,7 +43,7 @@ let running=false;
 let benchmarking=Boolean(env.PROCUREMENT_BROWSER_BENCHMARK_ID);
 function kick() {
   if(running||benchmarking)return;running=true;
-  // Actual requests wake the worker; no keepalive/scheduler. Each claim persists one bounded stage.
+  // Requests and private due/pending-work wakes share this serialized worker. Each claim persists one bounded stage.
   setImmediate(async()=>{
     const started=Date.now();
     try {while(Date.now()-started<120000 && (await workflow.step() || await triggers.step())) { /* persisted boundary */ }}
@@ -62,7 +63,8 @@ const browser=browserService({db,artifacts,sessionKey:env.PROCUREMENT_SESSION_EN
   running=true;try{return await operation();}finally{running=false;}
 }});
 const triggers=countyTriggers({db,discovery,workflow,audit});
-const server=workflowServer({workflow,imports,discovery,kick,triggers,audit,db,
+const schedules=procurementSchedules({db,triggers});
+const server=workflowServer({workflow,imports,discovery,kick,triggers,schedules,schedulerKey:env.PROCUREMENT_SCHEDULER_KEY,audit,db,
   attention:attentionService(db),
   browser,
   authenticate:async token=>{const {data,error}=await db.auth.getUser(token);return error?null:data.user;},

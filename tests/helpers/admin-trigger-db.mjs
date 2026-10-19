@@ -5,7 +5,7 @@ export const adminMigrations=[
   '20261002000300_public_source_checks.sql','20261002000400_reconcile_known_gaps.sql',
   '20261004000100_source_gap_accountability.sql','20261004000200_ardot_known_adapter.sql',
   '20261004000300_known_source_interpretations.sql','20261005000100_known_source_workflow_repair.sql',
-  '20261007000100_hosted_procurement_workflow.sql','20261013000100_admin_county_triggers.sql'];
+  '20261007000100_hosted_procurement_workflow.sql','20261013000100_admin_county_triggers.sql','20261013000200_procurement_schedules.sql','20261013000300_procurement_scheduler_dispatch.sql'];
 export async function adminDatabase() {
   const sql=new PGlite();
   await sql.exec(`create role anon;create role authenticated;create role service_role bypassrls;
@@ -24,6 +24,7 @@ export function sqlApi(sql) {
       const q={select(c='*'){columns=c;return q;},eq(k,v){params.push(v);conditions.push(`${name(k)}=$${params.length}`);return q;},
         in(k,values){params.push(values);conditions.push(`${name(k)}=any($${params.length})`);return q;},
         not(k,_op,v){if(v!==null)throw Error('Unsupported test query');conditions.push(`${name(k)} is not null`);return q;},
+        lte(k,v){params.push(v);conditions.push(`${name(k)}<=$${params.length}`);return q;},
         gt(k,v){params.push(v);conditions.push(`${name(k)}>$${params.length}`);return q;},
         order(k,{ascending=true}={}){orders.push(`${name(k)} ${ascending?'asc':'desc'}`);return q;},
         range(a,b){start=a;end=b;return q;},update(v){update=v;return q;},maybeSingle(){single=true;return q;},single(){single=true;return q;},

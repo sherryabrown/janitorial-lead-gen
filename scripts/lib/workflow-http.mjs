@@ -1,3 +1,4 @@
+import { schedulerAuthorization } from './procurement-schedules.mjs';
 import { createServer } from 'node:http';
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 export class HttpError extends Error {constructor(status,message){super(message);this.status=status;}}
@@ -9,7 +10,7 @@ async function body(request) {
   }
   try {return JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{throw new HttpError(400,'Invalid JSON');}
 }
-export function workflowServer({authenticate,workflow,imports,discovery,sam,samPacket,browser,attention,triggers,audit,db,kick=()=>{},allowedOrigins=[]}) {
+export function workflowServer({authenticate,workflow,imports,discovery,sam,samPacket,browser,attention,triggers,schedules,schedulerKey,audit,db,kick=()=>{},allowedOrigins=[]}) {
   return createServer(async(request,response)=>{
     response.setHeader('Content-Type','application/json');response.setHeader('Cache-Control','no-store');
     response.setHeader('X-Content-Type-Options','nosniff');
@@ -26,6 +27,13 @@ export function workflowServer({authenticate,workflow,imports,discovery,sam,samP
       }
       const url=new URL(request.url,'http://localhost');
       if(request.method==='GET'&&url.pathname==='/health'){send(200,{status:'ok',version:1});return;}
+      if(url.pathname==='/internal/procurement-scheduler/tick'&&request.method==='POST') {
+        if(origin)throw new HttpError(403,'Private scheduler route');
+        if(!schedules||!schedulerAuthorization(schedulerKey,request.headers['x-procurement-scheduler-key']))throw new HttpError(401,'Private scheduler authorization required');
+        const input=await body(request);
+        if(!input||typeof input!=='object'||Array.isArray(input)||Object.keys(input).length)throw new HttpError(400,'Empty scheduler body required');
+        const result=await schedules.tick();kick();send(202,{accepted:true,...result});return;
+      }
       const bearer=/^Bearer ([^\s]+)$/.exec(request.headers.authorization??'');
       if(!bearer)throw new HttpError(401,'Sign in required');
       const user=await authenticate(bearer[1]);
@@ -38,7 +46,23 @@ export function workflowServer({authenticate,workflow,imports,discovery,sam,samP
       const wakeRelated=async()=>{if(triggers&&segments[1]==='requests'&&uuid.test(segments[2]??''))await triggers.wake(segments[2]);};
       let result;
       const execute=async()=>{
-      if(triggers&&segments[1]==='counties'&&segments.length===2&&request.method==='GET')result=await triggers.counties();
+      if(schedules&&url.pathname==='/v1/scheduler/status'&&request.method==='GET')result={...await schedules.status(),backend_key_configured:typeof schedulerKey==='string'&&schedulerKey.length>=32};
+      else if(schedules&&segments[1]==='schedules') {
+        const limit=Number(url.searchParams.get('limit')??50),offset=Number(url.searchParams.get('offset')??0);
+        if(!Number.isInteger(limit)||limit<1||limit>100||!Number.isInteger(offset)||offset<0)throw new HttpError(400,'Invalid pagination');
+        if(segments.length===3&&segments[2]==='preview'&&request.method==='POST')result=await schedules.preview(input);
+        else if(segments.length===2&&request.method==='GET')result=await schedules.list({offset,limit});
+        else if(segments.length===2&&request.method==='POST')result=await schedules.save(null,input,actor,request.headers['idempotency-key']);
+        else if(uuid.test(segments[2]??'')) {
+          const id=segments[2];
+          if(segments.length===3&&request.method==='GET')result=await schedules.get(id);
+          else if(segments.length===4&&['occurrences','events'].includes(segments[3])&&request.method==='GET')result=await schedules[segments[3]](id,{offset,limit});
+          else if(segments.length===4&&segments[3]==='update'&&request.method==='POST')result=await schedules.save(id,input,actor,null);
+          else if(segments.length===4&&['pause','resume','archive'].includes(segments[3])&&request.method==='POST')result=await schedules.control(id,segments[3],input,actor);
+          else if(segments.length===4&&segments[3]==='run-now'&&request.method==='POST'){result=await schedules.runNow(id,input,actor,request.headers['idempotency-key']);kick();send(202,result);return;}
+        }
+      }
+      else if(triggers&&segments[1]==='counties'&&segments.length===2&&request.method==='GET')result=await triggers.counties();
       else if(triggers&&segments[1]==='state-triggers'&&segments.length===2&&request.method==='GET')result=await triggers.stateSources();
       else if(triggers&&segments[1]==='triggers') {
         const limit=Number(url.searchParams.get('limit')??50),offset=Number(url.searchParams.get('offset')??0);

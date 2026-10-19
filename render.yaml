@@ -13,6 +13,8 @@ services:
         sync: false
       - key: PROCUREMENT_DATABASE_URL
         sync: false
+      - key: PROCUREMENT_SCHEDULER_KEY
+        sync: false
       - key: PROCUREMENT_ALLOWED_ORIGINS
         sync: false
       - key: PROCUREMENT_AI_ENABLED

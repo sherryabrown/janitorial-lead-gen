@@ -7,6 +7,12 @@ import { createHmac, randomBytes, randomUUID } from 'node:crypto';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { createClient } from '@supabase/supabase-js';
+import { procurementSchedules } from '../../scripts/lib/procurement-schedules.mjs';
+import { countyTriggers } from '../../scripts/lib/county-triggers.mjs';
+import { workflowAudit } from '../../scripts/lib/workflow-audit.mjs';
+import { hostedWorkflow } from '../../scripts/lib/hosted-workflow.mjs';
+import { workflowServer } from '../../scripts/lib/workflow-http.mjs';
 
 const bin=process.env.ACCESS_TEST_PG_BIN || 'C:/Program Files/PostgreSQL/15/bin';
 const gateway=process.env.ACCESS_TEST_POSTGREST_BIN || resolve('outputs/procurement-access/local-access-runtime/postgrest/postgrest.exe');
@@ -25,7 +31,7 @@ const token=(role,sub,expired=false)=>{
   return body+'.'+createHmac('sha256',secret).update(body).digest('base64url');
 };
 const first=randomUUID(),second=randomUUID(),sourceId=randomUUID(),leadId=randomUUID();
-let server,started=false;
+let server,backend,started=false;
 const api=async(path,jwt,body,method=body?'POST':'GET')=>{
   const response=await fetch(`http://127.0.0.1:${httpPort}/${path}`,{method,headers:{'Content-Type':'application/json',...(jwt?{Authorization:`Bearer ${jwt}`}:{})},body:body?JSON.stringify(body):undefined,signal:AbortSignal.timeout(10000)});
   const text=await response.text();return {status:response.status,body:text?JSON.parse(text):null};
@@ -86,7 +92,7 @@ try {
   assert.equal((await api('rpc/ingest_procurement_intake',token('service_role'),intakeBody)).status,200,'Authorized server ingestion remains available');
   // New Admin persistence stays server-only, while any authenticated user can use the HTTP management layer.
   const serverToken=token('service_role');
-  for(const table of ['procurement_triggers','procurement_trigger_requests','procurement_county_state_research','procurement_state_trigger_associations','procurement_workflow_steps']) {
+  for(const table of ['procurement_triggers','procurement_trigger_requests','procurement_county_state_research','procurement_state_trigger_associations','procurement_workflow_steps','procurement_schedules','procurement_schedule_occurrences','procurement_schedule_events','procurement_scheduler_settings','procurement_scheduler_deliveries']) {
     for(const jwt of [undefined,nonMember,member])assert.ok([401,403].includes((await api(table+'?select=*&limit=1',jwt)).status),'Private Admin table denied');
     assert.equal((await api(table+'?select=id&limit=1',serverToken)).status,200);
   }
@@ -94,6 +100,16 @@ try {
     county_ids:['05001'],maintain_sources:true,check_updates:true,requested_categories:['opportunity'],search_windows:{opportunity:{from:'2026-10-13',to:'2027-10-13',date_basis:'deadline'}}};
   sql("insert into procurement_geographies(id,kind,name,dataset_url,dataset_version,dataset_hash) values('05','state','Arkansas','fixture','1','state'),('05001','county','Arkansas County','fixture','1','county');");
   assert.ok([401,403].includes((await api('rpc/procurement_state_trigger_status',nonMember,{})).status),'State-target summary is server-only');
+  for(const fn of ['procurement_scheduler_status','procurement_scheduler_dispatch']) {
+    for(const jwt of [undefined,nonMember,member])assert.ok([401,403].includes((await api('rpc/'+fn,jwt,{})).status),'Private scheduler RPC denied');
+    assert.equal((await api('rpc/'+fn,serverToken,{})).status,200);
+  }
+  const scheduleArgs={p_id:null,p_actor:first,p_key:'isolated-schedule-key',p_hash:'b'.repeat(64),p_expected_version:null,p_now:'2026-10-13T13:00:00Z',
+    p_input:{name:'Isolated schedule',config:adminConfig,scope_hash:'fixture',window_policy:{opportunity:{from_offset_days:0,to_offset_days:365,date_basis:'deadline'}},
+      recurrence:{timezone:'America/Chicago',frequency:'daily',local_times:['09:00']},enabled:true,next_due_at:'2026-10-13T14:00:00Z'}};
+  for(const jwt of [undefined,nonMember,member])assert.ok([401,403].includes((await api('rpc/save_procurement_schedule',jwt,scheduleArgs)).status),'Browser cannot save schedule through private RPC');
+  const savedSchedule=await api('rpc/save_procurement_schedule',serverToken,scheduleArgs);assert.equal(savedSchedule.status,200);
+  assert.equal((await api('rpc/save_procurement_schedule',serverToken,scheduleArgs)).body,savedSchedule.body);
   const submission={p_actor:first,p_key:'isolated-admin-key',p_hash:'a'.repeat(64),p_config:adminConfig};
   assert.ok([401,403].includes((await api('rpc/submit_procurement_trigger',nonMember,submission)).status));
   const admin=await api('rpc/submit_procurement_trigger',serverToken,submission);assert.equal(admin.status,200);
@@ -109,8 +125,36 @@ try {
   sql("update procurement_usage_ledger set state='completed',actual_usd=0,usage='{\"input_tokens\":100,\"output_tokens\":10}' where trigger_id='"+admin.body+"';");
   for(let n=0;n<3;n++){assert.equal((await reserve(n%2)).status,200);sql("update procurement_usage_ledger set state='completed',actual_usd=0,usage='{\"input_tokens\":100,\"output_tokens\":10}' where trigger_id='"+admin.body+"';");}
   assert.ok((await reserve(1)).status>=400,'Four calls apply across all children');
-  console.log(JSON.stringify({status:'passed',engine:'PostgreSQL 15 + PostgREST',checks:['anonymous reads/RPC denial','member and non-member reads/stages','signed expired and invalid JWT HTTP rejection','note ownership','atomic actor history','1005-row paged queue','service workflow access','Admin private table/RPC denial','Admin atomic replay','concurrent parent AI reservations and four-call cap'],production_contacted:false},null,2));
+  // No app/browser involved: private HTTP wake queues a persisted occurrence and
+  // executes a real shared planning stage against this isolated PostgREST database.
+  sql("update procurement_jobs set state='cancelled'; update procurement_triggers set state='completed';");
+  const db=createClient(`http://127.0.0.1:${httpPort}`,serverToken,{auth:{persistSession:false,autoRefreshToken:false},
+    global:{fetch:(url,options)=>fetch(String(url).replace('/rest/v1/','/'),options)}});
+  const audit=workflowAudit(db),workflow=hostedWorkflow({db,audit,aiConfig:{enabled:false},reportError:()=>{}});
+  const triggers=countyTriggers({db,audit,workflow,discovery:async()=>({state:'blocked'})});
+  const schedules=procurementSchedules({db,triggers,now:()=>new Date('2026-10-13T14:00:00Z')});
+  // Server-side preview uses the actual registry; bind its current revision.
+  const input={name:'Browser closed',enabled:true,config:{...adminConfig,county_ids:['05001']},
+    recurrence:{timezone:'America/Chicago',frequency:'daily',local_times:['09:00']},window_policy:{opportunity:{from_offset_days:0,to_offset_days:365,date_basis:'deadline'}}};
+  const preview=await schedules.preview(input);
+  sql("update procurement_schedules set config="+literal(preview.config)+",scope_hash='"+preview.scope_hash+"' where id='"+savedSchedule.body+"';");
+  const wakeKey=randomBytes(32).toString('hex');let work;
+  backend=workflowServer({schedules,schedulerKey:wakeKey,kick:()=>{work=workflow.step();}});
+  await new Promise(r=>backend.listen(0,'127.0.0.1',r));
+  const wake=()=>fetch(`http://127.0.0.1:${backend.address().port}/internal/procurement-scheduler/tick`,{method:'POST',headers:{'Content-Type':'application/json','x-procurement-scheduler-key':wakeKey},body:'{}'});
+  const wakeStarted=Date.now();
+  assert.equal((await wake()).status,202);assert.equal(await work,true);
+  const isolatedWakeAndStageMs=Date.now()-wakeStarted;
+  const occurrences=await schedules.occurrences(savedSchedule.body);assert.equal(occurrences.items.length,1);
+  const steps=await triggers.steps(occurrences.items[0].trigger_id,{limit:50});assert.ok(steps.items.some(s=>s.state==='completed'));
+  assert.ok(steps.items.every(s=>s.usage.ai==='not_used'));
+  assert.equal((await wake()).status,202);await work;assert.equal((await schedules.occurrences(savedSchedule.body)).items.length,1);
+  await schedules.control(savedSchedule.body,'pause',{expected_version:1},first);
+  assert.equal(await workflow.step(),false,'Pause stops queued automatic continuations');
+  await schedules.control(savedSchedule.body,'archive',{expected_version:2},first);
+  console.log(JSON.stringify({status:'passed',engine:'PostgreSQL 15 + PostgREST',checks:['anonymous reads/RPC denial','member and non-member reads/stages','signed expired and invalid JWT HTTP rejection','note ownership','atomic actor history','1005-row paged queue','service workflow access','Admin private table/RPC denial','Admin atomic replay','concurrent parent AI reservations and four-call cap','scheduling private tables/RPC denial and atomic replay','browser-independent private HTTP wake/shared worker/audit/replay/pause'],isolated_wake_and_stage_ms:isolatedWakeAndStageMs,production_contacted:false},null,2));
 } finally {
+  if(backend)await new Promise(r=>backend.close(r));
   if(server && server.exitCode===null && server.signalCode===null) {server.kill();await new Promise(r=>server.once('exit',r));}
   if(started) execFileSync(exe('pg_ctl'),['-D',data,'-m','fast','-w','stop'],options);
   // Retain the disposable directory for diagnostic evidence; never remove another cluster.
