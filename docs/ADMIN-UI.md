@@ -67,7 +67,7 @@ State-source drafts restrict selection to their saved county associations. They 
 
 ## SAM Admin extension — October 19, 2026
 
-Implemented locally; the SAM migration, private function and matching Render/backend and preview releases are prerequisites. Netlify production remains unchanged. Local/browser fixtures do not establish live provider access or scheduled execution.
+Released to the existing Supabase/Render backend and approved Netlify draft preview. Netlify production remains unchanged. Both manual categories and one browser-closed scheduled occurrence passed live acceptance; see [release evidence](ADMIN-SAM-DEPLOYMENT.md).
 
 **SAM.gov — Arkansas statewide** is independent of county selections and registry availability. Choose Opportunities (posted dates) or Awards (last modification dates); forecasts continue through agency sources. Both use Arkansas performance location and NAICS 561720. Manual checks default to the last 30 calendar days including today. Confirm the category/window before submission. No AI is needed for collection; audit reports actual usage, with non-AI steps recorded as not used.
 

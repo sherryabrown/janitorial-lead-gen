@@ -174,6 +174,6 @@ Queue results use 50-row pages with server-side filters and full-data counts. Ch
 
 The Admin screen replaces the Generate frontend with the shared authenticated procurement workflow. Keep the legacy `spin_generate_contracts` function undeployed; its prompt, migrations and historical tables are retained for a separately coordinated retirement. No paid generation service is activated. See [Admin UI](ADMIN-UI.md).
 
-## SAM Admin entry point (October 19, 2026; release pending)
+## SAM Admin entry point (October 19, 2026)
 
-Admin now has an independent statewide SAM entry point using the existing SAM collector and shared worker/scheduler. It creates no county coverage tasks and performs no automatic import. Existing direct SAM clients remain supported. See [Admin controls](ADMIN-UI.md#sam-admin-extension--october-19-2026) and [SAM target contract](ADMIN-TRIGGERS.md#sam-target-extension--october-19-2026-release-pending) for windows, schedules and audited reconciliation. Production activation requires the matching migration/function/backend release and live acceptance.
+Admin now has an independent statewide SAM entry point using the existing SAM collector and shared worker/scheduler. It creates no county coverage tasks and performs no automatic import. Existing direct SAM clients remain supported. See [Admin controls](ADMIN-UI.md#sam-admin-extension--october-19-2026) and [SAM target contract](ADMIN-TRIGGERS.md#sam-target-extension--october-19-2026) for windows, schedules and audited reconciliation. The matching Supabase/Render release and live acceptance are recorded in [SAM deployment evidence](ADMIN-SAM-DEPLOYMENT.md); Netlify production remains unchanged.

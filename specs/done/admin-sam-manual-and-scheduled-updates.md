@@ -4,7 +4,7 @@
 
 > $plan-code please add SAM to the Admin screen so I can run it manually and schedule updates. Reuse the existing SAM backend and keep it separate from county searches.
 
-Planning date: October 19, 2026. Implementation checkpoint: local code and isolated verification implemented; production release/live acceptance pending. No production migration, function or hosting change has been applied by this build.
+Planning date and completion: October 19, 2026. Implemented, verified, committed and pushed; released to the existing Supabase/Render infrastructure and approved Netlify draft preview under explicit user authorization. Netlify production unchanged. Live acceptance passed; see [deployment evidence](../../docs/ADMIN-SAM-DEPLOYMENT.md).
 
 ## Outcome and scope
 
@@ -113,7 +113,7 @@ Keep the plan in `specs/todo/` if required deployment/live acceptance or provide
 - Confirm the award API's current allowed modification window, pagination, credential availability and rate limits independently; opportunity access does not confer award access. This is implementation verification, not a reason to introduce another provider.
 - Proposed UI defaults are opportunities and a 30-day lookback; no additional product decision is required before implementation unless those defaults conflict with a newly discovered existing requirement.
 
-Next implementation prompt:
+Original implementation prompt (completed):
 
 ```text
 $build-code specs/todo/admin-sam-manual-and-scheduled-updates.md
@@ -131,8 +131,8 @@ Implemented phases 1 and 2: separate statewide SAM preview/manual submission and
 
 Verification completed: UI suite (59 tests), targeted SAM/function/workflow/import tests (29), native PostgreSQL/PostgREST access suite including SAM HTTP wake, leased capture, pause/resume, audit and duplicate prevention. Browser fixtures passed desktop, 390px, 320px and keyboard checks with county selection preserved and no production mutation. The initial native gateway startup timed out; both the retry and extended SAM scenario passed. Final aggregate check results are recorded below when complete.
 
-Required remaining acceptance: authorize/apply the forward migration and private function, release the matching Render backend and Netlify draft only, then check actual opportunity/award provider results and one disposable browser-closed scheduled occurrence; pause/archive it afterward. No live SAM provider acceptance is inferred from fixtures. Preserve unrelated schedules, AI budgets and all import guards. Netlify production must remain unchanged. Keep this plan in todo until those checks pass or precise provider blockers are recorded and the required acceptance is resolved.
+Live acceptance completed after the authorized forward migration, private function, Render and draft-only Netlify release. Both real manual categories saved terminal zero-result responses for October 16–18. The one-day future schedule executed once through Cron with the browser closed, saved terminal evidence and zero AI usage, and was paused/archived afterward. The acceptance account was soft-deleted. Original SAM jobs, AI/environment settings and locked Netlify production were verified unchanged. No production lead import was performed; exact reviewed import tests and prior genuine readback establish that integration. No remaining product decisions or required acceptance blockers.
 
 Proposed commit message: `feat: add SAM Admin runs and schedules`.
 
-Final aggregate verification: `npm run check` passed (59 UI tests, 270 workflow tests, SQL import/upsert checks, lint/typecheck and production build). A Windows sandbox module-cache failure was resolved by rerunning the complete command outside the sandbox. Forward migration and private function deployed after successful production-row preflight; Render/preview/live acceptance in progress under explicit user authorization.
+Final aggregate verification: `npm run check` passed (59 UI tests, 270 workflow tests, SQL import/upsert checks, lint/typecheck and production build). A Windows sandbox module-cache failure was resolved by rerunning the complete command outside the sandbox. Forward migration/private function, Render and draft preview deployed after successful production-row preflight. Live acceptance passed under explicit user authorization. Final Cron evidence: one accepted HTTP 202 delivery, four successful Cron executions in the acceptance window, and exactly one saved scheduled occurrence. See the deployment evidence for run IDs and cleanup.

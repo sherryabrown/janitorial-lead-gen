@@ -1,6 +1,6 @@
 # Known-source live status — October 5, 2026 (Eastern)
 
-The reusable route remains geography → verified source capability → bounded capture → cited interpretation → immutable intake → reviewed import. SAM remains a separate, manually run Arkansas-wide path. An entry-page fetch and a blocked fetch do not establish lead coverage.
+The reusable route remains geography → verified source capability → bounded capture → cited interpretation → immutable intake → reviewed import. SAM remains a separate Arkansas-wide path; the October 19 [Admin extension](ADMIN-SAM-DEPLOYMENT.md) adds manual and scheduled entry points. An entry-page fetch and a blocked fetch do not establish lead coverage.
 
 ## Operational in the live database
 

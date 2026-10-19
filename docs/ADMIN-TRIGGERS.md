@@ -74,7 +74,7 @@ Run now uses the saved current scope, produces a manual occurrence even while pa
 
 The private POST `/internal/procurement-scheduler/tick` accepts an empty JSON object and only the separately configured `x-procurement-scheduler-key`, rejecting browser origins and user JWTs. One server-side dispatcher wakes due schedules and pending shared work, with no browser timer or new collector. Tables and all scheduling RPCs remain server-only.
 
-## SAM target extension — October 19, 2026 (release pending)
+## SAM target extension — October 19, 2026
 
 The existing preview/submit and schedule services accept a distinct `target_kind: "sam"`, exactly one `requested_categories` entry (`opportunity` or `award`) and `publication_window: {from: "YYYY-MM-DD", to: "YYYY-MM-DD"}`. Preview is read-only; submit requires its reviewed hash and existing idempotency identity. County IDs, state-source IDs and arbitrary upstream filters are rejected. Normalized AR/561720 filters are computed server-side. SAM children have role `sam`, no county ID and no geography coverage task.
 
@@ -82,4 +82,4 @@ Schedules reuse the existing recurrence/table/dispatcher contract, with one cate
 
 Migration `20261019000100_admin_sam_triggers.sql` wraps existing atomic submission/baseline RPCs, retains non-SAM implementations, and binds SAM run writes to the live leased job/page/attempt. Overlapping unresolved SAM work in the same category blocks new submission rather than concealing an unknown outcome. Reconciliation consumes one matching audited response with compare-and-set state; it does not contact SAM again. The shared audit, pause guards, worker, import approval and AI settings remain authoritative.
 
-Release order: forward migration, private `sam-search` function, matching Render backend, then Netlify draft preview. Check existing rows against the new constraints before migration. The required real manual/category and browser-closed schedule acceptance remains pending release; see the SAM plan checkpoint.
+Release order: forward migration, private `sam-search` function, matching Render backend, then Netlify draft preview. Check existing rows against the new constraints before migration. The matching release, both real manual categories and one browser-closed scheduled occurrence passed; see [live evidence](ADMIN-SAM-DEPLOYMENT.md).

@@ -123,8 +123,8 @@ node tests/sam-upsert-sql.mjs
 
 The SQL test uses the captured real baseline in a local PostgreSQL-compatible engine. It validates SQL syntax, sales-field preservation, replay and conflict rejection; it does not exercise every production trigger or apply anything to Supabase leads.
 
-## Admin manual and scheduled checks (October 19, 2026; release pending)
+## Admin manual and scheduled checks (October 19, 2026)
 
 Use the separate SAM.gov statewide Admin section for opportunities or awards. Existing direct/CLI workflows remain supported. Manual defaults cover the last 30 days including today; schedule lookbacks resolve per occurrence in America/Chicago. Opportunities use posted dates, awards use last-modification dates, with AR performance and NAICS 561720. The application bounds either span to 365 elapsed days; this is an application safety bound for awards, not a claimed GSA award API restriction. Consult [GSA opportunities](https://open.gsa.gov/api/get-opportunities-public-api/) and [GSA awards](https://open.gsa.gov/api/contract-awards/) for upstream contracts. Credentials/quota are category-specific; one successful category does not prove the other is accessible.
 
-Saved packets and exact run IDs feed the existing reviewed import process. Partial or denied collection must remain visible. Unknown outcomes reconcile the matching saved audit without automatic resends. No production import is required merely to test the Admin controls. See [Admin documentation](ADMIN-UI.md#sam-admin-extension--october-19-2026) for the release boundary.
+Saved packets and exact run IDs feed the existing reviewed import process. Partial or denied collection must remain visible. Unknown outcomes reconcile the matching saved audit without automatic resends. No production import is required merely to test the Admin controls. See [Admin documentation](ADMIN-UI.md#sam-admin-extension--october-19-2026) and [live release evidence](ADMIN-SAM-DEPLOYMENT.md). Netlify production remains unchanged.

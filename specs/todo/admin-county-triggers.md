@@ -75,3 +75,5 @@ All three plans pass local lint/app/workflow/SQL/build and applicable real isola
 Parts 01/02 backend is deployed and scheduling passed production acceptance October 18: [API contract](../../docs/ADMIN-TRIGGERS.md) and [build/verification report](../../docs/reviews/2026-10-13-admin-trigger-execution-build.md). The map/Admin UI are implemented locally in part 03; the coordinated release/readback remains outstanding.
 
 Next: review the part 03 build on `codex/admin-county-trigger-ui`. Commit/push is authorized; production Netlify deployment is explicitly excluded. A later authorized coordinated backend/frontend release still needs authenticated production readback. Preserve this coordinator in todo until that integrated production check passes.
+
+SAM Admin follow-up completed October 19, 2026 in [its separate implementation plan](../done/admin-sam-manual-and-scheduled-updates.md). It reuses the shared scheduler and SAM backend without adding SAM to county searches. [Live acceptance](../../docs/ADMIN-SAM-DEPLOYMENT.md) covers the draft preview and existing backend; Netlify production remains unchanged.
