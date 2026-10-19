@@ -67,6 +67,7 @@ export async function verifyAutomaticCounty({db,artifacts,audit,livePool,rehears
   const scheduledStatus=await workflow.status(scheduledChildren.find(c=>c.role==='county').request_id);
   assert.equal(scheduledStatus.total_candidates,1);
   assert.equal(scheduledStatus.tasks.filter(task=>task.state==='method_missing').length,0,'Shared-route method gaps reconcile after activation');
+  assert.equal(scheduledStatus.tasks.some(task=>task.state==='superseded'),false,'Resolved historic gaps are omitted from current county results');
   assert.equal(checked(await db.from('procurement_source_capabilities').select('route_geography_id').eq('id',capabilities[0].id).single()).route_geography_id,'05003','Native shared-route registration retains original method identity');
   const guardClient=await livePool.connect();
   try {

@@ -12,6 +12,14 @@ const candidate = { intake_id: 'candidate', intake_hash: 'hash', title: 'Cleanin
 const results = { tasks: [], jobs: [], candidates: [candidate], total_candidates: 1, next_offset: null };
 const review = (signal: string) => <RequestReview id="request" owner="owner" onViewLeads={() => {}} refreshSignal={signal} />;
 
+it('distinguishes captured county websites from completed opportunity checks', async () => {
+  mocked.request.mockResolvedValue({ ...results, automatic_county: true, tasks: [{ id: 'entry', category: 'source_entry',
+    state: 'needs_interpretation', location_name: 'Saline County', source_name: 'County website' }] });
+  render(review('needs_review'));
+  await screen.findByText(/Website · Website captured; opportunity checks shown separately/);
+  expect(screen.queryByText(/Checked—no matching opportunities/)).toBeNull();
+});
+
 it('explains source-only county results with location names and no technical source setup', async () => {
   mocked.request.mockImplementation(async (path: string) => path.endsWith('/packet') ? {
     pages: [{ run_id: 'capture', url: 'https://agency.example/bids', review: 'Saved source page' }], source: { name: 'County bids' },

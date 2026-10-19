@@ -2,7 +2,7 @@
 
 Status: planned October 19, 2026. Three implementation phases; keep in todo until automated, visual and live acceptance passes. Netlify production must remain unchanged.
 
-Implementation checkpoint: [local build and verification report](../../docs/reviews/2026-10-19-automatic-county-build.md). Supported public discovery/verification and automatic collection are implemented locally; isolated manual/scheduled acceptance and browser visual checks passed. Coordinated release and live Saline acceptance remain outstanding. Do not interpret this checkpoint as universal source coverage or move the plan to done before the remaining gates pass.
+Implementation checkpoint: [build, release and verification report](../../docs/reviews/2026-10-19-automatic-county-build.md). Supported public discovery/verification and automatic collection are implemented and released to Render/Netlify preview; isolated manual/scheduled acceptance and browser visual checks passed. Live Saline verification exposed additional routing, interpretation and coverage limitations; follow-up acceptance is in progress. Do not interpret this checkpoint as universal source coverage or move the plan to done before the remaining gates pass. Netlify production remains unchanged.
 
 ## Initiating request
 

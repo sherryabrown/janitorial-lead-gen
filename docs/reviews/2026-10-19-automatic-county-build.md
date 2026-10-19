@@ -24,7 +24,7 @@ Implementation and preview release checkpoint for [the plan](../../specs/todo/au
 
 ## Remaining acceptance and limitations
 
-The matching Render backend and Netlify preview must be released before fresh Saline manual/repeat/scheduled acceptance. Record per-source outcomes against the original six source gaps and nineteen method gaps, actual usage and canonical-write guard readback. A successful isolated test or public-page recognizer is not that acceptance.
+The matching Render backend and Netlify preview have been released. Follow-up Saline manual/repeat/scheduled acceptance is in progress after live-discovered corrections. Record per-source outcomes against the original six source gaps and nineteen method gaps, actual usage and canonical-write guard readback. A successful isolated test or public-page recognizer is not that acceptance.
 
 No general paid web-search capability was introduced. Locations without an authoritative directory website remain incomplete. Unknown listing formats, unsupported cross-host portals and uncertain captures remain explicit limitations. Expired evidence is refreshed on explicit retry. Existing access accounts and protected Bonfire work were not resumed. This build does not promise every public body publishes procurement opportunities online.
 
@@ -38,4 +38,6 @@ Function-only migration `20261019000200_verified_shared_source_routes.sql` align
 
 Native migration acceptance proves collection on an additional verified route, preservation of the original method identity, gap reconciliation, scheduled execution and rejection when trusted policy provenance is removed. A separate parent-status regression prevents a failed planning job with zero tasks from appearing completed. Keep the plan in todo until required acceptance passes, and record remaining blockers rather than treating them as zero results.
 
-Proposed commit message: `feat: automate county source collection`
+The final interpretation correction normalizes whitespace in structured county listing evidence before testing literal exclusion quotations. It retains the requirement for explicit empty-listing evidence or exclusions for every listed record. A regression covers formatted JSON review text and rejection when exclusions are absent. Current county results omit superseded historical gaps while preserving their database records; parent aggregation treats these resolved tasks as terminal. Captured website entries are labeled separately from opportunity checks and cannot be mistaken for checked-empty sources. Final UI and workflow suites passed 69 and 301 tests respectively; native access acceptance and desktop/mobile/keyboard browser acceptance passed. One sandboxed Vitest attempt failed on temporary-file access; the unrestricted rerun passed all UI tests.
+
+Initial implementation commit message: `feat: automate county source collection`

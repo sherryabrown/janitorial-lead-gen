@@ -410,10 +410,11 @@ export function RequestReview({
               <div>
                 <strong>
                   {t.location_name && `${t.location_name} · `}{t.source_name && `${t.source_name} · `}
-                  {title(t.category)} · {data.automatic_county ?
+                  {data.automatic_county && t.category === 'source_entry' ? 'Website' : title(t.category)} · {data.automatic_county ?
                     ({source_missing: 'Official website not yet verified', method_missing: 'Source not yet verified',
                       reviewed_no_results: 'Checked—no matching opportunities', reviewed_with_results: 'Opportunities found',
-                      needs_interpretation: 'Reviewing collected evidence'} as Record<string,string>)[t.state] ?? title(t.state) : title(t.state)}
+                      needs_interpretation: t.category === 'source_entry' ? 'Website captured; opportunity checks shown separately' : 'Reviewing collected evidence',
+                      unchecked: 'Waiting to check', partial: 'Incomplete coverage'} as Record<string,string>)[t.state] ?? title(t.state) : title(t.state)}
                 </strong>
                 <p>{data.automatic_county && t.discovery_action ? t.discovery_action : t.reason}</p>
               </div>

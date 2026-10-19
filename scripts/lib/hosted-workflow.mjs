@@ -206,14 +206,15 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
     const candidates=intakes.map(i=>({intake_id:i.id,intake_hash:hash(i.payload),title:i.payload.title,
       state:i.status==='processed'&&links.some(l=>l.intake_id===i.id&&leads.some(r=>r.id===l.lead_id)&&requestLinks.some(r=>r.lead_id===l.lead_id))?'imported':
         i.status==='processed'?'link_review_required':i.status==='ignored'?'ignored':'pending_review'}));
+    const automaticCounty=['county_scope','state_research'].includes(request.workflow_control?.admin_policy);
     return {request_id:requestId,cancelled:request.workflow_control.cancelled===true,requested_categories:request.requested_categories,
-      automatic_county:['county_scope','state_research'].includes(request.workflow_control?.admin_policy),check_updates:request.workflow_control?.check_updates!==false,
+      automatic_county:automaticCounty,check_updates:request.workflow_control?.check_updates!==false,
       search_windows:request.search_windows,jobs:jobs.map(j=>({id:j.id,state:j.state,kind:j.kind,stage:j.checkpoint?.stage,run_ids:j.checkpoint?.run_ids??[],pages:j.checkpoint?.pages??null,
         records:j.checkpoint?.records??null,terminal_confirmed:j.checkpoint?.terminal_confirmed??false,
         access_handoff_id:browserCapabilities.find(c=>c.id===j.capability_id&&c.method_spec?.runner_id==='authenticated-browser')?.method_spec.access_handoff_id??null,
         capture_state:j.checkpoint?.hosted_browser_attempt?.state??null,
         next_action:publicJobAction(j),error_code:j.checkpoint?.error_code??null,diagnostic_id:j.checkpoint?.diagnostic_id??null})),
-      tasks:tasks.map(t=>({id:t.id,source_id:t.source_id,category:t.kind,state:t.state,reason:t.reason,pages:t.pages_reviewed,
+      tasks:tasks.filter(t=>!automaticCounty||t.state!=='superseded').map(t=>({id:t.id,source_id:t.source_id,category:t.kind,state:t.state,reason:t.reason,pages:t.pages_reviewed,
         source_name:taskSources.find(s=>s.id===t.source_id)?.name??null,location_name:taskPlaces.find(g=>g.id===t.route_geography_id)?.name??null,
         discovery_state:jobs.find(j=>j.kind==='discover'&&j.checkpoint?.task_id===t.id)?.state??null,
         discovery_action:(()=>{const j=jobs.find(j=>j.kind==='discover'&&j.checkpoint?.task_id===t.id);return j?publicJobAction(j):null;})()})),

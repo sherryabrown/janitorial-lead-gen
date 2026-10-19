@@ -13,7 +13,7 @@ const emptyListing = /\bno\s+(?:(?:current|open|active|available)\s+)?(?:bids?|s
 export function zeroEvidence(body, contentType, sourceCode, pageIndex=0, review='', methodSpec={}, reviewSummary=null) {
   if (methodSpec.response_format === 'county-listing-v1') {
     const listing = inspectAutomaticListing(body, methodSpec);
-    return { eligible: listing.terminal, reason: null, text: listing.records.length ? review : listing.evidence,
+    return { eligible: listing.terminal, reason: null, text: clean(listing.records.length ? review : listing.evidence),
       listing: listing.records.length > 0, listing_rows: listing.records.length };
   }
   if (methodSpec.runner_id === 'api-bounded') {

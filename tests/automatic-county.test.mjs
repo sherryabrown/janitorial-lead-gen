@@ -6,6 +6,7 @@ import {publicDiscovery,publicReview} from '../scripts/lib/official-link-discove
 import {createHash} from 'node:crypto';
 import {automaticRouteAssociation,reviewedDiscoverySource} from '../scripts/lib/hosted-discovery.mjs';
 import {capabilityCoversRoute} from '../scripts/lib/known-source-execution.mjs';
+import {zeroEvidence,validateZeroBasis} from '../scripts/lib/interpretation-evidence.mjs';
 const url='https://agency.example/bids';
 const listing='<main><h1>Open bids</h1><p>1 open bids</p><table><tr><th>Bid number</th><th>Title</th><th>Work county</th><th>Deadline</th></tr><tr><td>26-1</td><td><a href="/bid/26-1">Janitorial services</a></td><td>Saline</td><td>2026-11-30</td></tr></table></main>';
 test('automatic shared method retains its original route and only adds explicitly verified associations',()=>{
@@ -36,6 +37,14 @@ test('explicit empty listing differs from shell, unrelated table and navigation 
   for(const html of ['<main><h1>Open bids</h1></main>','<nav><h1>Open bids</h1>No open bids available</nav>',
     '<main><h1>Open bids</h1><iframe></iframe>No open bids available</main>',
     '<main><h1>Open bids</h1><script>No open bids available</script></main>'])assert.throws(()=>proposeAutomaticListing(Buffer.from(html),url));
+});
+test('structured county zero-result evidence preserves literal exclusions across formatted review whitespace',()=>{
+  const body=Buffer.from(listing.replace('Janitorial services','Road materials')),{spec,listing:observed}=proposeAutomaticListing(body,url);
+  const review=JSON.stringify(observed.records,null,2),zero=zeroEvidence(body,'text/html','county',0,review,spec);
+  const result={zero_basis:[{run_id:'run',kind:'reviewed_listing',locator:'saved listing',excerpt:zero.text}],
+    exclusions:[{evidence:[{run_id:'run',locator:'row 1',excerpt:'Road materials'}]}]};
+  validateZeroBasis({pages:[{run_id:'run',zero_evidence:zero}]},result);
+  assert.throws(()=>validateZeroBasis({pages:[{run_id:'run',zero_evidence:zero}]},{...result,exclusions:[]}),/exclusion evidence/);
 });
 test('county directory resolves observed links for arbitrary counties, not guessed domains',async()=>{
   for(const name of ['Saline','Example County']){

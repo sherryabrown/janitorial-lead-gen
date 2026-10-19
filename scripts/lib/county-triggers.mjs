@@ -196,7 +196,7 @@ export function countyTriggers({db,discovery,workflow,audit}) {
           const jobs=await rows(db,'procurement_jobs',q=>q.eq('search_request_id',child.request_id),'id,state');
           if(jobs.some(j=>j.state==='outcome_unknown'))state='outcome_unknown';
           else if(state!=='outcome_unknown'&&jobs.some(j=>['pending','running'].includes(j.state)))state='pending';
-          else if(!['pending','outcome_unknown'].includes(state)&&(jobs.some(job=>job.state!=='succeeded')||tasks.some(task=>!['reviewed_with_results','reviewed_no_results'].includes(task.state))||
+          else if(!['pending','outcome_unknown'].includes(state)&&(jobs.some(job=>job.state!=='succeeded')||tasks.some(task=>!['reviewed_with_results','reviewed_no_results','superseded'].includes(task.state))||
             (await workflow.status(request.id)).total_candidates>0))state='needs_review';
         };
         await audit.run(child.request_id,'resolve_sources',operation);
