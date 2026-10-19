@@ -53,7 +53,7 @@ Current web recheck: the [official Portal](https://littlerock.bonfirehub.com/por
 
 ## Return-build checkpoint — October 19, 2026, 14:16 UTC onward
 
-**Partial implementation; required external access/live acceptance remains blocked. Keep in todo.** No commit, push, deployment or hosting configuration change was made in this return build.
+**Partial implementation; required external access/live acceptance remains blocked. Keep in todo.** The build initially made no deployment; subsequent user-authorized release is recorded below.
 
 Fresh evidence:
 
@@ -70,6 +70,8 @@ Local implementation:
 - Admin packet metadata exposes detail/access states and saved evidence descriptors. Selecting a document loads bounded plain review text through authenticated `supporting-evidence`, without provider fetch or raw bytes. Existing exact quotation/date/work-location/candidate/import validation still applies. SAM automatic saving and all non-SAM approval guards remain unchanged.
 
 Verification: `npm run test:access` passed actual isolated PostgreSQL 15/PostgREST, including automatic SAM manual/scheduled native imports and private JSON hold containment/checkpoint CAS/stale-write rejection, with no production contact. The targeted supporting/workflow suite passed 29 tests. Existing browser acceptance passed desktop 1440px, mobile 390px/320px, keyboard focus, evidence selection/read, no overflow and preserved county/SAM behavior; screenshots inspected. Final `npm run check` passed: lint, 59 UI tests, 283 workflow tests, SQL regression suites, TypeScript and production build. Existing lazy Admin/map bundle warning remains (about 1.01 MB / 214 KB gzip). `git diff --check` passed. Initial sandbox temporary-cache failure and the corrected request-options type error were not counted as passes. Netlify production was read back unchanged and locked again after verification.
+
+Release after explicit user authorization: feature commit `954c35b4dda12c56cfcb7d21977f91ca32182310` (`feat: resume Bonfire public detail collection`) was pushed to `codex/admin-county-trigger-ui`. Render deploy `dep-dbb2n2ks728c73a6t3d0` is live on that commit (14:40:27 UTC), and Netlify preview deploy `6ad62bd312c903f2974858bd` serves the same feature commit at https://bonfire-review--janitorial-lead-gen.netlify.app. Actual preview bundle verification preserves SAM automatic UI, includes saved supporting-evidence UI, and targets Render. Preview/health returned 200 and exact-origin CORS 204. There were no active procurement leases before release; the complete Render environment hash is unchanged. Netlify production was read back unchanged and locked on `6ad583d1b9bb1b307abcf1fd`. No new provider access attempt, private method renewal, hosted acceptance promotion, schedule or import was performed during release. Private release receipts are under ignored `outputs/deployment/bonfire-return/`.
 
 Remaining: establish supported current protected detail/document access, evidence-based private recipe/method/session revalidation, fresh capture/readback on the actual deployed commit, genuine second-request protected reuse and scoped live manual/browser-closed scheduled acceptance. The local public continuation is not proof those requirements passed. The support inquiry was updated with current evidence and is still unsent; no vendor API is assumed or required as the only possible solution. No new infrastructure/account/spend is authorized. Murphy's earlier observed routing/empty My Opportunities result was retained, not represented as a fresh verified zero public listing.
 
