@@ -6,6 +6,7 @@ import { separateSamSource, buildKnownSourcePlan, adapterContract } from './know
 import { usageSummary,auditPhase } from './workflow-audit.mjs';
 import {samTrigger,samRequest} from './sam-request.mjs';
 import {countyPresentations} from './county-source-attention.mjs';
+import {reportRunHistory} from './admin-run-history.mjs';
 
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 const next=state=>({pending:'Read saved progress',running:'Read saved progress',needs_review:'Review saved source evidence and candidates',
@@ -85,7 +86,8 @@ export function countyTriggers({db,discovery,workflow,audit,automaticCounty}) {
       rows(db,'procurement_usage_ledger',q=>q.eq('trigger_id',id),'id,state,input_tokens,output_tokens,actual_usd,reserved_usd,usage')]);
     const presentation=(await countyPresentations(db,[t],{children})).get(t.id);
     const relatedState=t.target_kind==='sam'?[]:(await stateSources()).items.filter(s=>s.county_ids.some(c=>t.config.county_ids.includes(c)));
-    return {id:t.id,target_kind:t.target_kind,config:t.config,state:t.state,created_at:t.created_at,...(presentation?{presentation}:{}),
+    const [reporting]=await reportRunHistory(db,[t]);
+    return {id:t.id,target_kind:t.target_kind,config:t.config,state:t.state,created_at:t.created_at,finished_at:t.finished_at,origin:t.origin,schedule_id:t.schedule_id,occurrence_id:t.occurrence_id,reporting,...(presentation?{presentation}:{}),
       children:children.map(c=>({request_id:c.request_id,county_id:c.county_id,role:c.role})),
       related_state_sources:relatedState.map(s=>({...s,evidence_policy:'Review saved source run; verify county work location and dates before import'})),
       usage:usageSummary(usage),next_action:presentation?'View saved results and the affected sources below.':next(t.state)};
@@ -132,7 +134,13 @@ export function countyTriggers({db,discovery,workflow,audit,automaticCounty}) {
     if(cursor){if(!/^[0-9]{1,18}$/.test(cursor))throw Error('Invalid step cursor');query=query.gt('sequence',cursor);}
     const values=checked(await query.order('sequence').range(0,limit)),page=values.slice(0,limit);
     const usage=page.length?await rows(db,'procurement_usage_ledger',q=>q.in('step_id',page.map(s=>s.id)),'step_id,state,actual_usd,reserved_usd,usage'):[];
-    return {items:page.map(s=>({...s,usage:usageSummary(usage.filter(u=>u.step_id===s.id))})),next_cursor:values.length>limit?String(page.at(-1).sequence):null};
+    const sourceIds=[...new Set(page.map(s=>s.source_id).filter(Boolean))];
+    const sources=sourceIds.length?await rows(db,'procurement_sources',q=>q.in('id',sourceIds),'id,name'):[];
+    return {items:page.map(s=>({...s,source_name:sources.find(source=>source.id===s.source_id)?.name??null,
+      reason:['manual','deterministic','registered_source'].includes(s.reason)?s.reason:'saved_step',
+      diagnostic_id:uuid.test(s.diagnostic_id??'')?s.diagnostic_id:null,
+      summary:Object.fromEntries(Object.entries(s.summary??{}).filter(([key,value])=>['pages','records','inserted','existing_preserved','results_count'].includes(key)&&Number.isInteger(value)&&value>=0||key==='outcome'&&['captured','blocked','partial','outcome_unknown','unchanged','changed','new'].includes(value))),
+      usage:usageSummary(usage.filter(u=>u.step_id===s.id))})),next_cursor:values.length>limit?String(page.at(-1).sequence):null};
   }
   async function control(id,action,actor) {
     if(action==='resume')await rpc('reconcile_procurement_county_reads',{p_trigger:id});

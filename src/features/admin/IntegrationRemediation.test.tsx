@@ -113,7 +113,7 @@ it('keeps the review mounted through a real run transition and isolates another 
 it('offers an initial run read retry without issuing a mutation', async () => {
   mocked.request.mockRejectedValueOnce(Error('Connection failed')).mockResolvedValue({ items: [], next_cursor: null });
   render(<RunDetail id="run" owner="owner" onClose={() => {}} onViewLeads={() => {}} onSource={() => {}} changed={() => {}} />);
-  await screen.findByText('Connection failed');
+  await screen.findByText(/Some run data could not load/);
   expect(screen.getByRole('button', { name: 'Retry progress' })).toBeTruthy();
   expect(mocked.request.mock.calls.every(([, options]) => options?.body === undefined)).toBe(true);
 });

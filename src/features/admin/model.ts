@@ -70,6 +70,7 @@ export function resolvedConfig(draft: Draft, at = new Date()): Config {
   };
 }
 export function formatLocal(value: string | null | undefined) {
+  if(value&&!Number.isFinite(Date.parse(value)))return 'Unknown';
   return value
     ? new Intl.DateTimeFormat('en-US', {
         timeZone: 'America/Chicago',
@@ -145,3 +146,5 @@ export function invalidDraft(d: Draft, schedule = false) {
   }
   return '';
 }
+
+export const duration=(value:number|null|undefined)=>value==null?'Unknown':value<1000?`${value} ms`:`${(value/1000).toFixed(1)} s`;

@@ -32,6 +32,8 @@ export function sqlApi(sql) {
         in(k,values){params.push(values);conditions.push(`${name(k)}=any($${params.length})`);return q;},
         not(k,_op,v){if(v!==null)throw Error('Unsupported test query');conditions.push(`${name(k)} is not null`);return q;},
         lte(k,v){params.push(v);conditions.push(`${name(k)}<=$${params.length}`);return q;},
+        gte(k,v){params.push(v);conditions.push(`${name(k)}>=$${params.length}`);return q;},
+        lt(k,v){params.push(v);conditions.push(`${name(k)}<$${params.length}`);return q;},
         gt(k,v){params.push(v);conditions.push(`${name(k)}>$${params.length}`);return q;},
         order(k,{ascending=true,nullsFirst}={}){orders.push(`${name(k)} ${ascending?'asc':'desc'}${nullsFirst===false?' nulls last':''}`);return q;},
         range(a,b){start=a;end=b;return q;},update(v){update=v;return q;},maybeSingle(){single=true;return q;},single(){single=true;return q;},

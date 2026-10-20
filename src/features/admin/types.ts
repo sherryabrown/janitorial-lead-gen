@@ -54,6 +54,7 @@ export type Preview = {
   actions?: { county_id: string; state_research?: { action: string }[] }[];
 };
 export type Schedule = Draft & {
+  updated_at?: string;
   reporting?: { as_of: string; latest_occurrence?: {state: string; reason?: string; trigger_id?: string; created_at: string} | null;
     last_run: (Run & {leads: {added: number | null; updated: number | null; unchanged: number | null; completeness: string; reason?: string}}) | null };
   id: string;
@@ -75,6 +76,14 @@ export type Usage = {
   credit_unit?: string | null;
 };
 export type Run = {
+  finished_at?: string | null;
+  schedule_id?: string | null;
+  occurrence_id?: string | null;
+  reporting?: RunMetrics;
+  leads?: LeadCounts;
+  timing?: RunTiming;
+  categories?: RunMetrics['categories'];
+  candidates_attention?: RunMetrics['candidates_attention'];
   presentation?: {outcome: 'source_attention'; attention_count: number};
   category?: 'opportunity' | 'award' | null;
   id: string;
@@ -93,6 +102,10 @@ export type Run = {
   related_state_sources?: StateSource[];
 };
 export type Step = {
+  source_id?: string | null;
+  source_name?: string | null;
+  diagnostic_id?: string | null;
+  origin?: string;
   id: string;
   sequence: number;
   phase: string;
@@ -104,6 +117,9 @@ export type Step = {
   summary: Record<string, unknown>;
   usage: Usage;
 };
+export type LeadCounts = {added: number|null; updated: number|null; unchanged: number|null; completeness: string; reason?: string};
+export type RunTiming = {created_at: string; finished_at: string|null; created_to_finished_ms: number|null; recorded_activity_ms: number|null; completeness: string; basis: string};
+export type RunMetrics = {leads?: LeadCounts; timing?: RunTiming; categories?: {completeness:string; forecast:number|null; opportunity:number|null; award:number|null; reason:string}; candidates_attention?:{value:number|null;completeness:string;reason:string}};
 export type StateSource = {
   id: string;
   source_id: string;

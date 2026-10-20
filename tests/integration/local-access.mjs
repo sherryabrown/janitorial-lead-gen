@@ -167,6 +167,13 @@ try {
   assert.equal(overview.items[0].reporting.last_run.id,occurrences.items[0].trigger_id);
   assert.equal(overview.items[0].reporting.last_run.usage.ai,'not_used');
   assert.equal((await adminRead('/v1/schedules?sort=unsafe')).status,422);
+  const globalHistoryResponse=await adminRead(`/v1/admin/history?schedule=${savedSchedule.body}&origin=scheduled&limit=1`);
+  assert.equal(globalHistoryResponse.status,200);const globalHistory=await globalHistoryResponse.json();
+  assert.equal(globalHistory.items[0].id,occurrences.items[0].trigger_id);assert.ok(globalHistory.total>=1);assert.ok(globalHistory.items[0].timing);
+  assert.equal(globalHistory.items[0].checkpoint,undefined);assert.equal(globalHistory.items[0].lease_token,undefined);
+  const safeRun=await triggers.status(occurrences.items[0].trigger_id);assert.equal(safeRun.reporting.checkpoint,undefined);assert.equal(safeRun.reporting.lease_token,undefined);
+  assert.equal((await adminRead('/v1/admin/history?origin=unsafe')).status,422);
+  assert.equal((await fetch(`http://127.0.0.1:${backend.address().port}/v1/admin/history`)).status,401);
   const historyResponse=await adminRead(`/v1/schedules/${savedSchedule.body}/occurrences`);
   assert.equal(historyResponse.status,200);assert.equal((await historyResponse.json()).items[0].trigger_id,occurrences.items[0].trigger_id);
   const eventsResponse=await adminRead(`/v1/schedules/${savedSchedule.body}/events`);

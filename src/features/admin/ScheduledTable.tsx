@@ -1,30 +1,29 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActionMenu } from '../shared/components/ActionMenu';
 import { InfoTooltip } from '../shared/components/InfoTooltip';
-import { ScheduleHistory } from './ScheduleHistory';
+import { ScheduleDetail, type ScheduleSection } from './ScheduleDetail';
 import { formatLocal, runLabel, title, recurrenceLabel } from './model';
 import type { AnySchedule, County } from './types';
 const defaults={q:'',target:'all',geography:'',lifecycle:'all',blocker:'all',sort:'name',direction:'asc'};
-type Section='details'|'stats'|'history'|'logs'|'geography'|'sources';
-export function ScheduleList({items,more,paging,onMore,onEdit,onAction,busy,onView,onAdd,onFilters,counties=[],query='',total,loading=false,error='',onRetry,focusSchedule}: {
+type Section='details'|'stats'|'overview'|'history'|'logs'|'geography'|'sources';
+export function ScheduleList({items,more,paging,onMore,onEdit,onAction,busy,onView,onAdd,onFilters,counties=[],query='',total,loading=false,error='',onRetry,focusSchedule,owner='',context,onContext}: {
   items: AnySchedule[]; more: boolean; paging?: boolean; onMore:()=>void; onEdit:(s:AnySchedule)=>void;
-  onAction:(s:AnySchedule,a:string)=>void; busy:boolean; onView:(id:string)=>void; onAdd?:(target:string)=>void;
+  onAction:(s:AnySchedule,a:string)=>void; busy:boolean; onView:(id:string,section?:'overview'|'logs'|'sources')=>void; onAdd?:(target:string)=>void;
   onFilters?:(query:string)=>void; counties?:County[]; query?:string; total?:number; loading?:boolean; error?:string; onRetry?:()=>void;
-  focusSchedule?: AnySchedule|null;
+  focusSchedule?: AnySchedule|null; owner?:string; context?:{id:string;section:ScheduleSection}|null; onContext?:(value:{id:string;section:ScheduleSection}|null)=>void;
 }) {
   const [filters,setFilters]=useState(()=>({...defaults,...Object.fromEntries(new URLSearchParams(query))}));
   const [selected,setSelected]=useState<{id:string;section:Section}|null>(null),[target,setTarget]=useState('county_scope');
   const [menuId,setMenuId]=useState<string|null>(null);
-  const detailRef=useRef<HTMLElement>(null);
   useEffect(()=>{if(focusSchedule)setSelected({id:focusSchedule.id,section:'details'});},[focusSchedule]);
-  useEffect(()=>{if(selected){detailRef.current?.focus();detailRef.current?.scrollIntoView?.({block:'nearest'});}},[selected]);
   const change=(key:keyof typeof defaults,value:string)=>{
     const f={...filters,[key]:value};setFilters(f);
     const p=new URLSearchParams();for(const [k,v] of Object.entries(f))if(v!==defaults[k as keyof typeof defaults])p.set(k,v);
     onFilters?.(p.toString());
   };
-  const current=items.find(s=>s.id===selected?.id)??(focusSchedule?.id===selected?.id?focusSchedule:undefined);
-  const open=(s:AnySchedule,section:Section)=>setSelected({id:s.id,section});
+  const detail=context===undefined?(selected?{id:selected.id,section:(selected.section==='details'||selected.section==='stats'?'overview':selected.section) as ScheduleSection}:null):context;
+  const current=items.find(s=>s.id===detail?.id)??(focusSchedule?.id===detail?.id?focusSchedule:undefined);
+  const open=(s:AnySchedule,section:Section)=>{setSelected({id:s.id,section});onContext?.({id:s.id,section:section==='details'||section==='stats'?'overview':section});};
   return <section className="admin-section" aria-label="Saved schedules">
     <div className="admin-section-heading"><h2>Schedules</h2>{onAdd&&<div className="admin-inline">
       <label>Schedule target<select aria-label="New schedule target" value={target} onChange={e=>setTarget(e.target.value)}><option value="county_scope">Counties</option><option value="state_source">State source</option><option value="sam">SAM statewide</option></select></label>
@@ -59,17 +58,13 @@ export function ScheduleList({items,more,paging,onMore,onEdit,onAction,busy,onVi
               {label:`Edit ${s.name}`,disabled:busy||archived,onSelect:()=>onEdit(s)},
               {label:s.enabled?'Pause':'Resume',title:'Pause stops scheduled work; manual runs continue.',disabled:busy||archived||!!s.blocker&&!s.enabled,onSelect:()=>onAction(s,s.enabled?'pause':'resume')},
               {label:'Archive schedule',disabled:busy||archived,onSelect:()=>{if(window.confirm('Archive this schedule? Future scheduled work stops. Saved history remains; manual runs already started are not cancelled.'))onAction(s,'archive');}},
-              ...(['stats','history','logs','geography','details','sources'] as Section[]).map(section=>({label:({stats:'Go to Stats',history:`History for ${s.name}`,logs:'Go to History/Logs',geography:'Show related geography',details:'View details',sources:'Go to Sources'})[section],onSelect:()=>open(s,section)})),
+              ...(['stats','history','logs','geography','details','sources'] as const).map(section=>({label:({stats:'Go to Stats',history:`History for ${s.name}`,logs:'Go to History/Logs',geography:'Show related geography',details:'View details',sources:'Go to Sources'})[section],onSelect:()=>open(s,section)})),
             ]}/></div></td>
         </tr>;})}</tbody></table></div>
     {more&&<button type="button" className="text-button" disabled={paging} onClick={onMore}>More schedules</button>}
-    {current&&selected&&<section ref={detailRef} tabIndex={-1} className="admin-section schedule-detail" aria-label={`Schedule details: ${current.name}`}>
-      <div className="admin-section-heading"><h3>{current.name} · {title(selected.section)}</h3><button type="button" className="text-button" onClick={()=>{setSelected(null);document.getElementById(`schedule-row-${current.id}`)?.querySelector<HTMLButtonElement>('button')?.focus();}}>Close schedule details</button></div>
-      <div className="admin-inline"><button type="button" className="secondary-button compact" disabled={busy||!!current.archived_at||!!current.archived} onClick={()=>onAction(current,'run-now')}>Run saved schedule now</button><button type="button" className="text-button" disabled={busy||!!current.archived_at||!!current.archived} onClick={()=>onEdit(current)}>Edit schedule details</button><button type="button" className="text-button" disabled={busy||!!current.archived_at||!!current.archived||!!current.blocker&&!current.enabled} onClick={()=>onAction(current,current.enabled?'pause':'resume')}>{current.enabled?'Pause schedule':'Resume schedule'}</button></div>
-      <dl><dt>Frequency</dt><dd>{recurrenceLabel(current)}</dd><dt>Saved scope</dt><dd>{current.config.target_kind==='sam'?'SAM · Arkansas':current.config.counties?.map(c=>c.name).join(', ')||current.config.county_ids.map(id=>counties.find(c=>c.id===id)?.name??id).join(', ')}</dd><dt>Version</dt><dd>{current.version}</dd></dl>
-      {selected.section==='history'?<ScheduleHistory id={current.id} onView={onView}/>:selected.section==='geography'?<ul>{current.config.target_kind==='sam'?<li>Arkansas statewide · SAM performance locations verified per record</li>:current.config.counties?.map(c=><li key={c.id}>{c.name}<ul>{c.cities?.map(city=><li key={city.id}>{city.name}</li>)}</ul></li>)??current.config.county_ids.map(id=><li key={id}>{counties.find(c=>c.id===id)?.name??id}</li>)}</ul>:<>
-        {current.reporting?.last_run?<><strong>{runLabel(current.reporting.last_run)}</strong><dl><dt>New leads</dt><dd>{current.reporting.last_run.leads?.added??'Unknown'}</dd><dt>Updated leads</dt><dd>{current.reporting.last_run.leads?.updated??'Unknown'}</dd></dl><button type="button" className="text-button" onClick={()=>onView(current.reporting!.last_run!.id)}>{selected.section==='sources'?'View saved source evidence':selected.section==='logs'?'View run logs':'View last run'}</button></>:<p>{current.reporting?'No saved run yet.':'Run reporting unavailable; refresh after the matching backend is available.'}</p>}
-      </>}
-    </section>}
+    {detail&&<ScheduleDetail key={detail.id} id={detail.id} initial={current??undefined} owner={owner} section={detail.section}
+      onSection={section=>{setSelected({id:detail.id,section});onContext?.({...detail,section});}}
+      onClose={()=>{setSelected(null);onContext?.(null);const row=document.getElementById(`schedule-row-${detail.id}`);row?.querySelector<HTMLButtonElement>('button')?.focus({preventScroll:true});row?.scrollIntoView?.({block:'nearest'});}}
+      onView={onView} onEdit={onEdit} onAction={onAction} busy={busy} counties={counties}/>}
   </section>;
 }

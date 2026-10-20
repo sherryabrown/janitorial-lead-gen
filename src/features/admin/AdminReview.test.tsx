@@ -281,6 +281,7 @@ it('paginates steps and stops polling on terminal state or unmount', async () =>
     />,
   );
   await act(async () => {});
+  fireEvent.click(screen.getByRole('button', { name: 'Logs' }));
   fireEvent.click(screen.getByRole('button', { name: 'More steps' }));
   await act(async () => {});
   expect(screen.getByText('Steps · 2')).toBeTruthy();

@@ -31,7 +31,7 @@ import { ModeSwitch } from '../features/shared/components/ModeSwitch';
 import { EmptyQueueState } from '../features/shared/components/EmptyQueueState';
 import { InfoTooltip } from '../features/shared/components/InfoTooltip';
 import { AccountControls } from '../features/shared/components/AccountControls';
-import { clearAdminSession } from '../features/admin/navigation';
+import { clearAdminSession,hasAdminLocation,leaveAdminLocation,pushAdminLocation,readAdminContext } from '../features/admin/navigation';
 
 const AdminScreen = lazy(() => import('../features/admin/AdminScreen'));
 
@@ -396,10 +396,10 @@ function App() {
 }
 
 function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => void }) {
-  const [adminVisited, setAdminVisited] = useState(false);
+  const [adminVisited, setAdminVisited] = useState(hasAdminLocation);
   const settingsRef = useRef<HTMLDivElement>(null);
   const [workMode, setWorkMode] = useState<WorkMode>('contracts');
-  const [contractView, setContractView] = useState<ContractView>('open');
+  const [contractView, setContractView] = useState<ContractView>(()=>hasAdminLocation()?'admin':'open');
   const [contracts, setContracts] = useState<ContractOpportunity[]>([]);
   const [contractPage, setContractPage] = useState(0);
   const [contractTotal, setContractTotal] = useState(0);
@@ -420,6 +420,7 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
   const [contextMode, setContextMode] = useState<ContextPanelMode>('note');
   const [expandedClosedMode, setExpandedClosedMode] = useState<WorkMode | null>(null);
   const [contractFilters, setContractFilters] = useState<ContractFilters>(getDefaultContractFilters);
+  useEffect(()=>{const navigate=()=>{if(hasAdminLocation()){setAdminVisited(true);setWorkMode('contracts');setContractView('admin');}else setContractView(current=>current==='admin'?contractFilters.status:current);};window.addEventListener('popstate',navigate);return()=>window.removeEventListener('popstate',navigate);},[contractFilters.status]);
   const [companyFilters, setCompanyFilters] = useState<CompanyFilters>({
     status: 'new',
     query: '',
@@ -909,7 +910,7 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
         <h1 className="app-title">Executive Services SPIN Leads</h1>
         <div ref={settingsRef} className="topbar-account-area">
           <AccountControls email={session.user.email} active={workMode === 'contracts' && contractView === 'admin'}
-            onSignOut={onSignOut} onSettings={() => { setAdminVisited(true); setWorkMode('contracts'); setContractView('admin'); }} />
+            onSignOut={onSignOut} onSettings={() => { if(!hasAdminLocation())pushAdminLocation(session.user.id,readAdminContext(session.user.id));setAdminVisited(true); setWorkMode('contracts'); setContractView('admin'); }} />
         </div>
       </header>
 
@@ -968,7 +969,7 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
           {adminVisited && <div hidden={workMode !== 'contracts' || contractView !== 'admin'}>
             <Suspense fallback={<p role="status">Loading Admin…</p>}><AdminScreen owner={session.user.id}
               active={workMode === 'contracts' && contractView === 'admin'}
-              onViewLeads={() => { setContractView(contractFilters.status); void refreshContracts(); requestAnimationFrame(() => settingsRef.current?.querySelector<HTMLButtonElement>('button')?.focus()); }} /></Suspense>
+              onViewLeads={() => { leaveAdminLocation();setContractView(contractFilters.status); void refreshContracts(); requestAnimationFrame(() => settingsRef.current?.querySelector<HTMLButtonElement>('button')?.focus()); }} /></Suspense>
           </div>}
           {workMode === 'contracts' ? (
             contractView === 'admin' ? (

@@ -52,11 +52,13 @@ let calls: { path: string; body?: unknown; key?: string }[];
 beforeEach(() => {
   window.scrollTo = vi.fn();
   sessionStorage.clear();
+  window.history.replaceState({},'','/');
   calls = [];
   mocks.request.mockReset();
   mocks.request.mockImplementation(
     async (path: string, options: { body?: unknown; key?: string } = {}) => {
       calls.push({ path, ...options });
+      if(path.startsWith('/v1/admin/history'))return {items:[],next_offset:null,total:0};
       if (path === '/v1/counties') return { counties };
       if (path === '/v1/state-triggers') return { items: [] };
       if (

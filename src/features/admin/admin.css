@@ -529,3 +529,16 @@
 .floating-action-menu [role="menuitem"] { display: block; width: 100%; min-width: 0; white-space: normal; text-align: left; min-height: 36px; padding: 7px 10px; overflow-wrap: anywhere; }
 .floating-action-menu [role="menuitem"]:hover, .floating-action-menu [role="menuitem"]:focus-visible { background: var(--surface-soft, #fff3eb); }
 .floating-action-menu [aria-disabled="true"] { opacity: .5; cursor: default; }
+
+.admin-facts { display: grid; grid-template-columns: minmax(100px, .7fr) minmax(0, 2fr); gap: 7px 16px; margin: 12px 0; font-size: .85rem; }
+.admin-facts dt { color: var(--muted); }
+.admin-facts dd { margin: 0; overflow-wrap: anywhere; }
+.detail-sections { margin: 16px 0; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+.admin-run-detail { scroll-margin-top: 12px; }
+.admin-step-list small, .admin-step-list p, .history-table td { overflow-wrap: anywhere; }
+.admin-step-list small { display: block; margin-top: 4px; }
+.history-table .admin-inline { flex-wrap: wrap; }
+.history-table details { max-width: 100%; overflow-wrap: anywhere; }
+@media(max-width:760px) { .admin-facts { grid-template-columns: minmax(80px, .8fr) minmax(0,1.4fr); gap: 6px 12px; } }
+.schedule-detail .admin-section-heading { flex-wrap: wrap; align-items: flex-start; }
+@media(max-width:460px) { .schedule-filters label:has(input[type="date"]) { grid-column: 1 / -1; } }

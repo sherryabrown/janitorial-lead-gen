@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { workflowRequest } from '../../lib/procurement-workflow';
 import { RequestReview } from './RequestReview';
+import {RunStepLog} from './RunStepLog';
+import {duration} from './model';
 import type { Run, Step } from './types';
 import { activeRun, title, usageText, formatLocal, runLabel, hasSourceAttention } from './model';
+function savedLogPage(owner:string,id:string){try{const n=Number(sessionStorage.getItem(`spin-admin-log-page:${owner}:${id}`));return Number.isInteger(n)&&n>0&&n<=5000?n:0;}catch{return 0;}}
 export function RunDetail({
   id,
   owner,
@@ -10,6 +13,7 @@ export function RunDetail({
   onViewLeads,
   onSource,
   changed,
+  section:requestedSection,onSection,
 }: {
   id: string;
   owner: string;
@@ -17,6 +21,7 @@ export function RunDetail({
   onViewLeads: () => void;
   onSource: (id: string) => void;
   changed: () => void;
+  section?:'overview'|'logs'|'sources';onSection?:(section:'overview'|'logs'|'sources')=>void;
 }) {
   const [run, setRun] = useState<Run | null>(null),
     [steps, setSteps] = useState<Step[]>([]),
@@ -25,8 +30,10 @@ export function RunDetail({
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
     [refresh, setRefresh] = useState(0);
+  const [localSection,setLocalSection]=useState<'overview'|'logs'|'sources'>('overview');
+  const section=requestedSection??localSection;
+  const heading=useRef<HTMLHeadingElement>(null),lastId=useRef(''),loadedSteps=useRef(50);
   const changedRef = useRef(changed),
-    pageStart = useRef<string | null>(null),
     pageGeneration = useRef(0),
     morePending = useRef(false);
   useEffect(() => {
@@ -38,25 +45,21 @@ export function RunDetail({
       delay = 2500,
       previous = '';
     const epoch = ++pageGeneration.current;
-    pageStart.current = null;
+    if(lastId.current!==id){lastId.current=id;loadedSteps.current=savedLogPage(owner,id);setRun(null);setChild('');setSteps([]);}
     morePending.current = false;
-    setSteps([]);
     setError('');
     const load = async () => {
       try {
-        const start = pageStart.current;
-        const [r, s] = await Promise.all([
+        const target=loadedSteps.current;
+        const [status, logs] = await Promise.allSettled([
           workflowRequest<Run>(`/v1/triggers/${id}`, {
             signal: abort.signal,
           }),
-          workflowRequest<{ items: Step[]; next_cursor: string | null }>(
-            `/v1/triggers/${id}/steps${start ? `?cursor=${start}` : ''}`,
-            { signal: abort.signal },
-          ),
+          (async()=>{const result:{items:Step[];next_cursor:string|null}={items:[],next_cursor:null};do{const next=await workflowRequest<{items:Step[];next_cursor:string|null}>(`/v1/triggers/${id}/steps${result.next_cursor?`?cursor=${result.next_cursor}`:''}`,{signal:abort.signal});result.items.push(...next.items);result.next_cursor=next.next_cursor;}while(result.next_cursor&&result.items.length<target);return result;})(),
         ]);
         if (abort.signal.aborted) return;
-        setRun(r);
-        if (pageStart.current === start) {
+        if(logs.status==='fulfilled'){
+          const s=logs.value;
           setSteps((old) =>
             [
               ...new Map(
@@ -64,8 +67,11 @@ export function RunDetail({
               ).values(),
             ].sort((a, b) => a.sequence - b.sequence),
           );
-          setCursor(s.next_cursor);
+          if(target===loadedSteps.current){setCursor(s.next_cursor);loadedSteps.current=s.items.length;}
         }
+        if(status.status==='rejected'||logs.status==='rejected')setError('Some run data could not load. Loaded progress and logs remain available.');else setError('');
+        if(status.status==='rejected')return;
+        const r=status.value;setRun(r);
         setChild((c) => c || r.children?.[0]?.request_id || '');
         if (previous && previous !== r.state) changedRef.current();
         previous = r.state;
@@ -83,7 +89,9 @@ export function RunDetail({
       abort.abort();
       clearTimeout(timer);
     };
-  }, [id, refresh]);
+  }, [id, refresh,owner]);
+  const hasRun=!!run;
+  useEffect(()=>{heading.current?.focus();},[id,section,hasRun]);
   const control = async (action: string) => {
     setBusy(true);
     try {
@@ -107,7 +115,8 @@ export function RunDetail({
         next_cursor: string | null;
       }>(`/v1/triggers/${id}/steps?cursor=${start}`);
       if (generation !== pageGeneration.current) return;
-      pageStart.current = start;
+      loadedSteps.current+=s.items.length;
+      try{sessionStorage.setItem(`spin-admin-log-page:${owner}:${id}`,String(loadedSteps.current));}catch{/* Mounted logs remain. */}
       setSteps((x) => [
         ...x,
         ...s.items.filter((i) => !x.some((a) => a.id === i.id)),
@@ -124,7 +133,7 @@ export function RunDetail({
       tabIndex={-1}
     >
       <div className={`admin-section-heading${run && hasSourceAttention(run) ? ' has-source-attention' : ''}`}>
-        <h2>{run ? runLabel(run) : 'Loading run…'}</h2>
+        <h2 ref={heading} tabIndex={-1}>{run ? runLabel(run) : 'Loading run…'}</h2>
         <button type="button" className="text-button" onClick={onClose}>
           Close details
         </button>
@@ -135,11 +144,11 @@ export function RunDetail({
         </p>
       )}
       {!run && <button type="button" className="text-button" onClick={() => setRefresh(n => n + 1)}>Retry progress</button>}
+          <nav className="admin-workspace-nav detail-sections" aria-label="Run sections">{(['overview','logs','sources'] as const).map(value=><button key={value} type="button" className="text-button" aria-current={section===value?'page':undefined} onClick={()=>{setLocalSection(value);onSection?.(value);}}>{title(value)}</button>)}</nav>
       {run && (
         <>
-          <p>
-            {run.next_action} · {usageText(run.usage)}
-          </p>
+          <div hidden={section!=='overview'}><dl className="admin-facts"><dt>Next action</dt><dd>{run.next_action}</dd><dt>Origin</dt><dd>{title(run.origin)}</dd><dt>Created</dt><dd>{formatLocal(run.created_at)}</dd><dt>Finished</dt><dd>{run.finished_at?formatLocal(run.finished_at):'Unknown'}</dd><dt>Recorded activity</dt><dd>{duration(run.reporting?.timing?.recorded_activity_ms)}{run.reporting?.timing?.completeness==='partial'?' · partial intervals':''}</dd><dt>Created → finished</dt><dd>{duration(run.reporting?.timing?.created_to_finished_ms)}</dd><dt>AI usage</dt><dd>{usageText(run.usage)}</dd><dt>New / updated / unchanged</dt><dd>{run.reporting?.leads?.completeness==='known'?`${run.reporting.leads.added} / ${run.reporting.leads.updated} / ${run.reporting.leads.unchanged}`:run.reporting?.leads?.completeness==='not_applicable'?'Not applicable':'Unknown'}</dd><dt>Category breakdown</dt><dd>{run.reporting?.categories?.reason??'Historical category attribution unavailable'}</dd><dt>Candidates needing attention</dt><dd>{run.reporting?.candidates_attention?.value??'Unknown · review candidate validation'}</dd><dt>Source checks needing attention</dt><dd>{run.presentation?.outcome==='source_attention'?run.presentation.attention_count:'See saved source checks'}</dd></dl></div>
+
           <div className="admin-inline">
             {activeRun(run.state) && (
               <button
@@ -191,39 +200,7 @@ export function RunDetail({
                 </p>
               ))}
           </details>
-          <details open>
-            <summary>Steps · {steps.length}</summary>
-            <div className="admin-step-list">
-              {steps.map((s) => (
-                <div key={s.id}>
-                  <strong>
-                    {title(s.phase)} · {title(s.state)}
-                  </strong>
-                  <p>
-                    {s.county_id ?? 'Shared scope'} ·{' '}
-                    {formatLocal(s.started_at)} ·{' '}
-                    {s.finished_at
-                      ? `${Math.max(0, new Date(s.finished_at).getTime() - new Date(s.started_at).getTime())} ms`
-                      : 'In progress'}{' '}
-                    · {title(s.reason)}
-                  </p>
-                  <small>{usageText(s.usage)}</small>
-                  {Boolean(s.summary?.outcome) && (
-                    <p>{title(String(s.summary.outcome))}</p>
-                  )}
-                </div>
-              ))}
-            </div>
-            {cursor && (
-              <button
-                type="button"
-                className="text-button"
-                onClick={() => void more()}
-              >
-                More steps
-              </button>
-            )}
-          </details>
+          <details><summary>Run identity and timing basis</summary><dl className="admin-facts"><dt>Run ID</dt><dd>{run.id}</dd><dt>Schedule ID</dt><dd>{run.schedule_id??'Standalone run'}</dd><dt>Occurrence ID</dt><dd>{run.occurrence_id??'Not recorded'}</dd><dt>Execution start</dt><dd>Unknown · no dedicated historical start timestamp</dd><dt>Recorded activity</dt><dd>{run.reporting?.timing?.basis??'Completed step intervals; not end-to-end execution time'}</dd></dl></details>
           {!!run.related_state_sources?.length && (
             <details>
               <summary>Saved state-source results and freshness</summary>
@@ -246,7 +223,7 @@ export function RunDetail({
               ))}
             </details>
           )}
-          <label className="input-field">
+          <div hidden={section==='logs'}><label className="input-field">
             <span>
               {run.target_kind === 'sam'
                 ? 'SAM results'
@@ -274,8 +251,11 @@ export function RunDetail({
               onViewLeads={onViewLeads}
             />
           )}
+          </div>
         </>
       )}
+      <div hidden={section!=='logs'}><RunStepLog steps={steps} run={run} cursor={cursor} onMore={()=>void more()}/></div>
+      {!run&&section==='sources'&&<p>Saved source scope is unavailable. Retry progress.</p>}
     </section>
   );
 }

@@ -226,8 +226,15 @@ try {
         if(input.config.target_kind==='sam'){samSchedule={...input,id:'sam-schedule',version:1,next_due_at:null};body=samSchedule;}
         else {savedSchedule = true;Object.assign(schedule, input);body = schedule;}
       } else if (p.endsWith('/occurrences') && url.searchParams.has('offset')) body={items:[{id:'linked',due_at:'2026-10-19T12:00:00Z',state:'queued',trigger_id:'run'}],next_offset:null};
-      else if (p.endsWith('/occurrences')) body={items:[{id:'blocked',due_at:'2026-10-19T12:00:00Z',state:'blocked',reason:'scope_changed',missed_from:'2026-10-18T12:00:00Z',missed_through:'2026-10-19T12:00:00Z'}],next_offset:1};
+      else if (p.endsWith('/occurrences')) body={items:[{id:'blocked',due_at:'2026-10-19T12:00:00Z',effective_at:'2026-10-19T13:00:00Z',origin:'scheduled',version:1,config:{target_kind:'county_scope',county_ids:['05119'],counties:[{id:'05119',name:'Original Pulaski snapshot',cities:[]}]},state:'blocked',reason:'scope_changed',missed_from:'2026-10-18T12:00:00Z',missed_through:'2026-10-19T12:00:00Z'}],next_offset:1};
       else if (p.endsWith('/events')) body={items:[{id:'event',action:'archive',version:2,at:'2026-10-19T12:00:00Z'}],next_offset:null};
+      else if (p === '/v1/schedules/schedule') body=schedule;
+      else if(p==='/v1/schedules/archived')body={...schedule,id:'archived',name:'Archived checks',archived_at:'2026-10-19T12:00:00Z'};
+      else if(p==='/v1/schedules/sam-schedule')body=samSchedule;
+      else if(p==='/v1/admin/history'){
+        const historyRun={...run,schedule_id:url.searchParams.get('schedule')||null,schedule_name:url.searchParams.get('schedule')?'Morning checks':null,leads:{added:2,updated:1,unchanged:3,completeness:'known'},timing:{recorded_activity_ms:1800,completeness:'known'}};
+        body={items:[historyRun],next_offset:null,total:1};
+      }
       else if (p === '/v1/schedules') {
         const items=[...(savedSchedule ? [schedule] : []),...(samSchedule?[samSchedule]:[]),{...schedule,id:'archived',name:'Archived checks',archived_at:'2026-10-19T12:00:00Z'}].filter(s=>url.searchParams.get('lifecycle')!=='current'||!s.archived_at);
         body = {items,next_offset:null,total:items.length};
@@ -255,6 +262,7 @@ try {
               started_at: '2026-10-19T01:00:00Z',
               finished_at: '2026-10-19T01:00:01Z',
               reason: 'unchanged_saved_hash',
+              source_name:'County bids',diagnostic_id:'00000000-0000-4000-8000-000000000099',
               summary: {
                 outcome:
                   'Evidence reused; missing category verification remains a gap',
@@ -477,8 +485,8 @@ try {
     await page.getByRole('button',{name:'Morning checks',exact:true}).focus();
     await page.getByRole('button',{name:'Morning checks',exact:true}).evaluate(el=>el.scrollIntoView({block:'start'}));
     await page.screenshot({path:`${out}/schedule-table-${width}.png`,fullPage:false});
-    await page.getByRole('table').screenshot({path:`${out}/schedule-table-full-${width}.png`});
-    const table=await page.getByRole('table').boundingBox();
+    await page.locator('table.schedule-table').first().screenshot({path:`${out}/schedule-table-full-${width}.png`});
+    const table=await page.locator('table.schedule-table').first().boundingBox();
     assert.ok(table.x>=0&&table.x+table.width<=width,'Schedule table fits viewport');
     await page.screenshot({path:`${out}/schedule-history-${width}.png`,fullPage:true});
     await page.getByRole('region',{name:'Schedule history'}).screenshot({path:`${out}/schedule-history-detail-${width}.png`});
@@ -530,7 +538,7 @@ try {
       for (const edge of ['start','end']) {
         await button.evaluate((el,block)=>el.scrollIntoView({block}),edge);
         await button.focus();
-        const bounds=()=>page.getByRole('table').evaluate(el=>Array.from(el.querySelectorAll('tr,td')).map(node=>{const r=node.getBoundingClientRect();return [r.x,r.y,r.width,r.height];}));
+        const bounds=()=>page.locator('table.schedule-table').first().evaluate(el=>Array.from(el.querySelectorAll('tr,td')).map(node=>{const r=node.getBoundingClientRect();return [r.x,r.y,r.width,r.height];}));
         const before=await bounds();
         await button.hover();assert.equal(await page.getByRole('menu').count(),0,'Hover does not open actions');
         await page.keyboard.press(edge==='start'?'Enter':'Space');
@@ -574,6 +582,54 @@ try {
     assert.equal(sizes.scroll <= sizes.width, true, JSON.stringify(sizes));
   }
   const readsBeforeReturn=queueReads;
+  // Phase 3: contextual sections, saved snapshots, logs/evidence, and browser navigation.
+  await page.setViewportSize({width:1440,height:900});
+  const savedDetails=page.getByRole('region',{name:'Schedule details: SAM weekly updates'});
+  if(await savedDetails.count())await savedDetails.getByRole('button',{name:'Close schedule details'}).click();
+  await page.getByRole('button',{name:'Morning checks',exact:true}).click();
+  const detail=page.getByRole('region',{name:'Schedule details: Morning checks'}),sections=detail.getByRole('navigation',{name:'Schedule sections'});
+  await detail.getByRole('heading',{name:'Morning checks',exact:true}).waitFor();
+  for(const label of ['Related geography','Sources','Logs','Overview / Stats','History']){
+    await sections.getByRole('button',{name:label,exact:true}).focus();await page.keyboard.press('Enter');
+    assert.equal(new URL(page.url()).searchParams.get('adminSchedule'),'schedule');
+    for(const width of [1440,390,320]){
+      await page.setViewportSize({width,height:900});await sections.scrollIntoViewIfNeeded();
+      await page.screenshot({path:`${out}/detail-${label.replaceAll(/[^a-z]/gi,'-')}-${width}.png`,fullPage:false});
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+    }
+  }
+  await detail.getByText('Occurrence snapshot · version 1').click();await detail.getByText('Original Pulaski snapshot').waitFor();
+  await sections.getByRole('button',{name:'Sources',exact:true}).click();
+  await detail.getByRole('button',{name:'View saved source evidence',exact:true}).click();
+  const runDetail=page.getByRole('region',{name:'Run details'});
+  await runDetail.getByRole('heading',{name:'Finished — some sources need attention',exact:true}).waitFor();
+  assert.equal(new URL(page.url()).searchParams.get('adminRunSection'),'sources');
+  await runDetail.getByRole('button',{name:'View source evidence',exact:true}).click();await runDetail.getByRole('heading',{name:'Saved source evidence'}).waitFor();
+  await runDetail.getByRole('navigation',{name:'Run sections'}).getByRole('button',{name:'Logs',exact:true}).click();
+  for(const width of [1440,390,320]){
+    await page.setViewportSize({width,height:900});await runDetail.getByText('Steps · 1',{exact:true}).scrollIntoViewIfNeeded();
+    await runDetail.getByText(/Diagnostic reference:/).waitFor();
+    await page.screenshot({path:`${out}/detail-run-logs-${width}.png`,fullPage:false});
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+  }
+  await page.goBack();await runDetail.getByRole('heading',{name:'Saved source evidence'}).waitFor();
+  assert.equal(new URL(page.url()).searchParams.get('adminRunSection'),'sources');
+  await page.goForward();await runDetail.getByText('Steps · 1',{exact:true}).waitFor();
+  await runDetail.getByRole('button',{name:'Close details'}).click();await runDetail.waitFor({state:'hidden'});
+  await detail.getByRole('button',{name:'Close schedule details'}).click();
+  assert.equal(await page.getByLabel('Find a county').inputValue(),'Pulaski');
+  await page.getByRole('button',{name:'History / logs',exact:true}).click();
+  const globalHistory=page.getByRole('region',{name:'Run history'});await globalHistory.getByRole('button',{name:'View run',exact:true}).waitFor();
+  for(const width of [1440,390,320]){await page.setViewportSize({width,height:900});await globalHistory.scrollIntoViewIfNeeded();await page.screenshot({path:`${out}/global-history-${width}.png`,fullPage:false});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);}
+  await globalHistory.getByRole('combobox',{name:/^Origin/}).selectOption('manual');
+  await globalHistory.getByRole('button',{name:'Refresh history'}).click();
+  await globalHistory.getByRole('combobox',{name:/^Schedule/}).selectOption('schedule');
+  await globalHistory.getByRole('button',{name:'View schedule occurrences and changes'}).click();
+  await page.getByRole('region',{name:'Schedule history'}).waitFor();
+  await page.goBack();await globalHistory.waitFor();assert.equal(await globalHistory.getByRole('combobox',{name:/^Origin/}).inputValue(),'manual');
+  assert.ok(bodies.every(b=>b.path!=='/v1/admin/history'),'History refresh is read-only');
+  await page.reload();await page.getByRole('heading',{name:'Admin',exact:true}).waitFor();await page.getByRole('region',{name:'Run history'}).waitFor();
+  await page.getByRole('button',{name:'Settings',exact:true}).click();
   await page.getByRole('button',{name:'Back to contracts'}).click();
   await page.getByRole('region',{name:'Research context'}).waitFor();
   assert.ok(queueReads>readsBeforeReturn,'Returning to leads revalidates even without realtime');
@@ -614,6 +670,7 @@ try {
         widths: [1440, 390, 320],
         keyboard: true,
         floatingActionMenus: true,
+        scheduleDetailSections:true,historyContextBackForwardReload:true,runDiagnosticLogs:true,savedScopeSnapshots:true,
         scheduleHistory: true,
         archivedHistory: true,
         reviewDraftRetained: true,

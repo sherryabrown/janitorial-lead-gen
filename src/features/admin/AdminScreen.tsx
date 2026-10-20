@@ -7,7 +7,8 @@ import {
 import { CountySelector } from './CountySelector';
 import { SamSection } from './SamSection';
 import { TriggerForm } from './TriggerForm';
-import { ScheduleList, StateSourceList, ActivityList } from './ScheduleList';
+import { ScheduleList, StateSourceList } from './ScheduleList';
+import {RunHistory} from './RunHistory';
 import { RunDetail } from './RunDetail';
 import { initialDraft, invalidDraft, resolvedConfig } from './model';
 import type {
@@ -17,13 +18,12 @@ import type {
   County,
   Preview,
   Schedule,
-  Run,
   Page,
   StateSource,
   SchedulerStatus,
 } from './types';
 import './admin.css';
-import { readAdminContext, saveAdminContext, type AdminContext } from './navigation';
+import {readAdminLocation,pushAdminLocation,saveAdminContext, type AdminContext } from './navigation';
 type Editor = {
   draft: Draft;
   id?: string;
@@ -96,15 +96,26 @@ export default function AdminScreen({
   const [samBusy,setSamBusy]=useState(false);
   const stateSourcesRef=useRef<HTMLDivElement>(null),samRef=useRef<HTMLDivElement>(null);
   const [navigation, setNavigation] = useState<AdminContext>(() => {
-    const saved = readAdminContext(owner);
+    const saved = readAdminLocation(owner);
     return saved.view === 'schedules' || saved.view === 'history' ? saved : { view: 'schedules', returnTo: 'contracts' };
   });
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const returnFocus=useRef<HTMLElement|null>(null),previousRun=useRef<string|null>(null),restoreFocus=useRef(false);
   const schedulesRef = useRef<HTMLDivElement>(null), manualRef = useRef<HTMLDivElement>(null), historyRef = useRef<HTMLDivElement>(null);
-  useEffect(() => { if (active) headingRef.current?.focus(); }, [active]);
+  useEffect(() => {
+    if(!active)return;
+    const target=navigation.runId?detailRef.current?.querySelector<HTMLElement>('h2'):navigation.scheduleId?schedulesRef.current?.querySelector<HTMLElement>('.schedule-detail h2'):navigation.view==='history'?historyRef.current:navigation.section==='manual'?manualRef.current:headingRef.current;
+    target?.focus();if(navigation.runId||navigation.scheduleId||navigation.view==='history'||navigation.section==='manual')target?.scrollIntoView?.({block:'nearest'});
+  }, [active,navigation.view,navigation.scheduleId,navigation.runId,navigation.section]);
   useEffect(() => { saveAdminContext(owner, navigation); }, [owner, navigation]);
+  useEffect(()=>{const back=()=>{const context=readAdminLocation(owner);if(previousRun.current&&!context.runId)restoreFocus.current=true;setNavigation(context);};window.addEventListener('popstate',back);return()=>window.removeEventListener('popstate',back);},[owner]);
+  const commitNavigation=(context:AdminContext)=>{pushAdminLocation(owner,context);setNavigation(context);};
+  const selected=navigation.runId??null;
+  const setSelected=(value:string|null|((old:string|null)=>string|null))=>{const id=typeof value==='function'?value(selected):value;commitNavigation({...navigation,runId:id??undefined,runSection:'overview'});};
+  const viewRun=(id:string,section:'overview'|'logs'|'sources'='overview')=>{returnFocus.current=document.activeElement as HTMLElement;commitNavigation({...navigation,runId:id,runSection:section});};
+  useEffect(()=>{if(previousRun.current&&!selected&&restoreFocus.current&&returnFocus.current?.isConnected){returnFocus.current.focus({preventScroll:true});returnFocus.current.scrollIntoView?.({block:'nearest'});}restoreFocus.current=false;previousRun.current=selected;},[selected]);
   const navigate = (view: 'schedules' | 'history', manual = false) => {
-    setNavigation({ view, returnTo: 'contracts', ...(manual ? { section: 'manual' } : {}) });
+    commitNavigation({ view, returnTo: 'contracts', ...(manual ? { section: 'manual' } : {}) });
     const target = manual ? manualRef.current : view === 'history' ? historyRef.current : schedulesRef.current;
     target?.focus(); target?.scrollIntoView?.({ block: 'start' });
   };
@@ -113,16 +124,13 @@ export default function AdminScreen({
     [counties, setCounties] = useState<County[]>([]),
     [sources, setSources] = useState<StateSource[]>([]),
     [schedules, setSchedules] = useState<AnySchedule[]>([]),
-    [runs, setRuns] = useState<Run[]>([]),
     [status, setStatus] = useState<SchedulerStatus | null>(null),
     [scheduleOffset, setScheduleOffset] = useState<number | null>(null),
-    [runOffset, setRunOffset] = useState<number | null>(null),
     [preview, setPreview] = useState<Preview | null>(null),
     [previewMode, setPreviewMode] = useState<'run' | 'schedule'>('run'),
     [error, setError] = useState(''),
     [notice, setNotice] = useState(''),
     [busy, setBusy] = useState(false),
-    [selected, setSelected] = useState<string | null>(null),
     [samEditor, setSamEditor] = useState<SamSchedule | null>(() => {
       try {
         const s = JSON.parse(
@@ -149,12 +157,13 @@ export default function AdminScreen({
     scopeRevision = useRef(0),
     collectionGeneration = useRef(0),
     pagingRef = useRef(false),
-    loaded = useRef({ schedules: 50, triggers: 50 });
+    loaded = useRef({schedules:(()=>{try{const n=Number(sessionStorage.getItem(`spin-admin-schedule-page:${owner}`));return Number.isInteger(n)&&n>=50&&n<=5000?n:50;}catch{return 50;}})(),triggers:50});
   const filterSchedules=useCallback((query:string)=>{
+    if(query===scheduleQuery)return;
     collectionGeneration.current++;
     loaded.current.schedules=50;setSchedules([]);setScheduleTotal(undefined);setScheduleQuery(query);
-    try{sessionStorage.setItem(`spin-admin-schedule-filter:${owner}`,query);}catch{/* Mounted filters remain. */}
-  },[owner]);
+    try{sessionStorage.setItem(`spin-admin-schedule-filter:${owner}`,query);sessionStorage.removeItem(`spin-admin-schedule-page:${owner}`);}catch{/* Mounted filters remain. */}
+  },[owner,scheduleQuery]);
   useEffect(()=>{if(editor?.id)manualRef.current?.focus();},[editor?.id]);
   useEffect(() => {
     try {
@@ -219,14 +228,13 @@ export default function AdminScreen({
     };
     void Promise.allSettled([
       workflowRequest<{ items: StateSource[] }>('/v1/state-triggers', { signal: a.signal }),
-      range<AnySchedule>('schedules'), range<Run>('triggers'),
-    ]).then(([s, sch, r]) => {
+      range<AnySchedule>('schedules'),
+    ]).then(([s, sch]) => {
       if (a.signal.aborted) return;
       if (s.status === 'fulfilled') setSources(s.value.items);
       if (sch.status === 'fulfilled') { setSchedules(sch.value.items); setScheduleOffset(sch.value.next_offset); setScheduleReadError(''); }
       else setScheduleReadError(sch.reason instanceof Error?sch.reason.message:'Schedules could not load.');
-      if (r.status === 'fulfilled') { setRuns(r.value.items); setRunOffset(r.value.next_offset); }
-      const failed = [s, r].find(x => x.status === 'rejected');
+      const failed = [s].find(x => x.status === 'rejected');
       if (failed?.status === 'rejected') setError(failed.reason instanceof Error ? failed.reason.message : 'Some Admin data could not load. Retry the connection.');
     }).finally(() => { if (!a.signal.aborted) { setLoading(false); setPaging(false); pagingRef.current = false; } });
     return () => { a.abort(); collectionGeneration.current = epoch + 1; };
@@ -322,7 +330,7 @@ export default function AdminScreen({
         );
         setEditor(null);
         setSavedScheduleFocus(s);
-        navigate('schedules');
+        commitNavigation({view:'schedules',returnTo:'contracts',scheduleId:s.id,section:'overview'});
       } else {
         const r = await workflowRequest<{ trigger_id: string }>(
           '/v1/triggers',
@@ -435,27 +443,17 @@ export default function AdminScreen({
     setPreview(null);
     scopeRevision.current++;
   };
-  const loadMore = async (kind: 'schedules' | 'triggers') => {
-    if (pagingRef.current) return;
-    const offset = kind === 'schedules' ? scheduleOffset : runOffset;
-    if (offset === null) return;
-    const generation = collectionGeneration.current;
-    pagingRef.current = true; setPaging(true); setError('');
-    try {
-      if (kind === 'schedules') {
-        const params=new URLSearchParams(scheduleQuery);params.set('offset',String(offset));
-        const p = await workflowRequest<Page<AnySchedule>>(`/v1/schedules?${params}`);
-        if (generation !== collectionGeneration.current) return;
-        loaded.current.schedules = offset + Math.max(p.items.length, 1);
-        setSchedules(x => merge(x, p.items)); setScheduleOffset(p.next_offset);
-      } else {
-        const p = await workflowRequest<Page<Run>>(`/v1/triggers?offset=${offset}`);
-        if (generation !== collectionGeneration.current) return;
-        loaded.current.triggers = offset + Math.max(p.items.length, 1);
-        setRuns(x => merge(x, p.items)); setRunOffset(p.next_offset);
-      }
-    } catch (e) { if (generation === collectionGeneration.current) setError((e as Error).message); }
-    finally { if (generation === collectionGeneration.current) { pagingRef.current = false; setPaging(false); } }
+  const loadMore = async () => {
+    if (pagingRef.current||scheduleOffset===null) return;
+    const generation=collectionGeneration.current;
+    pagingRef.current=true;setPaging(true);setScheduleReadError('');
+    try{
+      const params=new URLSearchParams(scheduleQuery);params.set('offset',String(scheduleOffset));
+      const p=await workflowRequest<Page<AnySchedule>>(`/v1/schedules?${params}`);
+      if(generation!==collectionGeneration.current)return;
+      loaded.current.schedules=scheduleOffset+Math.max(p.items.length,1);try{sessionStorage.setItem(`spin-admin-schedule-page:${owner}`,String(loaded.current.schedules));}catch{/* Mounted pages remain. */}setSchedules(x=>merge(x,p.items));setScheduleOffset(p.next_offset);
+    }catch(e){if(generation===collectionGeneration.current)setScheduleReadError((e as Error).message);}
+    finally{if(generation===collectionGeneration.current){pagingRef.current=false;setPaging(false);}}
   };
   const sourceScope =
     draft.config.target_kind === 'state_source'
@@ -507,7 +505,7 @@ export default function AdminScreen({
           </p>
         )}
       <div ref={schedulesRef} tabIndex={-1} className="admin-navigation-section" aria-label="Schedules">
-        <ScheduleList onView={setSelected} items={schedules} paging={paging} more={scheduleOffset !== null}
+        <ScheduleList owner={owner} context={navigation.scheduleId?{id:navigation.scheduleId,section:navigation.section==='manual'? 'overview':navigation.section??'overview'}:null} onContext={value=>commitNavigation({...navigation,view:'schedules',scheduleId:value?.id,section:value?.section,runId:undefined})} onView={viewRun} items={schedules} paging={paging} more={scheduleOffset !== null}
           query={scheduleQuery} onFilters={filterSchedules} counties={counties} total={scheduleTotal} loading={loading||paging}
           error={scheduleReadError} onRetry={()=>setRevision(n=>n+1)}
           focusSchedule={savedScheduleFocus}
@@ -517,7 +515,7 @@ export default function AdminScreen({
             else if(target==='sam'){if(samBusy){setNotice('Finish the current SAM action before adding a schedule.');return;}setSamScheduleToken(n=>n+1);navigate('schedules',true);samRef.current?.focus();samRef.current?.scrollIntoView?.({block:'start'});}
             else{if(!editor)setEditor({draft:structuredClone(manual),intent:'schedule'});navigate('schedules',true);}
           }}
-          onMore={() => void loadMore('schedules')} onEdit={(s) => { void edit(s); navigate('schedules', true); }}
+          onMore={() => void loadMore()} onEdit={(s) => { void edit(s); navigate('schedules', true); }}
           onAction={(s, a) => void scheduleAction(s, a)} busy={busy} />
       </div>
       <div ref={manualRef} tabIndex={-1} className="admin-navigation-section" aria-label="Manual runs">
@@ -590,7 +588,7 @@ export default function AdminScreen({
         owner={owner}
         editing={samEditor}
         newScheduleToken={samScheduleToken}
-        onSaved={s=>{setSavedScheduleFocus(s);navigate('schedules');}}
+        onSaved={s=>{setSavedScheduleFocus(s);commitNavigation({view:'schedules',returnTo:'contracts',scheduleId:s.id,section:'overview'});}}
         onKeepDraft={()=>setSamEditor(null)}
         onBusyChange={setSamBusy}
         onEdited={() => setSamEditor(null)}
@@ -609,21 +607,16 @@ export default function AdminScreen({
       </div>
       </div>
       <div ref={historyRef} tabIndex={-1} className="admin-navigation-section" aria-label="History and logs">
-      <ActivityList
-        items={runs}
-        onView={(id) => setSelected((x) => (x === id ? null : id))}
-        selected={selected}
-        paging={paging}
-        more={runOffset !== null}
-        onMore={() => void loadMore('triggers')}
-      />
+      {navigation.view==='history'&&<RunHistory owner={owner} counties={counties} refreshSignal={revision} onView={viewRun} onSchedule={id=>commitNavigation({view:'schedules',scheduleId:id,section:'history',returnTo:'contracts'})}/>}
       {selected && (
         <div ref={detailRef}>
           <RunDetail
             key={selected}
             id={selected}
             owner={owner}
-            onClose={() => setSelected(null)}
+            section={navigation.runSection}
+            onSection={section=>commitNavigation({...navigation,runSection:section})}
+            onClose={() => {restoreFocus.current=true;if(window.history.state?.adminOwner===owner&&window.history.state?.adminReturn?.runId&&window.history.state.adminReturn.runId!==selected)window.history.back();else setSelected(null);}}
             onViewLeads={onViewLeads}
             onSource={setSelected}
             changed={() => setRevision((x) => x + 1)}

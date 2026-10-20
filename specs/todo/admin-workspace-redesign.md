@@ -2,7 +2,7 @@
 
 Status: planning complete, 2026-10-20. No application implementation, data writes or release authorized by this plan. The user confirmed metric choices D1–D3 below; the six child plans are ready for sequential implementation.
 
-Implementation checkpoint: phase 1 was subsequently authorized with build-code and completed locally. Header/profile/Settings and the retained Admin section shell are verified; phase 2, including its floating Quick actions menu amendment, is completed and verified locally; phases 3–6 remain planned. See the phase-1 done plan for exact checks and limits. No release or production change.
+Implementation checkpoint (2026-10-20): phases 1–2 were subsequently released to Render and the approved Netlify preview at d594602. Phase 3 is completed and verified locally, including schedule sections, server-filtered history, safe step reporting and URL/Back context. Phases 4–6 remain planned. Phase 3 adds no migration and has not been committed or externally deployed. Netlify production remains unchanged. Audit rows below describe the original baseline; completed-child checkpoints supersede their missing-work notes.
 
 ## Initiating request
 
@@ -25,7 +25,7 @@ Full requirements carried forward:
 | --- | --- | --- |
 | 1 | [Navigation and Settings shell — completed locally](../done/01-admin-redesign-navigation.md) | Parent; no other child |
 | 2 | [Schedules and management — completed locally](../done/02-admin-redesign-schedules.md) | 1 |
-| 3 | [Details, history and logs](03-admin-redesign-details-history.md) | 1–2 |
+| 3 | [Details, history and logs — completed locally](../done/03-admin-redesign-details-history.md) | 1–2 |
 | 4 | [Stats and analytics](04-admin-redesign-analytics.md) | 2–3 reporting contracts |
 | 5 | [Sources and related geography](05-admin-redesign-sources-geography.md) | 1–3; 4 optional for statistics links |
 | 6 | [Acceptance and release](06-admin-redesign-acceptance-release.md) | 1–5 |
@@ -129,3 +129,5 @@ Already specified/preserved: archive rather than destructive delete; all active 
 Each phase must run meaningful affected tests plus build/lint as appropriate. Final gate: npm run check, npm run test:access, existing browser harness extended across desktop/390/320/keyboard. Native tests use disposable infrastructure, never production fixtures. Test missing data, full pagination, stale requests, version conflicts, acknowledgment loss, concurrent imports, cross-county/shared sources, mixed AI units and incomplete receipts.
 
 Phase 6 requires exact deployed version/schema audit: d218166 includes unrelated unreleased Saline migration/capability work. Do not automatically apply that package, send more outreach, or resume Bonfire as a side effect of Admin rollout. Record which migrations and commits are included and preserve unrelated behavior. Authorized rollout is additive migration/reporting compatibility, Render first, then Netlify draft preview; no Production Netlify publish/unlock. Request release approval only after concrete verification is ready if not already authorized for that release. Preserve production deployment ID/lock before/after and archive disposable acceptance schedules. Keep plans in todo if required data/UI/live acceptance is blocked.
+
+Phase 3 read contract: authenticated GET /v1/admin/history supports schedule/run/target/geography/origin/outcome/from/through/limit/offset; dates are CT calendar boundaries and totals cover the full filtered result. Outcome filters use stored lifecycle states while row presentation retains verified source attention. Occurrences/changes remain distinct schedule history; full analytics and catalogs remain later phases. See the phase-3 done plan for exact completeness and privacy limits.

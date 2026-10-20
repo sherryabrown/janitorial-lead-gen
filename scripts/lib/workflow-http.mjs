@@ -47,6 +47,11 @@ export function workflowServer({authenticate,workflow,imports,discovery,sam,samP
       let result;
       const execute=async()=>{
       if(schedules&&url.pathname==='/v1/scheduler/status'&&request.method==='GET')result={...await schedules.status(),backend_key_configured:typeof schedulerKey==='string'&&schedulerKey.length>=32,...(aiPolicy?{ai_policy:{enabled:aiPolicy.enabled,monthly_usd:aiPolicy.monthlyUsd}}:{})};
+      else if(schedules&&url.pathname==='/v1/admin/history'&&request.method==='GET') {
+        const limit=Number(url.searchParams.get('limit')??50),offset=Number(url.searchParams.get('offset')??0);
+        if(!Number.isInteger(limit)||limit<1||limit>100||!Number.isInteger(offset)||offset<0)throw new HttpError(400,'Invalid pagination');
+        result=await schedules.history({limit,offset,...Object.fromEntries(['schedule','run','target','geography','origin','outcome','from','through'].filter(k=>url.searchParams.has(k)).map(k=>[k,url.searchParams.get(k)]))});
+      }
       else if(schedules&&segments[1]==='schedules') {
         const limit=Number(url.searchParams.get('limit')??50),offset=Number(url.searchParams.get('offset')??0);
         if(!Number.isInteger(limit)||limit<1||limit>100||!Number.isInteger(offset)||offset<0)throw new HttpError(400,'Invalid pagination');
