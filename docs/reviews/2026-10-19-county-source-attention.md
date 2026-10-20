@@ -1,6 +1,6 @@
 # County source attention — implementation verification
 
-Implemented and verified locally. Commit, push, Render deployment and the matching Netlify preview are now authorized; release verification is pending. No migration, new search, import or schedule is needed. Netlify production must remain unchanged.
+Implemented, verified, committed and pushed. Render was deployed first, followed by the matching Netlify preview. No migration, new search, import or schedule was performed. Netlify production remains unchanged.
 
 ## Changes
 
@@ -32,7 +32,17 @@ Saved evidence distinguishes access denial, unverified procurement listings, una
 
 ## Release boundary
 
-No production Netlify release is authorized by this implementation. The authorized release will deploy Render's optional status/task metadata first and then the approved Netlify preview, checking the production deployment ID/lock. Older backends safely retain existing display labels. No database changes or backfill are needed. Actual source coverage/access limitations remain; this change explains them rather than resolving them.
+No production Netlify release is authorized by this implementation. Render's optional status/task metadata was deployed first, followed by the approved Netlify preview; the production deployment ID and lock were verified unchanged. Older backends safely retain existing display labels. No database changes or backfill are needed. Actual source coverage/access limitations remain; this change explains them rather than resolving them.
 
 Proposed commit: `feat: clarify county source attention`.
 
+
+## Preview release receipts
+
+- Code commit: `adffa71dac54942679d366d29a8ce75feb58c77e` — `feat: clarify county source attention`, pushed to `codex/admin-county-trigger-ui`.
+- Render: `dep-dbbc9trrjlhs73do1sk0`, live on the exact code commit before the frontend release; full configuration digest unchanged.
+- Netlify preview: `6ad6c588668e1941c2bc9681`, [approved preview](https://bonfire-review--janitorial-lead-gen.netlify.app). Served assets include the new outcome, source next actions and Workflow details, targeting the hosted Render backend.
+- Backend health returned 200; preview CORS returned 204 with the exact approved origin.
+- Netlify production remains locked on `6ad583d1b9bb1b307abcf1fd`; no production publish occurred.
+- Repeated read-only checks against the three saved Saline records passed after release; canonical lead readback remains identical. These checks exercise the committed projection against live saved data. An authenticated hosted browser/API read was not repeated; desktop/mobile/keyboard behavior was verified through the existing local browser harness.
+- Private release receipts are under ignored `outputs/deployment/source-attention/`. Existing source access/coverage blockers remain; no further product decision is required for this status change.

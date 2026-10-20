@@ -1,6 +1,6 @@
 # Clear county run outcomes and source-specific next actions
 
-Status: implemented and verified locally. Automated, desktop/mobile/keyboard and read-only existing Saline checks passed; see [verification](../../docs/reviews/2026-10-19-county-source-attention.md). No commit, push or deployment was performed. Netlify production remains unchanged.
+Status: implemented and verified locally. Automated, desktop/mobile/keyboard and read-only existing Saline checks passed; see [verification](../../docs/reviews/2026-10-19-county-source-attention.md). Committed and pushed as `adffa71`; Render deployed first, then the approved Netlify preview. Release health, assets, preview CORS, configuration preservation and repeated read-only Saline checks passed. Netlify production remains locked on its original deployment. See the verification record for receipts and the hosted-authentication verification limit.
 
 ## Initiating prompt
 
@@ -70,3 +70,4 @@ Unsupported automation may need developer work, rather than a task for the busin
 - Existing Saline records display correctly, with no unnecessary new searches or canonical writes. Netlify production remains unchanged.
 
 No product decision is required before implementation. The requested label applies to finished county runs with source coverage attention; it must not conceal unfinished or unsafe work.
+
