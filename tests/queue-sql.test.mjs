@@ -15,6 +15,7 @@ test('queue SQL spans API limits, applies filters/counts, preserves order and de
     for (const path of ['supabase/baselines/20260930_public_procurement.sql','supabase/migrations/20260930000100_authenticated_procurement_reads.sql','supabase/migrations/20260930000200_procurement_queue_pages.sql','supabase/migrations/20261001000100_queue_bounds_and_historical_dates.sql']) {
       await db.exec(readFileSync(path,'utf8'));
     }
+    await db.exec(readFileSync('supabase/migrations/20261020000100_forecast_quarter_queue.sql','utf8'));
     const fixture=JSON.parse(readFileSync('tests/fixtures/research/mapping.json','utf8'));
     const source=fixture.procurement_sources[0];
     await db.query('insert into procurement_sources(id,code,name,url,business_category,contracting_entity_geo_level) values($1,$2,$3,$4,$5,$6)',[source.id,source.code,source.name,source.url,source.business_category,source.contracting_entity_geo_level]);
@@ -56,6 +57,17 @@ test('queue SQL spans API limits, applies filters/counts, preserves order and de
     assert.equal((await query({query:'Queue regression',status:'open'})).total,2,'Open excludes won');
     assert.equal((await query({query:'Queue regression',status:'closed',closedSubcategory:'won'})).total,1);
     assert.equal((await query({query:'Queue regression',dateFrom:'2026-09-18',dateTo:'2026-09-17'})).total,0,'Reversed bounds return no matches');
+    await db.exec('reset role;');
+    for(const [id,period,published] of [['quarter','Q4 2026',null],['invalid-quarter','Q5 2026',null],['exact','Q4 2026','2026-09-01']]) {
+      await db.query('insert into procurement_leads(source_id,external_id,payload) values($1,$2,$3)',[source.id,id,JSON.stringify({source_url:'https://agency.example/forecast.pdf',business_category:"other_public",work_performance_locations:[],title:`Quarter regression ${id}`,bid_type:'forecast',planned_advertisement_period:period,...(published?{published_date:published}:{})})]);
+    }
+    await db.exec('set role authenticated;');
+    const quarter=await query({query:'Quarter regression',bidType:'forecast',dateFrom:'2026-11-15',dateTo:'2026-11-15'});
+    assert.equal(quarter.total,1,'An interior day overlaps the estimated release quarter');
+    assert.equal(quarter.rows[0].planned_advertisement_period,'Q4 2026');
+    assert.equal(quarter.rows[0].response_deadline,null,'Quarter boundaries never become deadlines');
+    assert.equal((await query({query:'Quarter regression',dateFrom:'2027-01-01',dateTo:'2027-01-31'})).total,0);
+    assert.equal((await query({query:'Quarter regression exact',dateFrom:'2026-09-01',dateTo:'2026-09-01'})).total,1,'Existing exact primary-date behavior stays unchanged');
     await db.exec('reset role; set role anon;');
     await assert.rejects(()=>db.query('select * from procurement_leads'),/permission denied/);
     await assert.rejects(()=>db.query('select procurement_queue_page()'),/permission denied/);

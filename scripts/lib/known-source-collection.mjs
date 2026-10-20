@@ -13,10 +13,12 @@ import { fetchPublicCheck, semanticPublicHash, semanticSources } from './public-
 import { inspectArdotEntry, fetchArdotPage } from './ardot-table.mjs';
 import { collectKnownApi } from './known-access-run.mjs';
 import {requestPublicCapture} from './public-capture-reuse.mjs';
+import {fetchLinkedDocument} from './public-linked-document.mjs';
+import {artifactStore} from './hosted-store.mjs';
 
 
 // Shared adapter orchestration. CLI credentials and output are injected, never read here.
-export async function executeKnownSources({db, project, serverKey, command, requestId, selectedSourceCode, maxJobs=Infinity, cancelled=async()=>false, retryPartial=true, fetcher=fetch}) {
+export async function executeKnownSources({db, project, serverKey, command, requestId, selectedSourceCode, maxJobs=Infinity, cancelled=async()=>false, retryPartial=true, fetcher=fetch,artifacts}) {
 if (!['plan','run'].includes(command)) throw new Error('Invalid collection command');
 if (['sam','sam-awards'].includes(selectedSourceCode)) throw new Error('Use separate statewide SAM');
 function rows(table, columns = '*', filter = null) {
@@ -131,10 +133,11 @@ if (command === 'plan') {
           run = inserted.data;
           // Reuse only hash-verified bytes from this request and exact source/URL.
           // Each route still receives its own audited run and interpretation.
-          const reusable=automaticCounty?await requestPublicCapture(db,{requestId,sourceId:source.id,url,maxBytes:contract.max_bytes,allowedHosts:contract.allowed_hosts,
+          const reusable=automaticCounty&&!contract.linked_document?await requestPublicCapture(db,{requestId,sourceId:source.id,url,maxBytes:contract.max_bytes,allowedHosts:contract.allowed_hosts,
             allowJson:['bonfire-projects-v1','bonfire-contracts-v1','supporting-document-v1'].includes(contract.response_format)}):null;
-          const capture = await auditPhase(reusable?'compare':'fetch_page',()=>reusable??fetchPublicCheck(contract, url,fetcher,
-            {researchEntry:automaticCounty&&task.kind==='source_entry'?source.url:undefined}),
+          const capture = await auditPhase(reusable?'compare':'fetch_page',()=>reusable??(contract.linked_document
+            ?fetchLinkedDocument(contract,url,{fetcher,artifacts:artifacts??artifactStore(db)})
+            :fetchPublicCheck(contract, url,fetcher,{researchEntry:automaticCounty&&task.kind==='source_entry'?source.url:undefined})),
             {source_id:source.id,task_id:task.id,reason:reusable?'request_capture_reuse':'deterministic'});
           if (capture.state === 'captured') {
             let listing = null, listingError = null;
@@ -169,6 +172,7 @@ if (command === 'plan') {
               content_type: capture.content_type, content_sha256: capture.content_sha256,
               semantic_sha256: semanticHash,
               bytes: capture.bytes,
+              ...(capture.linked_index?{linked_index:capture.linked_index}:{}),
               ...(capture.reused_run_id?{reused_run_id:capture.reused_run_id}:{}),
               ...(contract.response_format ? { response_format: contract.response_format,
                 listing_count: listing?.records.length ?? null,

@@ -474,6 +474,27 @@ try {
   await page.getByRole('button',{name:'Back to contracts'}).click();
   await page.getByRole('region',{name:'Research context'}).waitFor();
   assert.ok(queueReads>readsBeforeReturn,'Returning to leads revalidates even without realtime');
+  const existingQueueWidths={};
+  for(const width of [1440,390,320]){
+    await page.setViewportSize({width,height:900});
+    existingQueueWidths[width]=await page.evaluate(()=>document.documentElement.scrollWidth);
+  }
+  Object.assign(mapping.procurement_leads[1],{title:'Quarter-only forecast fixture',bid_type:'forecast',publication_date:null,
+    contract_start_date:null,contract_current_end_date:null,contract_potential_end_date:null,response_deadline:null,planned_advertisement_period:'Q4 2026',
+    payload:{title:'Quarter-only forecast fixture',bid_type:'forecast',planned_advertisement_period:'Q4 2026',source_url:'https://agency.example/forecast.pdf',business_category:'other_public',work_performance_locations:[{city_name:'Little Rock',state_code:'AR'}]}});
+  await page.getByRole('button',{name:'Admin',exact:true}).click();
+  await page.getByRole('button',{name:'Back to contracts'}).click();
+  await page.getByText('Quarter-only forecast fixture',{exact:false}).first().waitFor();
+  await page.getByText('Q4 2026',{exact:true}).first().waitFor();
+  for(const width of [1440,390,320]){
+    await page.setViewportSize({width,height:900});
+    await page.getByRole('link',{name:'Open source for Quarter-only forecast fixture'}).focus();
+    await page.getByText('Q4 2026',{exact:true}).first().scrollIntoViewIfNeeded();
+    await page.screenshot({path:`${out}/forecast-quarter-${width}.png`,fullPage:false});
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth)<=existingQueueWidths[width],'Forecast quarter adds no document overflow to existing Leads navigation');
+    const quarter=await page.getByText('Q4 2026',{exact:true}).first().boundingBox();
+    assert.ok(quarter.x>=0&&quarter.x+quarter.width<=width,'Published quarter fits at mobile widths');
+  }
   assert.equal(errors.length, 0, errors.join('\n'));
   assert.equal(bodies.filter((b) => b.path === '/v1/triggers').length, 2);
   assert.equal(bodies.filter(b=>b.path==='/v1/triggers'&&b.input.target_kind==='sam').length,1);
@@ -494,6 +515,8 @@ try {
         reviewDraftRetained: true,
         initialReadRetry: true,
         queueRefreshWithoutRealtime: true,
+        forecastQuarterDisplay: true,
+        existingLeadsNavigationOverflow: existingQueueWidths[390]>390,
         scopeConfirmation: true,
         manualTriggerCount: 1,
         multipleDailyTimes: true,

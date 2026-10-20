@@ -5,7 +5,7 @@ import {countyTriggers} from '../../scripts/lib/county-triggers.mjs';
 import {executeKnownSources} from '../../scripts/lib/known-source-collection.mjs';
 import {postgresTransport} from '../../scripts/lib/hosted-import.mjs';
 import {nativeRehearsal} from '../../scripts/lib/native-sql-rehearsal.mjs';
-import {checked} from '../../scripts/lib/hosted-store.mjs';
+import {checked,sha} from '../../scripts/lib/hosted-store.mjs';
 import {procurementSchedules} from '../../scripts/lib/procurement-schedules.mjs';
 import {randomUUID} from 'node:crypto';
 import {readFileSync} from 'node:fs';
@@ -25,6 +25,8 @@ export async function verifyAutomaticCounty({db,artifacts,audit,livePool,rehears
     else if(url==='https://lrsd.ionwave.net/SourcingEvents.aspx?SourceType=1')body=readFileSync('tests/fixtures/county/lrsd-empty-published.html');
     else if(url==='https://clintonairport.gob2g.com/FrontEnd/proposalsearchpublic.asp')body=readFileSync('tests/fixtures/county/airport-b2g-published.html');
     else if(url==='https://vendors.planetbids.com/portal/90401/portal-home')return new Response(null,{status:202});
+    else if(url==='https://forecast.example/contractors/')body='<a href="/September.pdf">View the Forecast</a>';
+    else if(url==='https://forecast.example/September.pdf')return new Response(readFileSync('tests/fixtures/county/airport-forecast-published.pdf'),{headers:{'content-type':'application/pdf'}});
     else throw Error(`Unexpected isolated county destination ${url}`);
     return new Response(body,{headers:{'content-type':'text/html'}});
   };
@@ -36,7 +38,7 @@ export async function verifyAutomaticCounty({db,artifacts,audit,livePool,rehears
     automaticCounty:id=>imports.prepareCounty(id),processJob:(job,c,save)=>c.stage.startsWith('import_')?imports.step(job,c,save):discovery.step(job,c,save),reportError:(_id,error)=>errors.push(error)});
   imports=importJobs({db,project,artifacts,transport:postgresTransport(livePool,project),rehearse:nativeRehearsal(rehearsalPool),countyEvidence:(id,candidates)=>workflow.countyEvidence(id,candidates)});
   discovery=discoveryService({db,project,artifacts,fetcher,transport:postgresTransport(livePool,project),rehearse:nativeRehearsal(rehearsalPool),
-    continueCollection:workflow.continueVerifiedCollection,collect:async({requestId,sourceCode,planOnly})=>executeKnownSources({db,project,requestId,
+    continueCollection:workflow.continueVerifiedCollection,collect:async({requestId,sourceCode,planOnly})=>executeKnownSources({db,project,artifacts,requestId,
       selectedSourceCode:sourceCode,command:planOnly?'plan':'run',fetcher,maxJobs:4,retryPartial:false})});
   const triggers=countyTriggers({db,workflow,discovery,audit,automaticCounty:id=>imports.prepareCounty(id)});
   const preview=await triggers.preview({...config,county_ids:['05001']});
@@ -197,5 +199,33 @@ export async function verifyAutomaticCounty({db,artifacts,audit,livePool,rehears
   assert.equal(calls.includes(lrsd.url),false,'Maintenance and renewal use the reviewed smaller entry without changing source identity');
   assert.equal(checked(await db.from('procurement_sources').select('url').eq('id',lrsd.id).single()).url,lrsd.url);
   assert.ok(renew.trigger_id);
+  const forecastSource={...publicSources[1],id:randomUUID(),identity_key:randomUUID(),code:'airport-forecast-native',name:'Airport forecast native',url:'https://forecast.example/old.pdf',config:{}};
+  const indexBody=Buffer.from('<a href="/September.pdf">View the Forecast</a>');
+  forecastSource.config={research_persistence:{coverage_by_scope:{fixture:{verified_public_entry:{url:'https://forecast.example/contractors/',official_entry_url:forecastSource.url,checked_at:new Date().toISOString(),content_sha256:sha(indexBody),official_link_artifact:await artifacts.put(indexBody)}}}}};
+  checked(await db.from('procurement_sources').insert(forecastSource));
+  const forecastSpec={version:1,runner_id:'public-fetch',check_when:'each_request',urls:['https://forecast.example/contractors/'],allowed_hosts:['forecast.example'],max_bytes:2000000,linked_document:{anchor_text:'View the Forecast'}};
+  checked(await db.from('procurement_source_capabilities').insert({id:randomUUID(),source_id:forecastSource.id,kind:'forecast',method:'document',endpoint_url:forecastSpec.urls[0],official_entry_url:forecastSource.url,route_geography_id:city,availability:'active',verified_at:new Date().toISOString(),verified_until:'2027-12-31T00:00:00Z',verification_evidence:{automation_policy:'county-public-v1',fixture:true},parser_version:'linked-forecast-native-v1',method_spec:forecastSpec}));
+  const forecastConfig={...config,county_ids:['05001'],maintain_sources:false,requested_categories:['forecast'],search_windows:{forecast:{from:'2026-10-19',to:'2027-10-19',date_basis:'expected_solicitation'}}};
+  const forecastPreview=await triggers.preview(forecastConfig);
+  const forecastRun=await triggers.submit({...forecastPreview.config,confirmed_scope:true,preview_hash:forecastPreview.preview_hash},renewalActor,'forecast-native');
+  for(let n=0;n<120;n++)if(!await workflow.step()&&!await triggers.step())break;
+  if(errors.length)throw errors[0];
+  const forecastChildren=checked(await db.from('procurement_trigger_requests').select('request_id').eq('trigger_id',forecastRun.trigger_id));
+  const forecastTasks=checked(await db.from('procurement_coverage_tasks').select('*').eq('source_id',forecastSource.id));
+  assert.ok(forecastTasks.some(t=>t.kind==='forecast'&&t.pages_reviewed===1),'Native worker captures the currently linked PDF');
+  const forecastRuns=checked(await db.from('procurement_runs').select('*').eq('source_id',forecastSource.id));
+  assert.ok(forecastRuns.some(r=>r.detail?.linked_index?.artifact?.startsWith('artifacts/')),'Published index provenance is immutable');
+  const interpretations=checked(await db.from('procurement_interpretations').select('*').in('request_id',forecastChildren.map(c=>c.request_id)));
+  assert.ok(interpretations.some(i=>JSON.stringify(i).includes('Q1 2027')),'Later PDF rows survive native interpretation');
+  assert.equal(checked(await db.from('procurement_leads').select('id').eq('source_id',forecastSource.id)).length,0,'Quarter support never bypasses missing routine-scope/location evidence');
+  checked(await db.from('procurement_source_capabilities').update({verified_at:'2026-09-01T00:00:00Z',verified_until:'2026-10-01T00:00:00Z'}).eq('source_id',forecastSource.id));
+  const forecastRenewPreview=await triggers.preview({...forecastConfig,maintain_sources:true});
+  await triggers.submit({...forecastRenewPreview.config,confirmed_scope:true,preview_hash:forecastRenewPreview.preview_hash},renewalActor,'forecast-renew-native');
+  for(let n=0;n<150;n++)if(!await workflow.step()&&!await triggers.step())break;
+  if(errors.length)throw errors[0];
+  const renewedForecast=checked(await db.from('procurement_source_capabilities').select('*').eq('source_id',forecastSource.id).single());
+  assert.ok(Date.parse(renewedForecast.verified_until)>Date.now(),'Expired linked forecast method renews only after fresh index and recognizable PDF capture');
+  assert.equal(renewedForecast.method,'document');
+  assert.equal(calls.includes(forecastSource.url),false,'Renewal retains identity while following the reviewed current index');
   return {source_count:sources.length,candidates:status.total_candidates,scheduled_candidates:scheduledStatus.total_candidates,canonical_writes:2};
 }

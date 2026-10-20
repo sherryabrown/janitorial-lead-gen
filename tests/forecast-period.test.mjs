@@ -1,0 +1,40 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {forecastQuarter,forecastPeriodOverlaps} from '../scripts/lib/forecast-period.mjs';
+import {validateFindingBounds} from '../scripts/lib/hosted-workflow.mjs';
+import {verifyEvidenceSpans} from '../scripts/lib/hosted-interpretation.mjs';
+import {readFileSync} from 'node:fs';
+import {evidenceText,extractFacts,evaluateFacts} from '../scripts/lib/hosted-interpretation.mjs';
+import {inspectForecastText} from '../scripts/lib/public-forecast.mjs';
+test('forecast quarter overlap preserves precision, year rollover and category boundaries',()=>{
+ assert.deepEqual(forecastQuarter('Q1 2028'),{literal:'Q1 2028',from:'2028-01-01',to:'2028-03-31'});
+ assert.equal(forecastQuarter('Q4 2026').to,'2026-12-31');
+ for(const value of ['Q0 2026','Q5 2026','Q4 26','2026-10-01','Q4 2026 trailing',{},null])assert.equal(forecastQuarter(value),null);
+ const payload={bid_type:'forecast',planned_advertisement_period:'Q4 2026'},window={from:'2026-11-01',to:'2027-01-01',date_basis:'expected_solicitation'};
+ assert.equal(forecastPeriodOverlaps(payload,window),true);
+ assert.equal(forecastPeriodOverlaps(payload,{...window,from:'2027-01-01'}),false);
+ assert.equal(forecastPeriodOverlaps({...payload,bid_type:'opportunity'},window),false);
+ assert.equal(forecastPeriodOverlaps(payload,{...window,date_basis:'deadline'}),false);
+ assert.equal(forecastPeriodOverlaps({...payload,expected_solicitation_date:'2026-10-01'},window),false,'A quarter cannot override a conflicting exact date');
+});
+test('actual airport PDF retains both future floor-maintenance rows beyond the old text truncation',async()=>{
+ const body=readFileSync('tests/fixtures/county/airport-forecast-published.pdf'),text=(await evidenceText({body,content_type:'application/pdf'}))[0].text;
+ const rows=inspectForecastText(text);assert.equal(rows.length,31);
+ assert.equal(inspectForecastText(text.replace(' Q4 2026',' Q5 2026')),null,'Unknown table dates fail closed');
+ const packet={packet_hash:'a'.repeat(64),automatic_county:true,category:'forecast',query_window:{from:'2026-10-19',to:'2027-10-19',date_basis:'expected_solicitation'},pages:[{run_id:'forecast',url:'https://agency.example/forecast.pdf',content_type:'application/pdf',body,review:'Saved PDF'}],complete:false};
+ const facts=await extractFacts(packet,{runner_id:'public-fetch'}),result=evaluateFacts(packet,facts);
+ assert.equal(facts.facts.length,31);assert.equal(result.findings.length,0);assert.equal(result.unresolved.filter(r=>r.reason.startsWith('Forecast only:')).length,2);
+ assert.ok(result.unresolved.some(r=>r.evidence[0].excerpt.includes('Q1 2027')));
+ assert.ok(result.exclusions.some(r=>r.reason.includes('outside the requested window')));
+ await verifyEvidenceSpans(packet,result);
+});
+test('quarter findings still require quoted literal period, correct category and actual in-scope site',async()=>{
+ const text='Janitorial services Little Rock AR Q4 2026',page={run_id:'run',content_type:'text/plain',body:Buffer.from(text)};
+ const packet={category:'forecast',pages:[page],query_window:{from:'2026-11-01',to:'2026-11-30',date_basis:'expected_solicitation'},request_scope:{requested_search_areas:[{area_type:'city',city_name:'Little Rock',state_code:'AR'}]}};
+ const finding={title:'Janitorial services',classification:'forecast',payload:{bid_type:'forecast',planned_advertisement_period:'Q4 2026',work_city:'Little Rock',work_state:'AR'},evidence:[{run_id:'run',locator:'published row',excerpt:text}]};
+ const result={findings:[finding],exclusions:[],unresolved:[]};
+ validateFindingBounds(packet,result);await verifyEvidenceSpans(packet,result);
+ assert.throws(()=>validateFindingBounds({...packet,query_window:{...packet.query_window,from:'2027-01-01',to:'2027-12-31'}},result),/qualifying date/);
+ assert.throws(()=>validateFindingBounds({...packet,category:'opportunity'},result),/qualifying date/);
+ assert.throws(()=>validateFindingBounds(packet,{...result,findings:[{...finding,payload:{...finding.payload,work_city:'Benton'}}]}),/location/);
+ await assert.rejects(()=>verifyEvidenceSpans(packet,{...result,findings:[{...finding,payload:{...finding.payload,planned_advertisement_period:'Q1 2027'}}]}),/literal quoted/);
+});

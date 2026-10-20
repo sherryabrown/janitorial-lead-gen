@@ -6,6 +6,8 @@ import { inspectPublicHtmlTable } from './public-html-table.mjs';
 import { inspectPublicJsonListing } from './public-json-listing.mjs';
 import { inspectArdotPage } from './ardot-table.mjs';
 import { apiField } from '../../supabase/functions/_shared/source-api.mjs';
+import {forecastQuarter} from './forecast-period.mjs';
+import {inspectForecastText} from './public-forecast.mjs';
 const clean=value=>String(value??'').replace(/\s+/g,' ').trim();
 const janitorial=/\b(janitorial|janitor|custodial|custodian|housekeeping|floor care|cleaning services)\b/i;
 const ambiguous=/\b(clean|maintenance|facilities|services)\b/i;
@@ -65,6 +67,11 @@ export async function verifyEvidenceSpans(packet,result,{loadSupporting}={}) {
   }
   for(const finding of result.findings) {
     const quoted=clean([...finding.evidence,...(finding.supporting_evidence??[])].map(e=>e.excerpt).join(' '));
+    if(finding.payload.planned_advertisement_period!==undefined) {
+      const literal=finding.payload.planned_advertisement_period;
+      if(forecastQuarter(literal)&& (finding.classification!=='forecast'||!quoted.includes(literal)))
+        throw new Error('Forecast quarter requires literal quoted evidence and forecast classification');
+    }
     if(!quoted.includes(clean(finding.title)))throw new Error('Finding title lacks quoted source evidence');
     for(const field of ['work_city','work_county','deadline','expected_solicitation_date','contract_end_date','renewal_date','published_date','posted_date','award_date']) {
       if(finding.payload[field] && !(quoted.includes(clean(finding.payload[field])) ||
@@ -100,8 +107,14 @@ export async function extractFacts(packet,spec) {
         ...(spec.response_format==='bonfire-projects-v1'?{detail_required:true}:{})});
     } else {
       const texts=await evidenceText(page);
-      for(const value of texts)facts.push({page_index:pageIndex,locator:value.locator,record:null,
-        title:'',excerpt:value.text.slice(0,2000),unstructured:true});
+      for(const value of texts) {
+        const forecast=packet.automatic_county&&packet.category==='forecast'&&/^application\/pdf/i.test(page.content_type)
+          ?inspectForecastText(value.text):null;
+        if(forecast)for(const row of forecast)facts.push({page_index:pageIndex,locator:value.locator,
+          record:{title:row.title,planned_advertisement_period:row.planned_advertisement_period},title:row.title,excerpt:row.excerpt,
+          ...(/floor|janitor|custodi|cleaning/i.test(row.title)?{forecast_attention:true}:{})});
+        else facts.push({page_index:pageIndex,locator:value.locator,record:null,title:'',excerpt:value.text.slice(0,2000),unstructured:true});
+      }
     }
   }
   return {version:1,facts};
@@ -124,6 +137,15 @@ export function evaluateFacts(packet,extraction) {
       continue;
     }
     const record=fact.record;
+    if(fact.detail_attention){result.unresolved.push({reason:fact.detail_attention,evidence});continue;}
+    if(fact.forecast_attention) {
+      const period=forecastQuarter(record.planned_advertisement_period);
+      if(period&&['expected_solicitation','expected_solicitation_date'].includes(packet.query_window?.date_basis)&&
+          (period.to<packet.query_window.from||period.from>packet.query_window.to))
+        result.exclusions.push({reason:'Published estimated release quarter is outside the requested window; not an open solicitation',evidence:[{run_id:page.run_id,locator:fact.locator,excerpt:fact.excerpt}]});
+      else result.unresolved.push({reason:'Forecast only: verify routine service scope, actual work site and stable record identity from the airport; the published release quarter is supported, but no exact deadline is stated',evidence:[{run_id:page.run_id,locator:fact.locator,excerpt:fact.excerpt}]});
+      continue;
+    }
     if(packet.automatic_county&&packet.category==='opportunity'&&record&&/^(closed|awarded|cancelled|canceled|no award)(?:\s|$)/i.test(record.status??'')) {
       result.exclusions.push({reason:'Official listing marks this solicitation closed, awarded or cancelled',evidence});
       continue;
@@ -143,7 +165,7 @@ export function evaluateFacts(packet,extraction) {
         work_location_basis:'Explicit work-location fields in the saved official record',
         payload:{title:fact.title,source_url:record.source_url??record.url,bid_type:packet.category,business_category:'other_public',
           ...Object.fromEntries(['deadline','expected_solicitation_date','contract_end_date','renewal_date','published_date',
-            'work_city','work_county','work_state','work_performance_locations'].filter(k=>record[k]!=null).map(k=>[k,record[k]]))},evidence:rawEvidence});
+            'planned_advertisement_period','work_city','work_county','work_state','work_performance_locations'].filter(k=>record[k]!=null).map(k=>[k,record[k]]))},evidence:rawEvidence});
       continue;
     }
     const unrelatedService=packet.automatic_county&&record&&!janitorial.test(fact.title)&&

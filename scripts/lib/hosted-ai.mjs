@@ -7,7 +7,7 @@ const evidence=object({run_id:string,locator:string,excerpt:string});
 const finding=object({record_id:string,title:string,classification:{type:'string',enum:['forecast','opportunity','historical_opportunity','award']},
   reason:string,work_location_basis:string,payload:object({title:string,source_url:string,bid_type:string,
     business_category:string,deadline:nullable,expected_solicitation_date:nullable,contract_end_date:nullable,
-    renewal_date:nullable,published_date:nullable,work_city:nullable,work_county:nullable,work_state:nullable}),
+    renewal_date:nullable,published_date:nullable,planned_advertisement_period:nullable,work_city:nullable,work_county:nullable,work_state:nullable}),
   evidence:{type:'array',items:evidence}});
 const outcome=object({reason:string,evidence:{type:'array',items:evidence}});
 export const interpretationSchema=object({findings:{type:'array',items:finding},

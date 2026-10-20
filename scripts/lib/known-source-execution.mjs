@@ -77,6 +77,10 @@ export function adapterContract(capability, source, now = new Date()) {
       allowed_hosts: spec.allowed_hosts };
   }
   if (['browser', 'document'].includes(capability.method) && spec.runner_id === 'public-fetch') {
+    if(spec.linked_document && (capability.method!=='document'||capability.kind!=='forecast'||spec.urls?.length!==1||spec.response_format!==undefined||
+        Object.keys(spec.linked_document).join(',')!=='anchor_text'||typeof spec.linked_document.anchor_text!=='string'||
+        !spec.linked_document.anchor_text.trim()||spec.linked_document.anchor_text.length>100))
+      fail('Linked forecast PDF requires a reviewed single public index and exact anchor text');
     if (spec.check_when !== 'each_request' || !Array.isArray(spec.urls) ||
         !spec.urls.length || spec.urls.length > 20 || !Array.isArray(spec.allowed_hosts) ||
         !spec.allowed_hosts.length || spec.allowed_hosts.length > 20 ||
@@ -96,7 +100,10 @@ export function adapterContract(capability, source, now = new Date()) {
          spec.table_selector !== 'table.rgMasterTable' ||
          spec.row_selector !== 'tr.rgRow, tr.rgAltRow'))
       fail('HTML bid table needs a bounded, verified organization contract');
-    if(spec.public_details && (spec.response_format!=='html-table-v1'||spec.public_details.key!=='BidID'||
+    const b2gDetails=spec.public_details?.provider==='b2gnow';
+    if(b2gDetails&&(spec.response_format!=='county-listing-v1'||spec.expected_heading!=='B2Gnow current solicitations'||
+        Object.keys(spec.public_details).length!==1||!spec.expected_organization?.trim()))fail('Public B2Gnow details need the verified agency listing');
+    if(spec.public_details && !b2gDetails && (spec.response_format!=='html-table-v1'||spec.public_details.key!=='BidID'||
         spec.public_details.client_state_selector!=='input#ctl00_mainContent_rgBidList_ClientState'||
         !safePublicUrl(spec.public_details.endpoint,spec.allowed_hosts)||
         new URL(spec.public_details.endpoint).origin!==new URL(spec.urls[0]).origin||
@@ -123,6 +130,7 @@ export function adapterContract(capability, source, now = new Date()) {
       method: capability.method, parser_version: capability.parser_version,
       check_when: 'each_request', urls: spec.urls, allowed_hosts: spec.allowed_hosts,
       max_bytes: spec.max_bytes,
+      ...(spec.linked_document?{linked_document:spec.linked_document}:{}),
       ...(spec.response_format ? { response_format: spec.response_format,
         expected_category: spec.expected_category, max_records: spec.max_records,
         expected_organization: spec.expected_organization, expected_heading: spec.expected_heading,

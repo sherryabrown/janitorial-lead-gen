@@ -1,0 +1,7 @@
+{
+  "source": "Public B2Gnow detail for 26003RFQ",
+  "identity_url": "https://clintonairport.gob2g.com/FrontEnd/proposalsearchpublic.asp",
+  "original_sha256": "466d460a8762d714024835f9f4e5aafba65cbc0ec03370a2a7397b9b7e0a45d4",
+  "fixture_sha256": "c82921d0375bf0601f82512b3e571ffb680eafc9918e65ecdc2e1035d6f0f7f6",
+  "transformation": "Only published labelled field rows; rotating IDs, scripts, forms and login navigation excluded; no private attachments"
+}

@@ -332,13 +332,14 @@ function addKeyDate(
 
 function getPrimaryDate(dates: ProcurementKeyDate[], bidType: ProcurementBidType) {
   const preferred = bidType === 'forecast'
-    ? ['publication', 'contract-start']
+    ? ['publication', 'contract-start', 'planned-advertisement']
     : bidType === 'opportunity'
       ? ['response-deadline', 'publication', 'contract-start']
       : bidType === 'award'
         ? ['current-end', 'contract-start', 'publication']
         : [];
-  return preferred.map((key) => dates.find((date) => date.key === key)?.value).find(Boolean) ?? null;
+  return preferred.map((key) => dates.find((date) => date.key === key &&
+    (key !== 'planned-advertisement' || /^Q[1-4] (?:19|[2-9]\d)\d{2}$/.test(date.value)))?.value).find(Boolean) ?? null;
 }
 
 export function mapProcurementSource(source: ProcurementSource): ProcurementSourceView {

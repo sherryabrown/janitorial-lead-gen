@@ -9,17 +9,20 @@ import {validateHandoff,discoveryView} from './public-source-discovery.mjs';
 import {fetchPublicCheck} from './public-source-check.mjs';
 import {automaticCountyPolicy,proposeAutomaticListing} from './automatic-public-method.mjs';
 import {requestPublicCapture} from './public-capture-reuse.mjs';
+import {reviewedPdfLink} from './public-linked-document.mjs';
+import {evidenceText} from './hosted-interpretation.mjs';
+import {inspectForecastText} from './public-forecast.mjs';
 const relevant=/procure|bid|solicitat|contract|forecast|award|purchas|janitorial|custodial|cleaning|developer|\bapi\b|vendor|register/i;
 const key=(request,task)=>`api-workflow:discovery:${request}:${task}`;
 const freshCapture=capture=>Number.isFinite(Date.parse(capture.retrieved_at))&&Date.now()-Date.parse(capture.retrieved_at)<=30*86400000;
 export function officialLinks(bytes,url,{automatic=false}={}) {
   const dom=new JSDOM(bytes.toString('utf8'),{url,virtualConsole:new VirtualConsole()});
   try{
-    const doc=dom.window.document,pattern=automatic?/procure|bid|solicitat|contract|forecast|award|purchas|janitorial|custodial|cleaning|proposal|\brfp\b|\brfq\b|public notices|business (?:office|department)/i:relevant;
+    const doc=dom.window.document,pattern=automatic?/procure|bid|solicitat|contract|forecast|award|purchas|janitorial|custodial|cleaning|proposal|\brfp\b|\brfq\b|public notices|business (?:office|department)|maintenance|facilities/i:relevant;
     const anchors=[...doc.querySelectorAll('a[href]')];
     if(automatic) {
       // Apptegy publishes its navigation as flat, indexed JSON. Read only
-      // explicit published link records; never evaluate JavaScript or guess URLs.
+      // explicit published links/pages; never evaluate JavaScript or private data.
       try {
         const raw=doc.querySelector('script#__NUXT_DATA__[type="application/json"]')?.textContent;
         const values=raw&&raw.length<=2_000_000?JSON.parse(raw):null;
@@ -38,9 +41,15 @@ export function officialLinks(bytes,url,{automatic=false}={}) {
               }catch{/* Malformed published links cannot suppress the remaining links. */}
             }
           }
-          if(!item||Array.isArray(item)||typeof item!=='object'||values[item.type]!=='link'||values[item.status]!=='published'||
-              values[item.hidden]!==false||!Number.isInteger(item.name)||!Number.isInteger(item.url))continue;
-          const name=values[item.name],target=values[item.url];
+          if(!item||Array.isArray(item)||typeof item!=='object'||!['link','page'].includes(values[item.type])||values[item.status]!=='published'||
+              values[item.hidden]!==false||!Number.isInteger(item.name))continue;
+          const name=values[item.name];let target=values[item.url];
+          if(values[item.type]==='page') {
+            const slug=values[item.slug];
+            if(values[item.locked]!==false||typeof slug!=='string'||!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug))continue;
+            const org=new URL(url).pathname.match(/^\/o\/[a-z0-9-]+(?=\/|$)/)?.[0]??'';
+            target=new URL(`${org}/page/${slug}`,url).href;
+          }
           if(typeof name!=='string'||typeof target!=='string'||!pattern.test(name))continue;
           const anchor=doc.createElement('a');anchor.href=target;anchor.textContent=name;anchors.push(anchor);
         }
@@ -179,7 +188,7 @@ export function publicDiscovery({db,artifacts,persist,reconcileHandoffs,resolveS
       const source=await one(db,'procurement_sources',c.seed_source_id);
       const packetBytes=await artifacts.get(c.packet_artifact),p={...JSON.parse(packetBytes),packet_hash:sha(packetBytes)};
       const failures=[];
-      if(task.kind==='opportunity'&&source)for(const page of p.pages) {
+      if(['opportunity','forecast'].includes(task.kind)&&source)for(const page of p.pages) {
         if(!/html/i.test(page.content_type))continue;
         const capture=checked(await db.from('procurement_public_captures').select('*').eq('run_id',page.run_id).single());
         if(!freshCapture(capture)){failures.push('Source evidence is stale; recapture required');continue;}
@@ -188,24 +197,39 @@ export function publicDiscovery({db,artifacts,persist,reconcileHandoffs,resolveS
         let verified;
         try {
           let verifiedListing;
-          try {verifiedListing=proposeAutomaticListing(body,page.url);}
+          try {
+            if(task.kind!=='opportunity')throw Error('Forecast renewal requires its previously reviewed linked-document contract');
+            verifiedListing=proposeAutomaticListing(body,page.url);
+          }
           catch(error) {
             // Reverify an existing reviewed table contract against new bytes;
             // expiry requires fresh evidence, not a new parser or guessed URLs.
             const previous=await rows(db,'procurement_source_capabilities',q=>q.eq('source_id',source.id).eq('kind',task.kind));
-            const matches=previous.filter(method=>method.endpoint_url===page.url&&method.method_spec?.response_format==='html-table-v1');
+            const matches=previous.filter(method=>method.endpoint_url===page.url&&
+              (task.kind==='forecast'?method.method==='document'&&method.method_spec?.linked_document:method.method_spec?.response_format==='html-table-v1'));
             if(matches.length!==1)throw error;
             const method=matches[0],now=new Date();
             adapterContract({...method,availability:'active',verified_at:now.toISOString(),verified_until:new Date(+now+86400000).toISOString()},source,now);
-            const listing=inspectPublicHtmlTable(body,method.method_spec);
-            if(!listing.terminal)throw Error('Public table pagination is incomplete');
-            verifiedListing={spec:method.method_spec,listing:{...listing,evidence:listing.records[0]?.title??'No records to display.'}};
+            if(task.kind==='forecast') {
+              const target=reviewedPdfLink(body,page.url,method.method_spec),document=p.pages.find(item=>item.url===target&&/^application\/pdf/i.test(item.content_type));
+              if(!document)throw Error('Current published forecast PDF was not captured');
+              const saved=checked(await db.from('procurement_public_captures').select('*').eq('run_id',document.run_id).single());
+              const bytes=Buffer.from(saved.content_base64,'base64');
+              if(!freshCapture(saved)||sha(bytes)!==document.content_sha256)throw Error('Forecast PDF evidence is stale or changed');
+              const text=await evidenceText({body:bytes,content_type:saved.content_type});
+              if(text.length!==1||!inspectForecastText(text[0].text))throw Error('Published forecast table shape changed');
+              verifiedListing={spec:method.method_spec,listing:{evidence:method.method_spec.linked_document.anchor_text}};
+            }else{
+              const listing=inspectPublicHtmlTable(body,method.method_spec);
+              if(!listing.terminal)throw Error('Public table pagination is incomplete');
+              verifiedListing={spec:method.method_spec,listing:{...listing,evidence:listing.records[0]?.title??'No records to display.'}};
+            }
           }
           const {spec,listing}=verifiedListing;
           const input={sourceSpec:{existing_id:source.id,local_key:source.code,code:source.code,name:source.name,url:source.url,
             agency:source.name,provider:new URL(source.url).hostname,geo_level:source.contracting_entity_geo_level,
             identity_evidence:`Existing registered source ${source.id}; saved official capture ${page.run_id}`},
-            capability:{kind:task.kind,route_geography_id:task.route_geography_id,method:'browser',parser_version:automaticCountyPolicy,
+            capability:{kind:task.kind,route_geography_id:task.route_geography_id,method:task.kind==='forecast'?'document':'browser',parser_version:automaticCountyPolicy,
               official_entry_url:registeredPublicEntryUrl(source),endpoint_url:page.url,method_spec:spec},
             category_evidence:[{run_id:page.run_id,excerpt:listing.evidence}],
             check_instructions:'Execute the verified bounded listing parser; preserve unresolved locations and dates.',

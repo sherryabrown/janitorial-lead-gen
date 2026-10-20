@@ -65,6 +65,15 @@ test('county research reads only public published menu links and immediate safe 
  assert.equal(publishedDeadlineDate('02/31/2026'),null);
 });
 
+test('published Apptegy page navigation exposes business offices but excludes hidden, locked, draft and unsafe slugs',()=>{
+ const values=['page','published',false,true,'Business Office','business-department'];
+ const page={type:0,status:1,hidden:2,locked:2,name:4,slug:5};
+ const body=items=>Buffer.from(`<script id="__NUXT_DATA__" type="application/json">${JSON.stringify([...values,...items])}</script>`);
+ const links=officialLinks(body([page,{...page,hidden:3},{...page,locked:3},{...page,status:5}]),'https://district.example/o/district/',{automatic:true});
+ assert.deepEqual(links,[{label:'Business Office',url:'https://district.example/o/district/page/business-department'}]);
+ values[5]='../private';assert.deepEqual(officialLinks(body([page]),'https://district.example/',{automatic:true}),[]);
+});
+
 test('county evidence scope includes only saved confirmed cities and binds them to the packet',()=>{
  const body=fixture('ionwave-public-listing'),ctx=context(body,tableSpec);
  ctx.request.requested_search_areas=[{area_type:'county',county_name:'Saline',state_code:'AR'}];

@@ -210,7 +210,7 @@ export function planReviewedBatch(snapshot,review,runs) {
         const latest=p=>Math.max(0,...(p.manual_capture?.evidence??[]).map(e=>Date.parse(e.retrieved_at)||0));
         const priorEvidence=snapshot.procurement_intake_items.filter(item=>snapshot.procurement_intake_leads.some(l=>l.intake_id===item.id&&l.lead_id===old.id));
         need(latest(i.payload)>=Math.max(0,...priorEvidence.map(p=>latest(p.payload))),'Older county evidence cannot replace newer facts');
-        const fields=['title','source_url','deadline','published_date','posted_date','work_city','work_county','work_state','work_performance_locations','contract_start','contract_end','renewal_date','expected_solicitation_date','award_date'];
+        const fields=['title','source_url','deadline','published_date','posted_date','work_city','work_county','work_state','work_performance_locations','contract_start','contract_end','renewal_date','expected_solicitation_date','planned_advertisement_period','award_date'];
         patch={...patch,...Object.fromEntries(fields.filter(k=>i.payload[k]!=null).map(k=>[k,i.payload[k]]))};
       }
     }

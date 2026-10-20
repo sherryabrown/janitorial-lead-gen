@@ -1,6 +1,8 @@
 import {JSDOM,VirtualConsole} from 'jsdom';
 import {inspectPublicHtmlTable} from './public-html-table.mjs';
 import {publishedDeadlineDate} from './automatic-public-method.mjs';
+import {inspectAutomaticListing} from './automatic-public-method.mjs';
+import {inspectB2gDetail} from './public-b2g-details.mjs';
 const clean=value=>String(value??'').replace(/\s+/g,' ').trim();
 const relevant=/\b(janitor(?:ial)?|custodi(?:al|an)|housekeeping|cleaning services|floor care)\b/i;
 
@@ -39,21 +41,23 @@ export function publicTableFinding(body,record,evidence,page) {
 // sending. Failures retain the listing and never retry in a challenge loop.
 export async function continuePublicTableDetails({context,packet,supporting,checkpoint,save,actor}) {
   const spec=context.capability.method_spec;
-  if(!packet.automatic_county||spec.response_format!=='html-table-v1'||!spec.public_details)return true;
+  const b2g=spec.response_format==='county-listing-v1'&&spec.public_details?.provider==='b2gnow';
+  if(!packet.automatic_county||!b2g&&spec.response_format!=='html-table-v1'||!spec.public_details)return true;
   checkpoint.public_table_details??={};
-  const records=packet.pages.flatMap(page=>inspectPublicHtmlTable(page.body,spec).records.filter(r=>relevant.test(r.title)).map(record=>({record,page})));
+  const records=packet.pages.flatMap(page=>(b2g?inspectAutomaticListing(page.body,spec):inspectPublicHtmlTable(page.body,spec)).records.filter(r=>relevant.test(r.title)).map(record=>({record,page})));
   const state=checkpoint.public_table_details[packet.task_id]??={packet_hash:packet.packet_hash,entries:[]};
   if(state.packet_hash!==packet.packet_hash)throw Error('Saved public detail packet changed; reconcile before retry');
   for(const {record,page} of records.slice(0,5)) {
     let entry=state.entries.find(e=>e.id===record.id);
     if(!entry) {
-      entry={id:record.id,record,url:record.source_url,state:'attempt_pending'};state.entries.push(entry);await save('running');
-      try {const outcome=await supporting.capture(context,packet,{packet_hash:packet.packet_hash,url:record.source_url},actor);Object.assign(entry,outcome);}
+      entry={id:record.id,record,url:b2g?record.detail_url:record.source_url,state:'attempt_pending'};state.entries.push(entry);await save('running');
+      try {const outcome=await supporting.capture(context,packet,{packet_hash:packet.packet_hash,url:entry.url},actor);Object.assign(entry,outcome);}
       catch(error){if(['schedule_paused','request_cancelled'].includes(error.code)){state.entries.pop();await save('running');}throw error;}
       await save('pending');return false;
     }
     if(entry.state==='captured') {
       const body=await supporting.load(context,packet,entry);
+      if(b2g){entry.detail=inspectB2gDetail(body,record,spec);continue;}
       entry.finding=publicTableFinding(body,record,entry,page);
       if(entry.finding)entry.finding.supporting_evidence=await Promise.all(entry.finding.supporting_evidence.map(e=>supporting.portable(context,packet,e)));
     }
@@ -65,6 +69,11 @@ export function applyPublicTableDetails(extraction,packet,checkpoint) {
   const entries=checkpoint.public_table_details?.[packet.task_id]?.entries??[];
   return {...extraction,facts:extraction.facts.map(fact=>{
     const entry=entries.find(e=>e.id===(fact.record?.id??fact.verified_finding?.record_id)),finding=entry?.finding;
+    if(entry?.detail||entry?.record?.detail_url&&entry.state!=='captured'){
+      const {verified_finding,...original}=fact;void verified_finding;
+      return {...original,record:entry.record,title:entry.record.title,detail_attention:entry.detail?.reason??
+        'Official detail could not be captured. Resolve the saved access or retrieval blocker before validating scope, amendments and actual work site.'};
+    }
     if(finding)return {...fact,verified_finding:{...finding,evidence:finding.evidence.map(({run_id,...e})=>({...e,page_index:packet.pages.findIndex(p=>p.run_id===run_id)}))}};
     if(entry?.record&&fact.verified_finding) {
       const {verified_finding,...original}=fact;void verified_finding;

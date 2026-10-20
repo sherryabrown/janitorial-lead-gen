@@ -1,6 +1,15 @@
 import { expect, it } from 'vitest';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { createProcurementSourceCache, loadProcurementContracts, loadProcurementLeadHistory } from './procurement';
+import { createProcurementSourceCache, loadProcurementContracts, loadProcurementLeadHistory, mapProcurementLead, type ProcurementLead } from './procurement';
+
+it('uses a literal forecast quarter only when no existing exact primary date is present', () => {
+  const lead = { id:'quarter', bid_type:'forecast', payload:{title:'Forecast',planned_advertisement_period:'Q4 2026'} } as unknown as ProcurementLead;
+  const result=mapProcurementLead(lead);
+  expect(result.date).toBe('Q4 2026');
+  expect(result.keyDates).toContainEqual({key:'planned-advertisement',label:'Expected advertisement',value:'Q4 2026',kind:'text'});
+  expect(mapProcurementLead({...lead,publication_date:'2026-09-01'}).date).toBe('2026-09-01');
+  expect(mapProcurementLead({...lead,payload:{planned_advertisement_period:'Q5 2026'}}).date).toBe('');
+});
 
 type Row = Record<string, unknown>;
 function database(tables: Record<string, Row[]>) {

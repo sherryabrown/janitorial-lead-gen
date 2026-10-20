@@ -8,6 +8,8 @@ describe('calendar dates and optional source links', () => {
     expect(formatKeyDate({kind:'date',value:'2026-03-08'})).toBe('Mar 8, 2026');
     expect(parseContractDate('2026-02-30').getTime()).toBeNaN();
     expect(formatDateLabel('','due')).toBe('Due date pending');
+    expect(formatDateLabel('Q4 2026','due')).toBe('Expected Q4 2026');
+    expect(formatKeyDate({kind:'text',value:'Q1 2027'})).toBe('Q1 2027');
     expect(parseContractDate('2026-09-17T10:30:00-05:00').toISOString()).toBe('2026-09-17T15:30:00.000Z');
   });
   it('allows public HTTP(S) links and bare domains only', () => {

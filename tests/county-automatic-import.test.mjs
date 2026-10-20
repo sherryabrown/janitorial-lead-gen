@@ -25,6 +25,26 @@ test('only bound evidence produces server-owned canonical decisions; missing and
  assert.notEqual(automaticCountyReview({...f,candidates:[],proofs:[]}).key,automaticCountyReview({...f,proofs:[]}).key,'Late candidates cannot reuse an empty validation receipt');
  f.candidates[0].status='ignored';assert.equal(automaticCountyReview(f).review.decisions.length,0);
 });
+
+test('county forecast imports and updates retain literal quarter precision and protected owner fields',()=>{
+ const f=fixture(),candidate=f.candidates[0];
+ Object.assign(candidate.payload,{bid_type:'forecast',planned_advertisement_period:'Q4 2026'});
+ delete candidate.payload.deadline;
+ f.proofs[0].payload_hash=hash(candidate.payload);
+ const policy=automaticCountyReview(f),first=planReviewedBatch(f.snapshot,policy.review,[]).records[0];
+ assert.equal(first.payload.planned_advertisement_period,'Q4 2026');assert.equal(first.payload.deadline,undefined);
+ f.snapshot.procurement_leads.push({...first,stage:'hold',notes:'Protected forecast note'});
+ f.snapshot.procurement_intake_leads.push({id:'10000000-0000-4000-8000-000000000031',intake_id:candidate.id,lead_id:first.id});
+ candidate.status='processed';
+ const revised=structuredClone(candidate);revised.id='10000000-0000-4000-8000-000000000032';revised.status='pending';revised.external_id+='::new-period';
+ Object.assign(revised.payload,{planned_advertisement_period:'Q1 2027'});
+ Object.assign(revised.payload.manual_capture,{amends_intake_id:candidate.id,record_external_id:candidate.external_id});
+ f.snapshot.procurement_intake_items.push(revised);
+ const next=automaticCountyReview({...f,candidates:[revised],proofs:[{intake_id:revised.id,payload_hash:hash(revised.payload)}]});
+ const update=planReviewedBatch(f.snapshot,next.review,[]).records[0];
+ assert.equal(update.id,first.id);assert.equal(update.payload.planned_advertisement_period,'Q1 2027');
+ assert.equal(f.snapshot.procurement_leads[0].notes,'Protected forecast note');assert.equal(f.snapshot.procurement_leads[0].stage,'hold');
+});
 test('pending observations use stable canonical identity, and older observations cannot replace newer facts',()=>{
  const f=fixture(),parent=f.candidates[0],i={...structuredClone(parent),id:'10000000-0000-4000-8000-000000000001',external_id:parent.external_id+'::observation:test'};
  i.payload.manual_capture={...i.payload.manual_capture,amends_intake_id:parent.id,record_external_id:parent.external_id};f.snapshot.procurement_intake_items.push(i);

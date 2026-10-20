@@ -1,5 +1,7 @@
 # Saline public sources — implementation checkpoint
 
+Latest continuation: [remaining public channels, document/forecast validation and authorized outreach](2026-10-19-saline-public-source-continuation.md). The receipts below describe the previous deployed baseline.
+
 Status: supported public reader implementation and local verification passed; registry activation, Render-first/preview release and live manual/repeat acceptance passed. Natural scheduled acceptance also passed; the disposable schedule is archived and its actor soft-deleted. Netlify production is unchanged. The implementation plan remains in todo.
 
 ## Verified public findings

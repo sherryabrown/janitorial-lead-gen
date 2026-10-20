@@ -19,6 +19,7 @@ import {packetLink} from './api-record-links.mjs';
 import {portalRecipe,matchingSession} from './portal-session.mjs';
 import {continueBonfireDetails} from './bonfire-detail-continuation.mjs';
 import {continuePublicTableDetails,applyPublicTableDetails} from './public-table-details.mjs';
+import {forecastPeriodOverlaps} from './forecast-period.mjs';
 
 export function validateFindingBounds(packet,result,{verifiedSupporting=false}={}) {
   const basis=packet.query_window.date_basis??'published';
@@ -28,7 +29,9 @@ export function validateFindingBounds(packet,result,{verifiedSupporting=false}={
   if(!fields)throw new Error('Unsupported date basis');
   for(const f of result.findings) {
     const dates=fields.map(k=>f.payload[k]).filter(Boolean).map(d=>new Date(d).toISOString().slice(0,10));
-    if(!dates.some(d=>d>=packet.query_window.from && d<=packet.query_window.to))throw new Error('Finding lacks a qualifying date for this request');
+    if(!dates.some(d=>d>=packet.query_window.from && d<=packet.query_window.to)&&
+        !(packet.category==='forecast'&&f.classification==='forecast'&&forecastPeriodOverlaps(f.payload,packet.query_window)))
+      throw new Error('Finding lacks a qualifying date for this request');
     const locations=f.payload.work_performance_locations??[{city_name:f.payload.work_city,county_name:f.payload.work_county,state_code:f.payload.work_state}];
     const quoted=[...f.evidence,...(verifiedSupporting?f.supporting_evidence??[]:[])].map(e=>e.excerpt).join(' ').toLowerCase();
     const areas=packet.request_scope.requested_search_areas;
@@ -294,10 +297,10 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
       if((checkpoint.stage.startsWith('import_')||checkpoint.stage.startsWith('sam_')||checkpoint.stage.startsWith('discovery_'))) {
         await processJob(job,checkpoint,save);
       } else if(checkpoint.stage==='plan') {
-        await executeKnownSources({db,project,serverKey,command:'plan',requestId:request.id});
+        await executeKnownSources({db,project,serverKey,artifacts,command:'plan',requestId:request.id});
         checkpoint.stage=request.workflow_control?.check_updates===false?'interpret':'collect';await save('pending');
       } else if(checkpoint.stage==='collect') {
-        const result=await executeKnownSources({db,project,serverKey,command:'run',requestId:request.id,maxJobs:1,retryPartial:false,fetcher:collectionFetch,
+        const result=await executeKnownSources({db,project,serverKey,artifacts,command:'run',requestId:request.id,maxJobs:1,retryPartial:false,fetcher:collectionFetch,
           cancelled:async()=>!!(await one(db,'procurement_search_requests',request.id)).workflow_control.cancelled});
         const browserRoute=result.routes.find(r=>r.state==='awaiting_browser_capture');
         if(browserRoute&&captureBrowser&&(!request.workflow_control?.admin_trigger_id||await canCaptureBrowser?.(browserRoute.job_id))) {

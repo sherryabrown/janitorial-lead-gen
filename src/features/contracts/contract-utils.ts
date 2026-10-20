@@ -29,6 +29,7 @@ export function parseContractDate(value: string): Date {
 }
 
 export function formatDateLabel(value: string, dateType: 'due' | 'expiring') {
+  if (dateType === 'due' && /^Q[1-4] (?:19|[2-9]\d)\d{2}$/.test(value)) return `Expected ${value}`;
   const date = parseContractDate(value);
   if (Number.isNaN(date.getTime())) return dateType === 'due' ? 'Due date pending' : 'Expiry pending';
   return (dateType === 'due' ? 'Due ' : 'Expires ') + date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });

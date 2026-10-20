@@ -1,5 +1,6 @@
 import { JSDOM, VirtualConsole } from 'jsdom';
 import { safePublicUrl } from './known-source-execution.mjs';
+import {publicB2gDetailUrl} from './public-b2g-details.mjs';
 
 export const automaticCountyPolicy = 'county-public-v1';
 const clean = value => String(value ?? '').replace(/\s+/g, ' ').trim();
@@ -46,6 +47,7 @@ export function inspectAutomaticListing(body, spec) {
   try {
     const doc = dom.window.document;
     const remoteTable=[...doc.querySelectorAll('script[id*="datatables"][id$="after"]')].some(node=>/["']?(?:serverSide|ajax)["']?\s*:/i.test(node.textContent));
+    const b2gUrls=spec.public_details?.provider==='b2gnow'?new Map([...doc.querySelectorAll('a.RecordTile')].map(row=>[row,publicB2gDetailUrl(doc,row,spec)])):null;
     for (const node of doc.querySelectorAll('script,style,noscript,template,nav,header,footer')) node.remove();
     const root = doc.querySelector('main, [role="main"]') ?? doc.body;
     if (root.querySelector('[rel="next"], [aria-label*="Next"], .pagination, .pager') ||
@@ -75,7 +77,8 @@ export function inspectAutomaticListing(body, spec) {
         // Reissued/cancelled historical rows can share a reference. They are not
         // current opportunities. Never use the rotating ViewDetail PID as identity.
         if(status==='Past')continue;
-        records.push({id:identity[1],title:identity[2],status,deadline,deadline_text:due,source_url:spec.urls[0]});
+        records.push({id:identity[1],title:identity[2],status,deadline,deadline_text:due,source_url:spec.urls[0],
+          ...(b2gUrls?{detail_url:b2gUrls.get(row)}:{})});
       }
       if(new Set(records.map(r=>r.id)).size!==records.length)throw Error('Duplicate current solicitation references');
       return {records,total:records.length,terminal:true,evidence:`${scope} ${rows.length} published records; ${records.length} current solicitations.`,heading:spec.expected_heading};

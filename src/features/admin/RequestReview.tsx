@@ -848,6 +848,7 @@ function InterpretationReview({
     [county, setCounty] = useState(''),
     [city, setCity] = useState(''),
     [date, setDate] = useState(''),
+    [quarter, setQuarter] = useState(''),
     [basis, setBasis] = useState(''),
     [supportingIndex, setSupportingIndex] = useState(''),
     [supportingQuote, setSupportingQuote] = useState(''),
@@ -919,7 +920,9 @@ function InterpretationReview({
                   work_state: 'AR',
                   work_county: county,
                   work_city: city || undefined,
-                  [field]: date,
+                  ...(field === 'expected_solicitation_date' && quarter
+                    ? { planned_advertisement_period: quarter }
+                    : { [field]: date }),
                 },
               },
             ]
@@ -1054,9 +1057,14 @@ function InterpretationReview({
             <input
               type="date"
               value={date}
-              onChange={(e) => setDate(e.target.value)}
+              onChange={(e) => { setDate(e.target.value); setQuarter(''); }}
             />
           </label>
+          {packet.category === 'forecast' && ['expected_solicitation', 'expected_solicitation_date'].includes(packet.query_window?.date_basis ?? '') && (
+            <label>Estimated release quarter (if no exact date is published)
+              <input placeholder="Q4 2026" value={quarter} onChange={e => { setQuarter(e.target.value); setDate(''); }} />
+            </label>
+          )}
           <label>
             Quotation establishing actual work location
             <textarea
@@ -1078,7 +1086,7 @@ function InterpretationReview({
           !reason.trim() ||
           (selectedSupporting && (!supportingQuote.trim() || supportingQuote.length > 2000 || !supportingLocator.trim())) ||
           (decision === 'finding' &&
-            (!record || !name || !county || !date || !basis))
+            (!record || !name || !county || !(quarter ? packet.category === 'forecast' && ['expected_solicitation', 'expected_solicitation_date'].includes(packet.query_window?.date_basis ?? '') && /^Q[1-4] (?:19|[2-9]\d)\d{2}$/.test(quarter) : date) || !basis))
         }
         onClick={submit}
       >
