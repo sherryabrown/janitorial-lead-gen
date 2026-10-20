@@ -41,6 +41,25 @@ test('verified summaries count canonical identities, retain Added across later w
  const job=(added,updated)=>({id:'job',state:'succeeded',checkpoint:{stage:'import_verified',automatic:{policy:countyAutomaticPolicy,exclusions:[]},receipt:{verified:true},county_records:[{id:'lead',added,updated}]}});
  const status=countyImportStatus([job(true,false),job(false,true)]);assert.equal(status.added,1);assert.equal(status.updated,0);
  assert.equal(countyImportStatus([{...job(false,false),state:'outcome_unknown',checkpoint:{...job(false,false).checkpoint,stage:'import_reconcile'}}]).state,'outcome_unknown');
+ const excluded=job(false,false);excluded.checkpoint.automatic.exclusions=[{intake_id:'later-saved',reason:'Prior validation failed'},{intake_id:'still-invalid',reason:'Invalid location'}];
+ const saved=job(false,false);saved.checkpoint.county_records[0].intake_ids=['later-saved'];
+ assert.deepEqual(countyImportStatus([excluded,saved]).exclusions.map(e=>e.intake_id),['still-invalid'],'Only verified readback clears an old exception for that same intake');
+});
+
+test('repeat of a superseded pending parent requires its processed sibling canonical link',()=>{
+ const f=fixture(),parent=f.candidates[0],first={...structuredClone(parent),id:'10000000-0000-4000-8000-000000000011',external_id:parent.external_id+'::first',status:'pending'};
+ first.payload.manual_capture={...first.payload.manual_capture,amends_intake_id:parent.id,record_external_id:parent.external_id};f.snapshot.procurement_intake_items.push(first);
+ const input=i=>({...f,candidates:[i],proofs:[{intake_id:i.id,payload_hash:hash(i.payload)}]});
+ const initial=automaticCountyReview(input(first)),record=planReviewedBatch(f.snapshot,initial.review,[]).records[0];
+ f.snapshot.procurement_leads.push({...record,stage:'hold',notes:'Protected note'});first.status='processed';
+ f.snapshot.procurement_intake_leads.push({id:'10000000-0000-4000-8000-000000000012',intake_id:first.id,lead_id:record.id});
+ const repeat={...structuredClone(first),id:'10000000-0000-4000-8000-000000000013',external_id:parent.external_id+'::repeat',status:'pending'};f.snapshot.procurement_intake_items.push(repeat);
+ const accepted=automaticCountyReview(input(repeat));assert.equal(accepted.review.decisions.length,1);
+ const manifest=planReviewedBatch(f.snapshot,accepted.review,[]);assert.equal(manifest.records[0].id,record.id);
+ assert.equal(f.snapshot.procurement_leads[0].notes,'Protected note');assert.equal(f.snapshot.procurement_leads[0].stage,'hold');assert.equal(parent.status,'pending');
+ assert.throws(()=>planReviewedBatch(f.snapshot,{...accepted.review,authorization:undefined},[]),/Amendment target/,'Standalone review keeps its existing parent guard');
+ first.status='ignored';assert.equal(automaticCountyReview(input(repeat)).review.decisions.length,0,'An ignored sibling cannot establish the canonical anchor');first.status='processed';
+ f.snapshot.procurement_intake_leads=[];assert.equal(automaticCountyReview(input(repeat)).review.decisions.length,0,'Missing canonical anchor cannot be inferred');
 });
 
 test('client policy flags cannot grant county authority without a server-owned county trigger',async()=>{

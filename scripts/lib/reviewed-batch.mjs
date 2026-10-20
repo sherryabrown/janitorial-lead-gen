@@ -158,9 +158,20 @@ export function planReviewedBatch(snapshot,review,runs) {
     }
     need(matches.length<=1,'Ambiguous existing lead identity');
     const old=matches[0];
+    // A validated first county observation may supersede a pending parent
+    // without importing that ancestor. Later observations can share that parent;
+    // require its already-processed sibling's exact canonical link as the anchor.
+    const countyPendingSibling=old&&d.automatic_county_update===true&&
+      review.authorization?.kind==='automatic_county_policy'&&review.authorization.version==='county-automatic-v1'&&
+      d.supersedes_pending_intake_id===manual?.amends_intake_id&&
+      snapshot.procurement_intake_items.some(p=>p.id===manual?.amends_intake_id&&p.status==='pending'&&!snapshot.procurement_intake_leads.some(l=>l.intake_id===p.id))&&
+      snapshot.procurement_intake_items.some(s=>
+        s.id!==i.id&&s.status==='processed'&&s.source_id===i.source_id&&s.payload.manual_capture?.amends_intake_id===manual?.amends_intake_id&&
+        (s.payload.manual_capture?.record_external_id??s.external_id)===recordExternal&&
+        snapshot.procurement_intake_leads.some(l=>l.intake_id===s.id&&l.lead_id===old.id));
     if(manual?.amends_intake_id)need((old&&snapshot.procurement_intake_leads.some(l=>
       l.intake_id===manual.amends_intake_id&&l.lead_id===old.id)) ||
-      (!old&&d.supersedes_pending_intake_id===manual.amends_intake_id),
+      (!old&&d.supersedes_pending_intake_id===manual.amends_intake_id)||countyPendingSibling,
       'Amendment target must match the parent canonical lead');
     need(old||d.approve_new===true,'New lead requires explicit approve_new decision');
     need(old||!i.external_id.startsWith('page:'),'Page snapshots cannot become canonical leads');

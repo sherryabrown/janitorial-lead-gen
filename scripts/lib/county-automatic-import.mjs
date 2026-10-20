@@ -13,7 +13,7 @@ export async function countyAuthority(db,request,{runnable=true}={}) {
 }
 export function automaticCountyReview({request,candidates,proofs,exclusions=[],snapshot}) {
  const bindings=proofs.filter(p=>candidates.some(i=>i.id===p.intake_id)).sort((a,b)=>a.intake_id.localeCompare(b.intake_id));
- const key=hash({policy:countyAutomaticPolicy,request:request.id,bindings,candidates:candidates.map(i=>[i.id,hash(i.payload)]).sort()});
+ const key=hash({policy:countyAutomaticPolicy,validation_revision:2,request:request.id,bindings,candidates:candidates.map(i=>[i.id,hash(i.payload)]).sort()});
  const review={version:1,batch:`county-auto-${key.slice(0,48)}`,project_ref:snapshot.project_ref,request_id:request.id,work_state:'AR',
   scope:'Confirmed county and selected cities; current validated official evidence and requested dates',limitations:'Valid saved records only; unresolved sources are not complete coverage',
   reviewed_by:`system:${countyAutomaticPolicy}`,run_ids:[],authorization:{kind:'automatic_county_policy',version:countyAutomaticPolicy,bindings},decisions:[]};
@@ -40,7 +40,7 @@ export function automaticCountyReview({request,candidates,proofs,exclusions=[],s
   }
   const d={intake_id:i.id,intake_hash:hash(i.payload),action:'process',approve_new:true,automatic_county_update:true,
    reason:'Automatically validated against current official county evidence.',request_match_reason:'Literal work-site evidence matches the saved county or confirmed city and requested date window.',
-   ...(!existing.length&&parent?.status==='pending'?{supersedes_pending_intake_id:parent.id}:{})};
+   ...(parent?.status==='pending'?{supersedes_pending_intake_id:parent.id}:{})};
   try{planReviewedBatch(snapshot,{...review,decisions:[d]},[]);review.decisions.push(d);}
   catch(e){if(!(e instanceof BatchValidationError))throw e;rejected.push({intake_id:i.id,title:i.payload.title,reason:'Evidence, identity or canonical validation did not pass; inspect saved details.'});}
  }
@@ -51,7 +51,8 @@ export function countyImportStatus(jobs) {
  const automatic=jobs.filter(j=>j.checkpoint?.automatic?.policy===countyAutomaticPolicy);
  const verified=automatic.filter(j=>j.checkpoint.receipt?.verified),records=new Map();
  for(const j of verified)for(const r of j.checkpoint.county_records??[]){const old=records.get(r.id);records.set(r.id,{...r,added:old?.added||r.added,updated:old?.updated||r.updated});}
- const exceptions=[...new Map(automatic.flatMap(j=>j.checkpoint.automatic.exclusions??[]).map(e=>[e.intake_id,e])).values()];
+ const savedIntakes=new Set(verified.flatMap(j=>(j.checkpoint.county_records??[]).flatMap(r=>r.intake_ids??[])));
+ const exceptions=[...new Map(automatic.flatMap(j=>j.checkpoint.automatic.exclusions??[]).filter(e=>!savedIntakes.has(e.intake_id)).map(e=>[e.intake_id,e])).values()];
  return {policy:countyAutomaticPolicy,verified:automatic.length>0&&automatic.every(j=>j.checkpoint.receipt?.verified),
   state:jobs.some(j=>j.dedupe_key?.startsWith('api-import:')&&(j.state==='outcome_unknown'||j.checkpoint?.stage==='import_reconcile'))||automatic.some(j=>j.state==='outcome_unknown'||j.checkpoint.stage==='import_reconcile')?'outcome_unknown':automatic.some(j=>['pending','running'].includes(j.state))?'saving':automatic.some(j=>j.state==='blocked')?'blocked':verified.length?'verified':'pending',
   added:[...records.values()].filter(r=>r.added).length,updated:[...records.values()].filter(r=>!r.added&&r.updated).length,unchanged:[...records.values()].filter(r=>!r.added&&!r.updated).length,

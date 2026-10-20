@@ -1,6 +1,6 @@
 # Automatic validated county imports
 
-Status: implemented locally; automated/native/browser verification passes. Release authorization and required live acceptance remain pending; keep in todo. No production frontend deployment. See [implementation evidence](../../docs/reviews/2026-10-19-county-automatic-imports.md).
+Status: release authorized; the live manual Saline run automatically saved a verified lead. The repeat lineage fix passes automated/native verification and awaits release/live continuation plus disposable scheduled acceptance. Keep in todo until those checks pass. No production frontend deployment. See [implementation evidence](../../docs/reviews/2026-10-19-county-automatic-imports.md).
 
 ## Initiating prompt
 

@@ -134,6 +134,10 @@ export async function verifyAutomaticCounty({db,artifacts,audit,livePool,rehears
   await livePool.query("insert into procurement_place_counties(place_id,county_id) values($1,'05001')",[city]);
   const source={...offline,id:sourceId,identity_key:randomUUID(),code:'public-detail-fixture',name:'Fixture public bid table',url:'https://arkansas.ionwave.net/SourcingEvents.aspx?SourceType=1',source_coverage_areas:[{area_type:'city',city_name:'Little Rock',state_code:'AR'}],config:{known_source_route:{home_city:'Little Rock'}}};
   checked(await db.from('procurement_sources').insert(source));
+  // An old, unimported observation can remain the staging parent after a newer
+  // sibling establishes the canonical lead. Real intake rows have no created_at.
+  const legacyParent='ffffffff-ffff-4fff-8fff-fffffffffff0';
+  checked(await db.from('procurement_intake_items').insert({id:legacyParent,source_id:sourceId,external_id:'1642',status:'pending',review_reason:'Historical pending fixture',payload:{title:'Historical pending observation',manual_capture:{version:1,record_external_id:'1642'}}}));
   checked(await db.from('procurement_source_capabilities').insert({id:capId,source_id:sourceId,kind:'opportunity',method:'browser',endpoint_url:source.url,official_entry_url:source.url,route_geography_id:city,availability:'active',verified_at:new Date().toISOString(),verified_until:'2027-12-31T00:00:00Z',verification_evidence:{automation_policy:'county-public-v1',fixture:true},parser_version:'public-detail-native-fixture',method_spec:{version:1,runner_id:'public-fetch',check_when:'each_request',urls:[source.url],allowed_hosts:['arkansas.ionwave.net'],max_bytes:2000000,response_format:'html-table-v1',max_records:100,expected_organization:'Little Rock Water Reclamation Authority',table_selector:'table.rgMasterTable',row_selector:'tr.rgRow, tr.rgAltRow',public_details:{key:'BidID',endpoint:'https://arkansas.ionwave.net/PublicDetail.aspx',client_state_selector:'input#ctl00_mainContent_rgBidList_ClientState'}}}));
   const detailPreview=await triggers.preview({...config,county_ids:['05001']});
   const detailRun=await triggers.submit({...detailPreview.config,confirmed_scope:true,preview_hash:detailPreview.preview_hash},actor,'public-detail-native-fixture');
@@ -146,5 +150,16 @@ export async function verifyAutomaticCounty({db,artifacts,audit,livePool,rehears
   assert.equal(intake.source_id,sourceId);assert.equal(intake.payload.work_city,'Little Rock');assert.equal(intake.payload.deadline,'2026-11-05');
   assert.equal(checked(await db.from('procurement_leads').select('id').eq('source_id',sourceId)).length,1,'Public detail collection automatically imports validated county result');
   assert.equal((await workflow.status(detailChild.request_id)).automatic_import.verified,true);
+  assert.equal(intake.payload.manual_capture.amends_intake_id,legacyParent);
+  const repeatPreview=await triggers.preview({...config,maintain_sources:false,county_ids:['05001']});
+  const detailRepeat=await triggers.submit({...repeatPreview.config,confirmed_scope:true,preview_hash:repeatPreview.preview_hash},actor,'public-detail-pending-parent-repeat');
+  for(let n=0;n<100;n++)if(!await workflow.step()&&!await triggers.step())break;
+  if(errors.length)throw errors[0];
+  const repeatChild=checked(await db.from('procurement_trigger_requests').select('*').eq('trigger_id',detailRepeat.trigger_id)).find(c=>c.role==='county');
+  const repeatedStatus=await workflow.status(repeatChild.request_id),repeatedCandidate=repeatedStatus.candidates.find(c=>c.title===candidate.title);
+  assert.equal(repeatedCandidate?.state,'imported',JSON.stringify({automatic:repeatedStatus.automatic_import,jobs:repeatedStatus.jobs}));
+  assert.equal(repeatedStatus.automatic_import.unchanged,1);assert.equal(repeatedStatus.automatic_import.exclusions.some(e=>e.intake_id===repeatedCandidate.intake_id),false,'A verified save clears only its own earlier exception');
+  assert.equal(checked(await db.from('procurement_leads').select('id').eq('source_id',sourceId)).length,1,'Pending-parent sibling repeat reuses the canonical lead');
+  assert.equal(checked(await db.from('procurement_intake_items').select('status').eq('id',legacyParent).single()).status,'pending','Do not import or rewrite the unreviewed ancestor');
   return {source_count:sources.length,candidates:status.total_candidates,scheduled_candidates:scheduledStatus.total_candidates,canonical_writes:2};
 }
