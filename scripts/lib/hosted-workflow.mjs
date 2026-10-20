@@ -218,7 +218,7 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
         records:j.checkpoint?.records??null,terminal_confirmed:j.checkpoint?.terminal_confirmed??false,
         access_handoff_id:browserCapabilities.find(c=>c.id===j.capability_id&&c.method_spec?.runner_id==='authenticated-browser')?.method_spec.access_handoff_id??null,
         capture_state:j.checkpoint?.hosted_browser_attempt?.state??null,
-        next_action:publicJobAction(j),error_code:j.checkpoint?.error_code??null,diagnostic_id:j.checkpoint?.diagnostic_id??null})),
+        next_action:publicJobAction(j,{countyAutomatic:!!automaticImport}),error_code:j.checkpoint?.error_code??null,diagnostic_id:j.checkpoint?.diagnostic_id??null})),
       tasks:tasks.filter(t=>!automaticCounty||t.state!=='superseded').map(t=>({id:t.id,source_id:t.source_id,category:t.kind,state:t.state,
         reason:automaticCounty&&t.kind==='source_entry'&&['partial','blocked'].includes(t.state)?'Website could not be read completely; other sources continue.':t.reason,pages:t.pages_reviewed,
         source_name:taskSources.find(s=>s.id===t.source_id)?.name??null,location_name:taskPlaces.find(g=>g.id===t.route_geography_id)?.name??null,

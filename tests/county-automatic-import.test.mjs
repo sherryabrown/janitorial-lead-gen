@@ -2,6 +2,13 @@ import test from 'node:test';import assert from 'node:assert/strict';import {rea
 import {planRegistry,planManual} from '../scripts/lib/research-persistence.mjs';
 import {hash,planReviewedBatch} from '../scripts/lib/reviewed-batch.mjs';
 import {automaticCountyReview,countyImportStatus,countyAutomaticPolicy,countyAuthority} from '../scripts/lib/county-automatic-import.mjs';
+import {publicJobAction} from '../scripts/lib/hosted-store.mjs';
+test('normal county interpretation wait is not presented as a workflow failure',()=>{
+ const job={state:'blocked',checkpoint:{stage:'interpret'}};
+ assert.match(publicJobAction(job,{countyAutomatic:true}),/automatically saved leads/);
+ assert.match(publicJobAction(job),/blocker/);
+ assert.match(publicJobAction({...job,checkpoint:{stage:'interpret',error_code:'workflow_stage_failed'}},{countyAutomatic:true}),/blocker/);
+});
 const load=k=>JSON.parse(readFileSync(`tests/fixtures/research/${k}.json`));
 function fixture(){
  const snapshot=load('build-persistence-before'),registry=planRegistry(load('build-registry-spec'),snapshot);
