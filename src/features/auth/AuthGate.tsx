@@ -1,10 +1,11 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
 
 type AuthState = 'loading' | 'signed-out' | 'signed-in';
 
-export function AuthGate({ children }: { children: (session: Session) => ReactNode }) {
+export function AuthGate({ children, onSessionEnd }: { children: (session: Session) => ReactNode; onSessionEnd?: (owner: string) => void }) {
+  const owner = useRef<string | null>(null);
   const [authState, setAuthState] = useState<AuthState>('loading');
   const [session, setSession] = useState<Session | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -19,6 +20,7 @@ export function AuthGate({ children }: { children: (session: Session) => ReactNo
     let active = true;
     void supabase.auth.getSession().then(({ data, error }) => {
       if (!active) return;
+      owner.current = data.session?.user.id ?? null;
       setSession(data.session);
       setAuthState(data.session ? 'signed-in' : 'signed-out');
       if (error) setAuthError(error.message);
@@ -26,6 +28,8 @@ export function AuthGate({ children }: { children: (session: Session) => ReactNo
 
     const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       if (!active) return;
+      if (owner.current && owner.current !== nextSession?.user.id) onSessionEnd?.(owner.current);
+      owner.current = nextSession?.user.id ?? null;
       setSession(nextSession);
       setAuthState(nextSession ? 'signed-in' : 'signed-out');
       setAuthError(null);
@@ -35,7 +39,7 @@ export function AuthGate({ children }: { children: (session: Session) => ReactNo
       active = false;
       data.subscription.unsubscribe();
     };
-  }, []);
+  }, [onSessionEnd]);
 
   if (authState === 'loading') {
     return <AuthMessage title="Checking sign-in" message="Restoring your staff session…" />;

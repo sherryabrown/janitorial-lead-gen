@@ -16,7 +16,6 @@ import {
   RefreshCw,
   Search,
   School,
-  Settings,
   Stethoscope,
 } from 'lucide-react';
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -31,6 +30,8 @@ import { formatDateLabel, formatKeyDate, normalizeUrl } from '../features/contra
 import { ModeSwitch } from '../features/shared/components/ModeSwitch';
 import { EmptyQueueState } from '../features/shared/components/EmptyQueueState';
 import { InfoTooltip } from '../features/shared/components/InfoTooltip';
+import { AccountControls } from '../features/shared/components/AccountControls';
+import { clearAdminSession } from '../features/admin/navigation';
 
 const AdminScreen = lazy(() => import('../features/admin/AdminScreen'));
 
@@ -391,10 +392,12 @@ const mockCompanies: CompanyLead[] = [
 ];
 
 function App() {
-  return <AuthGate>{session => <AppShell session={session} onSignOut={() => void supabase?.auth.signOut()} />}</AuthGate>;
+  return <AuthGate onSessionEnd={clearAdminSession}>{session => <AppShell key={session.user.id} session={session} onSignOut={() => void supabase?.auth.signOut()} />}</AuthGate>;
 }
 
 function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => void }) {
+  const [adminVisited, setAdminVisited] = useState(false);
+  const settingsRef = useRef<HTMLDivElement>(null);
   const [workMode, setWorkMode] = useState<WorkMode>('contracts');
   const [contractView, setContractView] = useState<ContractView>('open');
   const [contracts, setContracts] = useState<ContractOpportunity[]>([]);
@@ -904,9 +907,9 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
     <main className="app-shell">
       <header className="topbar">
         <h1 className="app-title">Executive Services SPIN Leads</h1>
-        <div className="topbar-actions">
-          <span className="signed-in-label">{session.user.email}</span>
-          <button className="text-button" onClick={onSignOut} type="button">Sign out</button>
+        <div ref={settingsRef} className="topbar-account-area">
+          <AccountControls email={session.user.email} active={workMode === 'contracts' && contractView === 'admin'}
+            onSignOut={onSignOut} onSettings={() => { setAdminVisited(true); setWorkMode('contracts'); setContractView('admin'); }} />
         </div>
       </header>
 
@@ -917,8 +920,6 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
       <div className="summary-strip summary-wide" aria-label={`${workMode} status counts`}>
         {workMode === 'contracts' ? (
           <>
-            <button aria-label="Admin" className={`summary-pill ${contractView === 'admin' ? 'is-active' : ''}`} onClick={() => setContractView('admin')} type="button"><Settings size={18} aria-hidden="true" /><span>Admin</span></button>
-            <span className="summary-separator" aria-hidden="true">|</span>
             {contractSummary.map((item) => (
               <SummaryPill
                 item={item}
@@ -964,9 +965,14 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
           className="lead-worklist"
           aria-label={workMode === 'contracts' ? 'Contract opportunities' : 'Company leads'}
         >
+          {adminVisited && <div hidden={workMode !== 'contracts' || contractView !== 'admin'}>
+            <Suspense fallback={<p role="status">Loading Adminâ€¦</p>}><AdminScreen owner={session.user.id}
+              active={workMode === 'contracts' && contractView === 'admin'}
+              onViewLeads={() => { setContractView(contractFilters.status); void refreshContracts(); requestAnimationFrame(() => settingsRef.current?.querySelector<HTMLButtonElement>('button')?.focus()); }} /></Suspense>
+          </div>}
           {workMode === 'contracts' ? (
             contractView === 'admin' ? (
-              <Suspense fallback={<p role="status">Loading Admin…</p>}><AdminScreen owner={session.user.id} onViewLeads={() => { setContractView(contractFilters.status); void refreshContracts(); }} /></Suspense>
+              null
             ) : (
               <>
               <ContractFiltersBar

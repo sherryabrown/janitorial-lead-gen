@@ -152,14 +152,18 @@ select {
   gap: 12px;
 }
 
-.signed-in-label {
-  max-width: 220px;
-  overflow: hidden;
-  color: var(--muted);
-  font-size: 0.82rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+.account-icon { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); }
+.account-icon:hover, .account-icon.is-active { background: var(--soft); color: var(--brand-strong); }
+.account-profile { position: relative; }
+.topbar-account-area { flex-shrink: 0; }
+@media (max-width: 760px) { .topbar-account-area { align-self: flex-end; } }
+.account-panel, .account-tooltip { position: absolute; z-index: 50; top: calc(100% + 8px); right: 0; width: max-content; max-width: min(280px, calc(100vw - 48px)); padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); box-shadow: var(--shadow); overflow-wrap: anywhere; font-size: .85rem; }
+.account-tooltip { display: none; pointer-events: none; }
+.account-profile:not([data-dismissed="true"]):hover .account-tooltip, .account-profile:not([data-dismissed="true"]):focus-within .account-tooltip { display: block; }
+.account-panel { display: grid; gap: 10px; }
+.account-email { min-width: 0; overflow-wrap: anywhere; }
+.account-panel .text-button { justify-self: start; }
+.account-icon:focus-visible { outline: 2px solid var(--brand-strong); outline-offset: 3px; }
 
 .topbar {
   display: flex;

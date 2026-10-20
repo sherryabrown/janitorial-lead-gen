@@ -10,6 +10,10 @@
   border: 1px solid var(--border);
   border-radius: 10px;
 }
+.admin-workspace-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.admin-workspace-nav [aria-current="page"] { box-shadow: inset 0 -2px var(--brand-strong); }
+.admin-navigation-section { min-width: 0; scroll-margin-top: 16px; }
+.admin-navigation-section:focus-visible { outline: 2px solid var(--brand-strong); outline-offset: 4px; }
 .workspace.is-admin {
   display: block;
 }

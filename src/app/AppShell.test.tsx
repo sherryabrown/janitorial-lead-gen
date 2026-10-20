@@ -4,6 +4,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import fixtures from '../../tests/fixtures/research/mapping.json';
 import { mapProcurementLead, type ProcurementLead } from '../lib/procurement';
 import App from './AppShell';
+import { StrictMode } from 'react';
 
 const api = vi.hoisted(() => ({ load: vi.fn(), history: vi.fn(), detail: vi.fn(), write: vi.fn(), note: vi.fn(), edit: vi.fn(), authChanged: undefined as undefined | ((event: string, session: unknown) => void) }));
 vi.mock('../lib/procurement', async (original) => ({
@@ -221,15 +222,47 @@ it('shows a current history read failure and ignores a failure after unmount', a
 });
 
 vi.mock('../features/admin/AdminScreen',()=>({default:({onViewLeads}:{onViewLeads:()=>void})=><section aria-label="Admin county checks"><button onClick={onViewLeads}>Back to contracts</button></section>}));
-it('replaces Generate with Admin and restores checked queue records and filters',async()=>{
+it('opens Admin only through Settings and restores checked queue records and filters',async()=>{
   render(<App/>);
   await screen.findByRole('article');
   expect(screen.queryByRole('button',{name:'Generate contracts'})).toBeNull();
   fireEvent.click(screen.getByRole('button',{name:/Select all 1 visible contracts/}));
-  fireEvent.click(screen.getByRole('button',{name:'Admin'}));
+  expect(screen.queryByRole('button',{name:'Admin'})).toBeNull();
+  fireEvent.click(screen.getByRole('button',{name:'Settings'}));
   await screen.findByRole('region',{name:'Admin county checks'});
   expect(screen.queryByRole('region',{name:'Research context'})).toBeNull();
   fireEvent.click(screen.getByRole('button',{name:'Back to contracts'}));
   await screen.findByRole('article');
   expect(screen.getByText(/1 selected across pages/)).toBeTruthy();
+});
+
+it('keeps mounted Admin work across navigation and clears only the signed-out owner state',async()=>{
+  render(<App/>);
+  await screen.findByRole('article');
+  fireEvent.click(screen.getByRole('button',{name:'Settings'}));
+  const admin=await screen.findByRole('region',{name:'Admin county checks'});
+  sessionStorage.setItem('spin-admin-draft:fixture-user','private draft');
+  sessionStorage.setItem('spin-admin-draft:another-user','other draft');
+  fireEvent.click(screen.getByRole('button',{name:'Back to contracts'}));
+  fireEvent.click(screen.getByRole('button',{name:'Settings'}));
+  expect(screen.getByRole('region',{name:'Admin county checks'})).toBe(admin);
+  fireEvent.click(screen.getByRole('button',{name:'Profile'}));
+  fireEvent.click(screen.getByRole('button',{name:'Sign out'}));
+  await waitFor(()=>expect(screen.queryByRole('region',{name:'Admin county checks'})).toBeNull());
+  expect(sessionStorage.getItem('spin-admin-draft:fixture-user')).toBeNull();
+  expect(sessionStorage.getItem('spin-admin-draft:another-user')).toBe('other draft');
+});
+
+it('preserves restored drafts through StrictMode and clears the old owner on account change',async()=>{
+  sessionStorage.setItem('spin-admin-draft:fixture-user','restored draft');
+  render(<StrictMode><App/></StrictMode>);
+  await screen.findByRole('article');
+  expect(sessionStorage.getItem('spin-admin-draft:fixture-user')).toBe('restored draft');
+  fireEvent.click(screen.getByRole('button',{name:'Settings'}));
+  await screen.findByRole('region',{name:'Admin county checks'});
+  act(()=>api.authChanged?.('SIGNED_IN',{user:{id:'replacement-user',email:'replacement@example.invalid'}}));
+  await waitFor(()=>expect(screen.queryByRole('region',{name:'Admin county checks'})).toBeNull());
+  expect(sessionStorage.getItem('spin-admin-draft:fixture-user')).toBeNull();
+  fireEvent.click(screen.getByRole('button',{name:'Profile'}));
+  expect(screen.getByRole('dialog').textContent).toContain('replacement@example.invalid');
 });

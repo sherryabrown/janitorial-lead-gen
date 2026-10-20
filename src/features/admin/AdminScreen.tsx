@@ -23,6 +23,7 @@ import type {
   SchedulerStatus,
 } from './types';
 import './admin.css';
+import { readAdminContext, saveAdminContext, type AdminContext } from './navigation';
 type Editor = {
   draft: Draft;
   id?: string;
@@ -81,10 +82,25 @@ const merge = <T extends { id: string }>(old: T[], next: T[]) => [
 export default function AdminScreen({
   owner,
   onViewLeads,
+  active = true,
 }: {
   owner: string;
   onViewLeads: () => void;
+  active?: boolean;
 }) {
+  const [navigation, setNavigation] = useState<AdminContext>(() => {
+    const saved = readAdminContext(owner);
+    return saved.view === 'schedules' || saved.view === 'history' ? saved : { view: 'schedules', returnTo: 'contracts' };
+  });
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const schedulesRef = useRef<HTMLDivElement>(null), manualRef = useRef<HTMLDivElement>(null), historyRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (active) headingRef.current?.focus(); }, [active]);
+  useEffect(() => { saveAdminContext(owner, navigation); }, [owner, navigation]);
+  const navigate = (view: 'schedules' | 'history', manual = false) => {
+    setNavigation({ view, returnTo: 'contracts', ...(manual ? { section: 'manual' } : {}) });
+    const target = manual ? manualRef.current : view === 'history' ? historyRef.current : schedulesRef.current;
+    target?.focus(); target?.scrollIntoView?.({ block: 'start' });
+  };
   const [manual, setManual] = useState(() => readDraft(owner)),
     [editor, setEditor] = useState<Editor | null>(() => readEditor(owner)),
     [counties, setCounties] = useState<County[]>([]),
@@ -424,16 +440,17 @@ export default function AdminScreen({
       <header className="admin-header">
         <div>
           <p className="eyebrow">Admin</p>
-          <h1>County checks</h1>
-          <p>
-            Keep procurement sources current and check for new or changed
-            leads.
-          </p>
+          <h1 ref={headingRef} tabIndex={-1}>Admin</h1>
         </div>
         <button className="text-button" type="button" onClick={onViewLeads}>
           Back to contracts
         </button>
       </header>
+      <nav className="admin-workspace-nav" aria-label="Admin views">
+        <button type="button" className="secondary-button compact" aria-current={navigation.view === 'schedules' && navigation.section !== 'manual' ? 'page' : undefined} onClick={() => navigate('schedules')}>Schedules</button>
+        <button type="button" className="text-button" aria-current={navigation.view === 'history' ? 'page' : undefined} onClick={() => navigate('history')}>History / logs</button>
+        <button type="button" className="primary-button compact" aria-label="Run now: choose scope" aria-current={navigation.section === 'manual' ? 'page' : undefined} onClick={() => navigate('schedules', true)}>Run now</button>
+      </nav>
       {notice && (
         <p className="admin-notice" role="status">
           {notice}
@@ -463,6 +480,12 @@ export default function AdminScreen({
             service activation before they run.
           </p>
         )}
+      <div ref={schedulesRef} tabIndex={-1} className="admin-navigation-section" aria-label="Schedules">
+        <ScheduleList onView={setSelected} items={schedules} paging={paging} more={scheduleOffset !== null}
+          onMore={() => void loadMore('schedules')} onEdit={(s) => { void edit(s); navigate('schedules', true); }}
+          onAction={(s, a) => void scheduleAction(s, a)} busy={busy} />
+      </div>
+      <div ref={manualRef} tabIndex={-1} className="admin-navigation-section" aria-label="Manual runs">
       {editor && (
         <div className="admin-editor-banner">
           <strong>
@@ -537,16 +560,8 @@ export default function AdminScreen({
         onAction={(s, a) => void sourceAction(s, a)}
         onView={setSelected}
       />
-      <ScheduleList
-        onView={setSelected}
-        items={schedules}
-        paging={paging}
-        more={scheduleOffset !== null}
-        onMore={() => void loadMore('schedules')}
-        onEdit={(s) => void edit(s)}
-        onAction={(s, a) => void scheduleAction(s, a)}
-        busy={busy}
-      />
+      </div>
+      <div ref={historyRef} tabIndex={-1} className="admin-navigation-section" aria-label="History and logs">
       <ActivityList
         items={runs}
         onView={(id) => setSelected((x) => (x === id ? null : id))}
@@ -568,6 +583,7 @@ export default function AdminScreen({
           />
         </div>
       )}
+      </div>
     </section>
   );
 }

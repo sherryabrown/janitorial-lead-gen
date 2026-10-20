@@ -307,7 +307,52 @@ try {
     errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto(origin);
-  await page.getByRole('button', { name: 'Admin', exact: true }).click();
+  await page.getByRole('button',{name:'Settings',exact:true}).waitFor();
+  assert.equal(await page.getByRole('button',{name:'Admin',exact:true}).count(),0);
+  await mkdir(out,{recursive:true});
+  for(const width of [1440,390,320]){
+    await page.setViewportSize({width,height:900});
+    const settings=page.getByRole('button',{name:'Settings',exact:true}), profile=page.getByRole('button',{name:'Profile',exact:true});
+    await settings.focus(); await page.keyboard.press('Tab');
+    assert.equal(await profile.evaluate(el=>el===document.activeElement),true);
+    await page.getByRole('tooltip').waitFor({state:'visible'});
+    assert.equal(await page.getByRole('tooltip').innerText(),user.email);
+    await page.keyboard.press('Enter'); await page.getByRole('dialog',{name:'Account'}).waitFor();
+    const panel=await page.getByRole('dialog',{name:'Account'}).boundingBox();
+    assert.ok(panel.x>=0&&panel.x+panel.width<=width,'Account popover fits viewport');
+    await page.screenshot({path:`${out}/navigation-profile-${width}.png`,fullPage:false});
+    await page.keyboard.press('Escape');
+    assert.equal(await profile.evaluate(el=>el===document.activeElement),true);
+    assert.equal(await page.getByRole('dialog',{name:'Account'}).count(),0);
+    const header=await page.locator('.topbar').boundingBox();
+    assert.ok(header.x>=0&&header.x+header.width<=width,'Header fits viewport');
+  }
+  await page.setViewportSize({width:1440,height:900});
+  await page.evaluate(()=>{document.documentElement.style.zoom='2';});
+  await page.getByRole('button',{name:'Profile',exact:true}).click();
+  await page.screenshot({path:`${out}/navigation-200-percent.png`,fullPage:false});
+  const zoomed=await page.getByRole('dialog',{name:'Account'}).boundingBox();
+  assert.ok(zoomed.x>=0&&zoomed.x+zoomed.width<=1440,'Account popover fits at 200% CSS zoom');
+  await page.keyboard.press('Escape');
+  await page.evaluate(()=>{document.documentElement.style.zoom='';});
+  let releaseAdmin;
+  const adminModuleReady=new Promise(resolve=>{releaseAdmin=resolve;});
+  const delayAdmin=async route=>{await adminModuleReady;await route.continue();};
+  await page.route('**/src/features/admin/AdminScreen.tsx*',delayAdmin);
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByText('Loading Admin…',{exact:true}).waitFor();
+  releaseAdmin();
+  await page.getByRole('heading',{name:'Admin',exact:true}).waitFor();
+  await page.unroute('**/src/features/admin/AdminScreen.tsx*',delayAdmin);
+  assert.equal(await page.getByRole('heading',{name:'Admin',exact:true}).evaluate(el=>el===document.activeElement),true);
+  await page.getByRole('button',{name:'History / logs',exact:true}).click();
+  await page.getByRole('button',{name:'Run now: choose scope',exact:true}).click();
+  for(const width of [1440,390,320]){
+    await page.setViewportSize({width,height:900});
+    await page.getByRole('heading',{name:'Admin',exact:true}).focus();
+    await page.screenshot({path:`${out}/navigation-admin-${width}.png`,fullPage:false});
+  }
+  await page.setViewportSize({width:1440,height:900});
   await page.getByText('Arkansas DHS janitorial historical solicitation', { exact: true }).waitFor();
   assert.equal(
     await page.getByRole('region', { name: 'Research context' }).count(),
@@ -482,7 +527,7 @@ try {
   Object.assign(mapping.procurement_leads[1],{title:'Quarter-only forecast fixture',bid_type:'forecast',publication_date:null,
     contract_start_date:null,contract_current_end_date:null,contract_potential_end_date:null,response_deadline:null,planned_advertisement_period:'Q4 2026',
     payload:{title:'Quarter-only forecast fixture',bid_type:'forecast',planned_advertisement_period:'Q4 2026',source_url:'https://agency.example/forecast.pdf',business_category:'other_public',work_performance_locations:[{city_name:'Little Rock',state_code:'AR'}]}});
-  await page.getByRole('button',{name:'Admin',exact:true}).click();
+  await page.getByRole('button',{name:'Settings',exact:true}).click();
   await page.getByRole('button',{name:'Back to contracts'}).click();
   await page.getByText('Quarter-only forecast fixture',{exact:false}).first().waitFor();
   await page.getByText('Q4 2026',{exact:true}).first().waitFor();
