@@ -50,6 +50,36 @@ export function inspectAutomaticListing(body, spec) {
     const root = doc.querySelector('main, [role="main"]') ?? doc.body;
     if (root.querySelector('[rel="next"], [aria-label*="Next"], .pagination, .pager') ||
         /\b(load more|next page)\b/i.test(visibleText(root))) throw Error('Listing pagination needs verification');
+    if(spec.expected_heading==='B2Gnow current solicitations') {
+      const heading=clean(doc.querySelector('h2.interiorHeader')?.textContent);
+      const scope=clean([...doc.querySelectorAll('p')].find(p=>/^Listed below are current and recent solicitations/.test(clean(p.textContent)))?.textContent);
+      const counts=doc.querySelectorAll('input[name="TotalRecordCount"]');
+      const count=counts.length===1?counts[0].value:'';
+      const rows=[...doc.querySelectorAll('a.RecordTile')];
+      const filter=doc.querySelector('select[name="Status"]');
+      if(heading!=='Bid Opportunities'||!spec.expected_organization?.trim()||
+          !scope.startsWith(`Listed below are current and recent solicitations that the ${spec.expected_organization} has issued.`)||
+          !/^\d+$/.test(count)||Number(count)!==rows.length||rows.length>spec.max_records||
+          !filter||filter.value!==''||doc.querySelector('[data-ajax],iframe[src]'))
+        throw Error('Public solicitation identity, unfiltered count or traversal changed');
+      const records=[];
+      for(const row of rows) {
+        const status=clean(row.querySelector('.Status')?.textContent);
+        if(!['Open','Due Soon','Past'].includes(status))throw Error('Public solicitation status changed');
+        const description=row.querySelector('.Description')?.cloneNode(true);
+        if(!description)throw Error('Public solicitation description missing');
+        for(const node of description.querySelectorAll('.DateBox,.Status'))node.remove();
+        const text=clean(description.textContent),identity=text.match(/^([0-9]{4,10}(?:RFQ|RFP|IFB|Quote)?)\s+-\s+(.+)$/);
+        const due=clean(row.querySelector('.DateDue')?.textContent).replace(/^Due\s*/,''),deadline=publishedDeadlineDate(due);
+        if(!identity||!deadline)throw Error('Public solicitation reference or deadline missing');
+        // Reissued/cancelled historical rows can share a reference. They are not
+        // current opportunities. Never use the rotating ViewDetail PID as identity.
+        if(status==='Past')continue;
+        records.push({id:identity[1],title:identity[2],status,deadline,deadline_text:due,source_url:spec.urls[0]});
+      }
+      if(new Set(records.map(r=>r.id)).size!==records.length)throw Error('Duplicate current solicitation references');
+      return {records,total:records.length,terminal:true,evidence:`${scope} ${rows.length} published records; ${records.length} current solicitations.`,heading:spec.expected_heading};
+    }
     if(spec.expected_heading==='Published bid document table') {
       if(![...root.querySelectorAll('h1,h2,h3')].some(h=>/^Bid Opportunities(?: and Information)?$/i.test(clean(h.textContent)))||
           remoteTable)
@@ -190,10 +220,18 @@ export function proposeAutomaticListing(body, url) {
     if(!heading&&[...root.querySelectorAll('table')].some(t=>documentColumns.some(cols=>JSON.stringify(cols)===JSON.stringify(columnNames(t)))))heading='Published bid document table';
     if(!heading&&dom.window.document.querySelector('#matrix section.xresources')&&
         /^(Invitation to Bid|Requests for (Proposals|Qualifications|Information))$/.test(clean(dom.window.document.querySelector('h1')?.textContent)))heading='Published procurement sections';
+    if(!heading&&root.querySelector('input[name="TotalRecordCount"]')&&root.querySelector('a.RecordTile')&&
+        clean(root.querySelector('h2.interiorHeader')?.textContent)==='Bid Opportunities')heading='B2Gnow current solicitations';
   } finally { dom.window.close(); }
   if (!heading) throw Error('No supported opportunity listing heading');
   const spec = { version: 1, runner_id: 'public-fetch', check_when: 'each_request', urls: [url],
     allowed_hosts: [new URL(url).hostname], max_bytes: 2_000_000, response_format: 'county-listing-v1',
     max_records: 100, expected_heading: heading };
+  if(heading==='B2Gnow current solicitations') {
+    const d=new JSDOM(body.toString('utf8'),{virtualConsole:new VirtualConsole()});
+    try {spec.expected_organization=clean(d.window.document.querySelector('p')?.textContent)
+      .match(/^Listed below are current and recent solicitations that the (.+?) has issued\./)?.[1];}
+    finally {d.window.close();}
+  }
   return { spec, listing: inspectAutomaticListing(body, spec) };
 }

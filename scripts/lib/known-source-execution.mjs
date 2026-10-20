@@ -161,6 +161,18 @@ export function safePublicUrl(value, allowedHosts) {
   } catch { return false; }
 }
 
+// A reviewed, smaller public entry can serve source maintenance without
+// changing the source's canonical identity URL or the capture storage bound.
+export function registeredPublicEntryUrl(source, now = new Date()) {
+  const entries=Object.values(source?.config?.research_persistence?.coverage_by_scope??{})
+    .map(scope=>scope.verified_public_entry).filter(entry=>entry&&entry.official_entry_url===source.url&&
+      /^[a-f0-9]{64}$/.test(entry.content_sha256??'')&&/^artifacts\/[a-f0-9]{64}$/.test(entry.official_link_artifact??'')&&
+      Number.isFinite(Date.parse(entry.checked_at))&&Date.parse(entry.checked_at)<=now.getTime()&&
+      (()=>{try{return safePublicUrl(entry.url,[new URL(entry.url).hostname]);}catch{return false;}})())
+    .sort((a,b)=>Date.parse(b.checked_at)-Date.parse(a.checked_at));
+  return entries[0]?.url??source?.url;
+}
+
 export function registeredEntryContract(source, now = new Date()) {
   try {
     const entryAccess = source?.config?.known_source_research?.entry_access;
@@ -173,14 +185,15 @@ export function registeredEntryContract(source, now = new Date()) {
         /\/api\//i.test(new URL(source.url).pathname) ||
         /\.pdf$/i.test(new URL(source.url).pathname) ||
         new URL(source.url).searchParams.has('docId')) return null;
-    const host = new URL(source.url).hostname.toLowerCase();
-    if (!safePublicUrl(source.url, [host])) return null;
+    const entryUrl=registeredPublicEntryUrl(source,now);
+    const host = new URL(entryUrl).hostname.toLowerCase();
+    if (!safePublicUrl(entryUrl, [host])) return null;
     const allowedHosts = ['state-intents','state-other'].includes(source.code) &&
       host === 'www.arkansas.gov' && /^\/tss\/procurement\//.test(new URL(source.url).pathname)
       ? [host,'www.ark.org'] : [host];
     return { version: 1, runner_id: 'public-fetch', method: 'registry-entry',
       parser_version: 'registry-entry-v1', check_when: 'each_request',
-      urls: [source.url], allowed_hosts: allowedHosts, max_bytes: 2_000_000 };
+      urls: [entryUrl], allowed_hosts: allowedHosts, max_bytes: 2_000_000 };
   } catch { return null; }
 }
 

@@ -34,6 +34,14 @@ test('activation binds category, literal quotations, captured URLs and portal/AP
   {...input,capability:{...input.capability,kind:'award'}},{...input,capability:{...input.capability,method_spec:{...input.capability.method_spec,urls:['https://agency.gov/guessed']}}},
   {...input,handoffs:[input.handoffs[0]]}])assert.throws(()=>validateDiscoveryReview(packet,bad,task));
 });
+test('automatic renewal can use a server-loaded reviewed entry without weakening client identity checks',()=>{
+ const {packet,task,input}=fixture(),identity='https://agency.gov/large-entry';input.sourceSpec.url=identity;
+ const registered={id:source,url:identity,config:{research_persistence:{coverage_by_scope:{request:{verified_public_entry:{url,official_entry_url:identity,checked_at:'2026-01-01',content_sha256:'a'.repeat(64),official_link_artifact:'artifacts/'+'b'.repeat(64)}}}}}};
+ assert.throws(()=>validateDiscoveryReview(packet,input,task),/identity/);
+ assert.equal(validateDiscoveryReview(packet,input,task,registered).capability.endpoint_url,url);
+ assert.throws(()=>validateDiscoveryReview(packet,input,task,{...registered,id:run}),/identity/);
+ assert.throws(()=>validateDiscoveryReview(packet,input,task,{...registered,url:'https://other.gov/'}),/identity/);
+});
 test('native registry SQL preserves default production target and isolates rehearsal without commit',()=>{
  const m={kind:'registry',project_ref:'test',rows:[]};
  assert.match(persistenceSql(m),/^begin;/);

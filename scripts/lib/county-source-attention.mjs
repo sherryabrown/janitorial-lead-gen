@@ -27,6 +27,7 @@ export function sourceAttention(task,jobs){
  const reason=typeof c.blocker==='string'?c.blocker:typeof task.evidence?.reason==='string'?task.evidence.reason:typeof task.reason==='string'?task.reason:'';
  const http=reason.match(/^HTTP (\d{3})$/)?.[1];
  if(http&&['401','403'].includes(http))return make('access','The website denied access (HTTP '+http+').','View saved evidence to determine the access requirement.');
+ if(http==='202')return make('automation','The website returned HTTP 202 without a usable listing.','A developer needs to verify supported automated access; a working browser page alone does not establish collection.');
  if(http&&(['408','429'].includes(http)||Number(http)>=500)||reason==='Network request failed or timed out'){
   const discovery=discoveryJob(task,jobs);
   const retry=discovery?.state==='blocked'&&discovery.checkpoint?.automation_policy==='county-public-v1'&&['discovery_resolve','discovery_capture','discovery_verify'].includes(discovery.checkpoint.stage);

@@ -1,11 +1,12 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';import {createHash} from 'node:crypto';import {JSDOM} from 'jsdom';
-import {proposeAutomaticListing,publishedDeadlineDate} from '../scripts/lib/automatic-public-method.mjs';
+import {proposeAutomaticListing,publishedDeadlineDate,inspectAutomaticListing} from '../scripts/lib/automatic-public-method.mjs';
 import {makeInterpretationPacket,validateInterpretation} from '../scripts/lib/known-source-workflow.mjs';
 import {extractFacts,evaluateFacts,verifyEvidenceSpans} from '../scripts/lib/hosted-interpretation.mjs';
 import {inspectPublicHtmlTable} from '../scripts/lib/public-html-table.mjs';
 import {publicTableFinding,continuePublicTableDetails,applyPublicTableDetails} from '../scripts/lib/public-table-details.mjs';
 import {supportingCapture} from '../scripts/lib/supporting-capture.mjs';import {validateFindingBounds} from '../scripts/lib/hosted-workflow.mjs';
 import {officialLinks} from '../scripts/lib/official-link-discovery.mjs';import {fetchPublicCheck} from '../scripts/lib/public-source-check.mjs';
+import {registeredEntryContract,registeredPublicEntryUrl} from '../scripts/lib/known-source-execution.mjs';
 const fixture=key=>readFileSync(`tests/fixtures/county/${key}.html`),sha=b=>createHash('sha256').update(b).digest('hex');
 const id=n=>`10000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 function context(body,spec){return {request:{id:id(1),workflow_control:{admin_policy:'county_scope'},service_scope:{name:'janitorial'},requested_search_areas:[{area_type:'county',county_name:'Saline',state_code:'AR'},{area_type:'city',city_name:'Little Rock',state_code:'AR'}]},
@@ -72,4 +73,36 @@ test('county evidence scope includes only saved confirmed cities and binds them 
  ctx.request.cities_confirmed_at='2026-10-19T23:00:00Z';const confirmed=makeInterpretationPacket(ctx);
  assert.equal(confirmed.request_scope.requested_search_areas.length,2);assert.equal(confirmed.request_scope.requested_search_areas[1].city_name,'Little Rock');assert.notEqual(confirmed.packet_hash,unconfirmed.packet_hash);
  ctx.request.workflow_control.admin_policy='state_research';assert.equal(makeInterpretationPacket(ctx).request_scope.requested_search_areas.length,1);
+});
+
+const lrsdSpec={version:1,runner_id:'public-fetch',check_when:'each_request',urls:['https://lrsd.ionwave.net/SourcingEvents.aspx?SourceType=1'],allowed_hosts:['lrsd.ionwave.net'],max_bytes:2000000,response_format:'html-table-v1',max_records:100,expected_organization:'Purchasing',table_selector:'table.rgMasterTable',row_selector:'tr.rgRow, tr.rgAltRow',public_details:{key:'BidID',endpoint:'https://lrsd.ionwave.net/PublicDetail.aspx',client_state_selector:'input#ctl00_mainContent_rgBidList_ClientState'}};
+test('actual LRSD explicit empty grid works without a public detail key map; malformed empty remains unresolved',async()=>{
+ const body=fixture('lrsd-empty-published'),listing=inspectPublicHtmlTable(body,lrsdSpec);assert.equal(listing.terminal,true);assert.equal(listing.total,0);
+ const p=makeInterpretationPacket(context(body,lrsdSpec)),result=evaluateFacts(p,await extractFacts(p,lrsdSpec));assert.equal(result.coverage,'complete');assert.equal(result.findings.length,0);validateInterpretation(p,result);await verifyEvidenceSpans(p,result);
+ for(const altered of [body.toString().replace('No records to display.','Loading...'),body.toString().replace('<strong>0</strong> items','<strong>1</strong> items'),body.toString().replace('in <strong>1</strong> pages','in <strong>2</strong> pages')])assert.throws(()=>inspectPublicHtmlTable(Buffer.from(altered),lrsdSpec));
+});
+test('actual airport public listing verifies all 30 rows and excludes past duplicates from current opportunity identity',async()=>{
+ const body=fixture('airport-b2g-published'),url='https://clintonairport.gob2g.com/FrontEnd/proposalsearchpublic.asp',{spec,listing}=proposeAutomaticListing(body,url);
+ assert.equal(listing.total,3);assert.equal(listing.terminal,true);assert.deepEqual(listing.records.map(r=>r.id),['26003RFQ','230600','26056IFB']);assert.ok(listing.records.every(r=>r.source_url===url&&!('work_city'in r)));assert.equal(listing.records[0].deadline,'2026-10-20');
+ const p=makeInterpretationPacket(context(body,spec)),result=evaluateFacts(p,await extractFacts(p,spec));assert.equal(result.findings.length,0);assert.equal(result.coverage,'complete');assert.equal(result.exclusions.length,3);validateInterpretation(p,result);await verifyEvidenceSpans(p,result);
+ const other=Buffer.from(body.toString().replaceAll('Clinton National Airport','Example Regional Airport'));assert.equal(proposeAutomaticListing(other,'https://example.gov/bids').listing.total,3);assert.throws(()=>inspectAutomaticListing(other,spec),/identity/);
+ for(const altered of [body.toString().replace('value="30"','value="31"'),body.toString().replace('<strong>Due Soon</strong>','<strong>Unknown</strong>'),body.toString().replace('name="Status"','name="Changed"'),body.toString().replace('10/29/2026','2/30/2026'),body.toString().replace('230600 - Cargo','26003RFQ - Cargo')])assert.throws(()=>inspectAutomaticListing(Buffer.from(altered),spec));
+});
+test('future public airport janitorial rows retain stable references and require actual location evidence before saving',async()=>{
+ const body=Buffer.from(fixture('airport-b2g-published').toString().replace('IFB - Vehicles','IFB - Janitorial Services')),url='https://clintonairport.gob2g.com/FrontEnd/proposalsearchpublic.asp',{spec,listing}=proposeAutomaticListing(body,url);
+ assert.equal(listing.records[2].id,'26056IFB');assert.equal(inspectAutomaticListing(Buffer.from(body.toString().replace('10/29/2026','11/05/2026')),spec).records[2].id,'26056IFB');
+ const p=makeInterpretationPacket(context(body,spec)),result=evaluateFacts(p,await extractFacts(p,spec));assert.equal(result.findings.length,0);assert.equal(result.unresolved.length,1);assert.equal(result.coverage,'partial');
+});
+test('published school HTML content links are discovered inertly; bare school headings do not establish empty coverage',()=>{
+ const values=[{html:1},'<p>Bid Opportunities <a href="https://district.ionwave.net/SourcingEvents.aspx?SourceType=1">Current bids</a></p><script>throw new Error("never execute")</script>'];
+ const body=Buffer.from(`<script id="__NUXT_DATA__" type="application/json">${JSON.stringify(values).replaceAll('</script>','<\\/script>')}</script>`);
+ assert.deepEqual(officialLinks(body,'https://school.gov/page/procurement',{automatic:true}).map(l=>l.url),['https://district.ionwave.net/SourcingEvents.aspx?SourceType=1']);assert.deepEqual(officialLinks(body,'https://school.gov/page/procurement'),[]);
+ assert.throws(()=>proposeAutomaticListing(Buffer.from('<h1>Request for Proposals/Qualifications</h1>'),'https://school.gov/page/rfp'),/No supported/);
+});
+test('a reviewed public maintenance entry preserves identity and byte limits; invalid or future metadata cannot redirect checks',()=>{
+ const original='https://school.gov/large-procurement-page',entry={url:lrsdSpec.urls[0],official_entry_url:original,content_sha256:'a'.repeat(64),official_link_artifact:'artifacts/'+'b'.repeat(64),checked_at:'2026-10-19T00:00:00Z'};
+ const source=value=>({code:'district',url:original,config:{research_persistence:{coverage_by_scope:{test:{verified_public_entry:value}}}}});
+ const contract=registeredEntryContract(source(entry),new Date('2026-10-20'));
+ assert.deepEqual(contract.urls,lrsdSpec.urls);assert.equal(contract.max_bytes,2000000);assert.equal(source(entry).url,original);
+ for(const bad of [{...entry,url:'not a url'},{...entry,url:'https://school.gov/?token=secret'},{...entry,official_entry_url:'https://other.gov'},{...entry,checked_at:'2099-01-01'},{...entry,official_link_artifact:'missing'},{...entry,content_sha256:'missing'}])assert.equal(registeredPublicEntryUrl(source(bad),new Date('2026-10-20')),original);
 });

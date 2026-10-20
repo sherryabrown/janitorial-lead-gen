@@ -1,0 +1,7 @@
+{
+  "url": "https://lrsd.ionwave.net/SourcingEvents.aspx?SourceType=1",
+  "retrieved_at": "2026-10-20T01:47:35.227Z",
+  "original_sha256": "58a9648073005f5340c344406695b3d69e2f82a82f946f4f48c88530c17c57ac",
+  "fixture_sha256": "7385d205cd6de4560de31994eddf81a19fb6011f594bd469b6e234856df25e06",
+  "transformation": "Published listing subset; scripts, rotating navigation PIDs and unused inputs removed. Records, headings, counts and status selection preserved."
+}

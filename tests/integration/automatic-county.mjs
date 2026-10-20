@@ -10,6 +10,7 @@ import {procurementSchedules} from '../../scripts/lib/procurement-schedules.mjs'
 import {randomUUID} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {importJobs} from '../../scripts/lib/hosted-import-jobs.mjs';
+import {proposeAutomaticListing} from '../../scripts/lib/automatic-public-method.mjs';
 
 export async function verifyAutomaticCounty({db,artifacts,audit,livePool,rehearsalPool,actor,config}) {
   const project='zreplhkoxswtzxlchtjf',errors=[],calls=[];
@@ -21,6 +22,9 @@ export async function verifyAutomaticCounty({db,artifacts,audit,livePool,rehears
     else if(url==='https://county.example/bid/26-1')body='<main><h1>Janitorial services</h1><p>Bid 26-1; work county: Arkansas County, AR. Deadline: 2027-01-01.</p></main>';
     else if(url==='https://arkansas.ionwave.net/SourcingEvents.aspx?SourceType=1')body=readFileSync('tests/fixtures/county/ionwave-public-listing.html');
     else if(url==='https://arkansas.ionwave.net/PublicDetail.aspx?bidID=1642&SourceType=1')body=readFileSync('tests/fixtures/county/ionwave-public-detail.html');
+    else if(url==='https://lrsd.ionwave.net/SourcingEvents.aspx?SourceType=1')body=readFileSync('tests/fixtures/county/lrsd-empty-published.html');
+    else if(url==='https://clintonairport.gob2g.com/FrontEnd/proposalsearchpublic.asp')body=readFileSync('tests/fixtures/county/airport-b2g-published.html');
+    else if(url==='https://vendors.planetbids.com/portal/90401/portal-home')return new Response(null,{status:202});
     else throw Error(`Unexpected isolated county destination ${url}`);
     return new Response(body,{headers:{'content-type':'text/html'}});
   };
@@ -139,12 +143,30 @@ export async function verifyAutomaticCounty({db,artifacts,audit,livePool,rehears
   const legacyParent='ffffffff-ffff-4fff-8fff-fffffffffff0';
   checked(await db.from('procurement_intake_items').insert({id:legacyParent,source_id:sourceId,external_id:'1642',status:'pending',review_reason:'Historical pending fixture',payload:{title:'Historical pending observation',manual_capture:{version:1,record_external_id:'1642'}}}));
   checked(await db.from('procurement_source_capabilities').insert({id:capId,source_id:sourceId,kind:'opportunity',method:'browser',endpoint_url:source.url,official_entry_url:source.url,route_geography_id:city,availability:'active',verified_at:new Date().toISOString(),verified_until:'2027-12-31T00:00:00Z',verification_evidence:{automation_policy:'county-public-v1',fixture:true},parser_version:'public-detail-native-fixture',method_spec:{version:1,runner_id:'public-fetch',check_when:'each_request',urls:[source.url],allowed_hosts:['arkansas.ionwave.net'],max_bytes:2000000,response_format:'html-table-v1',max_records:100,expected_organization:'Little Rock Water Reclamation Authority',table_selector:'table.rgMasterTable',row_selector:'tr.rgRow, tr.rgAltRow',public_details:{key:'BidID',endpoint:'https://arkansas.ionwave.net/PublicDetail.aspx',client_state_selector:'input#ctl00_mainContent_rgBidList_ClientState'}}}));
+  // Keep two channels for the same agency independent using existing source
+  // identities: one working public portal cannot resolve another portal's gap.
+  const publicSources=[];
+  for(const [code,url]of [['lrsd-public-native','https://lrsd.ionwave.net/SourcingEvents.aspx?SourceType=1'],['airport-b2g-native','https://clintonairport.gob2g.com/FrontEnd/proposalsearchpublic.asp'],['airport-planet-native','https://vendors.planetbids.com/portal/90401/portal-home']]) {
+    const row={...source,id:randomUUID(),identity_key:randomUUID(),code,name:code,url};
+    if(code==='lrsd-public-native') {
+      row.url='https://lrsd.ionwave.net/original-index';
+      row.config={...row.config,research_persistence:{coverage_by_scope:{fixture:{verified_public_entry:{url,official_entry_url:row.url,
+        checked_at:new Date().toISOString(),content_sha256:'a'.repeat(64),official_link_artifact:await artifacts.put(Buffer.from('Official published bid link'))}}}}};
+    }
+    checked(await db.from('procurement_sources').insert(row));publicSources.push(row);
+    if(code==='airport-planet-native')continue;
+    const spec=code==='lrsd-public-native'?{version:1,runner_id:'public-fetch',check_when:'each_request',urls:[url],allowed_hosts:['lrsd.ionwave.net'],max_bytes:2000000,response_format:'html-table-v1',max_records:100,expected_organization:'Purchasing',table_selector:'table.rgMasterTable',row_selector:'tr.rgRow, tr.rgAltRow',public_details:{key:'BidID',endpoint:'https://lrsd.ionwave.net/PublicDetail.aspx',client_state_selector:'input#ctl00_mainContent_rgBidList_ClientState'}}:proposeAutomaticListing(readFileSync('tests/fixtures/county/airport-b2g-published.html'),url).spec;
+    checked(await db.from('procurement_source_capabilities').insert({id:randomUUID(),source_id:row.id,kind:'opportunity',method:'browser',endpoint_url:url,official_entry_url:url,route_geography_id:city,availability:'active',verified_at:new Date().toISOString(),verified_until:'2027-12-31T00:00:00Z',verification_evidence:{automation_policy:'county-public-v1',fixture:true},parser_version:'saline-public-native',method_spec:spec}));
+  }
   const detailPreview=await triggers.preview({...config,county_ids:['05001']});
   const detailRun=await triggers.submit({...detailPreview.config,confirmed_scope:true,preview_hash:detailPreview.preview_hash},actor,'public-detail-native-fixture');
   for(let n=0;n<100;n++)if(!await workflow.step()&&!await triggers.step())break;
   if(errors.length)throw errors[0];
   const detailChild=checked(await db.from('procurement_trigger_requests').select('*').eq('trigger_id',detailRun.trigger_id)).find(c=>c.role==='county');
   const detailStatus=await workflow.status(detailChild.request_id),candidate=detailStatus.candidates.find(c=>c.title==='Janitorial Services at Clearwater Administrative Building and Clearwater Maintenance Complex');
+  for(const row of publicSources.slice(0,2))assert.ok(detailStatus.tasks.some(t=>t.source_id===row.id&&t.category==='opportunity'&&t.state==='reviewed_no_results'),JSON.stringify({source:row.code,tasks:detailStatus.tasks.filter(t=>t.source_id===row.id),jobs:detailStatus.jobs}));
+  assert.ok(detailStatus.tasks.some(t=>t.source_id===publicSources[2].id&&t.category==='opportunity'&&t.state==='method_missing'),'Unverified PlanetBids remains separate from working B2Gnow');
+  assert.equal(checked(await db.from('procurement_leads').select('id').in('source_id',publicSources.map(s=>s.id))).length,0,'No invented lead from empty listings or an inaccessible channel');
   assert.ok(candidate,JSON.stringify({message:'Actual public detail evidence reaches native intake',jobs:detailStatus.jobs,tasks:detailStatus.tasks,candidates:detailStatus.candidates}));
   const intake=checked(await db.from('procurement_intake_items').select('*').eq('id',candidate.intake_id).single());
   assert.equal(intake.source_id,sourceId);assert.equal(intake.payload.work_city,'Little Rock');assert.equal(intake.payload.deadline,'2026-11-05');
@@ -161,5 +183,19 @@ export async function verifyAutomaticCounty({db,artifacts,audit,livePool,rehears
   assert.equal(repeatedStatus.automatic_import.unchanged,1);assert.equal(repeatedStatus.automatic_import.exclusions.some(e=>e.intake_id===repeatedCandidate.intake_id),false,'A verified save clears only its own earlier exception');
   assert.equal(checked(await db.from('procurement_leads').select('id').eq('source_id',sourceId)).length,1,'Pending-parent sibling repeat reuses the canonical lead');
   assert.equal(checked(await db.from('procurement_intake_items').select('status').eq('id',legacyParent).single()).status,'pending','Do not import or rewrite the unreviewed ancestor');
+  const lrsd=publicSources[0];
+  checked(await db.from('procurement_source_capabilities').update({verified_at:'2026-09-01T00:00:00Z',verified_until:'2026-10-01T00:00:00Z'}).eq('source_id',lrsd.id));
+  const renewalActor=randomUUID();
+  await livePool.query('insert into auth.users(id) values($1)',[renewalActor]);
+  const renewPreview=await triggers.preview({...config,maintain_sources:true,county_ids:['05001']});
+  const renew=await triggers.submit({...renewPreview.config,confirmed_scope:true,preview_hash:renewPreview.preview_hash},renewalActor,'public-table-renewal');
+  for(let n=0;n<150;n++)if(!await workflow.step()&&!await triggers.step())break;
+  if(errors.length)throw errors[0];
+  const renewed=checked(await db.from('procurement_source_capabilities').select('*').eq('source_id',lrsd.id).single());
+  const renewalChildren=checked(await db.from('procurement_trigger_requests').select('request_id').eq('trigger_id',renew.trigger_id));
+  assert.ok(Date.parse(renewed.verified_until)>Date.now(),JSON.stringify({message:'Expired public table is reverified against fresh official listing bytes',jobs:checked(await db.from('procurement_jobs').select('kind,state,checkpoint').in('search_request_id',renewalChildren.map(c=>c.request_id)))}));
+  assert.equal(calls.includes(lrsd.url),false,'Maintenance and renewal use the reviewed smaller entry without changing source identity');
+  assert.equal(checked(await db.from('procurement_sources').select('url').eq('id',lrsd.id).single()).url,lrsd.url);
+  assert.ok(renew.trigger_id);
   return {source_count:sources.length,candidates:status.total_candidates,scheduled_candidates:scheduledStatus.total_candidates,canonical_writes:2};
 }

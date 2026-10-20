@@ -3,7 +3,8 @@ import {readFile} from 'node:fs/promises';
 import {JSDOM,VirtualConsole} from 'jsdom';
 import {checked,rows,one,sha} from './hosted-store.mjs';
 import {publicUrl,verifyPersistence} from './research-persistence.mjs';
-import {safePublicUrl,adapterContract,separateSamSource} from './known-source-execution.mjs';
+import {safePublicUrl,adapterContract,separateSamSource,registeredPublicEntryUrl} from './known-source-execution.mjs';
+import {inspectPublicHtmlTable} from './public-html-table.mjs';
 import {validateHandoff,discoveryView} from './public-source-discovery.mjs';
 import {fetchPublicCheck} from './public-source-check.mjs';
 import {automaticCountyPolicy,proposeAutomaticListing} from './automatic-public-method.mjs';
@@ -22,7 +23,21 @@ export function officialLinks(bytes,url,{automatic=false}={}) {
       try {
         const raw=doc.querySelector('script#__NUXT_DATA__[type="application/json"]')?.textContent;
         const values=raw&&raw.length<=2_000_000?JSON.parse(raw):null;
+        const seenHtml=new Set();
         if(Array.isArray(values)&&values.length<=50000)for(const item of values) {
+          // Published Apptegy page content can contain official bid links that
+          // are absent from the initial DOM. Parse literal HTML, never scripts.
+          if(item&&typeof item==='object'&&!Array.isArray(item)&&Object.keys(item).length===1&&
+              Number.isInteger(item.html)&&typeof values[item.html]==='string'&&!seenHtml.has(item.html)) {
+            seenHtml.add(item.html);
+            const template=doc.createElement('template');template.innerHTML=values[item.html];
+            for(const a of template.content.querySelectorAll('a[href]')) {
+              try {
+                const anchor=doc.createElement('a');anchor.href=new URL(a.getAttribute('href'),url).href;
+                anchor.textContent=a.textContent;anchors.push(anchor);
+              }catch{/* Malformed published links cannot suppress the remaining links. */}
+            }
+          }
           if(!item||Array.isArray(item)||typeof item!=='object'||values[item.type]!=='link'||values[item.status]!=='published'||
               values[item.hidden]!==false||!Number.isInteger(item.name)||!Number.isInteger(item.url))continue;
           const name=values[item.name],target=values[item.url];
@@ -47,7 +62,7 @@ export function publicReview(bytes,type) {
     return (dom.window.document.body?.textContent??'').replace(/\s+/g,' ').trim().slice(0,12000);
   }finally{dom.window.close();}
 }
-export function validateDiscoveryReview(packet,input,task) {
+export function validateDiscoveryReview(packet,input,task,registeredSource=null) {
   const {sourceSpec,capability,category_evidence:evidence}=input;
   if(!sourceSpec||!capability||capability.method_spec?.runner_id!=='public-fetch'||capability.kind!==task.kind||
     capability.route_geography_id!==task.route_geography_id)throw new Error('Reviewed public method must match saved gap');
@@ -55,8 +70,11 @@ export function validateDiscoveryReview(packet,input,task) {
   for(const e of evidence)if(!e.excerpt?.trim()||!packet.pages.some(p=>p.run_id===e.run_id&&p.review.includes(e.excerpt)))
     throw new Error('Category quotation is not in saved capture');
   const spec=capability.method_spec;
+  const reviewedIdentity=registeredSource?.id===packet.seed_source_id&&registeredSource?.url===sourceSpec.url&&
+    registeredPublicEntryUrl(registeredSource)!==registeredSource.url&&
+    packet.pages.some(p=>p.url===registeredPublicEntryUrl(registeredSource));
   if(!Array.isArray(spec.urls)||spec.urls.some(url=>!packet.pages.some(p=>p.url===url))||
-    !packet.pages.some(p=>p.url===sourceSpec.url||p.requested_url===sourceSpec.url)||
+    !reviewedIdentity&&!packet.pages.some(p=>p.url===sourceSpec.url||p.requested_url===sourceSpec.url)||
     !packet.pages.some(p=>p.url===capability.official_entry_url||p.requested_url===capability.official_entry_url))
     throw new Error('Every destination and official identity require successful saved captures');
   const now=new Date().toISOString(),saved={...capability,availability:'active',verified_at:now,
@@ -100,9 +118,10 @@ export function publicDiscovery({db,artifacts,persist,reconcileHandoffs,resolveS
     }
     if(source&&separateSamSource(source))throw new Error('SAM has a separate statewide trigger');
     const automatic=['county_scope','state_research'].includes(request.workflow_control?.admin_policy);
-    const seed=source&&publicUrl(source.url),job=checked(await db.from('procurement_jobs').upsert({search_request_id:requestId,
+    const seed=source&&publicUrl(automatic?registeredPublicEntryUrl(source):source.url),job=checked(await db.from('procurement_jobs').upsert({search_request_id:requestId,
       dedupe_key:key(requestId,task.id),kind:'discover',state:seed||automatic?'pending':'blocked',checkpoint:{stage:!seed&&automatic?'discovery_resolve':'discovery_capture',actor_id:actor,
         task_id:task.id,seed_source_id:source?.id??null,queue:seed?[seed]:[],visited:[],run_ids:[],links:[],
+        ...(automatic&&seed?{observed_hosts:[new URL(seed).hostname]}:{}),
         ...(['county_scope','state_research'].includes(request.workflow_control?.admin_policy)?{automation_policy:automaticCountyPolicy}:{}),
         next_action:seed?'Inspect saved official entry and relevant same-host links':automatic?'Finding official website':'Associate a verified official agency entry; no trusted seed exists'}},
       {onConflict:'dedupe_key',ignoreDuplicates:true}).select('*').single());
@@ -168,12 +187,26 @@ export function publicDiscovery({db,artifacts,persist,reconcileHandoffs,resolveS
         if(sha(body)!==page.content_sha256)throw Error('Automatic verification capture changed');
         let verified;
         try {
-          const {spec,listing}=proposeAutomaticListing(body,page.url);
+          let verifiedListing;
+          try {verifiedListing=proposeAutomaticListing(body,page.url);}
+          catch(error) {
+            // Reverify an existing reviewed table contract against new bytes;
+            // expiry requires fresh evidence, not a new parser or guessed URLs.
+            const previous=await rows(db,'procurement_source_capabilities',q=>q.eq('source_id',source.id).eq('kind',task.kind));
+            const matches=previous.filter(method=>method.endpoint_url===page.url&&method.method_spec?.response_format==='html-table-v1');
+            if(matches.length!==1)throw error;
+            const method=matches[0],now=new Date();
+            adapterContract({...method,availability:'active',verified_at:now.toISOString(),verified_until:new Date(+now+86400000).toISOString()},source,now);
+            const listing=inspectPublicHtmlTable(body,method.method_spec);
+            if(!listing.terminal)throw Error('Public table pagination is incomplete');
+            verifiedListing={spec:method.method_spec,listing:{...listing,evidence:listing.records[0]?.title??'No records to display.'}};
+          }
+          const {spec,listing}=verifiedListing;
           const input={sourceSpec:{existing_id:source.id,local_key:source.code,code:source.code,name:source.name,url:source.url,
             agency:source.name,provider:new URL(source.url).hostname,geo_level:source.contracting_entity_geo_level,
             identity_evidence:`Existing registered source ${source.id}; saved official capture ${page.run_id}`},
             capability:{kind:task.kind,route_geography_id:task.route_geography_id,method:'browser',parser_version:automaticCountyPolicy,
-              official_entry_url:source.url,endpoint_url:page.url,method_spec:spec},
+              official_entry_url:registeredPublicEntryUrl(source),endpoint_url:page.url,method_spec:spec},
             category_evidence:[{run_id:page.run_id,excerpt:listing.evidence}],
             check_instructions:'Execute the verified bounded listing parser; preserve unresolved locations and dates.',
             terminal_instruction:'Require the saved listing heading and exact terminal count or explicit empty state on every run.',
@@ -182,7 +215,7 @@ export function publicDiscovery({db,artifacts,persist,reconcileHandoffs,resolveS
               next_action:'Public listing verified; separate authenticated access has not been assessed',evidence_urls:[page.url],
               requirements:{public:'unknown',account:'unknown',approval:'unknown',api_key:'unknown',payment:'unknown'},
               categories:{forecast:'unknown',opportunity:'unknown',award:'unknown'}}))};
-          verified=validateDiscoveryReview(p,input,task);
+          verified=validateDiscoveryReview(p,input,task,source);
           verified.capability.verification_evidence.automation_policy=automaticCountyPolicy;
         } catch(error){failures.push(error.message);}
         if(verified) {

@@ -1,0 +1,7 @@
+{
+  "url": "https://clintonairport.gob2g.com/FrontEnd/proposalsearchpublic.asp",
+  "retrieved_at": "2026-10-20T01:47:35.318Z",
+  "original_sha256": "0718eeabb67734dc7aae37e7017f84bc68752658d4d1f66847a7ae8585b17c0b",
+  "fixture_sha256": "e443319e10369138846f60f4ff12c88f9574d86c8dde89538a4aeb38cae90b15",
+  "transformation": "Published listing subset; scripts, rotating navigation PIDs and unused inputs removed. Records, headings, counts and status selection preserved."
+}

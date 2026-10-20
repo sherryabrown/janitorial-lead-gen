@@ -33,6 +33,7 @@ test('blockers use safe fixed copy, distinguish actual access from denial, and r
  const job=c=>({id:'discovery',kind:'discover',state:'blocked',checkpoint:{task_id:'gap',stage:'discovery_verify',automation_policy:'county-public-v1',...c}});
  assert.equal(sourceAttention(task,[job({hosted_browser_attempt:{failure_code:'human_verification_required'}})]).kind,'manual_action');
  const denied=sourceAttention(task,[job({blocker:'HTTP 403'})]);assert.equal(denied.kind,'access');assert.doesNotMatch(denied.blocker,/Cloudflare|human/);assert.equal(denied.action_kind,'evidence');
+ const acceptedWithoutContent=sourceAttention(task,[job({blocker:'HTTP 202'})]);assert.equal(acceptedWithoutContent.kind,'automation');assert.match(acceptedWithoutContent.blocker,/202/);assert.equal(acceptedWithoutContent.action_kind,'evidence');assert.doesNotMatch(acceptedWithoutContent.next_action,/log in|Cloudflare/);
  assert.equal(sourceAttention(task,[job({blocker:'Network request failed or timed out'})]).action_kind,'retry');
  assert.equal(sourceAttention(task,[job({blocker:'HTTP 503',automation_policy:undefined})]).action_kind,'evidence','Do not offer automatic retries for unsupported legacy workflows');
  assert.equal(sourceAttention({...task,reason:'Response exceeds byte limit'},[]).kind,'limit');

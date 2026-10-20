@@ -20,6 +20,13 @@ export function inspectPublicHtmlTable(body, spec) {
   const total = Number(pager[1]), pages = Number(pager[2]);
   if (total < allRows.length || !Number.isInteger(pages) || pages < 1)
     throw new Error('Source bid pagination is inconsistent');
+  // Telerik omits its public key map when an explicitly empty grid is rendered.
+  // A missing row/map alone must never establish a successful empty check.
+  if (!allRows.length && total === 0) {
+    if (pages !== 1 || !/^No records to display\.?$/i.test(clean(table.querySelector('.rgNoRecords')?.textContent)))
+      throw new Error('Source empty bid listing is unconfirmed');
+    return { total: 0, pages: 1, shown: 0, records: [], terminal: true, reason: null };
+  }
   let publicKeys;
   if(spec.public_details) {
     const element=doc.querySelector(spec.public_details.client_state_selector),client=element?.id.replace(/_ClientState$/,'');
