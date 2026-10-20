@@ -1,6 +1,6 @@
 # Saline public-source collection fixes
 
-Status: implementation checkpoint; verified public readers and reviewed registry package prepared. Local automated, native database and desktop/mobile/keyboard checks passed; coordinated release/live acceptance remain pending. PlanetBids server retrieval remains blocked; keep this plan in todo. See [source matrix and implementation checkpoint](../../docs/reviews/2026-10-19-saline-public-source-fixes.md).
+Status: partial release verified. LRSD and airport B2Gnow public readers, registry activation, Render-first/Netlify preview release, and live manual/repeat/browser-closed scheduled acceptance passed. Local automated, native database and desktop/mobile/keyboard checks passed. PlanetBids server retrieval, unverified publication channels and forecast detail/date/location limitations remain; keep this plan in todo. See [source matrix and implementation checkpoint](../../docs/reviews/2026-10-19-saline-public-source-fixes.md).
 
 ## Initiating prompt
 
