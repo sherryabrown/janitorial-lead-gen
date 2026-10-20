@@ -1,6 +1,6 @@
 # Automatic county source discovery and opportunity collection
 
-County import approval is superseded by [automatic validated county imports](county-automatic-validated-imports.md), requested after the source-research work. Preserve source-discovery/coverage requirements while adding canonical saves under that policy; independent state and standalone operator contracts remain unchanged.
+County import approval is superseded by completed [automatic validated county imports](../done/county-automatic-validated-imports.md), requested after the source-research work. Source-discovery/coverage requirements remain active; valid county results now save automatically under that policy. Independent state and standalone operator contracts remain unchanged.
 
 Status: return implementation released and manual/repeat/scheduled execution verified October 19, 2026. Full source-coverage acceptance remains incomplete; keep in todo. Netlify production remains unchanged. Preserve all existing behavior outside automatic county collection.
 

@@ -1,6 +1,6 @@
 # County checks Admin UI
 
-## Automatic county saving — pending release
+## Automatic county saving
 
 The county extension removes normal approval controls for confirmed Admin county requests that check for lead updates. Current official evidence, actual work location, requested dates and canonical identity are validated before the existing native-tested importer saves results. Manual and scheduled runs share this path. Verified Added/Updated/Unchanged counts and **View leads** appear above source gaps. Invalid records and unavailable sources remain separate outcomes.
 

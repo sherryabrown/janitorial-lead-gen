@@ -1,6 +1,6 @@
 # Automatic validated county imports
 
-Status: release authorized; the live manual Saline run automatically saved a verified lead. The repeat lineage fix passes automated/native verification and awaits release/live continuation plus disposable scheduled acceptance. Keep in todo until those checks pass. No production frontend deployment. See [implementation evidence](../../docs/reviews/2026-10-19-county-automatic-imports.md).
+Status: complete. Automated/native/browser checks and live Saline manual, repeat and browser-closed scheduled acceptance passed. Render and the approved Netlify preview are released; Netlify production remains unchanged. See [implementation and release evidence](../../docs/reviews/2026-10-19-county-automatic-imports.md).
 
 ## Initiating prompt
 

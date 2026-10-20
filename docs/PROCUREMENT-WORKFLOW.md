@@ -2,11 +2,11 @@
 
 For login/API setup and verified authenticated capture, use [SOURCE-ACCESS.md](SOURCE-ACCESS.md). Access tracking never imports a lead. Saved API/browser captures feed the existing interpretation, immutable intake and exact-package reviewed import below; current schema, tests, scoped authority and readback remain required.
 
-This is the current operating procedure. **Policy scope:** manual decision/approval instructions below apply to non-SAM reviewed workflows and operator CLI batches. Admin SAM manual and scheduled runs use server-owned automatic validation and exact tested-package authority without human import approval. Both retain validation, duplicate protection and verified readback. It supersedes batch-specific preparation/import instructions in historical reports. It does not promise flawless source data or uninterrupted APIs. It requires clear failures, protected user data, explicit approvals, and verifiable outcomes.
+This is the current operating procedure. **Policy scope:** manual decision/approval instructions below apply to independent state-source reviews, standalone reviewed workflows and operator CLI batches. Confirmed Admin county collection and Admin SAM manual/scheduled runs use their separate server-owned automatic validation policies and exact tested-package authority without human import approval. All paths retain validation, duplicate protection and verified readback. This supersedes batch-specific preparation/import instructions in historical reports. Source failures remain explicit, user data stays protected, and approval remains required where the workflow calls for it.
 
 For hosted routes/configuration/current local behavior use [PROCUREMENT-BACKEND.md](PROCUREMENT-BACKEND.md). Operator commands retain their reviewed import boundaries. Historical fixed-batch tools are audit reproduction only.
 
-The preview [automatic county extension](reviews/2026-10-19-automatic-county-build.md) resolves official directory websites and validates supported public listing methods without operator source setup. It reuses native registry rehearsal/readback and the collection/intake path described here. This changes county source maintenance, not non-SAM canonical import authority. Fresh Saline manual/repeat/one scheduled execution checks completed, but unsupported sources, interpretation gaps and unknown read outcomes holding later recurrences remain unresolved. See the linked report and return checkpoint; Netlify production is unchanged.
+The preview county extension resolves official directory websites and validates supported public listing methods without operator source setup. Confirmed county collections also use [automatic validated saving](reviews/2026-10-19-county-automatic-imports.md) through the existing importer. Unverified or inaccessible sources remain coverage gaps; a valid record may save while those gaps remain. Earlier source-collection receipts are historical evidence, not proof of complete county coverage. Netlify production is unchanged.
 
 ## What must be true
 
@@ -158,11 +158,11 @@ Historical validation above describes the earlier runner update. On September 30
 
 ## Manual observations and reviewed request links
 
-### Automatic county extension — pending release
+### Automatic county extension
 
 The county automatic-import policy supersedes manual approval only for confirmed Admin county collection. It revalidates current packet/interpretation hashes, primary and signed supporting evidence, actual county/confirmed city, dates and routine janitorial scope, then reuses existing native SQL rehearsal, canonical planning, guarded transaction and readback. No browser automatic flag or arbitrary intake ID grants authority.
 
-Canonical identity uses source plus stable record ID, not an observation suffix. Supported pending-parent supersession lets a valid current observation establish the first lead. Later writes preserve sales fields and use a narrow source-fact allowlist; older evidence cannot replace newer linked evidence. Exact cross-source conflicts and unsupported classification transitions remain exceptions. Independent reviewed tools and SAM retain their contracts. See [implementation verification](reviews/2026-10-19-county-automatic-imports.md); this section does not claim a live release or backfill.
+Canonical identity uses source plus stable record ID, not an observation suffix. Supported pending-parent supersession lets a valid current observation establish the first lead. Later writes preserve sales fields and use a narrow source-fact allowlist; older evidence cannot replace newer linked evidence. Exact cross-source conflicts and unsupported classification transitions remain exceptions. Independent reviewed tools and SAM retain their contracts. See [implementation and release verification](reviews/2026-10-19-county-automatic-imports.md). Historical intake is not bulk-backfilled; an identified, currently authorized request can continue through the same validated server policy.
 
 Reviewed registry updates compare the typed database baseline, including timestamp normalization, while retaining the exact updated-at concurrency guard. A harmless timestamp representation difference must not prevent a verified method update; a real concurrent row edit still rejects the package.
 

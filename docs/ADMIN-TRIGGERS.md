@@ -1,12 +1,12 @@
 # Admin trigger execution API
 
-## County automatic imports — pending release
+## County automatic imports
 
 Confirmed `county_scope` collection uses server policy `county-automatic-v1` for manual and scheduled runs. Current interpretation receipts and validated signed evidence feed the existing native-tested transaction/readback service. Later evidence waves have distinct keys; an earlier empty result cannot suppress them. Invalid records remain exceptions and uncertain effects retain reconciliation/overlap holds. A successful existing import-reconciliation action wakes the owning county trigger without another write.
 
 The existing scheduler baseline records acquisition provenance, not an unchanged-content skip rule. No migration, table or permission change is required. State-source, source-only and SAM behavior remain unchanged. Settle automatic jobs before rolling back the matching worker; never remove correctly saved leads/provenance. See [verification and rollout status](reviews/2026-10-19-county-automatic-imports.md).
 
-Parts 01/02 backend contract, updated October 18, 2026. Admin/scheduling migrations are installed; host rollout is documented in [the deployment record](ADMIN-SCHEDULING-DEPLOYMENT.md). The recurring dispatcher is activated and live-accepted; the Admin screen is implemented locally in part 03, pending release. [UI/release notes](ADMIN-UI.md) identify the accompanying API changes.
+Parts 01/02 backend contract, updated October 19, 2026. Admin/scheduling migrations are installed; host rollout is documented in [the deployment record](ADMIN-SCHEDULING-DEPLOYMENT.md). The recurring dispatcher is activated; the Admin screen is available in the approved preview with its matching backend. [UI/release notes](ADMIN-UI.md) identify the accompanying API changes.
 
 All endpoints use the existing Supabase bearer authentication and exact allowed origins. Every signed-in user can manage triggers; no extra Admin role is introduced. Tables, audit records, research checkpoints, usage reservations and submission/control RPCs remain server-only. Existing standalone geography/SAM/lead APIs keep their behavior.
 
