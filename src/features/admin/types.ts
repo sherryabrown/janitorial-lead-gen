@@ -54,6 +54,8 @@ export type Preview = {
   actions?: { county_id: string; state_research?: { action: string }[] }[];
 };
 export type Schedule = Draft & {
+  reporting?: { as_of: string; latest_occurrence?: {state: string; reason?: string; trigger_id?: string; created_at: string} | null;
+    last_run: (Run & {leads: {added: number | null; updated: number | null; unchanged: number | null; completeness: string; reason?: string}}) | null };
   id: string;
   version: number;
   next_due_at: string | null;
@@ -61,7 +63,7 @@ export type Schedule = Draft & {
   archived_at?: string | null;
   archived?: boolean;
 };
-export type Page<T> = { items: T[]; next_offset: number | null };
+export type Page<T> = { items: T[]; next_offset: number | null; total?: number };
 export type Usage = {
   ai: 'used' | 'not_used' | 'unknown';
   input_tokens: number | null;

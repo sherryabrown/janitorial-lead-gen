@@ -95,6 +95,10 @@ export function SamSection({
   onRun,
   onChanged,
   onViewLeads,
+  newScheduleToken=0,
+  onSaved,
+  onKeepDraft,
+  onBusyChange,
 }: {
   owner: string;
   editing: SamSchedule | null;
@@ -102,6 +106,10 @@ export function SamSection({
   onRun: (id: string) => void;
   onChanged: () => void;
   onViewLeads: () => void;
+  newScheduleToken?: number;
+  onSaved?: (saved: SamSchedule) => void;
+  onKeepDraft?: () => void;
+  onBusyChange?: (busy:boolean) => void;
 }) {
   const restored = useRef(savedDraft(owner));
   const [manual, setManual] = useState(() => restored.current.manual),
@@ -122,6 +130,14 @@ export function SamSection({
     [legacy, setLegacy] = useState<string | null>(null);
   const revision = useRef(0),
     formRef = useRef<HTMLDivElement>(null);
+  useEffect(()=>{onBusyChange?.(busy);},[busy,onBusyChange]);
+  useEffect(()=>{
+    if(!newScheduleToken)return;
+    setEditor(old=>old??{...manual});setMode('schedule');setPreview(null);revision.current++;
+    formRef.current?.scrollIntoView?.({block:'start'});
+    // The explicit Add action takes a snapshot; ordinary manual edits do not reset it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[newScheduleToken]);
   useEffect(() => {
     try {
       sessionStorage.setItem(
@@ -159,6 +175,7 @@ export function SamSection({
     setPreview(null);
     setError('');
     revision.current++;
+    formRef.current?.focus();
     formRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
   }, [editing]);
   const draft = editor ?? manual;
@@ -228,6 +245,7 @@ export function SamSection({
         );
         setEditor(null);
         onEdited();
+        onSaved?.(saved);
       } else {
         const saved = await workflowRequest<{ trigger_id: string }>(
           '/v1/triggers',
@@ -249,8 +267,9 @@ export function SamSection({
   const invalid = !draft.from || !draft.to || draft.from > draft.to;
   return (
     <section className="admin-section" aria-label="SAM statewide checks">
-      <div ref={formRef} className="admin-form">
+      <div ref={formRef} tabIndex={-1} className="admin-form">
         <h2>SAM.gov — Arkansas statewide</h2>
+        {editing&&error&&<div><span>Draft kept. Refresh the saved schedule before retrying, or keep these edits as a new schedule.</span><button type="button" className="text-button" disabled={busy} onClick={()=>{onKeepDraft?.();setPreview(null);revision.current++;}}>Keep SAM draft as new schedule</button></div>}
         <p className="admin-hint">
           Janitorial work in Arkansas · NAICS 561720. Runs independently of
           county searches. Valid results save automatically.

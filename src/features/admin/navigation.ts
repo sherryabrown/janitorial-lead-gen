@@ -32,7 +32,7 @@ export function saveAdminContext(owner: string, value: AdminContext) {
 }
 export function clearAdminSession(owner: string) {
   try {
-    const prefixes = ['draft', 'editor', 'sam-editor', 'mutation', 'navigation'].map(part => `spin-admin-${part}:${owner}`);
+    const prefixes = ['draft', 'editor', 'sam-editor', 'mutation', 'navigation', 'schedule-filter'].map(part => `spin-admin-${part}:${owner}`);
     for (const name of Object.keys(sessionStorage)) {
       if (prefixes.some(prefix => name === prefix || name.startsWith(prefix + ':'))) sessionStorage.removeItem(name);
     }

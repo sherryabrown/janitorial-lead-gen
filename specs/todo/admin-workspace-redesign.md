@@ -2,7 +2,7 @@
 
 Status: planning complete, 2026-10-20. No application implementation, data writes or release authorized by this plan. The user confirmed metric choices D1–D3 below; the six child plans are ready for sequential implementation.
 
-Implementation checkpoint: phase 1 was subsequently authorized with build-code and completed locally. Header/profile/Settings and the retained Admin section shell are verified; phases 2–6 remain planned. See the phase-1 done plan for exact checks and limits. No release or production change.
+Implementation checkpoint: phase 1 was subsequently authorized with build-code and completed locally. Header/profile/Settings and the retained Admin section shell are verified; phase 2, including its floating Quick actions menu amendment, is completed and verified locally; phases 3–6 remain planned. See the phase-1 done plan for exact checks and limits. No release or production change.
 
 ## Initiating request
 
@@ -24,7 +24,7 @@ Full requirements carried forward:
 | Phase | Build plan | Depends on |
 | --- | --- | --- |
 | 1 | [Navigation and Settings shell — completed locally](../done/01-admin-redesign-navigation.md) | Parent; no other child |
-| 2 | [Schedules and management](02-admin-redesign-schedules.md) | 1 |
+| 2 | [Schedules and management — completed locally](../done/02-admin-redesign-schedules.md) | 1 |
 | 3 | [Details, history and logs](03-admin-redesign-details-history.md) | 1–2 |
 | 4 | [Stats and analytics](04-admin-redesign-analytics.md) | 2–3 reporting contracts |
 | 5 | [Sources and related geography](05-admin-redesign-sources-geography.md) | 1–3; 4 optional for statistics links |
@@ -55,7 +55,7 @@ Repository baseline: d218166; source code audit only, not confirmation that this
 2. Batch schedule-page last run/usage/results; add validated server filters/sorts and stable tie-break ID. Aggregates apply to full filtered scope, not just visible rows. Retain legacy API response fields and pagination compatibility.
 3. Verified receipt counts can establish totals but do not always preserve category or per-lead historical attribution. County records retain IDs/flags; SAM often has aggregate counts. Inspect immutable saved import packages/manifests through existing server artifact access when needed; do not infer old category from today's mutable lead. If trustworthy reconstruction is unavailable, label historical breakdown incomplete.
 4. For future reliable breakdowns, extend the existing verified import receipt/checkpoint at both automatic import success AND reconcile paths with reporting version, lead ID, observed category, outcome and originating request/job. Add only safe reporting metadata after readback; no import decisions, validation, queue semantics or user-field writes change. Read paths must not replay imports. A new durable table is unnecessary unless existing bounded receipt projections demonstrably cannot satisfy query needs; document evidence before proposing one.
-5. Trigger started_at/finished_at exist, but current checkpoint function sets finished_at only for completed/cancelled; finished source-attention runs may have null. Show exact elapsed duration only with reliable timestamps; active elapsed is explicitly live. Compute “recorded activity duration” from union of valid completed step intervals (avoid nested/parallel double count), separately labeled. Missing historical completion is Unknown. Do not silently alter run lifecycle merely to populate a column; any additive future timing instrumentation must be scoped and tested.
+5. Triggers have created_at/finished_at, but no dedicated started_at. Step start timestamps exist. The current checkpoint function sets finished_at only for completed/cancelled; finished source-attention runs may have null. Show exact elapsed duration only with reliable timestamps; active elapsed is explicitly live. Compute “recorded activity duration” from union of valid completed step intervals (avoid nested/parallel double count), separately labeled. Missing historical completion is Unknown. Do not silently alter run lifecycle merely to populate a column; any additive future timing instrumentation must be scoped and tested.
 6. Source-attention is a presentation derived from jobs/tasks/usage; reuse county-source-attention.mjs, not raw needs_review strings or all task rows. Distinct sources, source-category routes and candidate blockers are separate counts.
 7. Diagnostic IDs and sanitized blockers exist; arbitrary server stack traces/private artifacts are not a public logs API. No unrestricted log-file browser.
 

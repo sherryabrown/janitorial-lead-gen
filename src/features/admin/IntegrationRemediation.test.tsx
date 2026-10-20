@@ -152,12 +152,14 @@ it('loads archived schedule history, paginates and opens only occurrences with a
   } : { items: [{ id: 'first', state: 'blocked', reason: 'scope_changed', due_at: '2026-10-19T12:00:00Z' }], next_offset: 1 });
   render(<ScheduleList items={[{ ...initialDraft(), id: 'schedule', name: 'Archived morning', archived: true, version: 2, next_due_at: null }]} more={false} onMore={() => {}} onEdit={() => {}} onAction={() => {}} onView={onView} busy={false} />);
   expect(mocked.request).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole('checkbox', { name: 'Show archived schedules' }));
-  fireEvent.click(screen.getByRole('button', { name: 'History for Archived morning' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Actions for Archived morning' }));
+  fireEvent.click(screen.getByRole('menuitem', { name: 'History for Archived morning' }));
   await screen.findByText(/No run was created/);
   expect(screen.queryByRole('button', { name: 'View run' })).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'More occurrences' }));
   fireEvent.click(await screen.findByRole('button', { name: 'View run' }));
   expect(onView).toHaveBeenCalledWith('run');
-  expect(screen.getByRole('button', { name: 'Edit Archived morning' })).toHaveProperty('disabled', true);
+  const actions=screen.getByRole('button', { name: 'Actions for Archived morning' });
+  if(actions.getAttribute('aria-expanded')!=='true')fireEvent.click(actions);
+  expect(screen.getByRole('menuitem', { name: 'Edit Archived morning' }).getAttribute('aria-disabled')).toBe('true');
 });

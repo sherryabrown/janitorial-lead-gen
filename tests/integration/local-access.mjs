@@ -99,7 +99,7 @@ try {
   assert.equal((await api('rpc/ingest_procurement_intake',token('service_role'),intakeBody)).status,200,'Authorized server ingestion remains available');
   // New Admin persistence stays server-only, while any authenticated user can use the HTTP management layer.
   const serverToken=token('service_role');
-  for(const table of ['procurement_triggers','procurement_trigger_requests','procurement_county_state_research','procurement_state_trigger_associations','procurement_workflow_steps','procurement_schedules','procurement_schedule_occurrences','procurement_schedule_events','procurement_scheduler_settings','procurement_scheduler_deliveries']) {
+  for(const table of ['procurement_triggers','procurement_trigger_requests','procurement_county_state_research','procurement_state_trigger_associations','procurement_workflow_steps','procurement_schedules','procurement_schedule_overview','procurement_schedule_occurrences','procurement_schedule_events','procurement_scheduler_settings','procurement_scheduler_deliveries']) {
     for(const jwt of [undefined,nonMember,member])assert.ok([401,403].includes((await api(table+'?select=*&limit=1',jwt)).status),'Private Admin table denied');
     assert.equal((await api(table+'?select=id&limit=1',serverToken)).status,200);
   }
@@ -161,6 +161,12 @@ try {
   assert.equal(await workflow.step(),false,'Pause stops queued automatic continuations');
   await schedules.control(savedSchedule.body,'archive',{expected_version:2},first);
   const adminRead=path=>fetch(`http://127.0.0.1:${backend.address().port}${path}`,{headers:{Authorization:`Bearer ${nonMember}`}});
+  const overviewResponse=await adminRead('/v1/schedules?lifecycle=archived&sort=last_run_at&direction=desc&limit=1');
+  assert.equal(overviewResponse.status,200);const overview=await overviewResponse.json();
+  assert.equal(overview.items[0].id,savedSchedule.body);assert.ok(overview.total>=1);
+  assert.equal(overview.items[0].reporting.last_run.id,occurrences.items[0].trigger_id);
+  assert.equal(overview.items[0].reporting.last_run.usage.ai,'not_used');
+  assert.equal((await adminRead('/v1/schedules?sort=unsafe')).status,422);
   const historyResponse=await adminRead(`/v1/schedules/${savedSchedule.body}/occurrences`);
   assert.equal(historyResponse.status,200);assert.equal((await historyResponse.json()).items[0].trigger_id,occurrences.items[0].trigger_id);
   const eventsResponse=await adminRead(`/v1/schedules/${savedSchedule.body}/events`);

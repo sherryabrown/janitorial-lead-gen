@@ -3,6 +3,7 @@ import { checked,one } from './hosted-store.mjs';
 import { hash } from './reviewed-batch.mjs';
 import { validateRecurrence,nextOccurrence,latestOccurrence,rollingWindows } from './schedule-recurrence.mjs';
 import {samRollingWindow,samRequest} from './sam-request.mjs';
+import {scheduleFilters,reportSchedules} from './schedule-reporting.mjs';
 
 const scopeHash=config=>hash(config.target_kind==='sam'?{target_kind:'sam',requested_categories:config.requested_categories}:{target_kind:config.target_kind,state_trigger_id:config.state_trigger_id,counties:config.counties});
 export function procurementSchedules({db,triggers,now=()=>new Date()}) {
@@ -38,15 +39,24 @@ export function procurementSchedules({db,triggers,now=()=>new Date()}) {
     return get(result);
   }
   async function get(id) {
-    const value=await one(db,'procurement_schedules',id);if(!value)throw Error('Schedule not found');
-    return {id:value.id,name:value.name,enabled:value.enabled,archived:value.archived_at!==null,version:value.version,
+    const value=await one(db,'procurement_schedule_overview',id);if(!value)throw Error('Schedule not found');
+    const [result]=await reportSchedules(db,[{id:value.id,name:value.name,enabled:value.enabled,archived:value.archived_at!==null,version:value.version,
       owner_id:value.owner_id,config:value.config,recurrence:value.recurrence,window_policy:value.window_policy,
-      next_due_at:value.next_due_at?new Date(value.next_due_at).toISOString():null,blocker:value.blocker,updated_at:value.updated_at};
+      next_due_at:value.next_due_at?new Date(value.next_due_at).toISOString():null,blocker:value.blocker,updated_at:value.updated_at,last_run:value.last_run,latest_occurrence:value.latest_occurrence}]);
+    return result;
   }
-  async function list({offset=0,limit=50}={}) {
-    const data=checked(await db.from('procurement_schedules').select('id,name,enabled,archived_at,version,config,recurrence,next_due_at,blocker,updated_at')
-      .order('name').order('id').range(offset,offset+limit));
-    return {items:data.slice(0,limit),next_offset:data.length>limit?offset+limit:null};
+  async function list({offset=0,limit=50,...input}={}) {
+    const f=scheduleFilters(input);
+    let q=db.from('procurement_schedule_overview').select('id,name,enabled,archived_at,version,config,recurrence,window_policy,next_due_at,blocker,updated_at,last_run,latest_occurrence',{count:'exact'});
+    if(f.q)q=q.ilike('name','%'+f.q.replace(/[\\%_]/g,'\\$&')+'%');
+    if(f.target!=='all')q=q.eq('target_kind',f.target);
+    if(f.lifecycle==='current')q=q.is('archived_at',null);else if(f.lifecycle!=='all')q=q.eq('lifecycle',f.lifecycle);
+    if(f.blocker==='blocked')q=q.not('blocker','is',null);else if(f.blocker==='clear')q=q.is('blocker',null);
+    if(f.geography==='05')q=q.in('target_kind',['state_source','sam']);
+    else if(f.geography)q=q.contains('config',{county_ids:[f.geography]});
+    const response=await q.order(f.sort,{ascending:f.direction==='asc',nullsFirst:false}).order('id').range(offset,offset+limit);
+    const data=checked(response);
+    return {items:await reportSchedules(db,data.slice(0,limit)),next_offset:data.length>limit?offset+limit:null,total:response.count};
   }
   async function occurrences(id,{offset=0,limit=50}={}) {
     await get(id);

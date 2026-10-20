@@ -1,4 +1,8 @@
-import type { Draft, Config, Category, Usage, Run } from './types';
+import type { Draft, Config, Category, Usage, Run, AnySchedule } from './types';
+export function recurrenceLabel(s: AnySchedule) {
+  const r=s.recurrence, times=r.local_times.join(', ');
+  return `${r.frequency==='weekly'?(r.weekdays??[]).map(d=>['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d]).join(', '):r.frequency==='monthly'?`Monthly · day ${r.month_day}`:'Daily'} · ${times} CT`;
+}
 export const categoryLabels: Record<Category, string> = {
   forecast: 'Forecasts',
   opportunity: 'Opportunities',

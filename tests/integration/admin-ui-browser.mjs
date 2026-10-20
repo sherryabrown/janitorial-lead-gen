@@ -94,6 +94,8 @@ const run = {
   },
   children: [{ request_id: 'request', county_id: '05119', role: 'county' }],
 };
+// Verified reporting DTO fixture; no canonical database mutation is performed.
+schedule.reporting={as_of:'2026-10-20T14:00:00Z',last_run:{...run,leads:{added:2,updated:1,unchanged:3,completeness:'known'}},latest_occurrence:null};
 const bodies = [];
 let savedSchedule = false;
 let failRunRead = true;
@@ -126,6 +128,7 @@ try {
   browser = await chromium.launch({ headless: true, channel: 'msedge' });
   const context = await browser.newContext({
     viewport: { width: 1440, height: 1050 },
+    hasTouch: true,
   });
   await context.routeWebSocket('**/*', (ws) => ws.close());
   await context.addInitScript(
@@ -225,8 +228,10 @@ try {
       } else if (p.endsWith('/occurrences') && url.searchParams.has('offset')) body={items:[{id:'linked',due_at:'2026-10-19T12:00:00Z',state:'queued',trigger_id:'run'}],next_offset:null};
       else if (p.endsWith('/occurrences')) body={items:[{id:'blocked',due_at:'2026-10-19T12:00:00Z',state:'blocked',reason:'scope_changed',missed_from:'2026-10-18T12:00:00Z',missed_through:'2026-10-19T12:00:00Z'}],next_offset:1};
       else if (p.endsWith('/events')) body={items:[{id:'event',action:'archive',version:2,at:'2026-10-19T12:00:00Z'}],next_offset:null};
-      else if (p === '/v1/schedules')
-        body = { items: [...(savedSchedule ? [schedule] : []),...(samSchedule?[samSchedule]:[]),{...schedule,id:'archived',name:'Archived checks',archived_at:'2026-10-19T12:00:00Z'}], next_offset: null };
+      else if (p === '/v1/schedules') {
+        const items=[...(savedSchedule ? [schedule] : []),...(samSchedule?[samSchedule]:[]),{...schedule,id:'archived',name:'Archived checks',archived_at:'2026-10-19T12:00:00Z'}].filter(s=>url.searchParams.get('lifecycle')!=='current'||!s.archived_at);
+        body = {items,next_offset:null,total:items.length};
+      }
       else if (p === '/v1/triggers' && req.method() === 'POST')
         body = { trigger_id: input.target_kind==='sam'?'sam-run':'run' };
       else if (p === '/v1/triggers') body = { items: [run], next_offset: null };
@@ -461,23 +466,36 @@ try {
   await page.getByText('Saved Morning checks — paused.').waitFor();
   assert.equal(savedSchedule, true);
   assert.equal(schedule.enabled, false);
-  await page.getByRole('button',{name:'History for Morning checks'}).click();
+  await page.getByRole('button',{name:'Actions for Morning checks'}).click();
+  await page.getByRole('menuitem', { name: 'History for Morning checks'}).click();
   await page.getByText(/No run was created/).waitFor();
   await page.getByRole('button',{name:'More occurrences'}).click();
   await page.getByRole('button',{name:'View run',exact:true}).waitFor();
   for(const width of [1440,390,320]){
     await page.setViewportSize({width,height:900});
     await page.getByRole('region',{name:'Schedule history'}).scrollIntoViewIfNeeded();
+    await page.getByRole('button',{name:'Morning checks',exact:true}).focus();
+    await page.getByRole('button',{name:'Morning checks',exact:true}).evaluate(el=>el.scrollIntoView({block:'start'}));
+    await page.screenshot({path:`${out}/schedule-table-${width}.png`,fullPage:false});
+    await page.getByRole('table').screenshot({path:`${out}/schedule-table-full-${width}.png`});
+    const table=await page.getByRole('table').boundingBox();
+    assert.ok(table.x>=0&&table.x+table.width<=width,'Schedule table fits viewport');
     await page.screenshot({path:`${out}/schedule-history-${width}.png`,fullPage:true});
     await page.getByRole('region',{name:'Schedule history'}).screenshot({path:`${out}/schedule-history-detail-${width}.png`});
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   }
-  await page.getByRole('checkbox',{name:'Show archived schedules'}).check();
-  await page.getByRole('button',{name:'History for Archived checks'}).focus();
+  await page.getByRole('combobox',{name:/Schedule status/}).selectOption('all');
+  await page.getByRole('button',{name:'Actions for Archived checks'}).click();
+  await page.getByRole('menuitem', { name: 'History for Archived checks'}).focus();
   await page.keyboard.press('Enter');
   await page.getByRole('region',{name:'Schedule history'}).waitFor();
-  assert.equal(await page.getByRole('button',{name:'Edit Archived checks'}).isDisabled(),true);
-  await page.getByRole('button',{name:'History for Archived checks'}).click();
+  await page.getByRole('button',{name:'Actions for Archived checks'}).click();
+  assert.equal(await page.getByRole('menuitem', { name: 'Edit Archived checks'}).isDisabled(),true);
+  await page.getByRole('menuitem', { name: 'History for Archived checks'}).click();
+  await page.getByRole('button',{name:'Actions for Morning checks'}).click();
+  await page.getByRole('menuitem', { name: 'Go to Stats',exact:true}).click();
+  await page.getByRole('region',{name:'Schedule details: Morning checks'}).getByText('New leads',{exact:true}).waitFor();
+  await page.getByRole('button',{name:'Close schedule details'}).click();
   await page.setViewportSize({width:1440,height:900});
   const sam=page.getByRole('region',{name:'SAM statewide checks'});
   await sam.getByRole('button',{name:'Run SAM now'}).focus();await page.keyboard.press('Tab');
@@ -502,6 +520,46 @@ try {
   await sam.getByLabel('Frequency').selectOption('monthly');await sam.getByLabel('Day of month').fill('31');
   await sam.getByRole('button',{name:'Review SAM schedule'}).click();await sam.getByRole('button',{name:'Confirm SAM schedule'}).click();
   await sam.getByText('Saved SAM weekly updates — paused.').waitFor();assert.equal(samSchedule.enabled,false);
+  // Floating row menus: three saved rows, including archived; real layout and keyboard checks.
+  const statusFilter=page.getByRole('combobox',{name:/Schedule status/});
+  if(await statusFilter.inputValue()!=='all')await statusFilter.selectOption('all');
+  for (const width of [1440,390,320]) {
+    await page.setViewportSize({width,height:900});
+    for (const name of ['Morning checks','SAM weekly updates','Archived checks']) {
+      const button=page.getByRole('button',{name:`Actions for ${name}`,exact:true});
+      for (const edge of ['start','end']) {
+        await button.evaluate((el,block)=>el.scrollIntoView({block}),edge);
+        await button.focus();
+        const bounds=()=>page.getByRole('table').evaluate(el=>Array.from(el.querySelectorAll('tr,td')).map(node=>{const r=node.getBoundingClientRect();return [r.x,r.y,r.width,r.height];}));
+        const before=await bounds();
+        await button.hover();assert.equal(await page.getByRole('menu').count(),0,'Hover does not open actions');
+        await page.keyboard.press(edge==='start'?'Enter':'Space');
+        const menu=page.getByRole('menu',{name:`Actions for ${name}`,exact:true});await menu.waitFor();
+        assert.deepEqual(await bounds(),before,'Menu does not move/resize any row or column');
+        const box=await menu.boundingBox();
+        assert.ok(box.x>=0&&box.y>=0&&box.x+box.width<=width&&box.y+box.height<=900,'Menu fits viewport at both edges');
+        assert.equal(await menu.evaluate(el=>el.scrollWidth<=el.clientWidth&&Array.from(el.querySelectorAll('[role="menuitem"]')).every(item=>item.scrollWidth<=item.clientWidth)),true,'Menu labels wrap without clipping');
+        assert.equal(await menu.getByRole('menuitem').first().evaluate(el=>el===document.activeElement),true);
+        await page.keyboard.press('End');assert.equal(await menu.getByRole('menuitem').last().evaluate(el=>el===document.activeElement),true);
+        await page.keyboard.press('Home');await page.keyboard.press('ArrowDown');await page.keyboard.press('ArrowUp');
+        await page.screenshot({path:`${out}/floating-menu-${width}-${name.split(' ')[0]}-${edge}.png`});
+        await page.keyboard.press('Escape');assert.equal(await button.evaluate(el=>el===document.activeElement),true);
+        await button.click();await page.keyboard.press('Tab');assert.equal(await page.getByRole('menu').count(),0);
+        assert.equal(await page.getByRole('button',{name:`Run ${name} now`,exact:true}).evaluate(el=>el===document.activeElement),false,'Tab leaves the menu forward');
+      }
+    }
+    const button=page.getByRole('button',{name:'Actions for Morning checks'});
+    if(width<760){
+      await button.scrollIntoViewIfNeeded();const box=await button.boundingBox();
+      await page.touchscreen.tap(box.x+box.width/2,box.y+box.height/2);await page.getByRole('menu').waitFor();
+      await page.keyboard.press('Escape');
+    }
+    await button.click();await page.evaluate(()=>window.scrollBy(0,30));await page.getByRole('menu').waitFor({state:'hidden'});
+    await button.click();await page.setViewportSize({width:width+1,height:900});await page.getByRole('menu').waitFor({state:'hidden'});
+    await page.setViewportSize({width,height:900});
+    await button.click();await page.getByRole('heading',{name:'Schedules',exact:true}).click();await page.getByRole('menu').waitFor({state:'hidden'});
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+  }
   for (const width of [390, 320]) {
     await page.setViewportSize({ width, height: 844 });
     await page.evaluate(() => window.scrollTo(0, 0));
@@ -555,6 +613,7 @@ try {
         passed: true,
         widths: [1440, 390, 320],
         keyboard: true,
+        floatingActionMenus: true,
         scheduleHistory: true,
         archivedHistory: true,
         reviewDraftRetained: true,
@@ -583,6 +642,9 @@ try {
   console.log(
     'Browser acceptance passed: desktop, 390px, 320px, keyboard, confirmed manual run, paused multiple-time schedule; zero production mutations.',
   );
+} catch(error) {
+  if(browser){const page=browser.contexts()[0]?.pages()[0];if(page){await page.screenshot({path:`${out}/acceptance-failure.png`,fullPage:false});console.error((await page.locator('body').innerText()).slice(0,6000));}}
+  throw error;
 } finally {
   await browser?.close();
   server.kill();

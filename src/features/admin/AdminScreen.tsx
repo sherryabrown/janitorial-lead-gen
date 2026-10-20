@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   workflowRequest,
   mutationKey,
@@ -88,6 +88,13 @@ export default function AdminScreen({
   onViewLeads: () => void;
   active?: boolean;
 }) {
+  const [scheduleQuery,setScheduleQuery]=useState(()=>{try{return sessionStorage.getItem(`spin-admin-schedule-filter:${owner}`)??'lifecycle=current';}catch{return 'lifecycle=current';}});
+  const [scheduleTotal,setScheduleTotal]=useState<number|undefined>(),[samScheduleToken,setSamScheduleToken]=useState(0);
+  const [reloadedSchedule,setReloadedSchedule]=useState<Schedule|null>(null);
+  const [scheduleReadError,setScheduleReadError]=useState('');
+  const [savedScheduleFocus,setSavedScheduleFocus]=useState<AnySchedule|null>(null);
+  const [samBusy,setSamBusy]=useState(false);
+  const stateSourcesRef=useRef<HTMLDivElement>(null),samRef=useRef<HTMLDivElement>(null);
   const [navigation, setNavigation] = useState<AdminContext>(() => {
     const saved = readAdminContext(owner);
     return saved.view === 'schedules' || saved.view === 'history' ? saved : { view: 'schedules', returnTo: 'contracts' };
@@ -138,10 +145,17 @@ export default function AdminScreen({
     [connectionRevision, setConnectionRevision] = useState(0),
     [paging, setPaging] = useState(false);
   const detailRef = useRef<HTMLDivElement>(null),
+    editorLoadGeneration=useRef(0),
     scopeRevision = useRef(0),
     collectionGeneration = useRef(0),
     pagingRef = useRef(false),
     loaded = useRef({ schedules: 50, triggers: 50 });
+  const filterSchedules=useCallback((query:string)=>{
+    collectionGeneration.current++;
+    loaded.current.schedules=50;setSchedules([]);setScheduleTotal(undefined);setScheduleQuery(query);
+    try{sessionStorage.setItem(`spin-admin-schedule-filter:${owner}`,query);}catch{/* Mounted filters remain. */}
+  },[owner]);
+  useEffect(()=>{if(editor?.id)manualRef.current?.focus();},[editor?.id]);
   useEffect(() => {
     try {
       sessionStorage.setItem(
@@ -196,7 +210,9 @@ export default function AdminScreen({
       let offset: number | null = 0;
       const items: T[] = [];
       do {
-        const page: Page<T> = await workflowRequest(`/v1/${kind}${offset ? `?offset=${offset}` : ''}`, { signal: a.signal });
+        const params=new URLSearchParams(kind==='schedules'?scheduleQuery:'');if(offset)params.set('offset',String(offset));
+        const page: Page<T> = await workflowRequest(`/v1/${kind}${params.size?'?'+params:''}`, { signal: a.signal });
+        if(kind==='schedules'&&!a.signal.aborted)setScheduleTotal(page.total);
         items.push(...page.items); offset = page.next_offset;
       } while (offset !== null && offset < loaded.current[kind]);
       return { items, next_offset: offset };
@@ -207,13 +223,14 @@ export default function AdminScreen({
     ]).then(([s, sch, r]) => {
       if (a.signal.aborted) return;
       if (s.status === 'fulfilled') setSources(s.value.items);
-      if (sch.status === 'fulfilled') { setSchedules(sch.value.items); setScheduleOffset(sch.value.next_offset); }
+      if (sch.status === 'fulfilled') { setSchedules(sch.value.items); setScheduleOffset(sch.value.next_offset); setScheduleReadError(''); }
+      else setScheduleReadError(sch.reason instanceof Error?sch.reason.message:'Schedules could not load.');
       if (r.status === 'fulfilled') { setRuns(r.value.items); setRunOffset(r.value.next_offset); }
-      const failed = [s, sch, r].find(x => x.status === 'rejected');
+      const failed = [s, r].find(x => x.status === 'rejected');
       if (failed?.status === 'rejected') setError(failed.reason instanceof Error ? failed.reason.message : 'Some Admin data could not load. Retry the connection.');
     }).finally(() => { if (!a.signal.aborted) { setLoading(false); setPaging(false); pagingRef.current = false; } });
     return () => { a.abort(); collectionGeneration.current = epoch + 1; };
-  }, [revision, connectionRevision]);
+  }, [revision, connectionRevision, scheduleQuery]);
   useEffect(() => {
     if (selected)
       detailRef.current?.scrollIntoView?.({
@@ -304,6 +321,8 @@ export default function AdminScreen({
           `Saved ${s.name}${s.enabled ? ' — scheduled' : ' — paused'}.`,
         );
         setEditor(null);
+        setSavedScheduleFocus(s);
+        navigate('schedules');
       } else {
         const r = await workflowRequest<{ trigger_id: string }>(
           '/v1/triggers',
@@ -331,6 +350,7 @@ export default function AdminScreen({
       const r = await workflowRequest<{
         trigger_id?: string;
         state?: string;
+        reason?: string;
       }>(`/v1/schedules/${s.id}/${action}`, {
         body,
         ...(action === 'run-now'
@@ -343,12 +363,14 @@ export default function AdminScreen({
         setNotice(
           r.trigger_id
             ? 'Run queued from the saved schedule.'
-            : `Run ${r.state ?? 'not queued'}; review schedule history.`,
+            : `Run ${r.state ?? 'not queued'}${r.reason ? ' · '+r.reason.replaceAll('_',' ') : ''}; review schedule history.`,
         );
-      } else
+      } else {
+        setSavedScheduleFocus(old=>old?.id===s.id?{...old,...r} as AnySchedule:old);
         setNotice(
           `${s.name}: ${action === 'archive' ? 'archived; saved evidence retained' : action === 'pause' ? 'paused' : 'resumed'}.`,
         );
+      }
       setRevision((n) => n + 1);
     } catch (e) {
       setError((e as Error).message);
@@ -357,11 +379,13 @@ export default function AdminScreen({
     }
   };
   const edit = async (s: AnySchedule) => {
+    const generation=++editorLoadGeneration.current,revision=scopeRevision.current;
     if (s.config?.target_kind === 'sam') {
+      if(samBusy){setNotice('Finish the current SAM action before editing its schedule.');return;}
       try {
-        setSamEditor(
-          await workflowRequest<SamSchedule>(`/v1/schedules/${s.id}`),
-        );
+        const loaded=await workflowRequest<SamSchedule>(`/v1/schedules/${s.id}`);
+        if(generation!==editorLoadGeneration.current||revision!==scopeRevision.current)return;
+        setSamEditor(loaded);
       } catch (e) {
         setError((e as Error).message);
       }
@@ -370,6 +394,7 @@ export default function AdminScreen({
     setError('');
     try {
       const full = await workflowRequest<Schedule>(`/v1/schedules/${s.id}`);
+      if(generation!==editorLoadGeneration.current||revision!==scopeRevision.current)return;
       setEditor({
         id: full.id,
         version: full.version,
@@ -418,7 +443,8 @@ export default function AdminScreen({
     pagingRef.current = true; setPaging(true); setError('');
     try {
       if (kind === 'schedules') {
-        const p = await workflowRequest<Page<AnySchedule>>(`/v1/schedules?offset=${offset}`);
+        const params=new URLSearchParams(scheduleQuery);params.set('offset',String(offset));
+        const p = await workflowRequest<Page<AnySchedule>>(`/v1/schedules?${params}`);
         if (generation !== collectionGeneration.current) return;
         loaded.current.schedules = offset + Math.max(p.items.length, 1);
         setSchedules(x => merge(x, p.items)); setScheduleOffset(p.next_offset);
@@ -482,6 +508,15 @@ export default function AdminScreen({
         )}
       <div ref={schedulesRef} tabIndex={-1} className="admin-navigation-section" aria-label="Schedules">
         <ScheduleList onView={setSelected} items={schedules} paging={paging} more={scheduleOffset !== null}
+          query={scheduleQuery} onFilters={filterSchedules} counties={counties} total={scheduleTotal} loading={loading||paging}
+          error={scheduleReadError} onRetry={()=>setRevision(n=>n+1)}
+          focusSchedule={savedScheduleFocus}
+          onAdd={target=>{
+            editorLoadGeneration.current++;scopeRevision.current++;setPreview(null);
+            if(target==='state_source'){setNotice(sources.length?'Choose a state source and Set schedule below.':'No saved state sources yet. County research discovers them.');navigate('schedules',true);stateSourcesRef.current?.focus();stateSourcesRef.current?.scrollIntoView?.({block:'start'});}
+            else if(target==='sam'){if(samBusy){setNotice('Finish the current SAM action before adding a schedule.');return;}setSamScheduleToken(n=>n+1);navigate('schedules',true);samRef.current?.focus();samRef.current?.scrollIntoView?.({block:'start'});}
+            else{if(!editor)setEditor({draft:structuredClone(manual),intent:'schedule'});navigate('schedules',true);}
+          }}
           onMore={() => void loadMore('schedules')} onEdit={(s) => { void edit(s); navigate('schedules', true); }}
           onAction={(s, a) => void scheduleAction(s, a)} busy={busy} />
       </div>
@@ -496,6 +531,10 @@ export default function AdminScreen({
                 : 'New schedule draft'}
           </strong>
           <span>Manual selection is kept separately.</span>
+          {editor.id&&<button type="button" className="text-button" disabled={busy} onClick={()=>void workflowRequest<Schedule>(`/v1/schedules/${editor.id}`).then(setReloadedSchedule).catch(e=>setError(e.message))}>Reload saved schedule</button>}
+          {reloadedSchedule&&editor.id===reloadedSchedule.id&&<div><strong>Saved version {reloadedSchedule.version} · {reloadedSchedule.name}</strong><span> Your draft is unchanged.</span>
+            <button type="button" className="text-button" onClick={()=>{setEditor({...editor,id:undefined,version:undefined});setReloadedSchedule(null);setPreview(null);scopeRevision.current++;}}>Keep draft as new schedule</button>
+          </div>}
           <button
             type="button"
             className="text-button"
@@ -546,20 +585,28 @@ export default function AdminScreen({
           monthlyCap={status?.ai_policy?.monthly_usd}
         />
       </div>
+      <div ref={samRef} tabIndex={-1}>
       <SamSection
         owner={owner}
         editing={samEditor}
+        newScheduleToken={samScheduleToken}
+        onSaved={s=>{setSavedScheduleFocus(s);navigate('schedules');}}
+        onKeepDraft={()=>setSamEditor(null)}
+        onBusyChange={setSamBusy}
         onEdited={() => setSamEditor(null)}
         onRun={setSelected}
         onChanged={() => setRevision((x) => x + 1)}
         onViewLeads={onViewLeads}
       />
+      </div>
+      <div ref={stateSourcesRef} tabIndex={-1}>
       <StateSourceList
         items={sources}
         counties={counties}
         onAction={(s, a) => void sourceAction(s, a)}
         onView={setSelected}
       />
+      </div>
       </div>
       <div ref={historyRef} tabIndex={-1} className="admin-navigation-section" aria-label="History and logs">
       <ActivityList

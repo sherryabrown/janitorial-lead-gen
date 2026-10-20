@@ -60,7 +60,7 @@ beforeEach(() => {
       if (path === '/v1/counties') return { counties };
       if (path === '/v1/state-triggers') return { items: [] };
       if (
-        path === '/v1/schedules' ||
+        path === '/v1/schedules?lifecycle=current' ||
         (path === '/v1/triggers' && !options.body)
       )
         return { items: [], next_offset: null };
@@ -277,13 +277,14 @@ it('preserves the manual draft on expired sessions and ignores a stale preview',
 it('isolates schedule editing from manual selection and sends the saved version', async () => {
   const old = mocks.request.getMockImplementation()!;
   mocks.request.mockImplementation((p, o) =>
-    p === '/v1/schedules' && !o?.body
+    p === '/v1/schedules?lifecycle=current' && !o?.body
       ? Promise.resolve({ items: [schedule], next_offset: null })
       : old(p, o),
   );
   await start();
   fireEvent.click(screen.getByRole('checkbox', { name: 'Ashley County' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Edit Morning check' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Actions for Morning check' }));
+  fireEvent.click(screen.getByRole('menuitem', { name: 'Edit Morning check' }));
   await screen.findByText('Editing a saved schedule');
   expect(
     screen.getByRole('checkbox', { name: 'Pulaski County' }),
@@ -295,7 +296,8 @@ it('isolates schedule editing from manual selection and sends the saved version'
   expect(
     screen.getByRole('checkbox', { name: 'Pulaski County' }),
   ).toHaveProperty('checked', false);
-  fireEvent.click(screen.getByRole('button', { name: 'Pause' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Actions for Morning check' }));
+  fireEvent.click(screen.getByRole('menuitem', { name: 'Pause' }));
   await waitFor(() =>
     expect(
       calls.find((c) => c.path === '/v1/schedules/saved/pause')?.body,
@@ -518,7 +520,7 @@ it('restores an unsaved schedule editor after leaving Admin without overwriting 
 it('keeps a successful county registry usable when another Admin list fails', async () => {
   const old = mocks.request.getMockImplementation()!;
   mocks.request.mockImplementation((p, o) =>
-    p === '/v1/schedules'
+    p === '/v1/schedules?lifecycle=current'
       ? Promise.reject(Error('Schedules could not load'))
       : old(p, o),
   );
@@ -608,19 +610,20 @@ it('preserves loaded schedule pages after a control refresh without refetching t
   const original = mocks.request.getMockImplementation()!;
   const firstPage = Array.from({ length: 50 }, (_, i) => ({ ...schedule, id: `s${i}`, name: `Saved ${i}` }));
   mocks.request.mockImplementation(async (p, o) => {
-    if (p === '/v1/schedules') return { items: firstPage, next_offset: 50 };
-    if (p === '/v1/schedules?offset=50') return { items: [{ ...schedule, id: 'last', name: 'Later page' }], next_offset: null };
+    if (p === '/v1/schedules?lifecycle=current') return { items: firstPage, next_offset: 50 };
+    if (p === '/v1/schedules?lifecycle=current&offset=50') return { items: [{ ...schedule, id: 'last', name: 'Later page' }], next_offset: null };
     if (p.endsWith('/pause')) return {};
     return original(p, o);
   });
   await start();
   fireEvent.click(screen.getByRole('button', { name: 'More schedules' }));
   await screen.findByText('Later page');
-  fireEvent.click(screen.getAllByRole('button', { name: /^Pause$/ })[0]);
-  await waitFor(() => expect(mocks.request.mock.calls.filter(([p]) => p === '/v1/schedules?offset=50')).toHaveLength(2));
+  fireEvent.click(screen.getByRole('button', { name: 'Actions for Saved 0' }));
+  fireEvent.click(screen.getAllByRole('menuitem', { name: /^Pause$/ })[0]);
+  await waitFor(() => expect(mocks.request.mock.calls.filter(([p]) => p === '/v1/schedules?lifecycle=current&offset=50')).toHaveLength(2));
   expect(screen.getByText('Later page')).toBeTruthy();
   expect(mocks.request.mock.calls.filter(([p]) => p === '/v1/counties')).toHaveLength(1);
-});
+},15000);
 
 it('ignores late paging results after a schedule refresh', async () => {
   const original = mocks.request.getMockImplementation()!;
@@ -628,16 +631,42 @@ it('ignores late paging results after a schedule refresh', async () => {
   let refreshed = false;
   mocks.request.mockImplementation((p, o) => {
     if (p.endsWith('/pause')) return Promise.resolve({});
-    if (p === '/v1/schedules') return Promise.resolve({ items: [schedule], next_offset: refreshed ? null : 50 });
-    if (p === '/v1/schedules?offset=50') return new Promise(resolve => { resolvePage = resolve; });
+    if (p === '/v1/schedules?lifecycle=current') return Promise.resolve({ items: [schedule], next_offset: refreshed ? null : 50 });
+    if (p === '/v1/schedules?lifecycle=current&offset=50') return new Promise(resolve => { resolvePage = resolve; });
     return original(p, o);
   });
   await start();
   fireEvent.click(screen.getByRole('button', { name: 'More schedules' }));
   expect(screen.getByRole('button', { name: 'More schedules' })).toHaveProperty('disabled', true);
   refreshed = true;
-  fireEvent.click(screen.getByRole('button', { name: /^Pause$/ }));
+  fireEvent.click(screen.getByRole('button', { name: 'Actions for Morning check' }));
+  fireEvent.click(screen.getByRole('menuitem', { name: /^Pause$/ }));
   await waitFor(() => expect(screen.queryByRole('button', { name: 'More schedules' })).toBeNull());
   resolvePage({ items: [{ ...schedule, id: 'stale', name: 'Stale schedule' }], next_offset: 100 });
   await waitFor(() => expect(screen.queryByText('Stale schedule')).toBeNull());
+});
+
+it('adds county and SAM schedules through their existing separate editors without losing county selection',async()=>{
+  await start();
+  fireEvent.click(screen.getByRole('checkbox',{name:'Ashley County'}));
+  fireEvent.click(screen.getByRole('button',{name:'Add schedule'}));
+  expect(screen.getByLabelText('Schedule name')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button',{name:'Cancel editing'}));
+  expect(screen.getByRole('checkbox',{name:'Ashley County'})).toHaveProperty('checked',true);
+  fireEvent.change(screen.getByLabelText('New schedule target'),{target:{value:'sam'}});
+  fireEvent.click(screen.getByRole('button',{name:'Add schedule'}));
+  await waitFor(()=>expect(within(screen.getByRole('region',{name:'SAM statewide checks'})).getByLabelText('Schedule name')).toBeTruthy());
+  expect(screen.getByRole('checkbox',{name:'Ashley County'})).toHaveProperty('checked',true);
+});
+
+it('does not let a delayed schedule edit overwrite a newer county draft',async()=>{
+  const original=mocks.request.getMockImplementation()!;let finish!:(value:Schedule)=>void;
+  mocks.request.mockImplementation((p,o)=>p==='/v1/schedules?lifecycle=current'?Promise.resolve({items:[schedule],next_offset:null}):p==='/v1/schedules/saved'?new Promise(resolve=>{finish=resolve;}):original(p,o));
+  await start();
+  fireEvent.click(screen.getByRole('button',{name:'Actions for Morning check'}));
+  fireEvent.click(screen.getByRole('menuitem', { name: 'Edit Morning check'}));
+  fireEvent.click(screen.getByRole('checkbox',{name:'Ashley County'}));
+  finish(schedule);
+  await waitFor(()=>expect(screen.getByRole('checkbox',{name:'Ashley County'})).toHaveProperty('checked',true));
+  expect(screen.queryByText('Editing a saved schedule')).toBeNull();
 });

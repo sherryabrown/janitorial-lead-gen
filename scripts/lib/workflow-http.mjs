@@ -51,7 +51,7 @@ export function workflowServer({authenticate,workflow,imports,discovery,sam,samP
         const limit=Number(url.searchParams.get('limit')??50),offset=Number(url.searchParams.get('offset')??0);
         if(!Number.isInteger(limit)||limit<1||limit>100||!Number.isInteger(offset)||offset<0)throw new HttpError(400,'Invalid pagination');
         if(segments.length===3&&segments[2]==='preview'&&request.method==='POST')result=await schedules.preview(input);
-        else if(segments.length===2&&request.method==='GET')result=await schedules.list({offset,limit});
+        else if(segments.length===2&&request.method==='GET')result=await schedules.list({offset,limit,...Object.fromEntries(['q','target','geography','lifecycle','blocker','sort','direction'].filter(k=>url.searchParams.has(k)).map(k=>[k,url.searchParams.get(k)]))});
         else if(segments.length===2&&request.method==='POST')result=await schedules.save(null,input,actor,request.headers['idempotency-key']);
         else if(uuid.test(segments[2]??'')) {
           const id=segments[2];
