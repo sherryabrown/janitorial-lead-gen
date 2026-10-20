@@ -107,6 +107,10 @@ export function workflowServer({authenticate,workflow,imports,discovery,sam,samP
             result=await workflow.interpret(id,segments[4],input,actor);
         } else if(request.method==='POST'&&segments.length===5&&segments[3]==='imports'&&segments[4]==='prepare') {
           result=await imports.prepare(id,input,actor);await wakeRelated();kick();send(202,result);return;
+        } else if(request.method==='POST'&&segments.length===5&&segments[3]==='imports'&&segments[4]==='continue') {
+          if(!input||Object.keys(input).length)throw new HttpError(400,'Empty continuation body required');
+          result=await imports.prepareCounty(id);if(!result)throw new HttpError(400,'Active confirmed county request required');
+          await wakeRelated();kick();send(202,result);return;
         } else if(request.method==='POST'&&segments.length===4&&segments[3]==='discover') {
           result=await discovery(id,input,actor);await wakeRelated();kick();send(202,result);return;
         } else if(request.method==='POST'&&segments.length===5&&segments[3]==='discover'&&segments[4]==='review') {
@@ -119,7 +123,9 @@ export function workflowServer({authenticate,workflow,imports,discovery,sam,samP
       } else if(segments[1]==='imports'&&uuid.test(segments[2]??'')) {
         if(request.method==='GET'&&segments.length===3) {result=await imports.status(segments[2]);kick();}
         else if(request.method==='POST'&&segments.length===4&&['approve','reconcile'].includes(segments[3])) {
-          result=await imports[segments[3]](segments[2],input,actor);kick();
+          result=await imports[segments[3]](segments[2],input,actor);
+          if(result.automatic?.policy==='county-automatic-v1')await triggers?.wake(result.request_id,{reconciled:true});
+          kick();
         }
       } else if(segments[1]==='access'&&uuid.test(segments[2]??'')) {
         if(request.method==='GET'&&segments.length===3)result=await workflow.access(segments[2]);

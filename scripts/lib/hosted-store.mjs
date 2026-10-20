@@ -11,6 +11,8 @@ export const checked = response => {
 // Public status is derived from state, including checkpoints saved by older workers.
 // Never publish arbitrary exception text retained in a checkpoint.
 export function publicJobAction(job) {
+  if(job.checkpoint?.automatic?.policy==='county-automatic-v1')return job.checkpoint.stage==='import_reconcile'||job.state==='outcome_unknown'
+    ?'Reconcile the saved database outcome before retrying':job.checkpoint.receipt?.verified?'View saved leads and validation results':job.state==='blocked'?'Automatic saving stopped; inspect validation or database diagnostics':'Valid county results are being saved automatically';
   if(job.checkpoint?.bonfire_access_holds?.length)
     return 'Bonfire project access needs review; inspect saved listing and capture evidence before resuming';
   if(job.checkpoint?.hosted_browser_attempt?.failure_code==='human_verification_required')

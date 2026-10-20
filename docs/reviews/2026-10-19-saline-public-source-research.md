@@ -1,5 +1,7 @@
 # Saline public-source research — October 19, 2026
 
+Subsequent scope change: the user requested automatic county imports. The [county automatic-import implementation](2026-10-19-county-automatic-imports.md) supersedes the approval requirement below once released. Historical candidate-only receipts remain unchanged.
+
 The user requested agent web research, saved reusable official sources and collector repairs without a paid search provider. All behavior outside this county collection scope, geographic membership, AI settings/budgets and import guards are preserved. Netlify production must remain unchanged.
 
 ## Verified public collection methods

@@ -35,10 +35,11 @@ const aiConfig={enabled:env.PROCUREMENT_AI_ENABLED==='true',monthlyUsd:Number(en
   openai:provider('OPENAI'),anthropic:provider('ANTHROPIC')};
 const sam=statewideSam({db,project,serverKey:()=>env.SUPABASE_SERVICE_ROLE_KEY,artifacts,automaticImport:id=>imports.prepareAutomatic(id),validateCollection:()=>imports.assertAutomaticCollectable()});
 const imports=importJobs({db,project,transport,artifacts,samSavedRuns:sam.savedRuns,
+  countyEvidence:(id,candidates)=>workflow.countyEvidence(id,candidates),
   rehearse:rehearsalPool?nativeRehearsal(rehearsalPool):null});
 const workflow=hostedWorkflow({db,project,serverKey:()=>env.SUPABASE_SERVICE_ROLE_KEY,artifacts,aiConfig,audit,processJob:(job,c,save)=>
   c.stage.startsWith('discovery_')?discovery.step(job,c,save):c.stage.startsWith('sam_')?sam.step(job,c,save):imports.step(job,c,save),
-  captureBrowser:(id,actor)=>browser.captureWorker(id,actor),canCaptureBrowser:id=>browser.canCaptureWorker(id)});
+  automaticCounty:id=>imports.prepareCounty(id),captureBrowser:(id,actor)=>browser.captureWorker(id,actor),canCaptureBrowser:id=>browser.canCaptureWorker(id)});
 let running=false;
 let benchmarking=Boolean(env.PROCUREMENT_BROWSER_BENCHMARK_ID);
 function kick() {
@@ -64,7 +65,7 @@ const browser=browserService({db,artifacts,sessionKey:env.PROCUREMENT_SESSION_EN
   if(running||benchmarking)throw Error('Worker is busy; resume this bounded browser action after the active stage');
   running=true;try{return await operation();}finally{running=false;}
 }});
-const triggers=countyTriggers({db,discovery,workflow,audit});
+const triggers=countyTriggers({db,discovery,workflow,audit,automaticCounty:id=>imports.prepareCounty(id)});
 const schedules=procurementSchedules({db,triggers});
 const server=workflowServer({workflow,imports,discovery,kick,triggers,schedules,schedulerKey:env.PROCUREMENT_SCHEDULER_KEY,aiPolicy:aiConfig,audit,db,
   attention:attentionService(db),

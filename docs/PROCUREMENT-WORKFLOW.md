@@ -158,6 +158,12 @@ Historical validation above describes the earlier runner update. On September 30
 
 ## Manual observations and reviewed request links
 
+### Automatic county extension — pending release
+
+The county automatic-import policy supersedes manual approval only for confirmed Admin county collection. It revalidates current packet/interpretation hashes, primary and signed supporting evidence, actual county/confirmed city, dates and routine janitorial scope, then reuses existing native SQL rehearsal, canonical planning, guarded transaction and readback. No browser automatic flag or arbitrary intake ID grants authority.
+
+Canonical identity uses source plus stable record ID, not an observation suffix. Supported pending-parent supersession lets a valid current observation establish the first lead. Later writes preserve sales fields and use a narrow source-fact allowlist; older evidence cannot replace newer linked evidence. Exact cross-source conflicts and unsupported classification transitions remain exceptions. Independent reviewed tools and SAM retain their contracts. See [implementation verification](reviews/2026-10-19-county-automatic-imports.md); this section does not claim a live release or backfill.
+
 Reviewed registry updates compare the typed database baseline, including timestamp normalization, while retaining the exact updated-at concurrency guard. A harmless timestamp representation difference must not prevent a verified method update; a real concurrent row edit still rejects the package.
 
 Keep a finding's stable external_id when recapturing it. When the payload or provenance changes, provide amends_intake_id referencing the prior same-source manual intake. Staging creates a separate deterministic observation identity; it never overwrites the original. Replaying the same observation is a no-op. An ignored parent cannot be revived this way.

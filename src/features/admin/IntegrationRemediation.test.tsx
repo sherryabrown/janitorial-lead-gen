@@ -12,6 +12,24 @@ const candidate = { intake_id: 'candidate', intake_hash: 'hash', title: 'Cleanin
 const results = { tasks: [], jobs: [], candidates: [candidate], total_candidates: 1, next_offset: null };
 const review = (signal: string) => <RequestReview id="request" owner="owner" onViewLeads={() => {}} refreshSignal={signal} />;
 
+it('shows verified automatic county saves without candidate approval controls', async () => {
+  const viewLeads=vi.fn();
+  mocked.request.mockResolvedValue({...results,automatic_county:true,automatic_import:{policy:'county-automatic-v1',state:'verified',verified:true,added:1,updated:0,unchanged:0,exclusions:[],job_ids:['job']}});
+  render(<RequestReview id="request" owner="owner" onViewLeads={viewLeads} />);
+  await screen.findByText('County results save automatically');
+  expect(screen.queryByRole('checkbox')).toBeNull();expect(screen.queryByLabelText('Reason for processing reviewed candidates')).toBeNull();
+  expect(screen.queryByText(/Prepare tested import/)).toBeNull();
+  fireEvent.click(screen.getByRole('button',{name:'View leads'}));expect(viewLeads).toHaveBeenCalledOnce();
+});
+
+it('checks an uncertain county database outcome without granting approval or resending an import', async () => {
+  mocked.request.mockResolvedValue({...results,jobs:[{id:'unknown-import',stage:'import_reconcile',state:'outcome_unknown'}],automatic_import:{policy:'county-automatic-v1',state:'outcome_unknown',verified:false,added:0,updated:0,unchanged:0,exclusions:[],job_ids:['unknown-import']}});
+  render(review('outcome_unknown'));
+  fireEvent.click(await screen.findByRole('button',{name:'Check database outcome'}));
+  await waitFor(()=>expect(mocked.request).toHaveBeenCalledWith('/v1/imports/unknown-import/reconcile',{body:{}}));
+  expect(screen.queryByRole('checkbox')).toBeNull();
+});
+
 it('distinguishes captured county websites from completed opportunity checks', async () => {
   mocked.request.mockResolvedValue({ ...results, automatic_county: true, tasks: [{ id: 'entry', category: 'source_entry',
     state: 'needs_interpretation', location_name: 'Saline County', source_name: 'County website' }] });

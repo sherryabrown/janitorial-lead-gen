@@ -147,6 +147,11 @@ export type Job = {
 };
 export type RequestStatus = {
   automatic_county?: boolean;
+  automatic_import?: {
+    policy: 'county-automatic-v1'; state: string; verified: boolean;
+    added: number; updated: number; unchanged: number;
+    exclusions: {intake_id: string; title?: string; reason: string}[]; job_ids: string[];
+  };
   check_updates?: boolean;
   request_id: string;
   tasks: Task[];

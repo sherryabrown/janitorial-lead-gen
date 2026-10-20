@@ -19,6 +19,20 @@ async function call(server,path,{method='GET',headers={},input}={}) {
 }
 const actor=id(88),auth={authorization:'Bearer valid-session','content-type':'application/json'};
 
+test('county continuation rejects client authority flags and successful reconciliation wakes only its owning trigger',async()=>{
+ let prepared=0,wakes=0;
+ const server=workflowServer({authenticate:async()=>({id:actor}),kick:()=>{},workflow:{},
+  imports:{prepareCounty:async request=>{assert.equal(request,id(1));prepared++;return {state:'saving'};},reconcile:async()=>({request_id:id(1),automatic:{policy:'county-automatic-v1'}})},
+  triggers:{wake:async request=>{assert.equal(request,id(1));wakes++;}}});
+ try{
+  const path=`/v1/requests/${id(1)}/imports/continue`;
+  assert.equal((await call(server,path,{method:'POST',input:{}})).status,401);
+  assert.equal((await call(server,path,{method:'POST',headers:auth,input:{automatic:true}})).status,400);assert.equal(prepared,0);
+  assert.equal((await call(server,path,{method:'POST',headers:auth,input:{}})).status,202);assert.equal(prepared,1);
+  assert.equal((await call(server,`/v1/imports/${id(2)}/reconcile`,{method:'POST',headers:auth,input:{}})).status,200);assert.equal(wakes,2);
+ }finally{server.close();}
+});
+
 test('SAM history and reconciliation retain bearer, pagination, saved-attempt and audit boundaries',async()=>{
  let wakes=0,kicks=0,reconciled;
  const server=workflowServer({authenticate:async()=>({id:actor}),kick:()=>{kicks++;},

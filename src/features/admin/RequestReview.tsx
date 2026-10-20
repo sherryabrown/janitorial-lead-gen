@@ -242,8 +242,26 @@ export function RequestReview({
           {data.automatic_county && <p className="admin-hint">
             {new Set(data.tasks.filter(t => ['reviewed_with_results','reviewed_no_results'].includes(t.state)).map(t => t.source_id).filter(Boolean)).size} sources checked ·{' '}
             {new Set(data.tasks.filter(t => ['source_missing','method_missing','blocked','partial'].includes(t.state)).map(t => t.source_id ?? t.location_name ?? t.id)).size} sources or locations incomplete.
-            {' '}Candidates require review before adding them to leads.
+            {' '}{data.automatic_import ? 'Valid results save automatically; incomplete sources remain visible.' : 'Candidates require review before adding them to leads.'}
           </p>}
+          {!sam && data.automatic_import && (
+            <div role="status" className="admin-confirm">
+              <h3>County results save automatically</h3>
+              <p>{data.automatic_import.state === 'saving' ? 'Validating and saving results…' :
+                data.automatic_import.state === 'outcome_unknown' ? 'Database outcome needs reconciliation before retrying.' :
+                data.automatic_import.state === 'blocked' ? 'Automatic saving needs attention. Inspect the saved diagnostics below.' :
+                data.jobs.some(j => ['pending', 'running'].includes(j.state)) ? 'Checking sources. Valid results save as they are verified.' :
+                data.automatic_import.verified ? 'Database results verified. Source coverage is shown separately.' : 'Valid results will save after validation.'}</p>
+              <p>Added {data.automatic_import.added} · Updated {data.automatic_import.updated} · Unchanged {data.automatic_import.unchanged} · Not saved {data.automatic_import.exclusions.length}</p>
+              {(data.automatic_import.added + data.automatic_import.updated + data.automatic_import.unchanged > 0) &&
+                <button type="button" className="primary-button" onClick={onViewLeads}>View leads</button>}
+              {data.automatic_import.exclusions.map(e => <p key={e.intake_id}><strong>{e.title || 'Result'}</strong> — {e.reason}</p>)}
+              {data.automatic_import.state === 'outcome_unknown' && data.jobs.filter(j => j.stage === 'import_reconcile').map(j =>
+                <button type="button" className="secondary-button" key={j.id} disabled={busy} onClick={() => void perform(() => workflowRequest(`/v1/imports/${j.id}/reconcile`, {body: {}}))}>Check database outcome</button>)}
+              {data.automatic_import.state === 'pending' && !data.jobs.some(j => ['pending', 'running'].includes(j.state)) &&
+                <button type="button" className="secondary-button" disabled={busy} onClick={() => void perform(() => workflowRequest(`/v1/requests/${id}/imports/continue`, {body: {}}))}>Continue automatic saving</button>}
+            </div>
+          )}
           {sam && (
             <>
               <h3>SAM — Arkansas statewide</h3>
@@ -581,7 +599,7 @@ export function RequestReview({
               )}
             </div>
           )}
-          {!sam &&
+          {!sam && !data.automatic_import &&
             data.candidates.map((c) => (
               <label className="admin-candidate" key={c.intake_id}>
                 <input
@@ -623,7 +641,7 @@ export function RequestReview({
               More candidates
             </button>
           )}
-          {!sam && selected.length > 0 && (
+          {!sam && !data.automatic_import && selected.length > 0 && (
             <div className="admin-review-form">
               <label>
                 Reason for processing reviewed candidates
@@ -652,7 +670,7 @@ export function RequestReview({
               </button>
             </div>
           )}
-          {!sam && job && (
+          {!sam && !data.automatic_import && job && (
             <div className="admin-confirm">
               <h3>{title(job.stage)}</h3>
               <p>{job.next_action}</p>

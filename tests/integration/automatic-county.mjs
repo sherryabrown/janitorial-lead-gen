@@ -9,6 +9,7 @@ import {checked} from '../../scripts/lib/hosted-store.mjs';
 import {procurementSchedules} from '../../scripts/lib/procurement-schedules.mjs';
 import {randomUUID} from 'node:crypto';
 import {readFileSync} from 'node:fs';
+import {importJobs} from '../../scripts/lib/hosted-import-jobs.mjs';
 
 export async function verifyAutomaticCounty({db,artifacts,audit,livePool,rehearsalPool,actor,config}) {
   const project='zreplhkoxswtzxlchtjf',errors=[],calls=[];
@@ -23,16 +24,17 @@ export async function verifyAutomaticCounty({db,artifacts,audit,livePool,rehears
     else throw Error(`Unexpected isolated county destination ${url}`);
     return new Response(body,{headers:{'content-type':'text/html'}});
   };
-  let discovery,aiCalls=0;
+  let discovery,imports,aiCalls=0;
   const workflow=hostedWorkflow({db,project,artifacts,audit,collectionFetch:fetcher,supportingFetch:fetcher,serverKey:'isolated-county-public-evidence-key',aiConfig:{enabled:true},
     ai:async({packet})=>{if(++aiCalls>1){const error=Error('Fixture budget reached');error.code='ai_budget_reached';throw error;}
       return {version:1,packet_hash:packet.packet_hash,reviewed_by:'fixture',reviewed_scope:'Fixture invalid AI',coverage:'partial',
         findings:[],exclusions:[],unresolved:[{reason:'Invalid quotation fixture',evidence:[{run_id:packet.pages[0].run_id,locator:'saved document',excerpt:'This quotation never occurred'}]}]};},
-    processJob:(job,c,save)=>discovery.step(job,c,save),reportError:(_id,error)=>errors.push(error)});
+    automaticCounty:id=>imports.prepareCounty(id),processJob:(job,c,save)=>c.stage.startsWith('import_')?imports.step(job,c,save):discovery.step(job,c,save),reportError:(_id,error)=>errors.push(error)});
+  imports=importJobs({db,project,artifacts,transport:postgresTransport(livePool,project),rehearse:nativeRehearsal(rehearsalPool),countyEvidence:(id,candidates)=>workflow.countyEvidence(id,candidates)});
   discovery=discoveryService({db,project,artifacts,fetcher,transport:postgresTransport(livePool,project),rehearse:nativeRehearsal(rehearsalPool),
     continueCollection:workflow.continueVerifiedCollection,collect:async({requestId,sourceCode,planOnly})=>executeKnownSources({db,project,requestId,
       selectedSourceCode:sourceCode,command:planOnly?'plan':'run',fetcher,maxJobs:4,retryPartial:false})});
-  const triggers=countyTriggers({db,workflow,discovery,audit});
+  const triggers=countyTriggers({db,workflow,discovery,audit,automaticCounty:id=>imports.prepareCounty(id)});
   const preview=await triggers.preview({...config,county_ids:['05001']});
   const run=await triggers.submit({...preview.config,confirmed_scope:true,preview_hash:preview.preview_hash},actor,'automatic-county-isolated');
   for(let n=0;n<65;n++)if(!await workflow.step()&&!await triggers.step())break;
@@ -47,7 +49,9 @@ export async function verifyAutomaticCounty({db,artifacts,audit,livePool,rehears
   assert.equal(sources.length,1);
   const capabilities=checked(await db.from('procurement_source_capabilities').select('*').eq('source_id',sources[0].id));
   assert.equal(capabilities.length,1);assert.equal(capabilities[0].verification_evidence.automation_policy,'county-public-v1');
-  assert.equal(checked(await db.from('procurement_intake_leads').select('lead_id').eq('intake_id',status.candidates[0].intake_id)).length,0,'Non-SAM import approval remains required');
+  assert.equal(checked(await db.from('procurement_intake_leads').select('lead_id').eq('intake_id',status.candidates[0].intake_id)).length,1,JSON.stringify({message:'Valid county result automatically imports without approval',jobs:status.jobs,automatic:status.automatic_import}));
+  const originalLead=checked(await db.from('procurement_leads').select('*').eq('source_id',sources[0].id).single());
+  await livePool.query("update procurement_leads set stage='hold',notes='Protected sales note' where id=$1",[originalLead.id]);
   assert.ok(calls.includes('https://www.arcounties.org/counties/'));
   const before=calls.length;await discovery(child.request_id,{task_id:checked(await db.from('procurement_jobs').select('checkpoint').eq('search_request_id',child.request_id).eq('kind','discover'))[0].checkpoint.task_id},actor);
   assert.equal(calls.length,before,'Saved discovery replay does not refetch');
@@ -97,7 +101,8 @@ export async function verifyAutomaticCounty({db,artifacts,audit,livePool,rehears
   assert.ok(checked(await db.from('procurement_jobs').select('checkpoint').eq('search_request_id',scheduledChildren.find(c=>c.role==='county').request_id).eq('kind','process')).some(job=>job.checkpoint.ai_budget_reached),'Budget exhaustion retains deterministic candidates');
   assert.equal(calls.filter(url=>url.includes('arcounties.org')).length,directoryReads,'Verified method reused on scheduled run');
   assert.equal(checked(await db.from('procurement_sources').select('id').eq('url','https://county.example/')).length,1);
-  assert.equal(checked(await db.from('procurement_leads').select('id').eq('source_id',sources[0].id)).length,0);
+  const savedLead=checked(await db.from('procurement_leads').select('*').eq('source_id',sources[0].id).single());
+  assert.equal(savedLead.id,originalLead.id);assert.equal(savedLead.stage,'hold');assert.equal(savedLead.notes,'Protected sales note');
   const scheduledRequest=scheduledChildren.find(c=>c.role==='county').request_id;
   const failed=(await livePool.query("select j.id,j.task_id from procurement_jobs j join procurement_coverage_tasks t on t.id=j.task_id where j.search_request_id=$1 and t.source_id=$2 and t.kind='source_entry'",[scheduledRequest,offline.id])).rows[0];
   assert.ok(failed,'Offline entry is checked independently');
@@ -139,6 +144,7 @@ export async function verifyAutomaticCounty({db,artifacts,audit,livePool,rehears
   assert.ok(candidate,JSON.stringify({message:'Actual public detail evidence reaches native intake',jobs:detailStatus.jobs,tasks:detailStatus.tasks,candidates:detailStatus.candidates}));
   const intake=checked(await db.from('procurement_intake_items').select('*').eq('id',candidate.intake_id).single());
   assert.equal(intake.source_id,sourceId);assert.equal(intake.payload.work_city,'Little Rock');assert.equal(intake.payload.deadline,'2026-11-05');
-  assert.equal(checked(await db.from('procurement_leads').select('id').eq('source_id',sourceId)).length,0,'Public detail collection preserves non-SAM approval');
-  return {source_count:sources.length,candidates:status.total_candidates,scheduled_candidates:scheduledStatus.total_candidates,canonical_writes:0};
+  assert.equal(checked(await db.from('procurement_leads').select('id').eq('source_id',sourceId)).length,1,'Public detail collection automatically imports validated county result');
+  assert.equal((await workflow.status(detailChild.request_id)).automatic_import.verified,true);
+  return {source_count:sources.length,candidates:status.total_candidates,scheduled_candidates:scheduledStatus.total_candidates,canonical_writes:2};
 }

@@ -194,6 +194,14 @@ export function planReviewedBatch(snapshot,review,runs) {
       // Retrieval/scope-only observations get intake links, without a business-change event.
       const unchangedObservation=parent&&same(sourceFacts(parent.payload),sourceFacts(i.payload));
       patch=old?(unchangedObservation?{}:{intake_source_evidence:{...(old.payload.intake_source_evidence||{}),[i.id]:provenance}}):{...i.payload,intake_source_evidence:{[i.id]:provenance}};
+      if(old&&d.automatic_county_update===true) {
+        need(review.authorization?.kind==='automatic_county_policy'&&review.authorization.version==='county-automatic-v1','County automatic update policy required');
+        const latest=p=>Math.max(0,...(p.manual_capture?.evidence??[]).map(e=>Date.parse(e.retrieved_at)||0));
+        const priorEvidence=snapshot.procurement_intake_items.filter(item=>snapshot.procurement_intake_leads.some(l=>l.intake_id===item.id&&l.lead_id===old.id));
+        need(latest(i.payload)>=Math.max(0,...priorEvidence.map(p=>latest(p.payload))),'Older county evidence cannot replace newer facts');
+        const fields=['title','source_url','deadline','published_date','posted_date','work_city','work_county','work_state','work_performance_locations','contract_start','contract_end','renewal_date','expected_solicitation_date','award_date'];
+        patch={...patch,...Object.fromEntries(fields.filter(k=>i.payload[k]!=null).map(k=>[k,i.payload[k]]))};
+      }
     }
     if(d.promote_existing_to_award===true) {
       need(old&&evidence.kind==='manual'&&manual?.amends_intake_id&&

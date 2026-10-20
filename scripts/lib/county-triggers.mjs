@@ -9,7 +9,7 @@ import {samTrigger,samRequest} from './sam-request.mjs';
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 const next=state=>({pending:'Read saved progress',running:'Read saved progress',needs_review:'Review saved source evidence and candidates',
   partial:'Review unresolved coverage and resume',cancelled:'Resume when ready',completed:'Review results',outcome_unknown:'Reconcile saved operation before resuming'}[state]);
-export function countyTriggers({db,discovery,workflow,audit}) {
+export function countyTriggers({db,discovery,workflow,audit,automaticCounty}) {
   const rpc=async(name,args)=>checked(await db.rpc(name,args));
   async function registry() {
     const [geographies,links,capabilities,sources]=await Promise.all([
@@ -156,6 +156,7 @@ export function countyTriggers({db,discovery,workflow,audit}) {
     try {
       const data=t.target_kind==='sam'?null:await registry();
       for(const child of children) {
+        const priorState=state;
         const operation=async()=>{
           if(child.role==='sam') {
             const savedJobs=await rows(db,'procurement_jobs',q=>q.eq('search_request_id',child.request_id));
@@ -194,13 +195,24 @@ export function countyTriggers({db,discovery,workflow,audit}) {
                 ()=>discovery(child.request_id,{task_id:task.id,...(seed?{seed_source_id:seed}:{})},t.initiated_by),{task_id:task.id,source_id:task.source_id});
             }
           }
-          const jobs=await rows(db,'procurement_jobs',q=>q.eq('search_request_id',child.request_id),'id,state');
-          if(jobs.some(j=>j.state==='outcome_unknown'))state='outcome_unknown';
+          const automatic=child.role==='county'?await automaticCounty?.(request.id):null;
+          const jobs=await rows(db,'procurement_jobs',q=>q.eq('search_request_id',child.request_id),'id,state,kind,checkpoint,dedupe_key');
+          const legacyWait=job=>automatic&&job.state==='blocked'&&(
+            job.dedupe_key===`api-workflow:${request.id}`&&job.checkpoint?.stage==='interpret'&&!job.checkpoint.error_code||
+            automatic.verified&&job.dedupe_key?.startsWith('api-import:')&&!job.checkpoint.automatic&&job.checkpoint.stage==='import_awaiting_approval');
+          if(jobs.some(j=>j.state==='outcome_unknown')||automatic?.state==='outcome_unknown')state='outcome_unknown';
           else if(state!=='outcome_unknown'&&jobs.some(j=>['pending','running'].includes(j.state)))state='pending';
-          else if(!['pending','outcome_unknown'].includes(state)&&(jobs.some(job=>job.state!=='succeeded')||tasks.some(task=>!['reviewed_with_results','reviewed_no_results','superseded'].includes(task.state))||
-            (await workflow.status(request.id)).total_candidates>0))state='needs_review';
+          else if(!['pending','outcome_unknown'].includes(state)) {
+            if(automatic?.state==='outcome_unknown')state='outcome_unknown';
+            else if(automatic?.state==='saving')state='pending';
+            else if(automatic)state=jobs.some(job=>job.state!=='succeeded'&&!legacyWait(job)&&job.kind!=='discover')||automatic.state==='blocked'?'needs_review':
+              tasks.some(task=>task.kind!=='source_entry'&&!['reviewed_with_results','reviewed_no_results','superseded'].includes(task.state))||automatic.exclusions.length?'partial':state;
+            else if(jobs.some(job=>job.state!=='succeeded')||tasks.some(task=>!['reviewed_with_results','reviewed_no_results','superseded'].includes(task.state))||(await workflow.status(request.id)).total_candidates>0)state='needs_review';
+          }
         };
         await audit.run(child.request_id,'resolve_sources',operation);
+        const rank={completed:0,partial:1,needs_review:2,pending:3,outcome_unknown:4};
+        if(rank[priorState]>rank[state])state=priorState;
       }
       const usage=await rows(db,'procurement_usage_ledger',q=>q.eq('trigger_id',t.id),'id,state');
       if(usage.some(u=>['reserved','outcome_unknown'].includes(u.state)))state='outcome_unknown';

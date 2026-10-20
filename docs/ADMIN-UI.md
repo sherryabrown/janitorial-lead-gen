@@ -1,5 +1,11 @@
 # County checks Admin UI
 
+## Automatic county saving — pending release
+
+The county extension removes normal approval controls for confirmed Admin county requests that check for lead updates. Current official evidence, actual work location, requested dates and canonical identity are validated before the existing native-tested importer saves results. Manual and scheduled runs share this path. Verified Added/Updated/Unchanged counts and **View leads** appear above source gaps. Invalid records and unavailable sources remain separate outcomes.
+
+An identified saved county request may use `POST /v1/requests/:id/imports/continue` with an empty body to continue without a new search. It grants no client-controlled import authority. Cancelled requests, paused schedules and inactive owners cannot use the continuation. Source-only, independent state and standalone reviewed workflows retain their existing controls; SAM automatic saving is unchanged. Historical non-SAM approval requirements are superseded only for this county policy. See [verification and release status](reviews/2026-10-19-county-automatic-imports.md).
+
 The Admin UI is available in the approved Netlify preview with its matching Render backend. Netlify production remains unchanged. Scheduler activation and browser-closed/restart acceptance remain the existing [part 02 production evidence](ADMIN-SCHEDULING-DEPLOYMENT.md); current county coverage and recurrence limits are recorded in the [October 19 release report](reviews/2026-10-19-automatic-county-build.md). Opening this UI does not enable a recurrence by itself.
 
 ## Use

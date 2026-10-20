@@ -110,7 +110,7 @@ const server = spawn(
   ],
   { stdio: 'ignore', windowsHide: true, env:{...process.env,VITE_PROCUREMENT_API_URL:'https://janitorial-procurement-backend.onrender.com'} },
 );
-let browser;
+let browser,countySaved=false;
 try {
   for (let i = 0; i < 100; i++) {
     try {
@@ -275,6 +275,7 @@ try {
           candidates: [],
           total_candidates: 0,
           next_offset: null,
+          ...(countySaved?{check_updates:true,automatic_import:{policy:'county-automatic-v1',state:'verified',verified:true,added:1,updated:0,unchanged:0,exclusions:[{intake_id:'unverified',title:'Unverified site',reason:'Actual work location is unproven.'}],job_ids:['county-import']},candidates:[{intake_id:'saved-county',title:'Verified county janitorial opportunity',state:'imported'}],total_candidates:1}:{}),
         };
       else if (p === '/v1/access/saved-access')
         body = {tenant:'littlerock.bonfirehub.com',next:{action:'Revalidate the expired reviewed portal recipe before hosted sign-in'},hosted:{recipe_current:false,session_current:false}};
@@ -355,6 +356,22 @@ try {
   }
   await page.setViewportSize({width:1440,height:1000});
   await page.getByRole('button',{name:'Close evidence'}).click();
+  countySaved=true;
+  await page.getByRole('button',{name:'Refresh results',exact:true}).click();
+  await page.getByRole('heading',{name:'County results save automatically'}).waitFor();
+  const countyResults=page.getByRole('region',{name:'Saved results'});
+  assert.equal(await countyResults.getByRole('checkbox').count(),0);
+  assert.equal(await countyResults.getByText(/Prepare tested import/).count(),0);
+  for(const width of [1440,390,320]){
+    await page.setViewportSize({width,height:900});await countyResults.scrollIntoViewIfNeeded();
+    await countyResults.getByRole('button',{name:'View leads',exact:true}).focus();
+    assert.equal(await countyResults.getByRole('button',{name:'View leads',exact:true}).evaluate(el=>el===document.activeElement),true);
+    await countyResults.screenshot({path:`${out}/county-automatic-saving-${width}.png`});
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+  }
+  countySaved=false;await page.setViewportSize({width:1440,height:1000});
+  await page.getByRole('button',{name:'Refresh results',exact:true}).click();
+  await page.getByText(/Source-only run/).waitFor();
   await page.getByRole('button',{name:'Check saved portal access'}).click();
   assert.equal(await page.getByRole('button',{name:'Resume saved sign-in'}).isDisabled(),true);
   assert.equal(await page.getByRole('button',{name:'Capture saved method'}).isDisabled(),true);

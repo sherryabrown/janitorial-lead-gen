@@ -5,7 +5,8 @@ import { randomUUID } from 'node:crypto';
 import { geographyRequest } from './geography-service.mjs';
 import { validateRequestScope } from './request-scope.mjs';
 import { executeKnownSources } from './known-source-collection.mjs';
-import { makeInterpretationPacket,validateInterpretation } from './known-source-workflow.mjs';
+import { makeInterpretationPacket,validateInterpretation,manualSpecFromInterpretation } from './known-source-workflow.mjs';
+import {countyAuthority,countyImportStatus} from './county-automatic-import.mjs';
 import { persistInterpretation } from './interpretation-store.mjs';
 import { planInterpretationIntake } from './interpretation-intake.mjs';
 import { extractFacts,evaluateFacts,extractionKey,verifyEvidenceSpans,cacheReviewedFacts,evidenceText } from './hosted-interpretation.mjs';
@@ -37,7 +38,7 @@ export function validateFindingBounds(packet,result,{verifiedSupporting=false}={
       throw new Error('Finding actual work location is unverified or outside requested geography');
   }
 }
-export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=boundedInterpretation,processJob,captureBrowser,canCaptureBrowser,audit,supportingFetch=fetch,collectionFetch=fetch,reportError=(id,error)=>console.error('Workflow stage failed',id,error)}) {
+export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=boundedInterpretation,processJob,captureBrowser,canCaptureBrowser,audit,supportingFetch=fetch,collectionFetch=fetch,automaticCounty,reportError=(id,error)=>console.error('Workflow stage failed',id,error)}) {
   const supporting=supportingCapture({artifacts,serverKey,fetcher:supportingFetch,loadReviewedIntake:async id=>{
     const item=await one(db,'procurement_intake_items',id);
     if(!item)return null;
@@ -210,7 +211,8 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
       state:i.status==='processed'&&links.some(l=>l.intake_id===i.id&&leads.some(r=>r.id===l.lead_id)&&requestLinks.some(r=>r.lead_id===l.lead_id))?'imported':
         i.status==='processed'?'link_review_required':i.status==='ignored'?'ignored':'pending_review'}));
     const automaticCounty=['county_scope','state_research'].includes(request.workflow_control?.admin_policy);
-    return {request_id:requestId,cancelled:request.workflow_control.cancelled===true,requested_categories:request.requested_categories,
+    const automaticImport=await countyAuthority(db,request,{runnable:false})?countyImportStatus(jobs):null;
+    return {request_id:requestId,...(automaticImport?{automatic_import:automaticImport}:{}),cancelled:request.workflow_control.cancelled===true,requested_categories:request.requested_categories,
       automatic_county:automaticCounty,check_updates:request.workflow_control?.check_updates!==false,
       search_windows:request.search_windows,jobs:jobs.map(j=>({id:j.id,state:j.state,kind:j.kind,stage:j.checkpoint?.stage,run_ids:j.checkpoint?.run_ids??[],pages:j.checkpoint?.pages??null,
         records:j.checkpoint?.records??null,terminal_confirmed:j.checkpoint?.terminal_confirmed??false,
@@ -230,8 +232,36 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
         actual_usd:usage.reduce((n,u)=>n+Number(u.actual_usd??0),0),
         entries:usage.map(u=>({provider:u.provider,model:u.model,rate_version:u.rate_version,state:u.state,actual_usd:u.actual_usd}))},
       statewide_sam:{separate:true,included_in_geography_coverage:false},
-      next_action:candidates.some(c=>c.state==='pending_review')?'Review candidates and prepare an exact import package':
+      next_action:automaticImport?'Valid county results save automatically; view verified leads or validation exceptions':candidates.some(c=>c.state==='pending_review')?'Review candidates and prepare an exact import package':
         'Inspect pending evidence, source gaps or exact access action; entry checks are not lead coverage'};
+  }
+  async function countyEvidence(requestId,candidates) {
+    const interpretations=await rows(db,'procurement_interpretations',q=>q.eq('request_id',requestId).eq('is_current',true));
+    const proofs=[],exclusions=[];
+    for(const current of interpretations.filter(i=>i.staging_receipt?.intake_ids?.some(id=>candidates.some(c=>c.id===id)))) {
+      const ctx=await context(requestId,current.task_id),p=makeInterpretationPacket(ctx);
+      for(const i of candidates.filter(i=>current.staging_receipt.intake_ids.includes(i.id))) {
+        const finding=current.result.findings.find(f=>hash({request_id:requestId,finding:f})===i.payload.known_source_interpretation?.finding_hash);
+        if(!finding||p.packet_hash!==current.packet_hash||i.status==='ignored') {exclusions.push({intake_id:i.id,title:i.payload.title,reason:'Evidence is stale, ignored or no longer current.'});continue;}
+        const result={...current.result,coverage:'partial',findings:[finding],exclusions:[],unresolved:[]};
+        // Artifact/signature availability errors remain infrastructure holds, not exclusions.
+        await verifyEvidenceSpans(p,result,{loadSupporting:e=>supporting.load(ctx,p,e)});
+        try {
+          validateInterpretation(p,result,{verifiedSupporting:true});validateFindingBounds(p,result,{verifiedSupporting:true});
+          if(!/\b(janitor(?:ial)?|custodi(?:al|an)|housekeeping|cleaning services|floor care|terrazzo floor maintenance)\b/i.test(finding.title+' '+finding.evidence.map(e=>e.excerpt).join(' ')))throw Error('Routine janitorial scope unproven');
+          const expected=manualSpecFromInterpretation(p,current.result,project,{}, {verifiedSupporting:true}).findings.find(f=>f.external_id===finding.record_id);
+          // The original digest is reserved before JSONB canonicalizes object
+          // key order. Bind that persisted digest, not a reordered serialization.
+          expected.payload.known_source_interpretation.result_hash=current.result_hash;
+          const actual={...i.payload};delete actual.manual_capture;
+          if(hash(actual)!==hash(expected.payload)||hash(i.payload.manual_capture?.evidence)!==hash(expected.evidence.map(({local_path,...e})=>{void local_path;return e;}))||
+              i.payload.manual_capture?.confidence!=='primary'||!i.payload.manual_capture.request_ids.includes(requestId)||
+              (i.payload.manual_capture.record_external_id??i.external_id)!==finding.record_id)throw Error('Candidate provenance changed');
+          proofs.push({intake_id:i.id,payload_hash:hash(i.payload),interpretation_id:current.id,packet_hash:p.packet_hash,finding_hash:hash(finding)});
+        } catch {exclusions.push({intake_id:i.id,title:i.payload.title,reason:'Current service, evidence, location or date validation did not pass.'});}
+      }
+    }
+    return {proofs,exclusions};
   }
   async function control(requestId,action,actor) {
     return rpc('control_procurement_workflow',{p_request:requestId,p_actor:actor,p_action:action});
@@ -366,6 +396,7 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
         }
         await auditPhase('stage',()=>interpret(request.id,task.id,result,`worker:${request.initiated_by}`),{task_id:task.id,source_id:p.source_id,reason:cacheUsed?'cache':'deterministic'});
         checkpoint.interpreted_task_ids=[...done,task.id];await save('pending');
+        if(request.workflow_control?.admin_policy==='county_scope')await automaticCounty?.(request.id);
       } else throw new Error('Unsupported saved workflow stage');
     } catch(error) {
       if(error.code==='request_cancelled'){await save('cancelled');return true;}
@@ -403,5 +434,5 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
     await recordAccessEvent(db,h,{...event,next_action:`${event.next_action} (recorded by ${actor})`});
     return access(id);
   }
-  return {submit,preview:input=>geographyRequest(db,'preview',input),context,packet,sourceOptions,captureSupporting,readSupporting,interpret,status,control,continueVerifiedCollection,step,access,accessEvent};
+  return {submit,preview:input=>geographyRequest(db,'preview',input),context,packet,sourceOptions,captureSupporting,readSupporting,interpret,status,countyEvidence,control,continueVerifiedCollection,step,access,accessEvent};
 }
