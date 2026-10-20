@@ -71,6 +71,8 @@ const schedule = {
   next_due_at: null,
 };
 const run = {
+  target_kind: 'county_scope',
+  presentation: {outcome:'source_attention',attention_count:1},
   id: 'run',
   created_at: '2026-10-19T01:00:00Z',
   state: 'needs_review',
@@ -267,6 +269,7 @@ try {
               state: 'method_missing',
               location_name: 'Saline County', source_name: 'County bids', discovery_state: 'blocked',
               discovery_action: 'Source could not be verified automatically. Other sources can continue.',
+              ...(countySaved?{attention:{kind:'automation',blocker:'This content format is not supported by the collector.',next_action:'View saved evidence; a developer needs to add collection support.',action_kind:'evidence'}}:{attention:{kind:'unavailable',blocker:'The website request failed or timed out.',next_action:'Retry the source check or view saved evidence.',action_kind:'retry'}}),
               reason: 'Review saved method evidence',
               pages: 1,
             },
@@ -275,7 +278,7 @@ try {
           candidates: [],
           total_candidates: 0,
           next_offset: null,
-          ...(countySaved?{check_updates:true,automatic_import:{policy:'county-automatic-v1',state:'verified',verified:true,added:1,updated:0,unchanged:0,exclusions:[{intake_id:'unverified',title:'Unverified site',reason:'Actual work location is unproven.'}],job_ids:['county-import']},candidates:[{intake_id:'saved-county',title:'Verified county janitorial opportunity',state:'imported'}],total_candidates:1}:{}),
+          ...(countySaved?{check_updates:true,automatic_import:{policy:'county-automatic-v1',state:'verified',verified:true,added:1,updated:0,unchanged:0,exclusions:[],job_ids:['county-import']},candidates:[{intake_id:'saved-county',title:'Verified county janitorial opportunity',state:'imported'}],total_candidates:1}:{}),
         };
       else if (p === '/v1/access/saved-access')
         body = {tenant:'littlerock.bonfirehub.com',next:{action:'Revalidate the expired reviewed portal recipe before hosted sign-in'},hosted:{recipe_current:false,session_current:false}};
@@ -359,6 +362,9 @@ try {
   countySaved=true;
   await page.getByRole('button',{name:'Refresh results',exact:true}).click();
   await page.getByRole('heading',{name:'County results save automatically'}).waitFor();
+  await page.getByRole('heading',{name:'Finished — some sources need attention',exact:true}).waitFor();
+  await page.getByText('Automation support needed',{exact:true}).waitFor();
+  assert.equal(await page.getByRole('button',{name:'Retry source',exact:true}).count(),0);
   const countyResults=page.getByRole('region',{name:'Saved results'});
   assert.equal(await countyResults.getByRole('checkbox').count(),0);
   assert.equal(await countyResults.getByText(/Prepare tested import/).count(),0);
@@ -367,11 +373,13 @@ try {
     await countyResults.getByRole('button',{name:'View leads',exact:true}).focus();
     assert.equal(await countyResults.getByRole('button',{name:'View leads',exact:true}).evaluate(el=>el===document.activeElement),true);
     await countyResults.screenshot({path:`${out}/county-automatic-saving-${width}.png`});
+    await page.getByRole('heading',{name:'Finished — some sources need attention',exact:true}).screenshot({path:`${out}/source-attention-heading-${width}.png`});
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   }
   countySaved=false;await page.setViewportSize({width:1440,height:1000});
   await page.getByRole('button',{name:'Refresh results',exact:true}).click();
   await page.getByText(/Source-only run/).waitFor();
+  await page.getByText('Workflow details',{exact:true}).click();
   await page.getByRole('button',{name:'Check saved portal access'}).click();
   assert.equal(await page.getByRole('button',{name:'Resume saved sign-in'}).isDisabled(),true);
   assert.equal(await page.getByRole('button',{name:'Capture saved method'}).isDisabled(),true);
@@ -384,7 +392,7 @@ try {
   await page.getByLabel('Exact project/document quotation').fill('Official janitorial work scope in Little Rock.');
   run.state='partial';
   await page.getByRole('button',{name:'Refresh progress',exact:true}).click();
-  await page.getByRole('heading',{name:'Partial',exact:true}).waitFor();
+  await page.getByRole('heading',{name:'Finished — some sources need attention',exact:true}).waitFor();
   assert.equal(await page.getByLabel('Exact project/document quotation').inputValue(),'Official janitorial work scope in Little Rock.');
 
   for(const width of [1440,390,320]) {

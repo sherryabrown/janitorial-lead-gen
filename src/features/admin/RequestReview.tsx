@@ -209,6 +209,13 @@ export function RequestReview({
         ),
       );
     }, false);
+  const jobRows = data?.jobs.filter(j => !j.stage?.startsWith('import_')).map(j => (
+    <div key={j.id}>
+      <p className="admin-hint"><strong>{title(j.stage ?? j.state)}</strong> | {j.next_action}</p>
+      {j.access_handoff_id && <SavedAccess job={j} onChange={() => setVersion(x => x + 1)} />}
+    </div>
+  ));
+  const sourceAttentionLayout = Boolean(data?.automatic_import || data?.tasks.some(t => 'attention' in t));
   return (
     <section className="admin-request-review" aria-label="Saved results">
       <div className="admin-section-heading">
@@ -408,21 +415,7 @@ export function RequestReview({
               )}
             </>
           )}
-          {data.jobs
-            .filter((j) => !j.stage?.startsWith('import_'))
-            .map((j) => (
-              <div key={j.id}>
-                <p className="admin-hint">
-                  <strong>{title(j.stage ?? j.state)}</strong> | {j.next_action}
-                </p>
-                {j.access_handoff_id && (
-                  <SavedAccess
-                    job={j}
-                    onChange={() => setVersion((x) => x + 1)}
-                  />
-                )}
-              </div>
-            ))}
+          {!sourceAttentionLayout && jobRows}
           {data.tasks.map((t) => (
             <div className="admin-task" key={t.id}>
               <div>
@@ -435,7 +428,11 @@ export function RequestReview({
                       unchecked: 'Waiting to check', partial: t.category === 'source_entry' ? 'Website unavailable or incomplete' : 'Incomplete coverage',
                       blocked: 'Access or verification required'} as Record<string,string>)[t.state] ?? title(t.state) : title(t.state)}
                 </strong>
-                <p>{data.automatic_county && t.discovery_action ? t.discovery_action : t.reason}</p>
+                {t.attention ? <>
+                  <p><strong>{({manual_action:'Manual action needed',automation:'Automation support needed',limit:'Collection incomplete',unavailable:'Website unavailable',access:'Access needs attention',details:'Project details unavailable',source_missing:'Source not verified',unverified:'Source not verified',diagnostic:'Check needs attention'} as Record<string,string>)[t.attention.kind] ?? 'Source needs attention'}</strong></p>
+                  <p><strong>Blocker:</strong> {t.attention.blocker}</p>
+                  <p><strong>Next action:</strong> {t.attention.next_action}</p>
+                </> : <p>{data.automatic_county && t.discovery_action ? t.discovery_action : t.reason}</p>}
               </div>
               <div className="admin-inline">
                 {t.pages > 0 && !['source_entry'].includes(t.category) && (
@@ -483,12 +480,13 @@ export function RequestReview({
               </div>
               {data.automatic_county && t.discovery_state && ['source_missing','method_missing','blocked','partial'].includes(t.state) &&
                 <div className="admin-inline">
-                  <button type="button" className="text-button" disabled={busy || t.discovery_state !== 'blocked'} onClick={() => void perform(() =>
-                    workflowRequest(`/v1/requests/${id}/discover/resume`, { body: { task_id: t.id } }))}>Retry source</button>
+                  {(t.attention === undefined || t.attention?.action_kind === 'retry') && <button type="button" className="text-button" disabled={busy || t.discovery_state !== 'blocked'} onClick={() => void perform(() =>
+                    workflowRequest(`/v1/requests/${id}/discover/resume`, { body: { task_id: t.id } }))}>Retry source</button>}
                   <button type="button" className="text-button" disabled={busy} onClick={() => openPacket(t, true)}>View source evidence</button>
                 </div>}
             </div>
           ))}
+          {sourceAttentionLayout && <details><summary>Workflow details</summary>{jobRows}</details>}
           {!data.automatic_county && !!data.tasks.some((t) =>
             ['source_missing', 'method_missing'].includes(t.state),
           ) && (

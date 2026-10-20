@@ -1,5 +1,11 @@
 # Admin trigger execution API
 
+## Read-only county source attention — local implementation
+
+Trigger list/detail responses optionally include `presentation: {outcome: 'source_attention', attention_count: number}` for settled county runs whose remaining issues are source coverage. The raw `state` is unchanged. The shared projection checks all children, usage uncertainty, source attempts, automatic-import receipts and actual current intake/request links. Active/unknown work, real errors, validation failures and independent approvals prevent this outcome. Counts describe affected task routes/categories, not unique source entities.
+
+County request task responses optionally include `attention: {kind, blocker, next_action, action_kind}` (`action_kind` is `evidence` or `retry`), or `null` when no settled source issue is classified. Known checkpoint/task evidence produces fixed public copy; private checkpoint bodies and arbitrary errors are not returned. Current discovery selection is deterministic. Activity reuses scoped batches and reads only needed job JSON fields, excluding cached interpretation bodies. Reads do not fetch sources, call AI, prepare imports or mutate data. No state enum, migration, permission or worker change is required. This contract is not yet deployed; see [verification](reviews/2026-10-19-county-source-attention.md).
+
 ## County automatic imports
 
 Confirmed `county_scope` collection uses server policy `county-automatic-v1` for manual and scheduled runs. Current interpretation receipts and validated signed evidence feed the existing native-tested transaction/readback service. Later evidence waves have distinct keys; an earlier empty result cannot suppress them. Invalid records remain exceptions and uncertain effects retain reconciliation/overlap holds. A successful existing import-reconciliation action wakes the owning county trigger without another write.

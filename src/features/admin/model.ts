@@ -1,4 +1,4 @@
-import type { Draft, Config, Category, Usage } from './types';
+import type { Draft, Config, Category, Usage, Run } from './types';
 export const categoryLabels: Record<Category, string> = {
   forecast: 'Forecasts',
   opportunity: 'Opportunities',
@@ -88,6 +88,9 @@ export const title = (s: string | null | undefined) =>
     .replace(/^./, (c) => c.toUpperCase());
 export const activeRun = (state: string) =>
   ['pending', 'running'].includes(state);
+export const hasSourceAttention = (run: Run) => run.target_kind === 'county_scope' &&
+  ['needs_review', 'partial', 'completed'].includes(run.state) && run.presentation?.outcome === 'source_attention';
+export const runLabel = (run: Run) => hasSourceAttention(run) ? 'Finished — some sources need attention' : title(run.state);
 export function invalidDraft(d: Draft, schedule = false) {
   if (!d.config.county_ids.length) return 'Select at least one county.';
   if (

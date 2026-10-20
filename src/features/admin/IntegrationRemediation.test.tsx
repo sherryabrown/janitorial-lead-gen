@@ -3,14 +3,34 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { afterEach, expect, it, vi } from 'vitest';
 import { RequestReview } from './RequestReview';
 import { RunDetail } from './RunDetail';
-import { ScheduleList } from './ScheduleList';
-import { initialDraft } from './model';
+import { ScheduleList, ActivityList } from './ScheduleList';
+import { initialDraft, runLabel } from './model';
 const mocked = vi.hoisted(() => ({ request: vi.fn() }));
 vi.mock('../../lib/procurement-workflow', () => ({ workflowRequest: mocked.request, mutationKey: () => 'stable-key', acknowledged: () => {} }));
 afterEach(() => { cleanup(); vi.useRealTimers(); mocked.request.mockReset(); });
 const candidate = { intake_id: 'candidate', intake_hash: 'hash', title: 'Cleaning', state: 'pending_review' };
 const results = { tasks: [], jobs: [], candidates: [candidate], total_candidates: 1, next_offset: null };
 const review = (signal: string) => <RequestReview id="request" owner="owner" onViewLeads={() => {}} refreshSignal={signal} />;
+
+it('labels settled county source gaps consistently in Activity and details without altering other states',async()=>{
+ const run={id:'run',state:'needs_review',target_kind:'county_scope',created_at:'2026-10-19T01:00:00Z',presentation:{outcome:'source_attention' as const,attention_count:1},children:[]};
+ expect(runLabel({...run,state:'running'})).toBe('Running');expect(runLabel({...run,target_kind:'sam'})).toBe('Needs review');
+ mocked.request.mockImplementation(async(path:string)=>path.endsWith('/steps')?{items:[],next_cursor:null}:run);
+ render(<><ActivityList items={[run]} onView={()=>{}} selected={null} more={false} onMore={()=>{}}/><RunDetail id="run" owner="owner" onClose={()=>{}} onViewLeads={()=>{}} onSource={()=>{}} changed={()=>{}}/></>);
+ await screen.findByRole('heading',{name:'Finished — some sources need attention'});expect(screen.getAllByText(/Finished — some sources need attention/)).toHaveLength(2);
+ expect(screen.getByRole('button',{name:'View results'})).toBeTruthy();
+});
+
+it('shows source-specific blockers/actions and does not offer an ineffective retry',async()=>{
+ mocked.request.mockResolvedValue({...results,automatic_county:true,candidates:[],total_candidates:0,tasks:[{id:'task',category:'opportunity',state:'method_missing',source_name:'County procurement',location_name:'Saline County',discovery_state:'blocked',attention:{kind:'automation',blocker:'This content format is not supported by the collector.',next_action:'A developer needs to add collection support.',action_kind:'evidence'}}]});
+ render(review('needs_review'));await screen.findByText('Automation support needed');expect(screen.getByText('This content format is not supported by the collector.')).toBeTruthy();
+ expect(screen.getByText('A developer needs to add collection support.')).toBeTruthy();expect(screen.queryByRole('button',{name:'Retry source'})).toBeNull();expect(screen.getByRole('button',{name:'View source evidence'})).toBeTruthy();
+});
+
+it('keeps independent state research workflow details visible in their existing position',async()=>{
+ mocked.request.mockResolvedValue({...results,automatic_county:true,tasks:[],jobs:[{id:'state-job',state:'blocked',stage:'interpret',next_action:'Review state research evidence'}]});
+ render(review('needs_review'));const message=await screen.findByText(/Review state research evidence/);expect(message.closest('details')).toBeNull();expect(screen.queryByText('Workflow details')).toBeNull();
+});
 
 it('shows verified automatic county saves without candidate approval controls', async () => {
   const viewLeads=vi.fn();

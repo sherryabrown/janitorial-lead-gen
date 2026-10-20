@@ -441,6 +441,15 @@
   }
 }
 @media (max-width: 480px) {
+  .admin-section-heading.has-source-attention {
+    flex-wrap: wrap;
+  }
+  .admin-section-heading.has-source-attention h2 {
+    flex: 1 1 100%;
+  }
+  .admin-section-heading.has-source-attention > button {
+    margin-left: auto;
+  }
   .admin-county-picker {
     grid-template-columns: 1fr;
   }

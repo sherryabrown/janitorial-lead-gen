@@ -9,6 +9,7 @@ import { makeInterpretationPacket,validateInterpretation,manualSpecFromInterpret
 import {countyAuthority,countyImportStatus} from './county-automatic-import.mjs';
 import { persistInterpretation } from './interpretation-store.mjs';
 import { planInterpretationIntake } from './interpretation-intake.mjs';
+import {sourceAttention,discoveryJob} from './county-source-attention.mjs';
 import { extractFacts,evaluateFacts,extractionKey,verifyEvidenceSpans,cacheReviewedFacts,evidenceText } from './hosted-interpretation.mjs';
 import { boundedInterpretation } from './hosted-ai.mjs';
 import { accessNext } from './source-access.mjs';
@@ -191,8 +192,8 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
     if(!request)throw new Error('Request not found');
     const targets=await rows(db,'procurement_request_targets',q=>q.eq('search_request_id',requestId),'id');
     const [tasks,interpretations,jobs,usage]=await Promise.all([
-      targets.length?rows(db,'procurement_coverage_tasks',q=>q.in('target_id',targets.map(t=>t.id)),'id,source_id,route_geography_id,kind,state,reason,pages_reviewed'):[],
-      rows(db,'procurement_interpretations',q=>q.eq('request_id',requestId),'id,is_current,staging_receipt'),rows(db,'procurement_jobs',q=>q.eq('search_request_id',requestId),'id,state,kind,dedupe_key,checkpoint,capability_id'),
+      targets.length?rows(db,'procurement_coverage_tasks',q=>q.in('target_id',targets.map(t=>t.id)),'id,source_id,route_geography_id,kind,state,reason,evidence,pages_reviewed'):[],
+      rows(db,'procurement_interpretations',q=>q.eq('request_id',requestId),'id,is_current,staging_receipt'),rows(db,'procurement_jobs',q=>q.eq('search_request_id',requestId),'id,state,kind,task_id,dedupe_key,checkpoint,capability_id,updated_at'),
       rows(db,'procurement_usage_ledger',q=>q.eq('request_id',requestId),'id,kind,state,provider,model,rate_version,input_tokens,output_tokens,reserved_usd,actual_usd,usage')]);
     const capabilityIds=[...new Set(jobs.map(j=>j.capability_id).filter(Boolean))];
     const sourceIds=[...new Set(tasks.map(t=>t.source_id).filter(Boolean))],geoIds=[...new Set(tasks.map(t=>t.route_geography_id).filter(Boolean))];
@@ -212,6 +213,7 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
         i.status==='processed'?'link_review_required':i.status==='ignored'?'ignored':'pending_review'}));
     const automaticCounty=['county_scope','state_research'].includes(request.workflow_control?.admin_policy);
     const automaticImport=await countyAuthority(db,request,{runnable:false})?countyImportStatus(jobs):null;
+    const findDiscovery=t=>request.workflow_control?.admin_policy==='county_scope'?discoveryJob(t,jobs):jobs.find(j=>j.kind==='discover'&&j.checkpoint?.task_id===t.id);
     return {request_id:requestId,...(automaticImport?{automatic_import:automaticImport}:{}),cancelled:request.workflow_control.cancelled===true,requested_categories:request.requested_categories,
       automatic_county:automaticCounty,check_updates:request.workflow_control?.check_updates!==false,
       search_windows:request.search_windows,jobs:jobs.map(j=>({id:j.id,state:j.state,kind:j.kind,stage:j.checkpoint?.stage,run_ids:j.checkpoint?.run_ids??[],pages:j.checkpoint?.pages??null,
@@ -220,10 +222,11 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
         capture_state:j.checkpoint?.hosted_browser_attempt?.state??null,
         next_action:publicJobAction(j,{countyAutomatic:!!automaticImport}),error_code:j.checkpoint?.error_code??null,diagnostic_id:j.checkpoint?.diagnostic_id??null})),
       tasks:tasks.filter(t=>!automaticCounty||t.state!=='superseded').map(t=>({id:t.id,source_id:t.source_id,category:t.kind,state:t.state,
+        ...(request.workflow_control?.admin_policy==='county_scope'?{attention:sourceAttention(t,jobs)}:{}),
         reason:automaticCounty&&t.kind==='source_entry'&&['partial','blocked'].includes(t.state)?'Website could not be read completely; other sources continue.':t.reason,pages:t.pages_reviewed,
         source_name:taskSources.find(s=>s.id===t.source_id)?.name??null,location_name:taskPlaces.find(g=>g.id===t.route_geography_id)?.name??null,
-        discovery_state:jobs.find(j=>j.kind==='discover'&&j.checkpoint?.task_id===t.id)?.state??null,
-        discovery_action:(()=>{const j=jobs.find(j=>j.kind==='discover'&&j.checkpoint?.task_id===t.id);return j?publicJobAction(j):null;})()})),
+        discovery_state:findDiscovery(t)?.state??null,
+        discovery_action:(()=>{const j=findDiscovery(t);return j?publicJobAction(j):null;})()})),
       candidates,total_candidates:ids.length,next_offset:offset+limit<ids.length?offset+limit:null,
       usage:request.workflow_control?.admin_trigger_id?usageSummary(usage):{calls:usage.filter(u=>u.kind==='inference'&&u.state!=='not_sent').length,
         input_tokens:usage.reduce((n,u)=>n+(u.usage?.input_tokens??u.input_tokens),0),

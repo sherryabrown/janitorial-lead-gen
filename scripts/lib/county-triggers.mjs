@@ -5,6 +5,7 @@ import { validateRequestScope } from './request-scope.mjs';
 import { separateSamSource, buildKnownSourcePlan, adapterContract } from './known-source-execution.mjs';
 import { usageSummary,auditPhase } from './workflow-audit.mjs';
 import {samTrigger,samRequest} from './sam-request.mjs';
+import {countyPresentations} from './county-source-attention.mjs';
 
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 const next=state=>({pending:'Read saved progress',running:'Read saved progress',needs_review:'Review saved source evidence and candidates',
@@ -82,11 +83,12 @@ export function countyTriggers({db,discovery,workflow,audit,automaticCounty}) {
     const t=await one(db,'procurement_triggers',id);if(!t)throw Error('Trigger not found');
     const [children,usage]=await Promise.all([rows(db,'procurement_trigger_requests',q=>q.eq('trigger_id',id),'trigger_id,request_id,county_id,role,scope'),
       rows(db,'procurement_usage_ledger',q=>q.eq('trigger_id',id),'id,state,input_tokens,output_tokens,actual_usd,reserved_usd,usage')]);
+    const presentation=(await countyPresentations(db,[t],{children})).get(t.id);
     const relatedState=t.target_kind==='sam'?[]:(await stateSources()).items.filter(s=>s.county_ids.some(c=>t.config.county_ids.includes(c)));
-    return {id:t.id,target_kind:t.target_kind,config:t.config,state:t.state,created_at:t.created_at,
+    return {id:t.id,target_kind:t.target_kind,config:t.config,state:t.state,created_at:t.created_at,...(presentation?{presentation}:{}),
       children:children.map(c=>({request_id:c.request_id,county_id:c.county_id,role:c.role})),
       related_state_sources:relatedState.map(s=>({...s,evidence_policy:'Review saved source run; verify county work location and dates before import'})),
-      usage:usageSummary(usage),next_action:next(t.state)};
+      usage:usageSummary(usage),next_action:presentation?'View saved results and the affected sources below.':next(t.state)};
   }
   async function list({offset=0,limit=50}={}) {
     const values=checked(await db.from('procurement_triggers').select('id,target_kind,state,created_at,origin,schedule_id,config').order('created_at',{ascending:false}).order('id').range(offset,offset+limit));
@@ -101,12 +103,13 @@ export function countyTriggers({db,discovery,workflow,audit,automaticCounty}) {
     const [usage,saved,children]=await Promise.all([
       linked('procurement_usage_ledger','trigger_id',ids,'trigger_id,state,actual_usd,reserved_usd,usage'),
       linked('procurement_schedules','id',scheduleIds,'id,name'),
-      linked('procurement_trigger_requests','trigger_id',ids,'trigger_id,request_id')]);
+      linked('procurement_trigger_requests','trigger_id',ids,'trigger_id,request_id,role')]);
     const requestIds=children.map(c=>c.request_id),targets=await linked('procurement_request_targets','search_request_id',requestIds,'id,search_request_id');
     const [tasks,interpretations,samJobs]=await Promise.all([
-      linked('procurement_coverage_tasks','target_id',targets.map(t=>t.id),'target_id,evidence'),
+      linked('procurement_coverage_tasks','target_id',targets.map(t=>t.id),'id,target_id,source_id,kind,state,reason,evidence'),
       linked('procurement_interpretations','request_id',requestIds,'request_id,staging_receipt',q=>q.eq('is_current',true)),
       linked('procurement_jobs','search_request_id',children.filter(c=>page.some(t=>t.id===c.trigger_id&&t.target_kind==='sam')).map(c=>c.request_id),'search_request_id,checkpoint')]);
+    const presentations=await countyPresentations(db,page,{children,targets,tasks,interpretations,usage});
     const summaries=new Map(ids.map(id=>[id,{usage:[],candidates:new Set(),evidence:new Set()}])),byRequest=new Map(children.map(c=>[c.request_id,c.trigger_id])),byTarget=new Map(targets.map(t=>[t.id,byRequest.get(t.search_request_id)])),names=new Map(saved.map(s=>[s.id,s.name]));
     for(const u of usage)summaries.get(u.trigger_id)?.usage.push(u);
     for(const i of interpretations)for(const id of i.staging_receipt?.intake_ids??[])summaries.get(byRequest.get(i.request_id))?.candidates.add(id);
@@ -117,7 +120,7 @@ export function countyTriggers({db,discovery,workflow,audit,automaticCounty}) {
       for(const id of j.checkpoint?.run_ids??[])summary?.evidence.add(id);
     }
     return {items:page.map(t=>{const summary=summaries.get(t.id);return {
-      id:t.id,target_kind:t.target_kind,state:t.state,created_at:t.created_at,origin:t.origin,
+      id:t.id,target_kind:t.target_kind,state:t.state,created_at:t.created_at,origin:t.origin,...(presentations.get(t.id)?{presentation:presentations.get(t.id)}:{}),
       county_count:t.config.county_ids?.length??0,category:t.target_kind==='sam'?t.config.requested_categories[0]:null,schedule_name:names.get(t.schedule_id)??null,
       candidate_count:summary.candidates.size,evidence_count:summary.evidence.size,usage:usageSummary(summary.usage)
     };}),next_offset:values.length>limit?offset+limit:null};

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { workflowRequest } from '../../lib/procurement-workflow';
 import { RequestReview } from './RequestReview';
 import type { Run, Step } from './types';
-import { activeRun, title, usageText, formatLocal } from './model';
+import { activeRun, title, usageText, formatLocal, runLabel, hasSourceAttention } from './model';
 export function RunDetail({
   id,
   owner,
@@ -123,8 +123,8 @@ export function RunDetail({
       aria-label="Run details"
       tabIndex={-1}
     >
-      <div className="admin-section-heading">
-        <h2>{run ? title(run.state) : 'Loading run…'}</h2>
+      <div className={`admin-section-heading${run && hasSourceAttention(run) ? ' has-source-attention' : ''}`}>
+        <h2>{run ? runLabel(run) : 'Loading run…'}</h2>
         <button type="button" className="text-button" onClick={onClose}>
           Close details
         </button>

@@ -73,6 +73,7 @@ export type Usage = {
   credit_unit?: string | null;
 };
 export type Run = {
+  presentation?: {outcome: 'source_attention'; attention_count: number};
   category?: 'opportunity' | 'award' | null;
   id: string;
   state: string;
@@ -126,6 +127,7 @@ export type Candidate = {
   state: string;
 };
 export type Task = {
+  attention?: {kind: string; blocker: string; next_action: string; action_kind: 'evidence' | 'retry'} | null;
   discovery_state?: string | null;
   discovery_action?: string | null;
   source_name?: string | null;

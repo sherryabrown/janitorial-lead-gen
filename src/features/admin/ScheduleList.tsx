@@ -1,7 +1,7 @@
 import { useState, Fragment } from 'react';
 import { ScheduleHistory } from './ScheduleHistory';
 import type { AnySchedule, StateSource, Run, County } from './types';
-import { formatLocal, title, usageText } from './model';
+import { formatLocal, title, usageText, runLabel, hasSourceAttention } from './model';
 export function ScheduleList({
   items,
   more,
@@ -202,7 +202,7 @@ export function ActivityList({
         >
           <div>
             <strong>
-              {title(r.state)} ·{' '}
+              {runLabel(r)} ·{' '}
               {r.schedule_name ??
                 (r.origin === 'scheduled' ? 'Scheduled' : 'Manual')}
             </strong>
@@ -228,6 +228,8 @@ export function ActivityList({
           >
             {selected === r.id
               ? 'Hide details'
+              : hasSourceAttention(r)
+                ? 'View results'
               : ['needs_review', 'partial', 'outcome_unknown'].includes(
                     r.state,
                   )

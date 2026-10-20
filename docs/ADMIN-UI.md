@@ -1,5 +1,13 @@
 # County checks Admin UI
 
+## Source attention labels — local implementation
+
+Eligible settled county runs display **Finished — some sources need attention** in Activity and Run details, with **View results** as the Activity action. Source rows explain the blocker and next action, distinguishing confirmed human access requirements, access denial, unavailable websites, collection limits, unsupported formats and missing/unverified sources. A generic denial is not assumed to be human verification. Developer work and manual source research are identified explicitly.
+
+Verified saves and View leads stay visible. Safe source retries appear only for supported transient checks; other rows retain evidence and honest next-action guidance. County technical job details are secondary, under Workflow details. Independent state/standalone interfaces remain unchanged. Active work, genuine errors, validation exceptions, uncertain database effects and pending approvals retain their stronger status/actions. Internal run states, polling, scheduling and import behavior are unchanged.
+
+This presentation update is local and has not been deployed. Older backends continue to show their existing labels. See [verification](reviews/2026-10-19-county-source-attention.md). Netlify production remains unchanged.
+
 ## Automatic county saving
 
 The county extension removes normal approval controls for confirmed Admin county requests that check for lead updates. Current official evidence, actual work location, requested dates and canonical identity are validated before the existing native-tested importer saves results. Manual and scheduled runs share this path. Verified Added/Updated/Unchanged counts and **View leads** appear above source gaps. Invalid records and unavailable sources remain separate outcomes.

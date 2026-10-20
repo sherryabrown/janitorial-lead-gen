@@ -19,6 +19,10 @@ export async function adminDatabase() {
 // Offline Supabase query protocol adapter over the real disposable SQL engine.
 export function sqlApi(sql) {
   const name=value=>{if(!/^[a-z_][a-z0-9_]*$/.test(value))throw Error('Invalid SQL test identifier');return '"'+value+'"';};
+  const column=value=>{
+    const json=value.match(/^([a-z_][a-z0-9_]*):([a-z_][a-z0-9_]*)(->>?)([a-z_][a-z0-9_]*)$/);
+    return json?`${name(json[2])}${json[3]}'${json[4]}' as ${name(json[1])}`:name(value);
+  };
   return {rpc:async(fn,args)=>{try {const keys=Object.keys(args);const r=await sql.query(`select ${name(fn)}(${keys.map((k,i)=>`${name(k)} => $${i+1}`).join(',')}) as data`,Object.values(args));return {data:r.rows[0].data};}catch(error){return {error};}},
     from(table){let columns='*',conditions=[],params=[],orders=[],start=0,end=null,update=null,single=false;
       const q={select(c='*'){columns=c;return q;},eq(k,v){params.push(v);conditions.push(`${name(k)}=$${params.length}`);return q;},
@@ -31,7 +35,7 @@ export function sqlApi(sql) {
         async then(resolve){try {
           let statement;
           if(update){const entries=Object.entries(update);const assignments=entries.map(([k,v])=>{params.push(v);return `${name(k)}=$${params.length}`;});statement=`update ${name(table)} set ${assignments.join(',')}`;}
-          else statement=`select ${columns==='*'?'*':columns.split(',').map(name).join(',')} from ${name(table)}`;
+          else statement=`select ${columns==='*'?'*':columns.split(',').map(column).join(',')} from ${name(table)}`;
           if(conditions.length)statement+=' where '+conditions.join(' and ');
           if(update)statement+=' returning *';else {if(orders.length)statement+=' order by '+orders.join(',');if(end!==null)statement+=` limit ${end-start+1} offset ${start}`;}
           const result=await sql.query(statement,params);resolve({data:single?result.rows[0]??null:result.rows});
