@@ -427,6 +427,11 @@
   }
   .admin-row {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .admin-inline > button {
+    max-width: 100%;
+    white-space: normal;
   }
   .admin-header {
     flex-wrap: wrap;

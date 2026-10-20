@@ -177,7 +177,7 @@ try {
           items: [
             {
               id: 'state',
-              name: 'State procurement',
+              name: 'Arkansas DHS janitorial historical solicitation',
               source_id: 'state-source',
               category: 'opportunity',
               county_ids: ['05119'],
@@ -305,7 +305,7 @@ try {
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto(origin);
   await page.getByRole('button', { name: 'Admin', exact: true }).click();
-  await page.getByText('State procurement', { exact: true }).waitFor();
+  await page.getByText('Arkansas DHS janitorial historical solicitation', { exact: true }).waitFor();
   assert.equal(
     await page.getByRole('region', { name: 'Research context' }).count(),
     0,
