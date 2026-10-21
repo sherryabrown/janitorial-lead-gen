@@ -68,6 +68,20 @@ test('discovery submission resumes a saved job without repeated research',async(
  assert.equal((await discovery(source,{task_id:run},source)).job_id,run);assert.equal(writes,0);assert.equal(fetches,0);
 });
 
+test('saved definitive discovery failure becomes source attention without another fetch; uncertain attempts still stop',async()=>{
+ for(const known of [true,false]){
+  let fetches=0,state;
+  const prior={id:run,page_index:0,status:known?'blocked':'partial',finished_at:known?'2026-10-21T12:00:00Z':null,detail:known?{state:'blocked',reason:'HTTP 403'}:{state:'request_pending'}};
+  const db={from(table){let single=false;const q={select(){return this;},eq(){return this;},order(){return this;},range(){return this;},single(){single=true;return this;},maybeSingle(){single=true;return this;},then(resolve,reject){const data=table==='procurement_sources'?[{id:source,url}]:table==='procurement_runs'?[prior]:[];return Promise.resolve({data:single?data[0]:data}).then(resolve,reject);}};return q;}};
+  const service=publicDiscovery({db,artifacts:{put:async()=> 'saved-packet'},fetcher:async()=>{fetches++;throw Error('Unexpected retry');}});
+  const c={stage:'discovery_capture',seed_source_id:source,queue:[url],visited:[],run_ids:[],links:[]};
+  const invoke=()=>service.step({id:'job',search_request_id:'request'},c,async next=>{state=next;});
+  if(known){await invoke();assert.equal(state,'blocked');assert.equal(c.blocker,'HTTP 403');}
+  else await assert.rejects(invoke,/reconciliation/);
+  assert.equal(fetches,0);
+ }
+});
+
 test('private research handoffs replay without duplicate history or resetting access progress',async()=>{
  const {input}=fixture();let writes=0;
  const saved=structuredClone(input.handoffs[0]);

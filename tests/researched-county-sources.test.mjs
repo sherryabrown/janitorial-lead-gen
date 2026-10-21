@@ -7,8 +7,58 @@ import {publicTableFinding,continuePublicTableDetails,applyPublicTableDetails} f
 import {supportingCapture} from '../scripts/lib/supporting-capture.mjs';import {validateFindingBounds} from '../scripts/lib/hosted-workflow.mjs';
 import {officialLinks} from '../scripts/lib/official-link-discovery.mjs';import {fetchPublicCheck} from '../scripts/lib/public-source-check.mjs';
 import {registeredEntryContract,registeredPublicEntryUrl} from '../scripts/lib/known-source-execution.mjs';
+import {publishedPage} from '../scripts/lib/published-page.mjs';
+import {publicReview} from '../scripts/lib/official-link-discovery.mjs';
 const fixture=key=>readFileSync(`tests/fixtures/county/${key}.html`),sha=b=>createHash('sha256').update(b).digest('hex');
 const id=n=>`10000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
+for(const [name,url,total] of [
+ ['maumelle','https://www.maumelle.gov/Bids.aspx',0],['cabot','https://www.cabotar.gov/Bids.aspx',0],
+ ['jacksonville','https://www.jacksonvillear.gov/Bids.aspx',1],['pcssd','https://www.pcssd.org/page/purchasing',3],
+ ['sherwood','https://www.sherwoodar.gov/o/cos/page/bid-postings',1],
+])test(`Pulaski ${name} published listing validates deterministic outcomes without invented leads`,async()=>{
+ const body=fixture(`pulaski-${name}`),{spec,listing}=proposeAutomaticListing(body,url);
+ assert.equal(listing.total,total);assert.equal(listing.terminal,true);
+ const p=makeInterpretationPacket(context(body,spec)),result=evaluateFacts(p,await extractFacts(p,spec));
+ assert.equal(result.findings.length,0);assert.equal(result.unresolved.length,0);assert.equal(result.exclusions.length,total);
+ assert.equal(result.coverage,'complete');validateInterpretation(p,result);await verifyEvidenceSpans(p,result);
+ if(name==='jacksonville'){
+  assert.equal(listing.records[0].id,'85');assert.equal(listing.records[0].deadline,undefined);
+  assert.throws(()=>inspectAutomaticListing(Buffer.from(body.toString().replace('1 Bid','2 Bids')),spec),/count/);
+  const janitorial=Buffer.from(body.toString().replace('2026 Asphalt Overlay Program','Janitorial Services'));
+  const later=makeInterpretationPacket(context(janitorial,spec)),review=evaluateFacts(later,await extractFacts(later,spec));
+  assert.equal(review.findings.length,0);assert.equal(review.coverage,'partial');assert.equal(review.unresolved.length,1);
+ }
+ if(name==='maumelle')assert.throws(()=>inspectAutomaticListing(Buffer.from(body.toString().replace('There are no open bid postings at this time.','Loading...')),spec),/empty/);
+ if(name==='pcssd'){
+  assert.equal(officialLinks(body,url,{automatic:true}).filter(l=>/Invitation for Bids/.test(l.label)).length,3);
+  assert.match(publicReview(body,'text/html',url),/REQUESTS FOR PROPOSALS/);
+  assert.throws(()=>inspectAutomaticListing(Buffer.from(body.toString().replace('Invitation for Bids (IFB) 27-003: Delivery Truck','New janitorial proposal format')),spec),/format changed/);
+  for(const altered of [body.toString().replace('"published"','"draft"'),body.toString().replace('"purchasing"','"other-page"')]){
+   const dom=new JSDOM(altered);assert.equal(publishedPage(dom.window.document,url),null);dom.window.close();
+   assert.throws(()=>proposeAutomaticListing(Buffer.from(altered),url));
+  }
+ }
+});
+test('published bid-summary PDFs resolve past opportunities with signed evidence, never presumed awards or invented deadlines',async()=>{
+ const listing=readFileSync('tests/fixtures/county/nlr-janitorial-summary-listing.json'),pdf=readFileSync('tests/fixtures/county/nlr-janitorial-bid-summary.pdf');
+ for(const variant of ['past','wrong-agency','within-window','unknown-fetch']){
+  const url='https://nlr.ar.gov/wp-admin/admin-ajax.php?action=wpfd&id=1004',spec={version:1,runner_id:'public-fetch',check_when:'each_request',urls:[url],allowed_hosts:['nlr.ar.gov'],max_bytes:2000000,max_records:100,response_format:'json-files-v1',expected_category:'2026',public_details:{provider:'bid-summary-pdf',organization:variant==='wrong-agency'?'OTHER CITY':'CITY OF NORTH LITTLE ROCK'}};
+  const ctx=context(listing,spec);ctx.captures[0].content_type='application/json';
+  if(variant==='within-window')ctx.task.query_window.from='2026-01-01';
+  const packet=makeInterpretationPacket(ctx),checkpoint={},stored=new Map();let gets=0;
+  const artifacts={async put(v){const b=Buffer.isBuffer(v)?v:Buffer.from(JSON.stringify(v)),key='artifacts/'+sha(b);stored.set(key,b);return key;},async get(k){return stored.get(k);}};
+  const support=supportingCapture({artifacts,serverKey:'summary-evidence-test',fetcher:async()=>{gets++;if(variant==='unknown-fetch')throw Error('Interrupted');return new Response(pdf,{headers:{'content-type':'application/pdf'}});}});
+  const args={context:ctx,packet,supporting:support,checkpoint,save:async()=>{},actor:'test'};
+  assert.equal(await continuePublicTableDetails(args),false);assert.equal(await continuePublicTableDetails(args),true);assert.equal(gets,1);
+  const result=evaluateFacts(packet,applyPublicTableDetails(await extractFacts(packet,spec),packet,checkpoint));
+  assert.equal(result.findings.length,0);
+  if(variant==='past'){
+   assert.equal(result.exclusions.length,1);assert.equal(result.coverage,'complete');assert.match(result.exclusions[0].reason,/2026-05-14/);
+   validateInterpretation(packet,result,{verifiedSupporting:true});await verifyEvidenceSpans(packet,result,{loadSupporting:e=>support.load(ctx,packet,e)});
+   await continuePublicTableDetails(args);assert.equal(gets,1);assert.ok(JSON.stringify(checkpoint).length<15000);
+  }else {assert.equal(result.coverage,'partial');assert.equal(result.exclusions.length,0);assert.equal(result.unresolved.length,1);}
+ }
+});
 function context(body,spec){return {request:{id:id(1),workflow_control:{admin_policy:'county_scope'},service_scope:{name:'janitorial'},requested_search_areas:[{area_type:'county',county_name:'Saline',state_code:'AR'},{area_type:'city',city_name:'Little Rock',state_code:'AR'}]},
  task:{id:id(2),source_id:id(3),capability_id:id(4),kind:'opportunity',query_window:{from:'2026-10-19',to:'2027-10-19',date_basis:'deadline'},pages_reviewed:1,evidence:{terminal_confirmed:true,run_ids:[id(5)]}},
  job:{task_id:id(2),id:id(6),state:'succeeded'},source:{id:id(3),code:'reviewed-public',url:spec.urls[0]},capability:{id:id(4),source_id:id(3),method:'browser',method_spec:spec,parser_version:'reviewed-public-v1',kind:'opportunity',availability:'active',verified_at:'2026-10-19',verified_until:'2027-01-01',verification_evidence:{official:true}},

@@ -8,6 +8,7 @@ import { inspectArdotPage } from './ardot-table.mjs';
 import { apiField } from '../../supabase/functions/_shared/source-api.mjs';
 import {forecastQuarter} from './forecast-period.mjs';
 import {inspectForecastText} from './public-forecast.mjs';
+import {publishedPage} from './published-page.mjs';
 const clean=value=>String(value??'').replace(/\s+/g,' ').trim();
 const janitorial=/\b(janitorial|janitor|custodial|custodian|housekeeping|floor care|cleaning services)\b/i;
 const ambiguous=/\b(clean|maintenance|facilities|services)\b/i;
@@ -35,8 +36,9 @@ export async function evidenceText(page) {
   if(/^text\/html|^application\/xhtml/i.test(page.content_type)) {
     const dom=new JSDOM(page.body.toString('utf8'));
     try {
+      const published=page.url?publishedPage(dom.window.document,page.url):null;
       for(const el of dom.window.document.querySelectorAll('script,style,noscript,template'))el.remove();
-      return [{locator:'saved document',text:clean(dom.window.document.body?.textContent)}];
+      return [{locator:'saved document',text:clean(published?.textContent??dom.window.document.body?.textContent)}];
     } finally {dom.window.close();}
   }
   return [{locator:'saved document',text:clean(page.body.toString('utf8'))}];
@@ -137,6 +139,7 @@ export function evaluateFacts(packet,extraction) {
       continue;
     }
     const record=fact.record;
+    if(fact.verified_exclusion){result.exclusions.push(fact.verified_exclusion);continue;}
     if(fact.detail_attention){result.unresolved.push({reason:fact.detail_attention,evidence});continue;}
     if(fact.forecast_attention) {
       const period=forecastQuarter(record.planned_advertisement_period);
@@ -169,7 +172,7 @@ export function evaluateFacts(packet,extraction) {
       continue;
     }
     const unrelatedService=packet.automatic_county&&record&&!janitorial.test(fact.title)&&
-      /\b(banking|financial|bond counsel|software|SaaS|brochures|apparel|uniforms|roofing|cabling|engineering|forestry|marketing|legal counsel|legal services|leadership|information technology|employee benefits|waterless boat cleaning stations)\b/i.test(fact.title);
+      /\b(banking|financial|bond counsel|software|SaaS|brochures|apparel|uniforms|roofing|cabling|engineering|forestry|marketing|legal counsel|legal services|leadership|information technology|employee benefits|waterless boat cleaning stations|grounds maintenance|pest control|delivery truck|disaster debris (?:monitoring|removal)|material testing|boring project)\b/i.test(fact.title);
     if(fact.detail_required || fact.unstructured || !fact.title || janitorial.test(fact.title) || ambiguous.test(fact.title)&&!unrelatedService)
       result.unresolved.push({reason:'Verify routine janitorial scope, actual work location and requested date basis against source evidence',evidence});
     else result.exclusions.push({reason:'Listing title does not identify routine janitorial service',evidence});

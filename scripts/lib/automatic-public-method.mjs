@@ -1,6 +1,7 @@
 import { JSDOM, VirtualConsole } from 'jsdom';
 import { safePublicUrl } from './known-source-execution.mjs';
 import {publicB2gDetailUrl} from './public-b2g-details.mjs';
+import {publishedPage} from './published-page.mjs';
 
 export const automaticCountyPolicy = 'county-public-v1';
 const clean = value => String(value ?? '').replace(/\s+/g, ' ').trim();
@@ -46,12 +47,61 @@ export function inspectAutomaticListing(body, spec) {
   const dom = new JSDOM(body.toString('utf8'), { url: spec.urls[0], virtualConsole: new VirtualConsole() });
   try {
     const doc = dom.window.document;
+    const published=publishedPage(doc,spec.urls[0]);
     const remoteTable=[...doc.querySelectorAll('script[id*="datatables"][id$="after"]')].some(node=>/["']?(?:serverSide|ajax)["']?\s*:/i.test(node.textContent));
     const b2gUrls=spec.public_details?.provider==='b2gnow'?new Map([...doc.querySelectorAll('a.RecordTile')].map(row=>[row,publicB2gDetailUrl(doc,row,spec)])):null;
     for (const node of doc.querySelectorAll('script,style,noscript,template,nav,header,footer')) node.remove();
-    const root = doc.querySelector('main, [role="main"]') ?? doc.body;
+    const root = published ?? doc.querySelector('main, [role="main"]') ?? doc.body;
     if (root.querySelector('[rel="next"], [aria-label*="Next"], .pagination, .pager') ||
         /\b(load more|next page)\b/i.test(visibleText(root))) throw Error('Listing pagination needs verification');
+    if(spec.expected_heading==='CivicPlus bid postings') {
+      const list=root.querySelector('.bidItems.listItems');
+      const intro='The following is a listing of various bid postings.';
+      if(!list||root.querySelectorAll('.bidItems.listItems').length!==1||!visibleText(root).includes(intro))throw Error('CivicPlus bid listing changed');
+      const rows=[...list.querySelectorAll('.listItemsRow.bid')];
+      const marker='There are no open bid postings at this time.';
+      if(!rows.length){if(!visibleText(list).includes(marker))throw Error('CivicPlus empty state missing');return {records:[],total:0,terminal:true,evidence:marker,heading:spec.expected_heading};}
+      const counts=[...list.querySelectorAll('.bidsHeader')].map(h=>visibleText(h).match(/\b(\d+) Bids?\b/i)?.[1]);
+      if(rows.length>100||!counts.length||counts.some(n=>!n)||counts.reduce((n,v)=>n+Number(v),0)!==rows.length)throw Error('CivicPlus bid count incomplete');
+      const records=rows.map(row=>{
+        const link=row.querySelector('.bidTitle a[href]'),title=clean(link?.textContent),source_url=documentUrl(link,spec);
+        const id=new URL(source_url).searchParams.get('bidID');
+        if(!title||!/^\d+$/.test(id??'')||!/^\/bids\.aspx$/i.test(new URL(source_url).pathname))throw Error('CivicPlus bid identity changed');
+        const status=visibleText(row.querySelector('.bidStatus')??row),deadline=publishedDeadlineDate(status);
+        return {id,title,source_url,status,...(deadline?{deadline}:{})};
+      });
+      if(new Set(records.map(r=>r.id)).size!==records.length)throw Error('Duplicate CivicPlus bid identities');
+      return {records,total:records.length,terminal:true,evidence:intro,heading:spec.expected_heading};
+    }
+    if(spec.expected_heading==='Published school invitations'||spec.expected_heading==='Published civic bid panels') {
+      if(!published)throw Error('Current published page is missing');
+      let records;
+      if(spec.expected_heading==='Published school invitations'){
+        if(![...root.querySelectorAll('h2')].some(h=>clean(h.textContent)==='REQUESTS FOR PROPOSALS')||
+            !visibleText(root).includes('is accepting sealed responses on the contracts listed below:'))throw Error('Published school invitation heading changed');
+        let inSection=false;const invitations=[];
+        for(const node of root.querySelectorAll('h2,a[href]')){
+          if(node.tagName==='H2'){inSection=clean(node.textContent)==='REQUESTS FOR PROPOSALS';continue;}
+          if(!inSection||node.href.startsWith('mailto:')||/^Addendum\b/i.test(clean(node.textContent)))continue;
+          if(!/^Invitation for Bids \(IFB\) [\d-]+:/i.test(clean(node.textContent)))throw Error('Published school invitation format changed');
+          invitations.push(node);
+        }
+        records=invitations.map(a=>{
+          const title=clean(a.textContent),source_url=documentUrl(a,spec);return {id:title.match(/\(IFB\) ([\d-]+):/)[1],title,source_url};
+        });
+      }else{
+        if(![...root.querySelectorAll('h1')].some(h=>clean(h.textContent)==='Bid Opportunities'))throw Error('Published civic bid heading changed');
+        records=[...root.querySelectorAll('.published-bid-panel')].map(panel=>{
+          const title=clean(panel.querySelector('h2')?.textContent),text=visibleText(panel);
+          const link=[...panel.querySelectorAll('a[href]')].find(a=>!a.href.includes('/page/')&&/https:/.test(a.href));
+          if(!title||!link||!text.includes('Category: Bid Opportunities')||!text.includes('Status: Open'))throw Error('Published civic bid panel changed');
+          const source_url=documentUrl(link,spec),deadline=publishedDeadlineDate(text.match(/Closing Date\/Time:\s*([^]*?)(?:Related Documents:|$)/)?.[1]);
+          return {id:source_url,title,source_url,status:'Open',...(deadline?{deadline}:{})};
+        });
+      }
+      if(!records.length||records.length>100||new Set(records.map(r=>r.id)).size!==records.length)throw Error('Published bid identities missing or duplicated');
+      return {records,total:records.length,terminal:true,evidence:spec.expected_heading==='Published school invitations'?'REQUESTS FOR PROPOSALS':'Bid Opportunities',heading:spec.expected_heading};
+    }
     if(spec.expected_heading==='B2Gnow current solicitations') {
       const heading=clean(doc.querySelector('h2.interiorHeader')?.textContent);
       const scope=clean([...doc.querySelectorAll('p')].find(p=>/^Listed below are current and recent solicitations/.test(clean(p.textContent)))?.textContent);
@@ -212,11 +262,18 @@ export function inspectAutomaticListing(body, spec) {
 }
 
 export function proposeAutomaticListing(body, url) {
-  const dom = new JSDOM(body.toString('utf8'), { virtualConsole: new VirtualConsole() });
-  let heading;
+  const dom = new JSDOM(body.toString('utf8'), { url,virtualConsole: new VirtualConsole() });
+  let heading,observedHosts=[];
   try {
-    const root = dom.window.document.querySelector('main, [role="main"]') ?? dom.window.document.body;
+    const published=publishedPage(dom.window.document,url);
+    const root = published ?? dom.window.document.querySelector('main, [role="main"]') ?? dom.window.document.body;
     heading = [...root.querySelectorAll('h1,h2,h3')].map(h => clean(h.textContent)).find(h => category.test(h));
+    if(root.querySelector('.bidItems.listItems'))heading='CivicPlus bid postings';
+    if(published&&[...root.querySelectorAll('h2')].some(h=>clean(h.textContent)==='REQUESTS FOR PROPOSALS'))heading='Published school invitations';
+    if(published&&root.querySelector('.published-bid-panel')&&[...root.querySelectorAll('h1')].some(h=>clean(h.textContent)==='Bid Opportunities'))heading='Published civic bid panels';
+    if(published)observedHosts=[...new Set([...root.querySelectorAll('a[href]')].flatMap(a=>{
+      try{return safePublicUrl(a.href,[new URL(a.href).hostname])?[new URL(a.href).hostname]:[];}catch{return [];}
+    }))];
     if(!heading&&/There are currently no bids listed\./i.test(root.querySelector('.evo_bids_empty')?.textContent??''))heading='EvoGov bid listing';
     if(!heading&&root.querySelector('table#rpfbids')&&visibleText(root).includes('All current and active bid opportunities are listed below.'))heading='Revize public bids';
     if(!heading&&/View current bid opportunities for the (?:City|Town) of [^.]+\./.test(visibleText(root)))heading='City bid listing';
@@ -228,7 +285,7 @@ export function proposeAutomaticListing(body, url) {
   } finally { dom.window.close(); }
   if (!heading) throw Error('No supported opportunity listing heading');
   const spec = { version: 1, runner_id: 'public-fetch', check_when: 'each_request', urls: [url],
-    allowed_hosts: [new URL(url).hostname], max_bytes: 2_000_000, response_format: 'county-listing-v1',
+    allowed_hosts: [...new Set([new URL(url).hostname,...observedHosts])], max_bytes: 2_000_000, response_format: 'county-listing-v1',
     max_records: 100, expected_heading: heading };
   if(heading==='B2Gnow current solicitations') {
     const d=new JSDOM(body.toString('utf8'),{virtualConsole:new VirtualConsole()});

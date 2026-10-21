@@ -76,13 +76,13 @@ export function validateZeroBasis(packet, result) {
     const page = packet.pages.find(p=>p.run_id===basis.run_id);
     if (!page?.zero_evidence?.eligible || seen.has(basis.run_id) ||
         !clean(basis.locator) || !clean(basis.excerpt) ||
-        !page.zero_evidence.text.includes(clean(basis.excerpt)))
+        !clean(page.zero_evidence.text).includes(clean(basis.excerpt)))
       throw new Error('Zero basis must cite a readable saved listing, not a shell or access page');
     if (basis.kind === 'empty_listing') {
       if (!emptyListing.test(basis.excerpt)) throw new Error('Zero basis lacks an explicit empty-listing marker');
     } else if (basis.kind === 'reviewed_listing') {
       const excluded=result.exclusions.filter(x=>x.evidence?.some(e=>
-        e.run_id===basis.run_id && page.zero_evidence.text.includes(clean(e.excerpt))));
+        e.run_id===basis.run_id && clean(page.zero_evidence.text).includes(clean(e.excerpt))));
       if (!page.zero_evidence.listing || !page.zero_evidence.listing_rows ||
           excluded.length < page.zero_evidence.listing_rows ||
           new Set(excluded.map(x=>x.evidence.find(e=>e.run_id===basis.run_id)?.locator)).size < page.zero_evidence.listing_rows)

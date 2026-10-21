@@ -2,11 +2,19 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
-import {planRegistry,planManual,persistenceSql,canonicalUrl,publicUrl,safeMetadata,stableId} from '../scripts/lib/research-persistence.mjs';
+import {planRegistry,planManual,persistenceSql,canonicalUrl,publicUrl,safeMetadata,stableId,verifyPersistence} from '../scripts/lib/research-persistence.mjs';
 import {planReviewedBatch,hash} from '../scripts/lib/reviewed-batch.mjs';
 const load=p=>JSON.parse(readFileSync(p,'utf8'));
 const before=load('tests/fixtures/research/build-persistence-before.json'),spec=load('tests/fixtures/research/build-registry-spec.json');
 function registered(){const b=structuredClone(before),m=planRegistry(spec,b);for(const d of m.rows){b[d.table]=b[d.table].filter(x=>x.id!==d.row.id);b[d.table].push({...d.row,updated_at:'2026-09-30T20:00:00Z'});}return b;}
+
+test('registry readback accepts equivalent last-success timestamps and rejects a changed time',()=>{
+ const row={id:'method',last_success_at:'2026-10-06T00:06:08.212+00:00'},baseline={project_ref:'project',procurement_source_capabilities:[row]},manifest={project_ref:'project',rows:[{table:'procurement_source_capabilities',before:row,row}]};
+ const after={...baseline,procurement_source_capabilities:[{...row,last_success_at:'2026-10-06T00:06:08.212Z'}]};
+ assert.equal(verifyPersistence(baseline,after,manifest).verified,true);
+ after.procurement_source_capabilities[0].last_success_at='2026-10-06T00:06:09.212Z';
+ assert.equal(verifyPersistence(baseline,after,manifest).verified,false);
+});
 
 test('registry updates normalize database timestamp precision without weakening stale guards',async()=>{
  const {PGlite}=await import('@electric-sql/pglite'),db=new PGlite();

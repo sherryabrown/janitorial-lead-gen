@@ -12,6 +12,7 @@ import {requestPublicCapture} from './public-capture-reuse.mjs';
 import {reviewedPdfLink} from './public-linked-document.mjs';
 import {evidenceText} from './hosted-interpretation.mjs';
 import {inspectForecastText} from './public-forecast.mjs';
+import {publishedPage} from './published-page.mjs';
 const relevant=/procure|bid|solicitat|contract|forecast|award|purchas|janitorial|custodial|cleaning|developer|\bapi\b|vendor|register/i;
 const key=(request,task)=>`api-workflow:discovery:${request}:${task}`;
 const freshCapture=capture=>Number.isFinite(Date.parse(capture.retrieved_at))&&Date.now()-Date.parse(capture.retrieved_at)<=30*86400000;
@@ -21,6 +22,8 @@ export function officialLinks(bytes,url,{automatic=false}={}) {
     const doc=dom.window.document,pattern=automatic?/procure|bid|solicitat|contract|forecast|award|purchas|janitorial|custodial|cleaning|proposal|\brfp\b|\brfq\b|public notices|business (?:office|department)|maintenance|facilities/i:relevant;
     const anchors=[...doc.querySelectorAll('a[href]')];
     if(automatic) {
+      const published=publishedPage(doc,url);
+      if(published)anchors.push(...published.querySelectorAll('a[href]'));
       // Apptegy publishes its navigation as flat, indexed JSON. Read only
       // explicit published links/pages; never evaluate JavaScript or private data.
       try {
@@ -28,8 +31,8 @@ export function officialLinks(bytes,url,{automatic=false}={}) {
         const values=raw&&raw.length<=2_000_000?JSON.parse(raw):null;
         const seenHtml=new Set();
         if(Array.isArray(values)&&values.length<=50000)for(const item of values) {
-          // Published Apptegy page content can contain official bid links that
-          // are absent from the initial DOM. Parse literal HTML, never scripts.
+          // Link hints remain research-only; collection separately requires the
+          // current published page and verified listing contract.
           if(item&&typeof item==='object'&&!Array.isArray(item)&&Object.keys(item).length===1&&
               Number.isInteger(item.html)&&typeof values[item.html]==='string'&&!seenHtml.has(item.html)) {
             seenHtml.add(item.html);
@@ -63,12 +66,13 @@ export function officialLinks(bytes,url,{automatic=false}={}) {
       [[link,{url:link,label:a.textContent.replace(/\s+/g,' ').trim().slice(0,160)}]]:[];}catch{return [];}
   })).values()].slice(0,100);}finally{dom.window.close();}
 }
-export function publicReview(bytes,type) {
+export function publicReview(bytes,type,url) {
   if(/pdf/i.test(type))return 'PDF saved; use existing document extraction before method activation';
   if(!/html/i.test(type))return bytes.toString('utf8').slice(0,12000);
   const dom=new JSDOM(bytes.toString('utf8'),{virtualConsole:new VirtualConsole()});
-  try{for(const node of dom.window.document.querySelectorAll('script,style,noscript,form,input'))node.remove();
-    return (dom.window.document.body?.textContent??'').replace(/\s+/g,' ').trim().slice(0,12000);
+  try{const published=url?publishedPage(dom.window.document,url):null;
+    for(const node of dom.window.document.querySelectorAll('script,style,noscript,form,input'))node.remove();
+    return (published?.textContent??dom.window.document.body?.textContent??'').replace(/\s+/g,' ').trim().slice(0,12000);
   }finally{dom.window.close();}
 }
 export function validateDiscoveryReview(packet,input,task,registeredSource=null) {
@@ -154,7 +158,7 @@ export function publicDiscovery({db,artifacts,persist,reconcileHandoffs,resolveS
     for(const id of c.run_ids) {
       const capture=checked(await db.from('procurement_public_captures').select('*').eq('run_id',id).single());
       const bytes=Buffer.from(capture.content_base64,'base64');if(sha(bytes)!==capture.content_sha256)throw new Error('Capture hash changed');
-      p.pages.push({run_id:id,url:capture.final_url,requested_url:capture.requested_url,content_sha256:capture.content_sha256,content_type:capture.content_type,review:publicReview(bytes,capture.content_type)});
+      p.pages.push({run_id:id,url:capture.final_url,requested_url:capture.requested_url,content_sha256:capture.content_sha256,content_type:capture.content_type,review:publicReview(bytes,capture.content_type,capture.final_url)});
     }
     c.packet_artifact=await artifacts.put(p);c.stage=c.automation_policy===automaticCountyPolicy?'discovery_verify':'discovery_review';
     c.next_action='Review captured category evidence and portal/API links, then submit an evidence-bound method; keep unsupported categories as gaps. Paid search is disabled under the strict cap';
@@ -278,7 +282,15 @@ export function publicDiscovery({db,artifacts,persist,reconcileHandoffs,resolveS
     if(!safePublicUrl(url,allowedHosts))throw new Error('Discovery destination outside saved official host');
     const pageIndex=(c.page_offset??0)+c.visited.length;
     const prior=await rows(db,'procurement_runs',q=>q.eq('job_id',job.id).eq('page_index',pageIndex));let run=prior[0];
-    if(run&&run.detail?.state!=='content_saved')throw new Error('Prior fetch outcome requires reconciliation; no repeat fetch');
+    if(run&&run.detail?.state!=='content_saved') {
+      // A saved, definitive fetch failure is already reconciled. Preserve it as
+      // source attention instead of throwing on every continuation. An unknown
+      // request_pending outcome still must never cause another fetch.
+      if(run.status==='blocked'&&run.finished_at&&run.detail?.reason) {
+        c.blocker=run.detail.reason;await finish(job,c,save);return;
+      }
+      throw new Error('Prior fetch outcome requires reconciliation; no repeat fetch');
+    }
     if(!run) {
       run=checked(await db.from('procurement_runs').insert({source_id:source.id,job_id:job.id,coverage_task_id:c.task_id,page_index:pageIndex,
         page_attempt:1,started_at:new Date().toISOString(),status:'partial',record_count:0,

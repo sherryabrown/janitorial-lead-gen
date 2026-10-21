@@ -1,5 +1,7 @@
 import {JSDOM,VirtualConsole} from 'jsdom';
 import {inspectPublicHtmlTable} from './public-html-table.mjs';
+import {inspectPublicJsonListing} from './public-json-listing.mjs';
+import {evidenceText} from './hosted-interpretation.mjs';
 import {publishedDeadlineDate} from './automatic-public-method.mjs';
 import {inspectAutomaticListing} from './automatic-public-method.mjs';
 import {inspectB2gDetail} from './public-b2g-details.mjs';
@@ -42,21 +44,38 @@ export function publicTableFinding(body,record,evidence,page) {
 export async function continuePublicTableDetails({context,packet,supporting,checkpoint,save,actor}) {
   const spec=context.capability.method_spec;
   const b2g=spec.response_format==='county-listing-v1'&&spec.public_details?.provider==='b2gnow';
-  if(!packet.automatic_county||!b2g&&spec.response_format!=='html-table-v1'||!spec.public_details)return true;
+  const summaries=spec.response_format==='json-files-v1'&&spec.public_details?.provider==='bid-summary-pdf';
+  if(!packet.automatic_county||!b2g&&!summaries&&spec.response_format!=='html-table-v1'||!spec.public_details)return true;
   checkpoint.public_table_details??={};
-  const records=packet.pages.flatMap(page=>(b2g?inspectAutomaticListing(page.body,spec):inspectPublicHtmlTable(page.body,spec)).records.filter(r=>relevant.test(r.title)).map(record=>({record,page})));
+  const records=packet.pages.flatMap(page=>(b2g?inspectAutomaticListing(page.body,spec):summaries?inspectPublicJsonListing(page.body,spec):inspectPublicHtmlTable(page.body,spec)).records.filter(r=>relevant.test(r.title)).map(record=>({record,page})));
   const state=checkpoint.public_table_details[packet.task_id]??={packet_hash:packet.packet_hash,entries:[]};
   if(state.packet_hash!==packet.packet_hash)throw Error('Saved public detail packet changed; reconcile before retry');
   for(const {record,page} of records.slice(0,5)) {
     let entry=state.entries.find(e=>e.id===record.id);
     if(!entry) {
-      entry={id:record.id,record,url:b2g?record.detail_url:record.source_url,state:'attempt_pending'};state.entries.push(entry);await save('running');
+      entry={id:record.id,record,url:b2g?record.detail_url:summaries?record.url:record.source_url,state:'attempt_pending'};state.entries.push(entry);await save('running');
       try {const outcome=await supporting.capture(context,packet,{packet_hash:packet.packet_hash,url:entry.url},actor);Object.assign(entry,outcome);}
       catch(error){if(['schedule_paused','request_cancelled'].includes(error.code)){state.entries.pop();await save('running');}throw error;}
       await save('pending');return false;
     }
     if(entry.state==='captured') {
       const body=await supporting.load(context,packet,entry);
+      if(summaries){
+        entry.detail={reason:'Published bid summary requires matching organization, bid identity and a past opening date; no award winner is inferred.'};
+        if(/^application\/pdf/i.test(entry.content_type)){
+          const pages=await evidenceText({...entry,body}),bid=record.title.match(/^\d{2}-\d{4}\b/)?.[0];
+          const proof=pages.find(p=>bid&&p.text.startsWith(`${spec.public_details.organization} ${bid} BID SUMMARY `));
+          const literal=proof?.text.match(/BID SUMMARY ([A-Z][a-z]+ \d{1,2}, \d{4}) @ .+?Opened by:/)?.[1];
+          const opening=literal&&publishedDeadlineDate(literal);
+          if(opening&&packet.category==='opportunity'&&packet.query_window.date_basis==='deadline'&&opening<packet.query_window.from){
+            entry.exclusion={reason:`Official bid summary records a ${opening} opening before this request window; this is historical bidding evidence, not an open opportunity or an award.`,
+              evidence:[{run_id:page.run_id,locator:'published bid summary row',excerpt:record.title}],
+              supporting_evidence:[{...Object.fromEntries(['url','content_type','content_sha256','retrieved_at','local_path','capture_receipt'].map(k=>[k,entry[k]])),
+                locator:proof.locator,excerpt:proof.text.slice(0,2000)}]};
+          }
+        }
+        continue;
+      }
       if(b2g){entry.detail=inspectB2gDetail(body,record,spec);continue;}
       entry.finding=publicTableFinding(body,record,entry,page);
       if(entry.finding)entry.finding.supporting_evidence=await Promise.all(entry.finding.supporting_evidence.map(e=>supporting.portable(context,packet,e)));
@@ -69,6 +88,8 @@ export function applyPublicTableDetails(extraction,packet,checkpoint) {
   const entries=checkpoint.public_table_details?.[packet.task_id]?.entries??[];
   return {...extraction,facts:extraction.facts.map(fact=>{
     const entry=entries.find(e=>e.id===(fact.record?.id??fact.verified_finding?.record_id)),finding=entry?.finding;
+    if(entry?.exclusion)return {...fact,verified_exclusion:entry.exclusion};
+    if(entry?.detail&&entry?.record?.url)return {...fact,detail_attention:entry.detail.reason};
     if(entry?.detail||entry?.record?.detail_url&&entry.state!=='captured'){
       const {verified_finding,...original}=fact;void verified_finding;
       return {...original,record:entry.record,title:entry.record.title,detail_attention:entry.detail?.reason??

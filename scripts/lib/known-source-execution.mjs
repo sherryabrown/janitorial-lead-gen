@@ -101,9 +101,13 @@ export function adapterContract(capability, source, now = new Date()) {
          spec.row_selector !== 'tr.rgRow, tr.rgAltRow'))
       fail('HTML bid table needs a bounded, verified organization contract');
     const b2gDetails=spec.public_details?.provider==='b2gnow';
+    const summaryDetails=spec.public_details?.provider==='bid-summary-pdf';
+    if(summaryDetails&&(spec.response_format!=='json-files-v1'||!/^\d{4}$/.test(spec.expected_category)||
+        Object.keys(spec.public_details).sort().join(',')!=='organization,provider'||!spec.public_details.organization?.trim()))
+      fail('Published bid summaries require a verified annual document listing and organization');
     if(b2gDetails&&(spec.response_format!=='county-listing-v1'||spec.expected_heading!=='B2Gnow current solicitations'||
         Object.keys(spec.public_details).length!==1||!spec.expected_organization?.trim()))fail('Public B2Gnow details need the verified agency listing');
-    if(spec.public_details && !b2gDetails && (spec.response_format!=='html-table-v1'||spec.public_details.key!=='BidID'||
+    if(spec.public_details && !b2gDetails && !summaryDetails && (spec.response_format!=='html-table-v1'||spec.public_details.key!=='BidID'||
         spec.public_details.client_state_selector!=='input#ctl00_mainContent_rgBidList_ClientState'||
         !safePublicUrl(spec.public_details.endpoint,spec.allowed_hosts)||
         new URL(spec.public_details.endpoint).origin!==new URL(spec.urls[0]).origin||
