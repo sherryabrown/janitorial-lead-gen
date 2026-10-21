@@ -1,4 +1,4 @@
-import {rows} from './hosted-store.mjs';
+import {rows,checked} from './hosted-store.mjs';
 import {historyFilters,activityTiming} from './admin-run-history.mjs';
 import {latestOccurrence,nextOccurrence} from './schedule-recurrence.mjs';
 import {usageSummary} from './workflow-audit.mjs';
@@ -56,7 +56,7 @@ function outcomes(run,jobs,selectedCategory){
  if(selectedCategory&&!categoryComplete)complete=false;
  return {records:filtered,complete,categoryComplete,resolved};
 }
-export function aggregateAnalytics({runs,jobs=[],children=[],usage=[],steps=[],tasks=[],targets=[],intakes=[]},f){
+export function aggregateAnalytics({runs,jobs=[],children=[],usage=[],steps=[],tasks=[],targets=[],intakes=[],timingUnavailable=false},f){
  const uniqueUsage=[...new Map(usage.map(u=>[u.id,u])).values()];
  const inPeriod=value=>Date.parse(value)<=Date.parse(f.as_of)&&(!f.start||Date.parse(value)>=Date.parse(f.start))&&Date.parse(value)<Date.parse(f.end);
  const periodRuns=runs.filter(r=>inPeriod(r.created_at));
@@ -90,6 +90,7 @@ export function aggregateAnalytics({runs,jobs=[],children=[],usage=[],steps=[],t
    if(task.source_id){sourceIds.add(task.source_id);runSources.add(task.source_id);}else{const target=targets.find(t=>t.id===task.target_id),key=`${target?.geography_id??target?.target_key??task.target_id}:${task.kind}`;routeGaps.add(key);runGaps.add(key);}
   }
   const timing=activityTiming(run,steps.filter(s=>s.trigger_id===run.id));
+  if(timingUnavailable)timing.reason='Recorded activity unavailable for this selection; view run logs.';
   if(timing.created_to_finished_ms!==null)durationSamples.push(timing.created_to_finished_ms);
   rowsOut.push({id:run.id,schedule_id:run.schedule_id??null,target_kind:run.target_kind,origin:run.origin,state:run.state,created_at:run.created_at,
    leads:Object.fromEntries(Object.entries(counts).map(([k,v])=>[k,run.config?.check_updates===false?{value:null,known_subtotal:0,completeness:'not_applicable',reason:'Source maintenance only'}:metric(v,result.complete,incomplete)])),
@@ -108,7 +109,7 @@ export function aggregateAnalytics({runs,jobs=[],children=[],usage=[],steps=[],t
   run_events:Object.fromEntries(Object.keys(rank).map(k=>[k,metric(rowsOut.reduce((sum,r)=>sum+r.leads[k].known_subtotal,0),complete,incomplete)])),
   candidates_attention:metric(attention.size,attentionComplete,'Some candidate dispositions are unavailable.'),validation_failures:metric(validation.size,attentionComplete,'Some candidate dispositions are unavailable.'),
   sources_attention:sourceIds.size,route_gaps:routeGaps.size,
-  timing:{average_ms:n?durationSamples.reduce((a,b)=>a+b,0)/n:null,median_ms:n?(durationSamples[Math.floor((n-1)/2)]+durationSamples[Math.floor(n/2)])/2:null,samples:n,excluded:rowsOut.length-n},usage:summary},
+  timing:{average_ms:n?durationSamples.reduce((a,b)=>a+b,0)/n:null,median_ms:n?(durationSamples[Math.floor((n-1)/2)]+durationSamples[Math.floor(n/2)])/2:null,samples:n,excluded:rowsOut.length-n,recorded_activity_unavailable:timingUnavailable},usage:summary},
   coverage:{first_run:periodRuns.map(r=>r.created_at).sort((a,b)=>Date.parse(a)-Date.parse(b))[0]??null,last_run:periodRuns.map(r=>r.created_at).sort((a,b)=>Date.parse(a)-Date.parse(b)).at(-1)??null,
    verified_identity_runs:rowsOut.filter(r=>r.leads.added.completeness==='known').length,total_runs:rowsOut.length}};
 }
@@ -134,14 +135,20 @@ export function adminAnalytics(db,{now=()=>new Date()}={}){
   const usage=f.period==='all'?await batch('procurement_usage_ledger','trigger_id',[...periodIds],usageColumns):await rows(db,'procurement_usage_ledger',q=>q.gte('created_at',f.start).lt('created_at',f.end).lte('created_at',f.as_of),usageColumns);
   const olderIds=[...new Set(usage.map(u=>u.trigger_id).filter(id=>id&&!periodIds.has(id)))];
   for(let i=0;i<olderIds.length;i+=50)runs.push(...await rows(db,'procurement_triggers',q=>scope(q).in('id',olderIds.slice(i,i+50)),runColumns));
-  const [children,steps]=await Promise.all([batch('procurement_trigger_requests','trigger_id',[...periodIds],'trigger_id,request_id,role'),
-   batch('procurement_workflow_steps','trigger_id',[...periodIds],'id,trigger_id,started_at,finished_at')]);
+  // Reuse History's timing fallback: an oversized log selection must not hide
+  // lead/usage totals or fabricate a duration from a truncated interval set.
+  const timingRead=async()=>{
+   const ids=[...periodIds];let count=0;
+   for(let i=0;i<ids.length;i+=50){const r=await db.from('procurement_workflow_steps').select('id',{head:true,count:'exact'}).in('trigger_id',ids.slice(i,i+50));checked(r);if(!Number.isInteger(r.count)||r.count<0)return {steps:[],unavailable:true};count+=r.count;if(count>=10000)return {steps:[],unavailable:true};}
+   try{return {steps:await batch('procurement_workflow_steps','trigger_id',ids,'id,trigger_id,started_at,finished_at'),unavailable:false};}catch(error){if(error.message!=='Scoped read exceeded bound; narrow the query before proceeding')throw error;return {steps:[],unavailable:true};}
+  };
+  const [children,timing]=await Promise.all([batch('procurement_trigger_requests','trigger_id',[...periodIds],'trigger_id,request_id,role'),timingRead()]);
   const requests=children.map(c=>c.request_id);
   const [projected,targets]=await Promise.all([batch('procurement_jobs','search_request_id',requests,'id,search_request_id,task_id,kind,state,updated_at,a:checkpoint->automatic,r:checkpoint->receipt,c:checkpoint->county_records,v:checkpoint->reporting_records,s:checkpoint->>stage,b:checkpoint->>blocker,e:checkpoint->>error_code,h:checkpoint->hosted_browser_attempt,t:checkpoint->>task_id,sx:checkpoint->automatic_exclusions,sc:checkpoint->automatic_completed'),batch('procurement_request_targets','search_request_id',requests,'id,search_request_id,geography_id,target_key')]);
   const jobs=projected.map(j=>({...j,checkpoint:{automatic:j.a,receipt:j.r,county_records:j.c,reporting_records:j.v,stage:j.s,blocker:j.b,error_code:j.e,hosted_browser_attempt:j.h,task_id:j.t,sam_exclusions:j.sx,sam_completed:j.sc}}));
   const exclusionIds=jobs.flatMap(j=>(j.checkpoint.automatic?.exclusions??j.checkpoint.sam_exclusions??[]).map(e=>e.intake_id)).filter(Boolean);
   const [tasks,intakes]=await Promise.all([batch('procurement_coverage_tasks','target_id',targets.map(t=>t.id),'id,target_id,source_id,kind,state,reason'),batch('procurement_intake_items','id',exclusionIds,'id,status,category:payload->>bid_type')]);
-  const result=aggregateAnalytics({runs,jobs,children,usage,steps,tasks,targets,intakes},f);
+  const result=aggregateAnalytics({runs,jobs,children,usage,steps:timing.steps,tasks,targets,intakes,timingUnavailable:timing.unavailable},f);
   const fingerprint=hash(result);if(snapshot&&snapshot!==fingerprint)throw Error('Analytics changed; refresh this report before paging.');
   const factor=f.direction==='asc'?1:-1;
   result.runs.sort((a,b)=>{const av=f.sort==='activity'?a.timing.recorded_activity_ms:f.sort==='created_at'?a.created_at:a.leads[f.sort].value,bv=f.sort==='activity'?b.timing.recorded_activity_ms:f.sort==='created_at'?b.created_at:b.leads[f.sort].value;return av===null?(bv===null?a.id.localeCompare(b.id):1):bv===null?-1:factor*(av<bv?-1:av>bv?1:a.id.localeCompare(b.id));});

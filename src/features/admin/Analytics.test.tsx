@@ -28,3 +28,7 @@ it('aborts stale filters and never replaces the new report with an earlier respo
 it('schedule totals use the existing schedule identity and all-time reporting scope',async()=>{
  render(<ScheduleAnalyticsSummary id="schedule"/>);await screen.findByRole('heading',{name:'All-time available results'});expect(mocked.request.mock.calls[0][0]).toContain('schedule=schedule&period=all');
 });
+it('keeps metrics and trustworthy completion samples visible when detailed step history is too large',async()=>{
+ mocked.request.mockImplementation(async(path:string)=>path.startsWith('/v1/schedules')?{items:[],next_offset:null}:{...report,summary:{...report.summary,timing:{average_ms:60000,median_ms:60000,samples:2,excluded:24,recorded_activity_unavailable:true}}});
+ render(<Analytics owner="a" counties={[]} onView={()=>{}}/>);await screen.findByText('Recorded activity unavailable for this selection; view run logs.');expect(screen.getByRole('heading',{name:'Validated results'})).toBeTruthy();expect(screen.getByText('2 / 24')).toBeTruthy();expect(screen.queryByRole('alert')).toBeNull();
+});

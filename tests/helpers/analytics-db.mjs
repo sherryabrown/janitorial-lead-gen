@@ -31,5 +31,10 @@ export async function verifyAnalyticsDatabase({sql,db}){
  await sql.query(`insert into procurement_triggers(target_kind,config,initiated_by,client_key,submission_hash,schedule_id,state,created_at)select 'sam','{}',$1,$2||n,'hash',$3,'completed','2026-01-01T12:00:00Z' from generate_series(1,2000)n`,[actor,'analytics-old-'+sid,sid]);
  assert.equal((await service(filter)).total,30,'A large older history does not prevent bounded period reporting');
  await assert.rejects(service({schedule:sid,period:'all'}),/exceeded bound/);
+ await sql.query(`insert into procurement_workflow_steps(trigger_id,phase,attempt_key,state,actor_id,origin,started_at,finished_at)select $1,'compare',$2||n,'completed',$3,'manual','2026-10-20T12:00:00Z','2026-10-20T12:00:01Z' from generate_series(1,10000)n`,[runIds[0],'analytics-large-log-'+sid,actor]);
+ const largeLogs=await service(filter);
+ assert.equal(largeLogs.total,30);assert.equal(largeLogs.summary.unique_leads.known_subtotal,1);assert.equal(largeLogs.summary.usage.actual_usd,0.5);
+ assert.equal(largeLogs.summary.timing.samples,30);assert.equal(largeLogs.summary.timing.recorded_activity_unavailable,true);
+ assert.ok(largeLogs.items.every(r=>r.timing.recorded_activity_ms===null&&r.timing.completeness==='unknown'&&r.timing.reason.includes('view run logs')),'Oversized logs never hide unrelated analytics or become truncated timing');
  return {runs:31,paged:true,grouped_parent_once:true,snapshot_change_rejected:true};
 }

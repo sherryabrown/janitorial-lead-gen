@@ -27,6 +27,8 @@ Period queries read the requested run-creation interval and ledger-event interva
 
 Safety bounds: fewer than 2,000 period runs (or schedule all-time runs), fewer than 10,000 rows per related data set, and at most 367 inclusive calendar dates per custom period. Oversized selections fail explicitly with a narrow-period/scope action; **no truncated aggregates are displayed**. Large all-time selections may require a future SQL aggregate extension. A narrow period continues to work when older history exceeds the all-time bound.
 
+Release verification on 2026-10-21 found 31,201 saved step logs across 39 runs. The timing-only bound now follows History's existing fallback: an indexed count preflight avoids downloading oversized intervals; recorded activity becomes explicitly unknown with a View run logs action. Lead, source, usage and trustworthy created-to-finished metrics remain available. A concurrent count/read expansion also falls back safely; truncated intervals are never used as timing. Native regression fixtures cover this case.
+
 ## UI and preservation
 
 Stats uses existing Settings navigation, filter controls, InfoTooltip, structured metric rows and responsive history table styling. Filters are owner scoped and cleared at sign-out; stale reads abort. Run drilldown preserves mounted filters, sort, page, scroll/focus and browser Back; filters survive reload. Schedule Overview adds compact all-time totals without moving its tabs, replacing the run list or adding another latest-run panel. Schedule list usage stays last-run based.

@@ -43,3 +43,5 @@ Reuse shared reporting helper, countyImportStatus, hosted-sam verified receipt c
 - Netlify production remains unchanged. No commit, push, shared migration or deployment was performed. Coordinated release remains a separately authorized step.
 
 Proposed commit: `feat: add verified admin analytics`.
+
+Release continuation (2026-10-21): requested commit2621ffd was pushed and deployed to Render first. Live acceptance found31,201 historical step logs, exceeding the timing bound. The follow-up preserves the rest of analytics using the existing History timing fallback, adds a count preflight and keeps recorded activity explicitly unknown with a logs action. No schema, collection, import or budget change is needed. Expanded native/UI regressions cover oversized logs while retaining lead/spend totals and trustworthy finish samples. Preview publication waits for this corrected backend to pass live acceptance; Netlify production remains unchanged.
