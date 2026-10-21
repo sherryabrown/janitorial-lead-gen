@@ -213,6 +213,10 @@ export function countyTriggers({db,discovery,workflow,audit,automaticCounty}) {
                 ()=>discovery(child.request_id,{task_id:task.id,...(seed?{seed_source_id:seed}:{})},t.initiated_by),{task_id:task.id,source_id:task.source_id});
             }
           }
+          // Research may register an entry without verifying a collection method.
+          // Hand its queued initial capture back to the existing leased worker.
+          if(child.role==='county'||child.role==='state_research')
+            await workflow.continueVerifiedCollection?.(request.id,{initialCapturesOnly:true});
           const automatic=child.role==='county'?await automaticCounty?.(request.id):null;
           const jobs=await rows(db,'procurement_jobs',q=>q.eq('search_request_id',child.request_id),'id,state,kind,checkpoint,dedupe_key');
           const legacyWait=job=>automatic&&job.state==='blocked'&&(

@@ -25,6 +25,7 @@ export async function verifyAutomaticCounty({db,artifacts,audit,livePool,rehears
     else if(url==='https://lrsd.ionwave.net/SourcingEvents.aspx?SourceType=1')body=readFileSync('tests/fixtures/county/lrsd-empty-published.html');
     else if(url==='https://clintonairport.gob2g.com/FrontEnd/proposalsearchpublic.asp')body=readFileSync('tests/fixtures/county/airport-b2g-published.html');
     else if(url==='https://vendors.planetbids.com/portal/90401/portal-home')return new Response(null,{status:202});
+    else if(url==='https://saline-entry.example/')body='<main><h1>Saline County official website</h1><p>Contact purchasing for publication details.</p></main>';
     else if(url==='https://forecast.example/contractors/')body='<a href="/September.pdf">View the Forecast</a>';
     else if(url==='https://forecast.example/September.pdf')return new Response(readFileSync('tests/fixtures/county/airport-forecast-published.pdf'),{headers:{'content-type':'application/pdf'}});
     else throw Error(`Unexpected isolated county destination ${url}`);
@@ -227,5 +228,31 @@ export async function verifyAutomaticCounty({db,artifacts,audit,livePool,rehears
   assert.ok(Date.parse(renewedForecast.verified_until)>Date.now(),'Expired linked forecast method renews only after fresh index and recognizable PDF capture');
   assert.equal(renewedForecast.method,'document');
   assert.equal(calls.includes(forecastSource.url),false,'Renewal retains identity while following the reviewed current index');
-  return {source_count:sources.length,candidates:status.total_candidates,scheduled_candidates:scheduledStatus.total_candidates,canonical_writes:2};
+  // Reproduce late directory registration after the leased interpreter has
+  // already stopped. No verified method or manual collector invocation follows.
+  await livePool.query("insert into procurement_geographies(id,kind,name,dataset_url,dataset_version,dataset_hash) values('05125','county','Saline County','fixture','1','late-entry') on conflict(id) do nothing");
+  const salineActor=randomUUID();await livePool.query('insert into auth.users(id) values($1)',[salineActor]);
+  const salinePreview=await triggers.preview({...config,maintain_sources:false,check_updates:true,county_ids:['05125']});
+  const saline=await triggers.submit({...salinePreview.config,confirmed_scope:true,preview_hash:salinePreview.preview_hash},salineActor,'saline-late-entry-capture');
+  for(let n=0;n<50;n++)if(!await workflow.step()&&!await triggers.step())break;
+  const salineChild=checked(await db.from('procurement_trigger_requests').select('*').eq('trigger_id',saline.trigger_id)).find(c=>c.role==='county');
+  const salineRequest=salineChild.request_id;
+  assert.equal((await livePool.query("select state from procurement_jobs where search_request_id=$1 and dedupe_key=$2",[salineRequest,`api-workflow:${salineRequest}`])).rows[0].state,'blocked');
+  const lateSource={...offline,id:randomUUID(),identity_key:randomUUID(),code:'saline-late-entry',name:'Saline County late official entry',url:'https://saline-entry.example/',contracting_entity_geo_level:'county',source_coverage_areas:[{area_type:'county',county_name:'Saline County',state_code:'AR'}]};
+  checked(await db.from('procurement_sources').insert(lateSource));
+  await executeKnownSources({db,project,artifacts,command:'plan',requestId:salineRequest});
+  const entry=(await livePool.query("select j.id from procurement_jobs j join procurement_coverage_tasks t on t.id=j.task_id where j.search_request_id=$1 and t.source_id=$2 and t.kind='source_entry' and j.state='pending'",[salineRequest,lateSource.id])).rows[0];
+  assert.ok(entry,'Registration and replan queue the initial check');
+  await triggers.wake(salineRequest);
+  for(let n=0;n<50;n++)if(!await workflow.step()&&!await triggers.step())break;
+  if(errors.length)throw errors[0];
+  assert.equal((await livePool.query('select state from procurement_jobs where id=$1',[entry.id])).rows[0].state,'succeeded','Coordinator hands the initial capture to the existing worker');
+  const captures=(await livePool.query('select * from procurement_runs where job_id=$1',[entry.id])).rows;
+  assert.equal(captures.length,1,'Exactly one saved initial capture');
+  assert.equal(calls.filter(url=>url===lateSource.url).length,1);
+  assert.equal((await livePool.query("select count(*)::integer as n from procurement_jobs where search_request_id=$1 and state in ('pending','running')",[salineRequest])).rows[0].n,0,'Saline settles without orphaned work');
+  await workflow.continueVerifiedCollection(salineRequest,{initialCapturesOnly:true});
+  assert.equal(await workflow.step(),false,'Completed entry checks do not create a polling loop');
+  assert.equal(checked(await db.from('procurement_leads').select('id').eq('source_id',lateSource.id)).length,0,'Entry capture alone cannot invent an opportunity');
+  return {source_count:sources.length,candidates:status.total_candidates,scheduled_candidates:scheduledStatus.total_candidates,canonical_writes:2,saline_initial_captures:captures.length};
 }

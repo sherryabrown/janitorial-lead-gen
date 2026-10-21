@@ -272,12 +272,21 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
   async function control(requestId,action,actor) {
     return rpc('control_procurement_workflow',{p_request:requestId,p_actor:actor,p_action:action});
   }
-  async function continueVerifiedCollection(requestId) {
+  async function continueVerifiedCollection(requestId,{initialCapturesOnly=false}={}) {
     const request=await one(db,'procurement_search_requests',requestId);
     if(request.workflow_control?.cancelled||request.workflow_control?.check_updates===false)return;
     const job=checked(await db.from('procurement_jobs').select('id,state,checkpoint,updated_at')
       .eq('search_request_id',requestId).eq('dedupe_key',`api-workflow:${requestId}`).maybeSingle());
     if(job?.state==='blocked'&&!job.checkpoint?.error_code&&job.checkpoint?.stage==='interpret') {
+      if(initialCapturesOnly) {
+        // Directory registration can enqueue entry captures after interpretation stops,
+        // even when no runnable opportunity method was found. Resume only untouched
+        // entry checks; partial reads and browser challenges retain explicit controls.
+        const pending=await rows(db,'procurement_jobs',q=>q.eq('search_request_id',requestId).eq('kind','collect').eq('state','pending'));
+        if(!pending.length)return;
+        const entries=await rows(db,'procurement_coverage_tasks',q=>q.in('id',pending.map(j=>j.task_id)).eq('kind','source_entry'));
+        if(!entries.length)return;
+      }
       checked(await db.from('procurement_jobs').update({state:'pending',checkpoint:{...job.checkpoint,stage:'collect'}})
         .eq('id',job.id).eq('state','blocked').eq('updated_at',job.updated_at));
     }

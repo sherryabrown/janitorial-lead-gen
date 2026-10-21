@@ -19,6 +19,20 @@ async function call(server,path,{method='GET',headers={},input}={}) {
 }
 const actor=id(88),auth={authorization:'Bearer valid-session','content-type':'application/json'};
 
+test('initial capture handoff resumes only a safe blocked interpreter with pending entry work',async()=>{
+ for(const scenario of ['queued','running','unknown','error','cancelled','maintenance','partial','browser','none','race']) {
+  const request={id:id(1),workflow_control:{...(scenario==='cancelled'?{cancelled:true}:{}),...(scenario==='maintenance'?{check_updates:false}:{})}};
+  const job={id:id(2),search_request_id:request.id,dedupe_key:`api-workflow:${request.id}`,state:scenario==='running'?'running':scenario==='unknown'?'outcome_unknown':'blocked',updated_at:'version',checkpoint:{stage:'interpret',interpreted_task_ids:[id(9)],...(scenario==='error'?{error_code:'workflow_stage_failed'}:{})}};
+  const tables={procurement_search_requests:[request],procurement_jobs:[job,...(scenario==='none'?[]:[{id:id(3),search_request_id:request.id,kind:'collect',task_id:id(4),state:scenario==='partial'?'partial':'pending'}])],procurement_coverage_tasks:[{id:id(4),kind:scenario==='browser'?'opportunity':'source_entry'}]};
+  const db={from(table){const filters=[];let single=false,patch;
+   const q={select(){return this;},order(){return this;},range(){return this;},eq(k,v){filters.push(r=>r[k]===v);return this;},in(k,v){filters.push(r=>v.includes(r[k]));return this;},maybeSingle(){single=true;return this;},single(){single=true;return this;},update(value){patch=value;if(scenario==='race')job.updated_at='new-version';return this;},then(resolve,reject){const data=(tables[table]??[]).filter(r=>filters.every(f=>f(r)));if(patch)for(const row of data)Object.assign(row,patch);return Promise.resolve({data:structuredClone(single?data[0]:data)}).then(resolve,reject);}};return q;}};
+  await hostedWorkflow({db}).continueVerifiedCollection(request.id,{initialCapturesOnly:true});
+  assert.equal(job.state,scenario==='queued'?'pending':scenario==='running'?'running':scenario==='unknown'?'outcome_unknown':'blocked',scenario);
+  assert.equal(job.checkpoint.stage,scenario==='queued'?'collect':'interpret',scenario);
+  assert.deepEqual(job.checkpoint.interpreted_task_ids,[id(9)]);
+ }
+});
+
 test('county continuation rejects client authority flags and successful reconciliation wakes only its owning trigger',async()=>{
  let prepared=0,wakes=0;
  const server=workflowServer({authenticate:async()=>({id:actor}),kick:()=>{},workflow:{},
