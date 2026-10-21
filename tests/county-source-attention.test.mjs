@@ -30,6 +30,8 @@ test('verified Added or Unchanged Saline-style saves need exact intake/request l
  }
 });
 test('blockers use safe fixed copy, distinguish actual access from denial, and restrict retries',()=>{
+ const verification=sourceAttention({...task,state:'partial',evidence:{reason:'Website verification required'}},[]);
+ assert.equal(verification.kind,'automation');assert.match(verification.next_action,/website operator/);
  const job=c=>({id:'discovery',kind:'discover',state:'blocked',checkpoint:{task_id:'gap',stage:'discovery_verify',automation_policy:'county-public-v1',...c}});
  assert.equal(sourceAttention(task,[job({hosted_browser_attempt:{failure_code:'human_verification_required'}})]).kind,'manual_action');
  const denied=sourceAttention(task,[job({blocker:'HTTP 403'})]);assert.equal(denied.kind,'access');assert.doesNotMatch(denied.blocker,/Cloudflare|human/);assert.equal(denied.action_kind,'evidence');

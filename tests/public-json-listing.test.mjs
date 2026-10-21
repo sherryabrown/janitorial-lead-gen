@@ -31,6 +31,7 @@ test('verified JSON document listing is reusable across geography and source cod
   assert.equal(inspectPublicJsonListing(body(false), contract).terminal, true);
   assert.equal(inspectPublicJsonListing(body(true), contract).terminal, false);
   assert.throws(() => inspectPublicJsonListing(Buffer.from('<html>blocked</html>'), contract), /not JSON/);
+  assert.throws(()=>inspectPublicJsonListing(Buffer.from('<html><title>One moment, please...</title><p>Please wait while your request is being verified...</p><script>neverExecute()</script></html>'),contract),/Website verification required/);
   assert.throws(() => inspectPublicJsonListing(Buffer.from(JSON.stringify({
     category: { name: 'Other' }, pagination: false, files: [] })), contract), /category changed/);
   assert.throws(() => inspectPublicJsonListing(Buffer.from(JSON.stringify({

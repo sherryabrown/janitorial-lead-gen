@@ -7,7 +7,12 @@ export function inspectPublicJsonListing(body, spec) {
       !clean(spec.expected_category)) throw new Error('Unverified JSON listing contract');
   let data;
   try { data = JSON.parse(Buffer.isBuffer(body) ? body.toString('utf8') : body); }
-  catch { throw new Error('Source response is not JSON'); }
+  catch {
+    const text=Buffer.isBuffer(body)?body.toString('utf8'):String(body);
+    if(/<title>\s*One moment, please\.{3}\s*<\/title>/i.test(text)&&/Please wait while your request is being verified/i.test(text))
+      throw new Error('Website verification required');
+    throw new Error('Source response is not JSON');
+  }
   if (!data || !Array.isArray(data.files) || !data.category ||
       clean(data.category.name) !== spec.expected_category ||
       data.files.length > spec.max_records)
