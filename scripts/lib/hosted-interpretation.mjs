@@ -139,7 +139,7 @@ export function evaluateFacts(packet,extraction) {
       continue;
     }
     const record=fact.record;
-    if(fact.verified_exclusion){result.exclusions.push(fact.verified_exclusion);continue;}
+    if(fact.verified_exclusion){result.exclusions.push({...fact.verified_exclusion,evidence});continue;}
     if(fact.detail_attention){result.unresolved.push({reason:fact.detail_attention,evidence});continue;}
     if(fact.forecast_attention) {
       const period=forecastQuarter(record.planned_advertisement_period);

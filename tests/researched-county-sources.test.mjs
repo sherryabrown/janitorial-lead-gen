@@ -41,22 +41,24 @@ for(const [name,url,total] of [
 });
 test('published bid-summary PDFs resolve past opportunities with signed evidence, never presumed awards or invented deadlines',async()=>{
  const listing=readFileSync('tests/fixtures/county/nlr-janitorial-summary-listing.json'),pdf=readFileSync('tests/fixtures/county/nlr-janitorial-bid-summary.pdf');
+ const otherPdf=readFileSync('tests/fixtures/county/nlr-janitorial-phhscc-summary.pdf');
  for(const variant of ['past','wrong-agency','within-window','unknown-fetch']){
   const url='https://nlr.ar.gov/wp-admin/admin-ajax.php?action=wpfd&id=1004',spec={version:1,runner_id:'public-fetch',check_when:'each_request',urls:[url],allowed_hosts:['nlr.ar.gov'],max_bytes:2000000,max_records:100,response_format:'json-files-v1',expected_category:'2026',public_details:{provider:'bid-summary-pdf',organization:variant==='wrong-agency'?'OTHER CITY':'CITY OF NORTH LITTLE ROCK'}};
   const ctx=context(listing,spec);ctx.captures[0].content_type='application/json';
   if(variant==='within-window')ctx.task.query_window.from='2026-01-01';
   const packet=makeInterpretationPacket(ctx),checkpoint={},stored=new Map();let gets=0;
   const artifacts={async put(v){const b=Buffer.isBuffer(v)?v:Buffer.from(JSON.stringify(v)),key='artifacts/'+sha(b);stored.set(key,b);return key;},async get(k){return stored.get(k);}};
-  const support=supportingCapture({artifacts,serverKey:'summary-evidence-test',fetcher:async()=>{gets++;if(variant==='unknown-fetch')throw Error('Interrupted');return new Response(pdf,{headers:{'content-type':'application/pdf'}});}});
+  const support=supportingCapture({artifacts,serverKey:'summary-evidence-test',fetcher:async url=>{gets++;if(variant==='unknown-fetch')throw Error('Interrupted');return new Response(url.includes('/19638/')?otherPdf:pdf,{headers:{'content-type':'application/pdf'}});}});
   const args={context:ctx,packet,supporting:support,checkpoint,save:async()=>{},actor:'test'};
-  assert.equal(await continuePublicTableDetails(args),false);assert.equal(await continuePublicTableDetails(args),true);assert.equal(gets,1);
+  assert.equal(await continuePublicTableDetails(args),false);assert.equal(await continuePublicTableDetails(args),false);assert.equal(await continuePublicTableDetails(args),true);assert.equal(gets,2);
   const result=evaluateFacts(packet,applyPublicTableDetails(await extractFacts(packet,spec),packet,checkpoint));
   assert.equal(result.findings.length,0);
   if(variant==='past'){
-   assert.equal(result.exclusions.length,1);assert.equal(result.coverage,'complete');assert.match(result.exclusions[0].reason,/2026-05-14/);
+   assert.equal(result.exclusions.length,2);assert.equal(result.coverage,'complete');assert.match(result.exclusions[0].reason,/2026-05-14/);
+   assert.equal(new Set(result.exclusions.map(e=>e.evidence[0].locator)).size,2);
    validateInterpretation(packet,result,{verifiedSupporting:true});await verifyEvidenceSpans(packet,result,{loadSupporting:e=>support.load(ctx,packet,e)});
-   await continuePublicTableDetails(args);assert.equal(gets,1);assert.ok(JSON.stringify(checkpoint).length<15000);
-  }else {assert.equal(result.coverage,'partial');assert.equal(result.exclusions.length,0);assert.equal(result.unresolved.length,1);}
+   await continuePublicTableDetails(args);assert.equal(gets,2);assert.ok(JSON.stringify(checkpoint).length<30000);
+  }else {assert.equal(result.coverage,'partial');assert.equal(result.exclusions.length,0);assert.equal(result.unresolved.length,2);}
  }
 });
 function context(body,spec){return {request:{id:id(1),workflow_control:{admin_policy:'county_scope'},service_scope:{name:'janitorial'},requested_search_areas:[{area_type:'county',county_name:'Saline',state_code:'AR'},{area_type:'city',city_name:'Little Rock',state_code:'AR'}]},
