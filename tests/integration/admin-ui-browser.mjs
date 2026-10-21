@@ -176,6 +176,7 @@ try {
           counties: asset.counties.map((c) => ({
             id: c.id,
             name: c.name + ' County',
+            ...(url.searchParams.get('include')==='scope'?{cities:[{id:'city1',name:'Little Rock'},{id:'city2',name:'Maumelle'}],selection_token:'revision'}:{}),
           })),
         };
       else if (p === '/v1/state-triggers')
@@ -192,6 +193,7 @@ try {
               next_due_at: null,
               last_finished_at: null,
             },
+            ...(process.argv.includes('--schedule-revision')?[{id:'state-two',source_id:'state-source-two',name:'Arkansas statewide public procurement with a long descriptive source name for wrapping verification',category:'opportunity',county_ids:['05119'],schedule_id:null}]:[]),
           ],
         };
       else if (p === '/v1/scheduler/status')
@@ -237,7 +239,7 @@ try {
         body={items:[historyRun],next_offset:null,total:1};
       }
       else if (p === '/v1/schedules') {
-        const items=[...(savedSchedule ? [schedule] : []),...(samSchedule?[samSchedule]:[]),{...schedule,id:'archived',name:'Archived checks',archived_at:'2026-10-19T12:00:00Z'}].filter(s=>url.searchParams.get('lifecycle')!=='current'||!s.archived_at);
+        const items=[...(savedSchedule ? [schedule] : []),...(process.argv.includes('--schedule-revision')?[{...schedule,id:'long-name',name:'Automatic county acceptance — disposable 2026-10-20T13:25:00Z longunbrokenidentifier123456789012345678901234567890'}]:[]),...(samSchedule?[samSchedule]:[]),{...schedule,id:'archived',name:'Archived checks',archived_at:'2026-10-19T12:00:00Z'}].filter(s=>url.searchParams.get('lifecycle')!=='current'||!s.archived_at);
         body = {items,next_offset:null,total:items.length};
       }
       else if (p === '/v1/triggers' && req.method() === 'POST')
@@ -361,7 +363,7 @@ try {
   await page.unroute('**/src/features/admin/AdminScreen.tsx*',delayAdmin);
   assert.equal(await page.getByRole('heading',{name:'Admin',exact:true}).evaluate(el=>el===document.activeElement),true);
   await page.getByRole('button',{name:'History / logs',exact:true}).click();
-  await page.getByRole('button',{name:'Run now: choose scope',exact:true}).click();
+  await page.goto(origin+'/?adminView=schedules&adminSection=manual');
   for(const width of [1440,390,320]){
     await page.setViewportSize({width,height:900});
     await page.getByRole('heading',{name:'Admin',exact:true}).focus();

@@ -23,7 +23,7 @@ it('emits server filters/sort rather than pretending loaded rows are the full re
  const filters=vi.fn();
  render(<ScheduleList items={[]} total={150} more onMore={()=>{}} onEdit={()=>{}} onAction={()=>{}} busy={false} onView={()=>{}} onFilters={filters}/>);
  fireEvent.change(screen.getByLabelText('Search schedules'),{target:{value:'Saline'}});
- fireEvent.change(screen.getByLabelText('Target'),{target:{value:'sam'}});
+ fireEvent.change(screen.getByLabelText('Type'),{target:{value:'sam'}});
  fireEvent.change(screen.getByLabelText('Order'),{target:{value:'desc'}});
  expect(filters.mock.lastCall?.[0]).toBe('q=Saline&target=sam&direction=desc');expect(screen.getByText('150 schedules')).toBeTruthy();
  expect(recurrenceLabel({...schedule,recurrence:{frequency:'monthly',timezone:'America/Chicago',local_times:['09:00'],month_day:31}})).toContain('day 31');

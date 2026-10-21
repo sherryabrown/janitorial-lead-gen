@@ -23,7 +23,7 @@ it('filters full server history, paginates and ignores late pages after a filter
  });
  render(<RunHistory scheduleId="schedule" onView={()=>{}}/>);
  await screen.findByText(/150 matching runs/);fireEvent.click(screen.getByRole('button',{name:'More runs'}));
- fireEvent.change(screen.getByLabelText('Run target'),{target:{value:'sam'}});await screen.findByText('No matching runs.');
+ fireEvent.change(screen.getByLabelText('Run type'),{target:{value:'sam'}});await screen.findByText('No matching runs.');
  await act(async()=>resolvePage({items:[{...run,id:'stale',schedule_name:'Stale page'}],next_offset:null,total:150}));
  expect(screen.queryByText('Stale page')).toBeNull();expect(mocked.request.mock.calls.some(([p])=>p.includes('schedule=schedule')&&p.includes('target=sam'))).toBe(true);
 });

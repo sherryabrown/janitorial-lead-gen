@@ -41,6 +41,11 @@ export const initialDraft = (): Draft => ({
     local_times: ['09:00'],
   },
 });
+// Schedule-only defaults: manual runs retain initialDraft's established behavior.
+export function initialScheduleDraft(): Draft {
+ const draft=initialDraft();
+ return {...draft,enabled:true,config:{...draft.config,maintain_sources:false},window_policy:Object.fromEntries(Object.entries(draft.window_policy).map(([k,v])=>[k,{...v,to_offset_days:119}]))};
+}
 export function resolvedConfig(draft: Draft, at = new Date()): Config {
   const day = new Intl.DateTimeFormat('en-CA', {
       timeZone: 'America/Chicago',
@@ -124,11 +129,13 @@ export function invalidDraft(d: Draft, schedule = false) {
     )
       return 'Choose valid bounded date offsets.';
   }
-  if (schedule) {
+  return schedule?invalidScheduleTiming(d):'';
+}
+export function invalidScheduleTiming(d:Pick<Draft,'name'|'recurrence'>){
     if (!d.name.trim()) return 'Name this schedule.';
     const r = d.recurrence;
     if (
-      !r.local_times.length ||
+      !r.local_times.length || r.local_times.length>24 ||
       new Set(r.local_times).size !== r.local_times.length ||
       r.local_times.some((t) => !/^([01]\d|2[0-3]):[0-5]\d$/.test(t))
     )
@@ -143,7 +150,6 @@ export function invalidDraft(d: Draft, schedule = false) {
         r.month_day > 31)
     )
       return 'Choose a monthly date from 1 to 31.';
-  }
   return '';
 }
 

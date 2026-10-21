@@ -14,7 +14,7 @@ export function ScheduleList({items,more,paging,onMore,onEdit,onAction,busy,onVi
   focusSchedule?: AnySchedule|null; owner?:string; context?:{id:string;section:ScheduleSection}|null; onContext?:(value:{id:string;section:ScheduleSection}|null)=>void;
 }) {
   const [filters,setFilters]=useState(()=>({...defaults,...Object.fromEntries(new URLSearchParams(query))}));
-  const [selected,setSelected]=useState<{id:string;section:Section}|null>(null),[target,setTarget]=useState('county_scope');
+  const [selected,setSelected]=useState<{id:string;section:Section}|null>(null),[returnedId,setReturnedId]=useState<string|null>(null);
   const [menuId,setMenuId]=useState<string|null>(null);
   useEffect(()=>{if(focusSchedule)setSelected({id:focusSchedule.id,section:'details'});},[focusSchedule]);
   const change=(key:keyof typeof defaults,value:string)=>{
@@ -27,27 +27,26 @@ export function ScheduleList({items,more,paging,onMore,onEdit,onAction,busy,onVi
   const open=(s:AnySchedule,section:Section)=>{setSelected({id:s.id,section});onContext?.({id:s.id,section:section==='details'||section==='stats'?'overview':section});};
   return <section className="admin-section" aria-label="Saved schedules">
     <div hidden={!!detail}>
-    <div className="admin-section-heading"><h2>Schedules</h2>{onAdd&&<div className="admin-inline">
-      <label>Schedule target<select aria-label="New schedule target" value={target} onChange={e=>setTarget(e.target.value)}><option value="county_scope">Counties</option><option value="state_source">State source</option><option value="sam">SAM statewide</option></select></label>
-      <button type="button" className="primary-button compact" disabled={busy} onClick={()=>onAdd(target)}>Add schedule</button>
-    </div>}</div>
+    <div className="admin-section-heading schedule-list-heading"><h2>Schedules</h2>{onAdd&&<button type="button" className="primary-button compact" disabled={busy} onClick={()=>onAdd('county_scope')}>Add schedule</button>}</div>
     <div className="schedule-filters" aria-label="Schedule filters">
       <label>Search schedules<input value={filters.q} maxLength={100} onChange={e=>change('q',e.target.value)} /></label>
-      <label>Target<select value={filters.target} onChange={e=>change('target',e.target.value)}><option value="all">All targets</option><option value="county_scope">Counties</option><option value="state_source">State sources</option><option value="sam">SAM</option></select></label>
+      <label>Type<select value={filters.target} onChange={e=>change('target',e.target.value)}><option value="all">All types</option><option value="county_scope">Counties</option><option value="state_source">State sources</option><option value="sam">SAM</option></select></label>
       <label>Geography<select value={filters.geography} onChange={e=>change('geography',e.target.value)}><option value="">All geography</option><option value="05">Statewide</option>{counties.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
       <label>Schedule status<select value={filters.lifecycle} onChange={e=>change('lifecycle',e.target.value)}><option value="all">All statuses</option><option value="current">Not archived</option><option value="active">Active</option><option value="paused">Paused</option><option value="archived">Archived</option></select></label>
-      <label>Blocker<select value={filters.blocker} onChange={e=>change('blocker',e.target.value)}><option value="all">All</option><option value="blocked">Needs action</option><option value="clear">No blocker</option></select></label>
-      <label>Sort schedules<select value={filters.sort} onChange={e=>change('sort',e.target.value)}>{Object.entries({name:'Name',target_kind:'Target',frequency:'Frequency',last_run_at:'Last run',next_due_at:'Next run',lifecycle:'Status'}).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select></label>
-      <label>Order<select value={filters.direction} onChange={e=>change('direction',e.target.value)}><option value="asc">Ascending</option><option value="desc">Descending</option></select></label>
     </div>
-    <span className="admin-hint" role="status">{loading?'Loading schedules…':total!=null?`${total} schedules`:`${items.length} loaded schedules`}</span>
+    <details className="schedule-more-filters" open={filters.blocker!=='all'||filters.sort!=='name'||filters.direction!=='asc'||undefined}><summary>More filters{filters.blocker!=='all'||filters.sort!=='name'||filters.direction!=='asc'?' · applied':''}</summary><div className="schedule-filters">
+      <label>Blocker<select value={filters.blocker} onChange={e=>change('blocker',e.target.value)}><option value="all">All</option><option value="blocked">Needs action</option><option value="clear">No blocker</option></select></label>
+      <label>Sort schedules<select value={filters.sort} onChange={e=>change('sort',e.target.value)}>{Object.entries({name:'Name',target_kind:'Type',frequency:'Frequency',last_run_at:'Last run',next_due_at:'Next run',lifecycle:'Status'}).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select></label>
+      <label>Order<select value={filters.direction} onChange={e=>change('direction',e.target.value)}><option value="asc">Ascending</option><option value="desc">Descending</option></select></label>
+    </div></details>
+    <span className="admin-hint" role="status">{loading?'Loading schedules…':total!=null?`${total} ${total===1?'schedule':'schedules'}`:`${items.length} loaded schedules`}</span>
     {error&&<div role="alert">{error} <button type="button" className="text-button" onClick={onRetry}>Retry schedules</button></div>}
     {!error&&!loading&&!items.length&&<p>No schedules match. Add a schedule or change filters.</p>}
-    <div className="schedule-table-wrap"><table className="schedule-table"><caption className="sr-only">Schedules · times in America/Chicago · AI usage from last run</caption><thead><tr>{['Name','Geography','Frequency','Last run','Last run leads','Next run','AI credits','AI spent','Status','Quick actions'].map(h=><th key={h} scope="col">{h}{h==='Quick actions'&&<InfoTooltip label="About quick actions">Run now starts this saved schedule. Details opens settings and runs. Edit changes settings. Disable: Pause stops future runs; Archive keeps history; Delete is available only before any run. Current runs continue.</InfoTooltip>}{h==='AI credits'&&<InfoTooltip label="About schedule AI credits">Provider-reported credits only. Missing reports or mixed units show Unknown; tokens are not credits.</InfoTooltip>}</th>)}</tr></thead>
+    <div className="schedule-table-wrap"><table className="schedule-table schedule-list-table"><caption className="sr-only">Schedules · times in America/Chicago · AI usage from last run</caption><thead><tr>{['Name','Geography','Frequency','Last run','Last run leads','Next run','AI credits','AI spent','Status','Quick actions'].map(h=><th key={h} scope="col">{h}{h==='Quick actions'&&<InfoTooltip label="About quick actions">Run now starts this saved schedule. Details opens settings and runs. Edit changes settings. Disable: Pause stops future runs; Archive keeps history; Delete is available only before any run. Current runs continue.</InfoTooltip>}{h==='AI credits'&&<InfoTooltip label="About schedule AI credits">Provider-reported credits only. Missing reports or mixed units show Unknown; tokens are not credits.</InfoTooltip>}</th>)}</tr></thead>
       <tbody>{items.map(s=>{const archived=!!s.archived_at||!!s.archived,r=s.reporting?.last_run,o=s.reporting?.latest_occurrence;
-        return <tr key={s.id} id={`schedule-row-${s.id}`}>
+        return <tr className={returnedId===s.id?'schedule-returned-row':undefined} key={s.id} id={`schedule-row-${s.id}`}>
           <td data-label="Name"><button className="text-button schedule-name" type="button" onClick={()=>open(s,'details')}>{s.name}</button></td>
-          <td data-label="Geography">{s.config.target_kind==='county_scope'?'County':'State'}<small>{s.config.target_kind==='sam'?'SAM · Arkansas statewide':s.config.target_kind==='state_source'?'Independent state source':(s.config.counties?.map(c=>c.name).join(', ')||s.config.county_ids.map(id=>counties.find(c=>c.id===id)?.name??id).join(', '))}</small></td>
+          <td data-label="Geography">{s.config.target_kind==='county_scope'?'County':'State'}<small>{s.config.target_kind==='sam'?'SAM · Arkansas statewide':s.config.target_kind==='state_source'?`${new Set(s.config.state_sources?.map(a=>a.source_id)??[s.config.state_trigger_id]).size} state sources`:(s.config.counties?.map(c=>c.name).join(', ')||s.config.county_ids.map(id=>counties.find(c=>c.id===id)?.name??id).join(', '))}</small></td>
           <td data-label="Frequency">{recurrenceLabel(s)}</td>
           <td data-label="Last run">{r?<><time>{formatLocal(r.created_at)}</time><small>{runLabel(r)}</small></>:s.reporting?'Never run':'Unknown'}{o&&!o.trigger_id&&<small>{title(o.state)} · {title(o.reason)}</small>}</td>
           <td data-label="Last run leads">{r?.leads?.completeness==='known'?<>{r.leads.added} new<small>{r.leads.updated} updated · {r.leads.unchanged} unchanged</small></>:r?.leads?.completeness==='not_applicable'?'Not applicable':r?'Unknown':s.reporting?'—':'Unknown'}{r?.leads?.reason&&<small>{r.leads.reason}</small>}</td>
@@ -66,7 +65,7 @@ export function ScheduleList({items,more,paging,onMore,onEdit,onAction,busy,onVi
     </div>
     {detail&&<ScheduleDetail key={detail.id} id={detail.id} initial={current??undefined} owner={owner} section={detail.section}
       onSection={section=>{setSelected({id:detail.id,section});onContext?.({...detail,section});}}
-      onClose={()=>{setSelected(null);onContext?.(null);const row=document.getElementById(`schedule-row-${detail.id}`);row?.querySelector<HTMLButtonElement>('button')?.focus({preventScroll:true});requestAnimationFrame(()=>{row?.querySelector<HTMLButtonElement>('button')?.focus({preventScroll:true});row?.scrollIntoView?.({block:'nearest'});});}}
+      onClose={()=>{setReturnedId(detail.id);setSelected(null);onContext?.(null);const row=document.getElementById(`schedule-row-${detail.id}`);row?.querySelector<HTMLButtonElement>('button')?.focus({preventScroll:true});requestAnimationFrame(()=>{row?.querySelector<HTMLButtonElement>('button')?.focus({preventScroll:true});row?.scrollIntoView?.({block:'nearest'});});}}
       onView={onView} onEdit={onEdit} onAction={onAction} busy={busy} counties={counties}/>}
   </section>;
 }

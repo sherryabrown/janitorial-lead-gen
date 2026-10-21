@@ -429,20 +429,12 @@ export default function AdminScreen({
       : undefined;
   return (
     <section className="admin-screen" aria-label="Admin county checks">
-      <header className="admin-header">
-        <div>
-          <p className="eyebrow">Admin</p>
-          <h1 ref={headingRef} tabIndex={-1}>Admin</h1>
-        </div>
-        <button className="text-button" type="button" onClick={onViewLeads}>
-          Back to contracts
-        </button>
-      </header>
+      <h1 className="settings-context" ref={headingRef} tabIndex={-1}>Settings</h1>
+      <div className="admin-workspace-bar">
       <nav className="admin-workspace-nav" aria-label="Admin views">
         <button type="button" className="secondary-button compact" aria-current={navigation.view === 'schedules' && navigation.section !== 'manual' ? 'page' : undefined} onClick={() => navigate('schedules')}>Schedules</button>
         <button type="button" className="text-button" aria-current={navigation.view === 'history' ? 'page' : undefined} onClick={() => navigate('history')}>History / logs</button>
-        <button type="button" className="primary-button compact" aria-label="Run now: choose scope" aria-current={navigation.section === 'manual' ? 'page' : undefined} onClick={() => navigate('schedules', true)}>Run now</button>
-      </nav>
+      </nav></div>
       {notice && (
         <p className="admin-notice" role="status">
           {notice}

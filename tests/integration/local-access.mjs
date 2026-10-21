@@ -173,6 +173,34 @@ try {
   assert.equal(globalHistory.items[0].checkpoint,undefined);assert.equal(globalHistory.items[0].lease_token,undefined);
   const safeRun=await triggers.status(occurrences.items[0].trigger_id);assert.equal(safeRun.reporting.checkpoint,undefined);assert.equal(safeRun.reporting.lease_token,undefined);
   assert.equal((await adminRead('/v1/admin/history?origin=unsafe')).status,422);
+  // Two HTTP/private-RPC callers cannot reserve the same paused county/work key.
+  const reservationInput={...input,name:'Native work reservation',enabled:false};
+  const rp=await schedules.preview(reservationInput);
+  const claim=key=>schedules.save(null,{...reservationInput,confirmed_scope:true,preview_hash:rp.preview_hash},first,key);
+  const claims=await Promise.allSettled([claim('native-work-first'),claim('native-work-second')]);
+  assert.equal(claims.filter(c=>c.status==='fulfilled').length,1);
+  const reserved=claims.find(c=>c.status==='fulfilled').value;
+  const conflicts=await schedules.preview(reservationInput);assert.equal(conflicts.conflicts[0].schedule_id,reserved.id);
+  await schedules.control(reserved.id,'archive',{expected_version:1},first);
+  for(const table of ['procurement_schedule_work_reservations','procurement_schedule_state_memberships'])
+   for(const jwt of [undefined,nonMember,member])assert.ok([401,403].includes((await api(table+'?select=*&limit=1',jwt)).status));
+  // Grouped state dispatch uses the actual native SQL and PostgREST contracts.
+  const groupActor=randomUUID();sql("insert into auth.users(id) values('"+groupActor+"');");
+  const stateAssociations=[];
+  for(const suffix of ['a','b']){
+   const source=randomUUID();
+   const inserted=await db.from('procurement_sources').insert({id:source,code:'native-state-'+suffix,name:'Native state '+suffix,url:'https://example.gov/'+suffix,contracting_entity_geo_level:'state',business_category:'other_public'});assert.equal(inserted.error,null);
+   const association=await db.rpc('associate_procurement_state_trigger',{p_source:source,p_category:'opportunity',p_scope:'native-group',p_county:'05001',p_evidence:{basis:'fixture'}});assert.equal(association.error,null);stateAssociations.push(association.data);
+  }
+  const groupInput={...input,name:'Native grouped state sources',config:{...input.config,target_kind:'state_source',state_trigger_ids:stateAssociations}};
+  const gp=await schedules.preview(groupInput),group=await schedules.save(null,{...groupInput,confirmed_scope:true,preview_hash:gp.preview_hash},groupActor,'native-group-schedule');
+  const gr=await schedules.runNow(group.id,{expected_version:1},groupActor,'native-group-run');assert.equal(gr.state,'queued');
+  const groupStatus=await triggers.status(gr.trigger_id);assert.equal(groupStatus.children.length,2);assert.equal(new Set(groupStatus.children.map(c=>c.source_id)).size,2);
+  assert.equal((await schedules.runNow(group.id,{expected_version:1},groupActor,'native-group-run')).id,gr.id);
+  assert.ok((await triggers.stateSources()).items.every(s=>s.schedule_id===group.id));
+  await schedules.control(group.id,'archive',{expected_version:1},first);
+  assert.ok((await triggers.stateSources()).items.every(s=>s.schedule_id===null));
+  sql("update procurement_jobs set state='cancelled' where search_request_id in(select request_id from procurement_trigger_requests where trigger_id='"+gr.trigger_id+"');update procurement_triggers set state='completed' where id='"+gr.trigger_id+"';");
   // Never-run deletion is serialized against the same row lock used by enqueue.
   const neverInput={...input,name:'Disposable never-run',enabled:false};
   const neverPreview=await schedules.preview(neverInput);
@@ -289,7 +317,7 @@ try {
     sql("update procurement_jobs set state='cancelled'; update procurement_triggers set state='completed';");
     console.log('Automatic county acceptance:',await verifyAutomaticCounty({db,artifacts,audit,livePool,rehearsalPool,actor:first,config:adminConfig}));
   }finally {await livePool.end();await rehearsalPool.end();}
-  console.log(JSON.stringify({status:'passed',engine:'PostgreSQL 15 + PostgREST',checks:['anonymous reads/RPC denial','member and non-member reads/stages','signed expired and invalid JWT HTTP rejection','note ownership','atomic actor history','1005-row paged queue','service workflow access','Admin private table/RPC denial','Admin atomic replay','concurrent parent AI reservations and four-call cap','scheduling private tables/RPC denial and atomic replay','browser-independent private HTTP wake/shared worker/audit/replay/pause','nonempty automatic SAM manual/scheduled native validation/write/readback/deduplication','private detail hold containment and checkpoint CAS/stale-write rejection'],isolated_wake_and_stage_ms:isolatedWakeAndStageMs,production_contacted:false},null,2));
+  console.log(JSON.stringify({status:'passed',engine:'PostgreSQL 15 + PostgREST',checks:['anonymous reads/RPC denial','member and non-member reads/stages','signed expired and invalid JWT HTTP rejection','note ownership','atomic actor history','1005-row paged queue','service workflow access','Admin private table/RPC denial','Admin atomic replay','concurrent parent AI reservations and four-call cap','scheduling private tables/RPC denial and atomic replay','concurrent active/paused county-work ownership and archive release','grouped state native dispatch/replay/membership/source identities','browser-independent private HTTP wake/shared worker/audit/replay/pause','nonempty automatic SAM manual/scheduled native validation/write/readback/deduplication','private detail hold containment and checkpoint CAS/stale-write rejection'],isolated_wake_and_stage_ms:isolatedWakeAndStageMs,production_contacted:false},null,2));
 } finally {
   if(backend)await new Promise(r=>backend.close(r));
   if(server && server.exitCode===null && server.signalCode===null) {server.kill();await new Promise(r=>server.once('exit',r));}

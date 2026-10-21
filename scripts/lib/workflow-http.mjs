@@ -67,7 +67,7 @@ export function workflowServer({authenticate,workflow,imports,discovery,sam,samP
           else if(segments.length===4&&segments[3]==='run-now'&&request.method==='POST'){result=await schedules.runNow(id,input,actor,request.headers['idempotency-key']);kick();send(202,result);return;}
         }
       }
-      else if(triggers&&segments[1]==='counties'&&segments.length===2&&request.method==='GET')result=await triggers.counties();
+      else if(triggers&&segments[1]==='counties'&&segments.length===2&&request.method==='GET')result=await triggers.counties(url.searchParams.get('include')==='scope');
       else if(triggers&&segments[1]==='state-triggers'&&segments.length===2&&request.method==='GET')result=await triggers.stateSources();
       else if(triggers&&segments[1]==='triggers') {
         const limit=Number(url.searchParams.get('limit')??50),offset=Number(url.searchParams.get('offset')??0);

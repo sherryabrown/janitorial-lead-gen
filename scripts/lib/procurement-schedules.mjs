@@ -6,11 +6,12 @@ import {samRollingWindow,samRequest} from './sam-request.mjs';
 import {scheduleFilters,reportSchedules} from './schedule-reporting.mjs';
 import {adminRunHistory,reportRunHistory} from './admin-run-history.mjs';
 
-const scopeHash=config=>hash(config.target_kind==='sam'?{target_kind:'sam',requested_categories:config.requested_categories}:{target_kind:config.target_kind,state_trigger_id:config.state_trigger_id,counties:config.counties});
+const scopeHash=config=>hash(config.target_kind==='sam'?{target_kind:'sam',requested_categories:config.requested_categories}:{target_kind:config.target_kind,state_trigger_id:config.state_trigger_id,...(config.state_trigger_ids?.length>1?{state_trigger_ids:config.state_trigger_ids,state_sources:config.state_sources}:{}),counties:config.counties});
 const publicReason=value=>value==null?null:['scope_changed','scope_unavailable','owner_inactive','previous_run_active','trigger_enqueue_failed'].includes(value)?value:'saved_reason';
 const publicId=value=>typeof value==='string'&&/^[a-f0-9-]{36}$/i.test(value)?value:null;
 export function procurementSchedules({db,triggers,now=()=>new Date()}) {
   const rpc=async(name,args)=>checked(await db.rpc(name,args));
+  const rowsForReservations=async()=>checked(await db.from('procurement_schedule_work_reservations').select('schedule_id,name,county_id,work'));
   async function preview(input) {
     const recurrence=validateRecurrence(input?.recurrence);
     if(typeof input.name!=='string'||!input.name.trim()||input.name.trim().length>80||typeof input.enabled!=='boolean')throw Error('Schedule name and enabled state required');
@@ -21,8 +22,15 @@ export function procurementSchedules({db,triggers,now=()=>new Date()}) {
       to_offset_days:input.window_policy?.[k]?.to_offset_days,date_basis:input.window_policy?.[k]?.date_basis}]));
     const resolved=await triggers.preview(sam?{...config,publication_window:samRollingWindow(window_policy,config.requested_categories[0],now())}:
       {...config,search_windows:rollingWindows(window_policy,config.requested_categories,now())});
+    let conflicts=config.target_kind==='county_scope'?(await rowsForReservations()).filter(r=>r.schedule_id!==input.schedule_id&&config.county_ids.includes(r.county_id)&&config[r.work]):[];
+    if(config.target_kind==='state_source'){
+      const members=checked(await db.from('procurement_schedule_state_memberships').select('schedule_id,state_trigger_association_id').in('state_trigger_association_id',resolved.config.state_trigger_ids??[resolved.config.state_trigger_id]));
+      const owners=[...new Set(members.filter(m=>m.schedule_id!==input.schedule_id).map(m=>m.schedule_id))];
+      const schedules=owners.length?checked(await db.from('procurement_schedule_overview').select('id,name').in('id',owners)):[];
+      conflicts=schedules.map(s=>({schedule_id:s.id,name:s.name,county_id:'State source',work:'state_source'}));
+    }
     const canonical={name:input.name.trim(),enabled:input.enabled,recurrence,config:resolved.config,window_policy,scope_hash:scopeHash(resolved.config)};
-    return {...canonical,preview_hash:hash(canonical),next_due_at:input.enabled?nextOccurrence(recurrence,now()):null,
+    return {...canonical,conflicts,preview_hash:hash(canonical),next_due_at:input.enabled?nextOccurrence(recurrence,now()):null,
       cities:resolved.config.counties?.map(c=>({id:c.id,name:c.name,cities:c.cities}))??[],
       monthly_short_month:'Dates 29–31 use the last day in shorter months'};
   }
@@ -36,7 +44,7 @@ export function procurementSchedules({db,triggers,now=()=>new Date()}) {
       const existing=checked(await db.from('procurement_schedules').select('id,submission_hash').eq('created_by',actor).eq('client_key',key).maybeSingle());
       if(existing){if((await one(db,'procurement_schedules',existing.id))?.deleted_at)throw Error('Schedule deleted; create a new schedule');if(existing.submission_hash!==submissionHash)throw Error('Schedule key reused for different input');return get(existing.id);}
     }
-    const current=await preview(input);
+    const current=await preview({...input,schedule_id:id??input.schedule_id});
     if(current.preview_hash!==input.preview_hash)throw Error('Schedule scope changed; preview again');
     const result=await rpc('save_procurement_schedule',{p_id:id??null,p_actor:actor,p_key:key??null,p_hash:submissionHash,
       p_expected_version:input.expected_version??null,p_input:current,p_now:now().toISOString()});

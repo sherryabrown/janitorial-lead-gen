@@ -19,9 +19,11 @@ export function countyTriggers({db,discovery,workflow,audit,automaticCounty}) {
       rows(db,'procurement_source_capabilities'),rows(db,'procurement_sources')]);
     return {geographies,links,capabilities,sources};
   }
-  async function counties() {
+  async function counties(includeScope=false) {
     const all=await rows(db,'procurement_geographies',q=>q.eq('kind','county').eq('source_active',true),'id,name');
-    return {counties:all.sort((a,b)=>a.name.localeCompare(b.name))};
+    if(!includeScope)return {counties:all.sort((a,b)=>a.name.localeCompare(b.name))};
+    const [geographies,links]=await Promise.all([rows(db,'procurement_geographies'),rows(db,'procurement_place_counties',q=>q,'*',{order:'place_id'})]);
+    return {counties:all.sort((a,b)=>a.name.localeCompare(b.name)).map(c=>{const scope=resolveGeography(geographies,links,{kind:'county',name:c.name});return {...c,cities:scope.cities.map(({id,name})=>({id,name})),selection_token:scope.selection_token};})};
   }
   async function stateSources() {return {items:await rpc('procurement_state_trigger_status',{})};}
   async function preview(input) {
@@ -36,12 +38,17 @@ export function countyTriggers({db,discovery,workflow,audit,automaticCounty}) {
     const targetKind=input.target_kind??'county_scope';
     if(!['county_scope','state_source'].includes(targetKind))throw Error('Invalid trigger target');
     const data=await registry();
-    let saved;
+    let selected=[];
     if(targetKind==='state_source') {
-      if(!uuid.test(input.state_trigger_id??''))throw Error('Saved state trigger required');
-      saved=await one(db,'procurement_state_trigger_associations',input.state_trigger_id);
-      if(!saved||input.requested_categories.length!==1||input.requested_categories[0]!==saved.category||
-        input.county_ids.some(id=>!saved.county_ids.includes(id)))throw Error('State trigger scope does not match saved associations');
+      const ids=[...new Set(input.state_trigger_ids??[input.state_trigger_id])].sort();
+      if(!ids.length||ids.length>200||ids.some(id=>!uuid.test(id??'')))throw Error('Saved state triggers required');
+      selected=await rows(db,'procurement_state_trigger_associations',q=>q.in('id',ids));
+      if(new Set(selected.map(a=>a.source_id+':'+a.category)).size!==selected.length)throw Error('Choose one association per source and category');
+      if(selected.length!==ids.length||selected.some(a=>!input.requested_categories.includes(a.category))||
+        input.requested_categories.some(k=>!selected.some(a=>a.category===k))||
+        input.county_ids.some(id=>!selected.some(a=>a.county_ids.includes(id))))throw Error('State trigger scope does not match saved associations');
+      if(selected.some(a=>!data.sources.some(s=>s.id===a.source_id)))throw Error('State source unavailable');
+      selected.sort((a,b)=>a.id.localeCompare(b.id));
     }
     const counties=[...input.county_ids].sort().map(id=>{
       const county=data.geographies.find(g=>g.id===id&&g.kind==='county'&&g.source_active);
@@ -50,10 +57,10 @@ export function countyTriggers({db,discovery,workflow,audit,automaticCounty}) {
       return {id,name:county.name,city_ids:scope.cities.map(c=>c.id).sort(),
         cities:scope.cities.map(c=>({id:c.id,name:c.name})),city_revisions:scope.cities.map(c=>({id:c.id,dataset_hash:c.dataset_hash})),selection_token:scope.selection_token};
     });
-    const config={target_kind:targetKind,state_trigger_id:saved?.id??null,county_ids:counties.map(c=>c.id),counties,
+    const config={target_kind:targetKind,state_trigger_id:selected.length===1?selected[0].id:null,...(selected.length?{state_trigger_ids:selected.map(a=>a.id),state_sources:selected.map(a=>({id:a.id,source_id:a.source_id,name:data.sources.find(s=>s.id===a.source_id).name,category:a.category,county_ids:[...a.county_ids].sort()}))}:{}),county_ids:counties.map(c=>c.id),counties,
       requested_categories:[...input.requested_categories].sort(),search_windows:Object.fromEntries([...input.requested_categories].sort().map(k=>[k,{from:input.search_windows[k].from,to:input.search_windows[k].to,date_basis:input.search_windows[k].date_basis}])),
       maintain_sources:input.maintain_sources,check_updates:input.check_updates};
-    const sourceFilter=data.sources.filter(s=>!separateSamSource(s)&&(!saved||s.id===saved.source_id));
+    const sourceFilter=data.sources.filter(s=>!separateSamSource(s)&&(!selected.length||selected.some(a=>s.id===a.source_id)));
     const checkpoints=await rows(db,'procurement_county_state_research',q=>q.in('county_id',config.county_ids).in('category',config.requested_categories));
     const stateIds=new Set(data.capabilities.filter(c=>c.route_geography_id==='05').map(c=>c.source_id));
     const localSources=sourceFilter.filter(s=>s.contracting_entity_geo_level!=='state'&&!stateIds.has(s.id));
@@ -88,7 +95,7 @@ export function countyTriggers({db,discovery,workflow,audit,automaticCounty}) {
     const relatedState=t.target_kind==='sam'?[]:(await stateSources()).items.filter(s=>s.county_ids.some(c=>t.config.county_ids.includes(c)));
     const [reporting]=await reportRunHistory(db,[t]);
     return {id:t.id,target_kind:t.target_kind,config:t.config,state:t.state,created_at:t.created_at,finished_at:t.finished_at,origin:t.origin,schedule_id:t.schedule_id,occurrence_id:t.occurrence_id,reporting,...(presentation?{presentation}:{}),
-      children:children.map(c=>({request_id:c.request_id,county_id:c.county_id,role:c.role})),
+      children:children.map(c=>({request_id:c.request_id,county_id:c.county_id,role:c.role,...(c.role==='state_source'?{source_id:c.scope.source_id??t.config.state_sources?.find(s=>s.id===(c.scope.id??t.config.state_trigger_id))?.source_id,source_name:t.config.state_sources?.find(s=>s.id===(c.scope.id??t.config.state_trigger_id))?.name,category:c.scope.category}: {})})),
       related_state_sources:relatedState.map(s=>({...s,evidence_policy:'Review saved source run; verify county work location and dates before import'})),
       usage:usageSummary(usage),next_action:presentation?'View saved results and the affected sources below.':next(t.state)};
   }

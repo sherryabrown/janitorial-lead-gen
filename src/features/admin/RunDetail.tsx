@@ -234,9 +234,9 @@ export function RunDetail({
                 <option key={c.request_id} value={c.request_id}>
                   {run.config?.target_kind === 'sam'
                     ? 'Arkansas statewide'
-                    : (run.config?.counties?.find((x) => x.id === c.county_id)
+                    : c.source_name??(run.config?.counties?.find((x) => x.id === c.county_id)
                         ?.name ?? c.county_id)}{' '}
-                  · {title(c.role)}
+                  · {title(c.category??c.role)}
                 </option>
               ))}
             </select>

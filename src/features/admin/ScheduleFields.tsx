@@ -1,19 +1,25 @@
+import {useEffect,useRef} from 'react';
 import type { Recurrence } from './types';
 type Fields = { name: string; enabled: boolean; recurrence: Recurrence };
 export function ScheduleFields({
   draft,
   onChange,
   pending,
+  compact=false,
 }: {
   draft: Fields;
   onChange: (value: Partial<Fields>) => void;
   pending: boolean;
+  compact?: boolean;
 }) {
+  const times=useRef<(HTMLInputElement|null)[]>([]),focusTime=useRef<number|null>(null);
+  useEffect(()=>{if(focusTime.current!==null){times.current[focusTime.current]?.focus();focusTime.current=null;}},[draft.recurrence.local_times.length]);
   const update = onChange,
     r = draft.recurrence;
   return (
     <fieldset disabled={pending} className="admin-schedule-fields">
-      <legend>Schedule · America/Chicago</legend>
+      <legend>{compact?"Frequency · Central (CT)":"Schedule · America/Chicago"}</legend>
+      {!compact && <>
       <label className="input-field">
         <span>Schedule name</span>
         <input
@@ -22,6 +28,7 @@ export function ScheduleFields({
           onChange={(e) => update({ name: e.target.value })}
         />
       </label>
+      </>}
       <label className="input-field">
         <span>Frequency</span>
         <select
@@ -43,12 +50,14 @@ export function ScheduleFields({
           <option value="monthly">Monthly</option>
         </select>
       </label>
+      <div className={compact?"schedule-times":""}>
       {r.local_times.map((t, i) => (
         <div key={i} className="admin-inline">
           <label className="input-field">
-            <span>Local time {i + 1}</span>
+            <span>{compact?`Run at ${i+1}`:`Local time ${i+1}`}</span>
             <input
-              aria-label={`Local time ${i + 1}`}
+              aria-label={compact?`Run at ${i+1}`:`Local time ${i+1}`}
+              ref={el=>{times.current[i]=el;}}
               type="time"
               value={t}
               onChange={(e) =>
@@ -67,17 +76,17 @@ export function ScheduleFields({
             <button
               type="button"
               className="text-button"
-              onClick={() =>
+              onClick={() => {focusTime.current=Math.max(0,i-1);
                 update({
                   recurrence: {
                     ...r,
                     local_times: r.local_times.filter((_, n) => n !== i),
                   },
-                })
+                });}
               }
               aria-label={`Remove time ${i + 1}`}
             >
-              Remove time
+              {compact?"×":"Remove time"}
             </button>
           )}
         </div>
@@ -87,15 +96,16 @@ export function ScheduleFields({
           type="button"
           className="text-button"
           disabled={r.local_times.length >= 24}
-          onClick={() =>
+          onClick={() => {focusTime.current=r.local_times.length;
             update({
               recurrence: { ...r, local_times: [...r.local_times, ''] },
-            })
+            });}
           }
         >
-          Add time
+          {compact?"+ Another time":"Add time"}
         </button>
       )}
+      </div>
       {r.frequency === 'weekly' && (
         <div className="admin-weekdays">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d, i) => (
@@ -136,6 +146,7 @@ export function ScheduleFields({
           <small>Dates 29–31 use the last day in shorter months.</small>
         </label>
       )}
+      {!compact && <>
       <label>
         <input
           type="checkbox"
@@ -147,6 +158,7 @@ export function ScheduleFields({
       <p className="admin-hint">
         Changes affect future runs. Active runs keep their saved scope.
       </p>
+      </>}
     </fieldset>
   );
 }

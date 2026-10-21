@@ -35,155 +35,8 @@ export function TriggerForm({
         <h2>{editing ? 'Edit schedule' : 'What should run?'}</h2>
         {editing && <span>Unsaved changes</span>}
       </div>
-      <fieldset disabled={pending}>
-        <legend>Work</legend>
-        <label className="admin-work-option">
-          <input
-            type="checkbox"
-            checked={draft.config.maintain_sources}
-            onChange={(e) =>
-              update({
-                config: {
-                  ...draft.config,
-                  maintain_sources: e.target.checked,
-                },
-              })
-            }
-          />
-          <span>
-            <strong>Maintain sources</strong>
-            <small>Find missing sources and verify known methods.</small>
-          </span>
-        </label>
-        <label className="admin-work-option">
-          <input
-            type="checkbox"
-            checked={draft.config.check_updates}
-            onChange={(e) =>
-              update({
-                config: { ...draft.config, check_updates: e.target.checked },
-              })
-            }
-          />
-          <span>
-            <strong>Check for lead updates</strong>
-            <small>
-              Capture verified sources and compare saved evidence.
-            </small>
-          </span>
-        </label>
-      </fieldset>
-      {!draft.config.check_updates && <p className="admin-notice">Source-only run. Enable Check for lead updates to collect opportunities.</p>}
-      <fieldset disabled={pending}>
-        <legend>Look for</legend>
-        <div className="admin-inline">
-          {(Object.keys(categoryLabels) as Category[]).map((k) => (
-            <label key={k}>
-              <input
-                type="checkbox"
-                checked={draft.config.requested_categories.includes(k)}
-                onChange={(e) =>
-                  update({
-                    config: {
-                      ...draft.config,
-                      requested_categories: e.target.checked
-                        ? [...draft.config.requested_categories, k]
-                        : draft.config.requested_categories.filter(
-                            (x) => x !== k,
-                          ),
-                    },
-                  })
-                }
-              />
-              {categoryLabels[k]}
-            </label>
-          ))}
-        </div>
-      </fieldset>
-      <fieldset disabled={pending}>
-        <details className="admin-dates">
-          <summary>Date window · next 12 months by default</summary>
-          <p className="admin-hint">
-            Rolling from each run's Central Time date. Evidence updates remain
-            separate from date-qualified candidates.
-          </p>
-          {draft.config.requested_categories.map((k) => (
-            <div className="admin-window" key={k}>
-              <strong>{categoryLabels[k]}</strong>
-              <label>
-                From day
-                <input
-                  aria-label={`${categoryLabels[k]} from day`}
-                  type="number"
-                  min={-366}
-                  max={1096}
-                  value={draft.window_policy[k].from_offset_days}
-                  onChange={(e) =>
-                    update({
-                      window_policy: {
-                        ...draft.window_policy,
-                        [k]: {
-                          ...draft.window_policy[k],
-                          from_offset_days: Number(e.target.value),
-                        },
-                      },
-                    })
-                  }
-                />
-              </label>
-              <label>
-                To day
-                <input
-                  aria-label={`${categoryLabels[k]} to day`}
-                  type="number"
-                  min={-366}
-                  max={1096}
-                  value={draft.window_policy[k].to_offset_days}
-                  onChange={(e) =>
-                    update({
-                      window_policy: {
-                        ...draft.window_policy,
-                        [k]: {
-                          ...draft.window_policy[k],
-                          to_offset_days: Number(e.target.value),
-                        },
-                      },
-                    })
-                  }
-                />
-              </label>
-              <label>
-                Date basis
-                <select
-                  value={draft.window_policy[k].date_basis}
-                  onChange={(e) =>
-                    update({
-                      window_policy: {
-                        ...draft.window_policy,
-                        [k]: {
-                          ...draft.window_policy[k],
-                          date_basis: e.target.value,
-                        },
-                      },
-                    })
-                  }
-                >
-                  {(k === 'forecast'
-                    ? ['expected_solicitation', 'published']
-                    : k === 'opportunity'
-                      ? ['deadline', 'published']
-                      : ['end_renewal', 'award_date', 'published']
-                  ).map((x) => (
-                    <option key={x} value={x}>
-                      {x.replaceAll('_', ' ')}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-          ))}
-        </details>
-      </fieldset>
+      <WorkFields draft={draft} pending={pending} onChange={onChange}/>
+      <LeadWindowFields draft={draft} pending={pending} onChange={onChange}/>
       {saving && (
         <ScheduleFields draft={draft} onChange={update} pending={pending} />
       )}
@@ -282,3 +135,156 @@ export function TriggerForm({
     </section>
   );
 }
+
+type GroupProps={draft:Draft;pending:boolean;onChange:(d:Draft)=>void};
+export function WorkFields({draft,pending,onChange}:GroupProps){const update=(v:Partial<Draft>)=>onChange({...draft,...v});return <>      <fieldset disabled={pending}>
+        <legend>Work</legend>
+        <label className="admin-work-option">
+          <input
+            type="checkbox"
+            checked={draft.config.maintain_sources}
+            onChange={(e) =>
+              update({
+                config: {
+                  ...draft.config,
+                  maintain_sources: e.target.checked,
+                },
+              })
+            }
+          />
+          <span>
+            <strong>Maintain sources</strong>
+            <small>Find missing sources and verify known methods.</small>
+          </span>
+        </label>
+        <label className="admin-work-option">
+          <input
+            type="checkbox"
+            checked={draft.config.check_updates}
+            onChange={(e) =>
+              update({
+                config: { ...draft.config, check_updates: e.target.checked },
+              })
+            }
+          />
+          <span>
+            <strong>Check for lead updates</strong>
+            <small>
+              Capture verified sources and compare saved evidence.
+            </small>
+          </span>
+        </label>
+      </fieldset>
+      {!draft.config.check_updates && <p className="admin-notice">Source-only run. Enable Check for lead updates to collect opportunities.</p>}
+</>;}
+export function LeadWindowFields({draft,pending,onChange,schedule=false}:GroupProps & {schedule?:boolean}){const update=(v:Partial<Draft>)=>onChange({...draft,...v});return <>      <fieldset disabled={pending}>
+        <legend>{schedule?'Lead types':'Look for'}</legend>
+        <div className="admin-inline">
+          {(Object.keys(categoryLabels) as Category[]).map((k) => (
+            <label key={k}>
+              <input
+                type="checkbox"
+                checked={draft.config.requested_categories.includes(k)}
+                onChange={(e) =>
+                  update({
+                    config: {
+                      ...draft.config,
+                      requested_categories: e.target.checked
+                        ? [...draft.config.requested_categories, k]
+                        : draft.config.requested_categories.filter(
+                            (x) => x !== k,
+                          ),
+                    },
+                  })
+                }
+              />
+              {categoryLabels[k]}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+      <fieldset disabled={pending}>
+        <details className="admin-dates">
+          <summary>{schedule?`Date window · ${draft.config.requested_categories.every(k=>draft.window_policy[k]?.from_offset_days===0&&draft.window_policy[k]?.to_offset_days===119)?'Next 120 days':'Custom'} · CT`:'Date window · next 12 months by default'}</summary>
+          <p className="admin-hint">
+            Rolling from each run's Central Time date. Evidence updates remain
+            separate from date-qualified candidates.
+          </p>
+          {draft.config.requested_categories.map((k) => (
+            <div className="admin-window" key={k}>
+              <strong>{categoryLabels[k]}</strong>
+              <label>
+                From day
+                <input
+                  aria-label={`${categoryLabels[k]} from day`}
+                  type="number"
+                  min={-366}
+                  max={1096}
+                  value={draft.window_policy[k].from_offset_days}
+                  onChange={(e) =>
+                    update({
+                      window_policy: {
+                        ...draft.window_policy,
+                        [k]: {
+                          ...draft.window_policy[k],
+                          from_offset_days: Number(e.target.value),
+                        },
+                      },
+                    })
+                  }
+                />
+              </label>
+              <label>
+                To day
+                <input
+                  aria-label={`${categoryLabels[k]} to day`}
+                  type="number"
+                  min={-366}
+                  max={1096}
+                  value={draft.window_policy[k].to_offset_days}
+                  onChange={(e) =>
+                    update({
+                      window_policy: {
+                        ...draft.window_policy,
+                        [k]: {
+                          ...draft.window_policy[k],
+                          to_offset_days: Number(e.target.value),
+                        },
+                      },
+                    })
+                  }
+                />
+              </label>
+              <label>
+                Date basis
+                <select
+                  value={draft.window_policy[k].date_basis}
+                  onChange={(e) =>
+                    update({
+                      window_policy: {
+                        ...draft.window_policy,
+                        [k]: {
+                          ...draft.window_policy[k],
+                          date_basis: e.target.value,
+                        },
+                      },
+                    })
+                  }
+                >
+                  {(k === 'forecast'
+                    ? ['expected_solicitation', 'published']
+                    : k === 'opportunity'
+                      ? ['deadline', 'published']
+                      : ['end_renewal', 'award_date', 'published']
+                  ).map((x) => (
+                    <option key={x} value={x}>
+                      {x.replaceAll('_', ' ')}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          ))}
+        </details>
+      </fieldset>
+</>;}

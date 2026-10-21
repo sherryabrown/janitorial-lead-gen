@@ -1,5 +1,7 @@
 # Phase 5 — Sources by geography and related geography
 
+Implemented Phase 3 contract extension (local, release pending): [editor/work reservations/multiple state sources](../done/03-admin-schedule-editor-and-work-scopes.md). Consume grouped state schedule membership and once-per-parent reporting; do not assume every state schedule has only one source. Preserve the latest local visual correction and the parent's terminology/default decisions.
+
 Integration note: use the [completed Phase 3 detail revision](../done/03-admin-redesign-detail-revision.md) for scope identity, fixed saved county membership and focused tabs. Source/geography links belong inside details, not extra schedule row quick actions.
 
 Status: planned. Parent: [geography/source rules](admin-workspace-redesign.md).

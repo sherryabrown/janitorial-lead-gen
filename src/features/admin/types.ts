@@ -9,7 +9,7 @@ export type SamSchedule = Omit<Schedule, 'config' | 'window_policy'> & {
   window_policy: Record<string, { lookback_days: number }>;
 };
 export type AnySchedule = Schedule | SamSchedule;
-export type County = { id: string; name: string };
+export type County = { id: string; name: string; cities?: {id:string;name:string}[]; selection_token?:string };
 export type ScopeCounty = County & {
   city_ids: string[];
   cities: County[];
@@ -18,6 +18,8 @@ export type ScopeCounty = County & {
 export type Config = {
   target_kind: 'county_scope' | 'state_source';
   state_trigger_id?: string | null;
+  state_trigger_ids?: string[];
+  state_sources?: {id:string;source_id:string;name:string;category:Category;county_ids:string[]}[];
   county_ids: string[];
   counties?: ScopeCounty[];
   maintain_sources: boolean;
@@ -98,7 +100,7 @@ export type Run = {
   origin?: string;
   usage?: Usage;
   config?: Config | SamConfig;
-  children?: { request_id: string; county_id: string; role: string }[];
+  children?: { request_id: string; county_id: string; role: string; source_id?:string;source_name?:string;category?:Category }[];
   next_action?: string;
   related_state_sources?: StateSource[];
 };
