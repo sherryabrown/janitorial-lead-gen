@@ -1,10 +1,10 @@
 # Phase 4 — Stats and analytics
 
-Implemented Phase 3 contract extension (local, release pending): [editor/work reservations/multiple state sources](../done/03-admin-schedule-editor-and-work-scopes.md). Consume grouped state schedule membership and once-per-parent reporting; do not assume every state schedule has only one source. Preserve the latest local visual correction and the parent's terminology/default decisions.
+Existing Phase 3 contract extension: [editor/work reservations/multiple state sources](../done/03-admin-schedule-editor-and-work-scopes.md), subsequently released at ec18074. Consume grouped state schedule membership and once-per-parent reporting; do not assume every state schedule has only one source. Preserve the approved visual correction and the parent's terminology/default decisions.
 
 Integration note: use the [completed Phase 3 detail revision](../done/03-admin-redesign-detail-revision.md) for focused details, tabs and row actions. Do not restore a separate latest-run panel or extra row-menu shortcuts when adding analytics.
 
-Status: planned. Parent: [metric definitions and decisions](admin-workspace-redesign.md).
+Status: implemented and verified locally, 2026-10-20. Parent: [metric definitions and decisions](../todo/admin-workspace-redesign.md). No release performed.
 Initiating instruction: accurate overall/per-schedule/per-run category, lead-outcome, attention, duration and AI reporting from existing data.
 Dependency: phases 2–3 reporting projections and navigation. D1–D3 confirmed: new leads/separate updates, last-run row usage, Stats defaults to last 7 days.
 
@@ -30,3 +30,16 @@ Reuse shared reporting helper, countyImportStatus, hosted-sam verified receipt c
 - npm run check; native test:access for changed data paths; desktop/390/320/keyboard Stats filters, sortable run table, readable metric labels and preserved drilldown/back state.
 - Document metrics that remain historically unavailable. Block acceptance if UI labels misleadingly claim complete totals; honest explicitly partial historical data is acceptable under parent contract.
 - No Netlify production deployment or new provider/service. Phase 6 owns coordinated preview/live release verification.
+
+## Completion and evidence
+
+- Added authenticated bounded analytics, last seven CT calendar days, full filtered totals before sorting/paging, immutable as-imported reporting metadata and explicit partial history. Existing schedules/details, manual/state/SAM execution and import safeguards remain intact. Schedule Overview has all-time available totals; the latest run remains solely in the run list.
+- Metadata is written only after verified import success/reconciliation, using the same helper for county and SAM. No migration or analytics store is required. Existing schema/checkpoint fields suffice; no historical import replay or mutable-payload backfill.
+- Verified unique lead precedence, separate run events, category transitions/historical subtype, unresolved actionable candidates versus source/route gaps, ledger-date AI usage, mixed credits/held amounts and trustworthy duration samples. Period reports continue working when older history exceeds the explicit all-time read bound.
+- `npm run check` passed: lint, 109 React tests, 360 workflow tests, actual import SQL/replay/concurrency/protected-field regressions, typecheck and Vite build. Final focused reporting suite: 12 passed, including the additional SAM zero-write/intent-classification case. Final focused analytics/details UI: 11 passed. Subsequent final lint/build passed. Existing large-chunk warning remains.
+- `npm run test:access` passed on disposable PostgreSQL 15/PostgREST, including actual county/SAM success and reconcile metadata equality, manual/scheduled deduplication and protected notes/stages; reporting JSON projections, 31-run paging/full totals, older-run period spend, oversized all-time rejection and narrow-period success. No production data contacted.
+- Actual browser fixture acceptance passed at1440/390/320px with keyboard filters/navigation, sort/paging, run drill/back/reload, existing five detail tabs, all-time Overview and zero workflow mutations. Screenshots were inspected. Evidence: ignored `outputs/deployment/admin-ui/analytics-*.png`, `analytics-summary.json`, command logs and the tracked [implementation review](../../docs/reviews/2026-10-20-admin-analytics.md).
+- Limits: old aggregate-only imports lack period-unique identities; old county records lack historical categories; unsupported candidate dispositions/credit units/finish timestamps remain unknown. Oversized reports require a narrower period/scope; all-time SQL aggregation is a future scaling extension. Category filters select requesting runs and as-imported lead classes; whole-run AI usage is not fractionally attributed. No open product decision blocks this phase.
+- Netlify production remains unchanged. No commit, push, shared migration or deployment was performed. Coordinated release remains a separately authorized step.
+
+Proposed commit: `feat: add verified admin analytics`.

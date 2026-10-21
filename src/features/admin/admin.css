@@ -701,3 +701,12 @@
 .schedule-editor .schedule-times>.text-button{padding:8px 0}
 
 .admin-workspace-bar>.admin-workspace-nav{grid-column:1/-1;grid-row:1}
+.analytics-block{border-top:1px solid var(--border);margin-top:24px;padding-top:20px;min-width:0}
+.analytics-summary{min-width:0;margin:20px 0}
+.analytics-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:20px 24px}
+.analytics-facts>div{min-width:0}
+.analytics-facts dd{overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.analytics-filters>label{min-width:0}
+.analytics-filters input,.analytics-filters select,.analytics .admin-inline select{max-width:100%;min-width:0}
+.schedule-results{margin-bottom:24px;border-bottom:1px solid var(--border);padding-bottom:16px}
+@media(max-width:600px){.analytics-facts{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.analytics .admin-inline{flex-wrap:wrap}.analytics-filters{grid-template-columns:minmax(0,1fr)}}

@@ -47,6 +47,12 @@ export function workflowServer({authenticate,workflow,imports,discovery,sam,samP
       let result;
       const execute=async()=>{
       if(schedules&&url.pathname==='/v1/scheduler/status'&&request.method==='GET')result={...await schedules.status(),backend_key_configured:typeof schedulerKey==='string'&&schedulerKey.length>=32,...(aiPolicy?{ai_policy:{enabled:aiPolicy.enabled,monthly_usd:aiPolicy.monthlyUsd}}:{})};
+      else if(schedules&&url.pathname==='/v1/admin/analytics'&&request.method==='GET') {
+        const limit=Number(url.searchParams.get('limit')??25),offset=Number(url.searchParams.get('offset')??0);
+        if(!Number.isInteger(limit)||limit<1||limit>100||!Number.isInteger(offset)||offset<0)throw new HttpError(400,'Invalid pagination');
+        try{result=await schedules.analytics({limit,offset,...Object.fromEntries(['schedule','run','target','geography','origin','outcome','from','through','category','period','sort','direction','as_of','snapshot'].filter(k=>url.searchParams.has(k)).map(k=>[k,url.searchParams.get(k)]))});}
+        catch(error){if(error.message==='Scoped read exceeded bound; narrow the query before proceeding')result={unavailable:'This report exceeds its read bound. Select a shorter period or narrower scope; no truncated totals are shown.'};else if(error.message==='Analytics changed; refresh this report before paging.')result={unavailable:'Results changed while paging. Refresh stats to load a consistent report.'};else throw error;}
+      }
       else if(schedules&&url.pathname==='/v1/admin/history'&&request.method==='GET') {
         const limit=Number(url.searchParams.get('limit')??50),offset=Number(url.searchParams.get('offset')??0);
         if(!Number.isInteger(limit)||limit<1||limit>100||!Number.isInteger(offset)||offset<0)throw new HttpError(400,'Invalid pagination');

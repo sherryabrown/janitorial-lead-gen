@@ -1,10 +1,12 @@
 # Admin workspace redesign — parent requirements
 
-Status: planning complete, 2026-10-20. No application implementation, data writes or release authorized by this plan. The user confirmed metric choices D1–D3 below; the six child plans are ready for sequential implementation.
+Status: requirements approved, 2026-10-20. Phases 1–3 have been released; Phase 4 is implemented and verified locally. Phases 5–6 remain planned. The user confirmed metric choices D1–D3 below. This parent document alone does not authorize release or unrelated data writes.
 
-Implementation checkpoint (2026-10-20): original phases 1–3 are deployed to Render and the approved Netlify preview, including the large-history reporting fix at 20b63fb. Netlify production remains unchanged. The first Phase 3 amendment was released through 8e80b13 and is recorded in [03-admin-redesign-detail-revision.md](../done/03-admin-redesign-detail-revision.md); its layout, immutable county membership, three-action menu and never-run deletion requirements supersede conflicting original Phase 2/3 requirements. Phases 4–6 remain planned. Original audit rows and completed-child evidence remain historical.
+Implementation checkpoint (2026-10-20): original phases 1–3 are deployed to Render and the approved Netlify preview, including the large-history reporting fix at 20b63fb. Netlify production remains unchanged. The first Phase 3 amendment was released through 8e80b13 and is recorded in [03-admin-redesign-detail-revision.md](../done/03-admin-redesign-detail-revision.md); its layout, immutable county membership, three-action menu and never-run deletion requirements supersede conflicting original Phase 2/3 requirements. At that checkpoint phases 4–6 remained planned; see the current Phase 4 checkpoint below. Original audit rows and completed-child evidence remain historical.
 
-Latest Phase 3 requirements: [Schedule editor, work reservations and multiple state sources](../done/03-admin-schedule-editor-and-work-scopes.md) is implemented locally and supersedes conflicting earlier editor/default/type requirements. Saved counties remain fixed; active/paused county schedules reserve county/work keys; selected state sources share one schedule. New schedules default to enabled, updates-only and120-day windows (SAM uses lookback). The existing uncommitted visual correction is a prerequisite baseline to preserve, not a separate implementation to discard. The editor amendment is verified locally; shared migration and release are pending. Netlify production remains unchanged.
+Latest Phase 3 requirements: [Schedule editor, work reservations and multiple state sources](../done/03-admin-schedule-editor-and-work-scopes.md), released at ec18074 with migration004, supersedes conflicting earlier editor/default/type requirements. Saved counties remain fixed; active/paused county schedules reserve county/work keys; selected state sources share one schedule. New schedules default to enabled, updates-only and120-day windows (SAM uses lookback). Preserve the approved visual corrections. Netlify production remains unchanged.
+
+Phase 4 checkpoint: [Stats and analytics](../done/04-admin-redesign-analytics.md) is implemented and verified locally, with [metric coverage and acceptance evidence](../../docs/reviews/2026-10-20-admin-analytics.md). No new migration is needed. Historical gaps are explicitly partial/unknown; verified metadata starts with future worker imports after release. Phases 5–6 and any release remain separate work.
 
 ## Initiating request
 
@@ -28,7 +30,7 @@ Full requirements carried forward:
 | 1 | [Navigation and Settings shell — completed locally](../done/01-admin-redesign-navigation.md) | Parent; no other child |
 | 2 | [Schedules and management — completed locally](../done/02-admin-redesign-schedules.md) | 1 |
 | 3 | [Original details/history — released](../done/03-admin-redesign-details-history.md); [first detail revision — released](../done/03-admin-redesign-detail-revision.md); [completed editor/work/state amendment](../done/03-admin-schedule-editor-and-work-scopes.md) | 1–2; revision uses deployed Phase 3 |
-| 4 | [Stats and analytics](04-admin-redesign-analytics.md) | 2–3 reporting contracts |
+| 4 | [Stats and analytics](../done/04-admin-redesign-analytics.md) | Implemented locally; 2–3 reporting contracts |
 | 5 | [Sources and related geography](05-admin-redesign-sources-geography.md) | 1–3; 4 optional for statistics links |
 | 6 | [Acceptance and release](06-admin-redesign-acceptance-release.md) | 1–5 |
 

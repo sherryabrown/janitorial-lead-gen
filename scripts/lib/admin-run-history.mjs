@@ -33,7 +33,7 @@ export async function reportRunHistory(db,runs){
   catch(error){if(error.message!=='Scoped read exceeded bound; narrow the query before proceeding')throw error;for(const id of ids)bounded.add(id);}
  }
  return runs.map((run,i)=>({...projected[i].reporting.last_run,timing:{...activityTiming(run,steps.filter(s=>s.trigger_id===run.id)),...(bounded.has(run.id)?{reason:'Timing unavailable for this selection; narrow filters or view run logs.'}:{})},
-  categories:{completeness:run.config?.check_updates===false?'not_applicable':'unknown',forecast:null,opportunity:null,award:null,reason:'Verified historical category attribution is unavailable'},
+  categories:projected[i].reporting.last_run.categories,
   candidates_attention:{value:null,completeness:run.config?.check_updates===false?'not_applicable':'unknown',reason:run.config?.check_updates===false?'Source maintenance only':'Review saved candidate validation; intake count is not a blocker count'}}));
 }
 export function adminRunHistory(db){

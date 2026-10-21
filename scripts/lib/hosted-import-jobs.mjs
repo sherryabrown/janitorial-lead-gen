@@ -6,6 +6,7 @@ import { verifyBatch } from './batch-verification.mjs';
 import {automaticSamReview,samAutomaticPolicy} from './sam-automatic-import.mjs';
 import {rehearsalPolicy} from './native-sql-rehearsal.mjs';
 import {countyAuthority,automaticCountyReview,countyAutomaticPolicy,countyImportStatus} from './county-automatic-import.mjs';
+import {verifiedReportingRecords} from './verified-reporting-records.mjs';
 const automaticPolicy=p=>[samAutomaticPolicy,countyAutomaticPolicy].includes(p);
 export function importJobs({db,project,transport,artifacts,samSavedRuns,rehearse,countyEvidence}) {
   async function lookup(id) {
@@ -124,7 +125,7 @@ export function importJobs({db,project,transport,artifacts,samSavedRuns,rehearse
     const p=JSON.parse((await artifacts.get(c.package_artifact)).toString());
     const after=await importSnapshot(db,project,p.review,p.manifest),receipt=verifyBatch(p.before,after,p.manifest);
     if(!receipt.verified)throw new Error('Uncertain import did not verify; inspect baseline and affected records before retry');
-    checked(await db.from('procurement_jobs').update({state:'succeeded',checkpoint:{...c,stage:'import_verified',receipt,
+    checked(await db.from('procurement_jobs').update({state:'succeeded',checkpoint:{...c,stage:'import_verified',receipt,reporting_records:verifiedReportingRecords(p.manifest),
       ...(c.automatic?.policy===countyAutomaticPolicy?{county_records:p.manifest.records.map(r=>({id:r.id,intake_ids:p.manifest.decisions.filter(d=>d.lead_id===r.id).map(d=>d.intake.id),added:!r.expected_payload,updated:!!r.expected_payload&&hash(r.payload)!==hash(r.expected_payload)}))}:{}),
       reconciled_by:actor,next_action:'Review imported leads'}}).eq('id',id).eq('updated_at',job.updated_at));
     return status(id);
@@ -174,6 +175,7 @@ export function importJobs({db,project,transport,artifacts,samSavedRuns,rehearse
         throw error;
       }
       if(c.automatic?.policy===countyAutomaticPolicy)c.county_records=p.manifest.records.map(r=>({id:r.id,intake_ids:p.manifest.decisions.filter(d=>d.lead_id===r.id).map(d=>d.intake.id),added:!r.expected_payload,updated:!!r.expected_payload&&hash(r.payload)!==hash(r.expected_payload)}));
+      if(c.receipt?.verified)c.reporting_records=verifiedReportingRecords(p.manifest);
       c.stage='import_verified';c.next_action='Review imported leads';await save('succeeded');
     } else {c.next_action='Reconcile saved import outcome before retry';await save('outcome_unknown');}
   }

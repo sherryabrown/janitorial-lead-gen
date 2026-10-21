@@ -19,6 +19,7 @@ import {postgresTransport} from '../../scripts/lib/hosted-import.mjs';
 import {nativeRehearsal} from '../../scripts/lib/native-sql-rehearsal.mjs';
 import {statewideSam} from '../../scripts/lib/hosted-sam.mjs';
 import {verifyAutomaticCounty} from './automatic-county.mjs';
+import {verifyAnalyticsDatabase} from '../helpers/analytics-db.mjs';
 
 const bin=process.env.ACCESS_TEST_PG_BIN || 'C:/Program Files/PostgreSQL/15/bin';
 const gateway=process.env.ACCESS_TEST_POSTGREST_BIN || resolve('outputs/procurement-access/local-access-runtime/postgrest/postgrest.exe');
@@ -283,6 +284,11 @@ try {
     assert.equal((await triggers.status(manual.trigger_id)).state,'partial');
     const child=(await triggers.status(manual.trigger_id)).children[0];
     const packet=await samWorker.packet(child.request_id);assert.equal(packet.automatic.verified,true);assert.equal(packet.automatic.added,1);assert.equal(packet.automatic.exclusions.length,1);
+    const imported=(await livePool.query("select id,checkpoint from procurement_jobs where search_request_id=$1 and checkpoint->>'stage'='import_verified'",[child.request_id])).rows[0];
+    assert.equal(imported.checkpoint.reporting_records.version,1);assert.equal(imported.checkpoint.reporting_records.records[0].outcome,'added');
+    await livePool.query("update procurement_jobs set state='outcome_unknown',checkpoint=$2 where id=$1",[imported.id,{...imported.checkpoint,stage:'import_reconcile'}]);
+    await automaticImports.reconcile(imported.id,{},first);
+    assert.deepEqual((await livePool.query('select checkpoint from procurement_jobs where id=$1',[imported.id])).rows[0].checkpoint.reporting_records,imported.checkpoint.reporting_records,'SAM reconciliation records identical verified identities without replaying SQL');
     assert.equal(packet.automatic.stage,'import_verified');
     const statusResponse=await adminRead(`/v1/sam/requests/${child.request_id}/status`);
     assert.equal(statusResponse.status,200);const savedStatus=await statusResponse.json();
@@ -316,6 +322,7 @@ try {
     const stale=await reconcile();assert.equal(stale.error,null);assert.equal(stale.data.length,0,'Stale reconciliation cannot overwrite a changed checkpoint');
     sql("update procurement_jobs set state='cancelled'; update procurement_triggers set state='completed';");
     console.log('Automatic county acceptance:',await verifyAutomaticCounty({db,artifacts,audit,livePool,rehearsalPool,actor:first,config:adminConfig}));
+    console.log('Analytics native acceptance:',await verifyAnalyticsDatabase({sql:livePool,db}));
   }finally {await livePool.end();await rehearsalPool.end();}
   console.log(JSON.stringify({status:'passed',engine:'PostgreSQL 15 + PostgREST',checks:['anonymous reads/RPC denial','member and non-member reads/stages','signed expired and invalid JWT HTTP rejection','note ownership','atomic actor history','1005-row paged queue','service workflow access','Admin private table/RPC denial','Admin atomic replay','concurrent parent AI reservations and four-call cap','scheduling private tables/RPC denial and atomic replay','concurrent active/paused county-work ownership and archive release','grouped state native dispatch/replay/membership/source identities','browser-independent private HTTP wake/shared worker/audit/replay/pause','nonempty automatic SAM manual/scheduled native validation/write/readback/deduplication','private detail hold containment and checkpoint CAS/stale-write rejection'],isolated_wake_and_stage_ms:isolatedWakeAndStageMs,production_contacted:false},null,2));
 } finally {

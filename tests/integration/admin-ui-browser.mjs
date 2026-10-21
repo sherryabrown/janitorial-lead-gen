@@ -1,6 +1,8 @@
 /* global localStorage, window, document, innerWidth */
 // Local browser acceptance: real app/auth client, intercepted fixture HTTP, no production mutations.
 import {verifyScheduleRevision} from './schedule-revision-browser.mjs';
+import {verifyAnalyticsBrowser} from './analytics-browser.mjs';
+import {analyticsFixture} from '../helpers/analytics-fixture.mjs';
 import { chromium } from 'playwright';
 import { spawn } from 'node:child_process';
 import { readFile, mkdir, writeFile } from 'node:fs/promises';
@@ -98,8 +100,8 @@ const run = {
 // Verified reporting DTO fixture; no canonical database mutation is performed.
 schedule.reporting={as_of:'2026-10-20T14:00:00Z',last_run:{...run,leads:{added:2,updated:1,unchanged:3,completeness:'known'}},latest_occurrence:null};
 const bodies = [];
-let savedSchedule = process.argv.includes('--schedule-revision');
-let failRunRead = !process.argv.includes('--schedule-revision');
+let savedSchedule = process.argv.includes('--schedule-revision')||process.argv.includes('--analytics');
+let failRunRead = !process.argv.includes('--schedule-revision')&&!process.argv.includes('--analytics');
 let queueReads = 0;
 let samSchedule = null;
 const samRun={...run,id:'sam-run',state:'completed',next_action:'View automatically saved leads',target_kind:'sam',county_count:0,config:{target_kind:'sam',requested_categories:['opportunity'],publication_window:{from:'2026-09-20',to:'2026-10-19'}},children:[{request_id:'sam-request',county_id:null,role:'sam'}]};
@@ -234,6 +236,7 @@ try {
       else if (p === '/v1/schedules/schedule') body=schedule;
       else if(p==='/v1/schedules/archived')body={...schedule,id:'archived',name:'Archived checks',archived_at:'2026-10-19T12:00:00Z'};
       else if(p==='/v1/schedules/sam-schedule')body=samSchedule;
+      else if(p==='/v1/admin/analytics')body=analyticsFixture({offset:Number(url.searchParams.get('offset')??0),sam:url.searchParams.get('target')==='sam',all:url.searchParams.get('period')==='all'});
       else if(p==='/v1/admin/history'){
         const historyRun={...run,schedule_id:url.searchParams.get('schedule')||null,schedule_name:url.searchParams.get('schedule')?'Morning checks':null,leads:{added:2,updated:1,unchanged:3,completeness:'known'},timing:{recorded_activity_ms:1800,completeness:'known'}};
         body={items:[historyRun],next_offset:null,total:1};
@@ -322,7 +325,7 @@ try {
   const page = await context.newPage(),
     errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  if(process.argv.includes('--schedule-revision')){await verifyScheduleRevision({page,origin,out,errors,bodies});}else{
+  if(process.argv.includes('--analytics')){await verifyAnalyticsBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--schedule-revision')){await verifyScheduleRevision({page,origin,out,errors,bodies});}else{
   await page.goto(origin);
   await page.getByRole('button',{name:'Settings',exact:true}).waitFor();
   assert.equal(await page.getByRole('button',{name:'Admin',exact:true}).count(),0);

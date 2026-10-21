@@ -58,6 +58,11 @@ export async function verifyAutomaticCounty({db,artifacts,audit,livePool,rehears
   assert.equal(capabilities.length,1);assert.equal(capabilities[0].verification_evidence.automation_policy,'county-public-v1');
   assert.equal(checked(await db.from('procurement_intake_leads').select('lead_id').eq('intake_id',status.candidates[0].intake_id)).length,1,JSON.stringify({message:'Valid county result automatically imports without approval',jobs:status.jobs,automatic:status.automatic_import}));
   const originalLead=checked(await db.from('procurement_leads').select('*').eq('source_id',sources[0].id).single());
+  const imported=(await livePool.query("select id,checkpoint from procurement_jobs where search_request_id=$1 and checkpoint->>'stage'='import_verified' and checkpoint->'receipt'->>'verified'='true'",[child.request_id])).rows.find(j=>j.checkpoint.reporting_records?.records?.length);
+  assert.ok(imported);assert.equal(imported.checkpoint.reporting_records.records[0].id,originalLead.id);
+  await livePool.query("update procurement_jobs set state='outcome_unknown',checkpoint=$2 where id=$1",[imported.id,{...imported.checkpoint,stage:'import_reconcile'}]);
+  await imports.reconcile(imported.id,{},actor);
+  assert.deepEqual((await livePool.query('select checkpoint from procurement_jobs where id=$1',[imported.id])).rows[0].checkpoint.reporting_records,imported.checkpoint.reporting_records,'County reconciliation retains identical reporting without another import');
   await livePool.query("update procurement_leads set stage='hold',notes='Protected sales note' where id=$1",[originalLead.id]);
   assert.ok(calls.includes('https://www.arcounties.org/counties/'));
   const before=calls.length;await discovery(child.request_id,{task_id:checked(await db.from('procurement_jobs').select('checkpoint').eq('search_request_id',child.request_id).eq('kind','discover'))[0].checkpoint.task_id},actor);

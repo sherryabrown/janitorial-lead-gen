@@ -16,7 +16,9 @@ export function verifiedLeadCounts(run,jobs) {
  const verified=relevant.filter(j=>j.checkpoint?.receipt?.verified);
  const records=new Map(); let aggregates=0, malformed=false;
  for(const j of verified) {
-  if(Array.isArray(j.checkpoint.county_records))for(const r of j.checkpoint.county_records){
+  const reporting=j.checkpoint.reporting_records;
+  const saved=reporting?.version===1&&Array.isArray(reporting.records)?reporting.records.map(r=>({...r,added:['added','updated','unchanged'].includes(r.outcome)?r.outcome==='added':undefined,updated:r.outcome==='updated'})):j.checkpoint.county_records;
+  if(Array.isArray(saved))for(const r of saved){
    if(typeof r.id!=='string'||!r.id||typeof r.added!=='boolean'||typeof r.updated!=='boolean'){malformed=true;continue;}
    const old=records.get(r.id);records.set(r.id,{added:!!r.added||old?.added,updated:!!r.updated||old?.updated});
   } else aggregates++;
@@ -30,6 +32,15 @@ export function verifiedLeadCounts(run,jobs) {
  if(!aggregates&&verified.length&&!unsettled)return {added:[...records.values()].filter(r=>r.added).length,updated:[...records.values()].filter(r=>!r.added&&r.updated).length,unchanged:[...records.values()].filter(r=>!r.added&&!r.updated).length,completeness:'known'};
  return {added:null,updated:null,unchanged:null,completeness:'unknown',reason:unsettled?'Run results are not fully verified':'Historical verified identities unavailable'};
 }
+export function verifiedCategoryCounts(run,jobs){
+ const leads=verifiedLeadCounts(run,jobs),sets={forecast:new Set(),opportunity:new Set(),award:new Set()},historical=new Set();let complete=leads.completeness==='known';
+ for(const job of jobs.filter(j=>j.checkpoint?.receipt?.verified)){
+  const c=job.checkpoint,saved=c.reporting_records?.version===1?c.reporting_records.records:null;
+  if(!Array.isArray(saved)){if(c.county_records?.length!==0)complete=false;continue;}
+  for(const r of saved){const category=r.category==='historical_opportunity'?'opportunity':r.category;if(!sets[category]||typeof r.id!=='string'){complete=false;continue;}sets[category].add(r.id);if(r.category==='historical_opportunity')historical.add(r.id);}
+ }
+ return {...Object.fromEntries(Object.entries(sets).map(([k,v])=>[k,complete?v.size:null])),historical_opportunity:complete?historical.size:null,completeness:leads.completeness==='not_applicable'?'not_applicable':complete?'known':'unknown',reason:complete?'As-imported classifications; category transitions can overlap':'Verified historical category attribution is unavailable'};
+}
 export async function reportSchedules(db,items) {
  const runs=items.flatMap(s=>s.last_run?[s.last_run]:[]),ids=runs.map(r=>r.id);
  const batch=async(table,column,keys,columns)=>{
@@ -40,12 +51,12 @@ export async function reportSchedules(db,items) {
  const [children,usage]=await Promise.all([
   batch('procurement_trigger_requests','trigger_id',ids,'trigger_id,request_id,role'),
   batch('procurement_usage_ledger','trigger_id',ids,'id,trigger_id,state,input_tokens,output_tokens,actual_usd,reserved_usd,usage')]);
- const jobs=await batch('procurement_jobs','search_request_id',children.map(c=>c.request_id),'id,search_request_id,state,checkpoint:checkpoint->automatic,receipt:checkpoint->receipt,records:checkpoint->county_records,stage:checkpoint->>stage');
+ const jobs=await batch('procurement_jobs','search_request_id',children.map(c=>c.request_id),'id,search_request_id,state,checkpoint:checkpoint->automatic,receipt:checkpoint->receipt,records:checkpoint->county_records,reporting_records:checkpoint->reporting_records,stage:checkpoint->>stage');
  const presentations=await countyPresentations(db,runs,{children,usage});
  return items.map(s=>{
   if(!s.last_run)return {...s,reporting:{as_of:new Date().toISOString(),last_run:null,latest_occurrence:s.latest_occurrence}};
   const r=s.last_run,requests=new Set(children.filter(c=>c.trigger_id===r.id).map(c=>c.request_id));
-  const js=jobs.filter(j=>requests.has(j.search_request_id)).map(j=>({...j,checkpoint:{automatic:j.checkpoint,receipt:j.receipt,...(j.records?{county_records:j.records}:{}),stage:j.stage}}));
-  return {...s,reporting:{as_of:new Date().toISOString(),latest_occurrence:s.latest_occurrence,last_run:{...r,...(presentations.get(r.id)?{presentation:presentations.get(r.id)}:{}),leads:verifiedLeadCounts(r,js),usage:usageSummary(usage.filter(u=>u.trigger_id===r.id))}}};
+  const js=jobs.filter(j=>requests.has(j.search_request_id)).map(j=>({...j,checkpoint:{automatic:j.checkpoint,receipt:j.receipt,reporting_records:j.reporting_records,...(j.records?{county_records:j.records}:{}),stage:j.stage}}));
+  return {...s,reporting:{as_of:new Date().toISOString(),latest_occurrence:s.latest_occurrence,last_run:{...r,...(presentations.get(r.id)?{presentation:presentations.get(r.id)}:{}),leads:verifiedLeadCounts(r,js),categories:verifiedCategoryCounts(r,js),usage:usageSummary(usage.filter(u=>u.trigger_id===r.id))}}};
  });
 }
