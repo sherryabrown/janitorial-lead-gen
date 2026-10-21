@@ -65,6 +65,14 @@ Completed baseline: code `65c3465`, documentation `2524bd8`, active LRSD IonWave
 - Before an authorized release record exact before/after source/method and production deployment identities. Render first, then the approved Netlify preview; keep Netlify production deployment/lock and all unrelated environment/budget settings unchanged. This plan update alone is not release authorization.
 - Keep this plan in todo while required PlanetBids hosted collection or airport document/forecast validation is incomplete. Each city/school must have either a reusable verified collecting method or an evidence-backed external publication/access limit with the precise remaining action. External limits are not collected sources. Report what works, what remains blocked and which concrete action can unblock it; do not declare full Saline coverage from partial success.
 
+## PlanetBids return status — October 20, 2026
+
+The requested supported-alternatives review is recorded in [PlanetBids exhaustion and manual boundary](../../docs/reviews/2026-10-20-planetbids-supported-alternatives.md). Direct and existing hosted HTTP reads still return 202; fresh clean Chromium/Chrome cannot render published JavaScript, while normal public Chrome search displays zero bids. Initial authentication/bootstrap warnings also appeared; backend query completeness is unverified. Airport guidance says new PlanetBids postings begin November 2026. This assisted observation is not unattended acceptance.
+
+The existing B2Gnow public-detail continuation was enabled on the existing airport method through a rollback/readback/replay-tested registry update and verified live. Both currently open airport solicitations (roofing and vehicles) are outside janitorial scope; exclusions and evidence were saved without lead changes or AI use. Provider-owned PlanetBids checkpoints retain the exact remaining access question and conditional private-document/participation actions. No unsupported PlanetBids method was activated, no paid provider/new infrastructure was added, and no code deployment occurred.
+
+Keep this plan in todo: provider-supported unattended PlanetBids access and required remaining airport acceptance are not complete. Resume on supported access guidance or a real project that permits detail/document validation; reuse existing services and preserve the manual intervention boundary. Do not repeat unchanged requests or treat free registration, an empty foreground search, or a login as hosted acceptance. Netlify production remains unchanged.
+
 ## Inspected implementation and reuse map
 
 - `scripts/lib/official-link-discovery.mjs`: durable county discovery stages, official links, capture reuse, bounded capture (currently 2 MB in automatic discovery), saved verification and continuation.
