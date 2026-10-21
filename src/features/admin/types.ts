@@ -118,7 +118,7 @@ export type Step = {
   usage: Usage;
 };
 export type LeadCounts = {added: number|null; updated: number|null; unchanged: number|null; completeness: string; reason?: string};
-export type RunTiming = {created_at: string; finished_at: string|null; created_to_finished_ms: number|null; recorded_activity_ms: number|null; completeness: string; basis: string};
+export type RunTiming = {created_at: string; finished_at: string|null; created_to_finished_ms: number|null; recorded_activity_ms: number|null; completeness: string; basis: string;reason?:string};
 export type RunMetrics = {leads?: LeadCounts; timing?: RunTiming; categories?: {completeness:string; forecast:number|null; opportunity:number|null; award:number|null; reason:string}; candidates_attention?:{value:number|null;completeness:string;reason:string}};
 export type StateSource = {
   id: string;

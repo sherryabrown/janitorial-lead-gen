@@ -42,5 +42,8 @@ test('history filters cover the full dataset, standalone runs, CT boundaries, sn
   assert.equal((await history({from:'2026-03-08',through:'2026-03-08'})).total,1,'CT DST day ends at 05:00Z, not a fixed 24-hour offset');
   await sql.query(`insert into procurement_schedule_events(schedule_id,action,version,summary) values($1,'edited',2,$2)`,[sid,{raw_trace:'private secret',occurrence_id:sid,reason:'private exception'}]);
   const event=(await schedules.events(sid)).items[0];assert.equal(event.summary.raw_trace,undefined);assert.equal(event.summary.reason,'saved_reason');
+  await sql.query(`insert into procurement_workflow_steps(trigger_id,phase,attempt_key,state,actor_id,origin,started_at,finished_at) select $1,'compare','large-history-'||n,'completed',$2,'manual','2026-10-20T12:00:00Z'::timestamptz,'2026-10-20T12:00:01Z'::timestamptz from generate_series(1,10000) n`,[rid(2),actor]);
+  const large=await history();assert.equal(large.total,56);assert.equal(large.items.length,50);assert.ok(large.items.every(r=>r.timing.recorded_activity_ms===null&&r.timing.completeness==='unknown'&&r.timing.reason.includes('Timing unavailable')));
+  const logPage=await service.steps(rid(2),{limit:50});assert.equal(logPage.items.length,50);assert.ok(logPage.next_cursor,'Detailed logs remain paginated and readable');
  }finally{await sql.close();}
 });

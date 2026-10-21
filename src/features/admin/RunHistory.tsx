@@ -46,7 +46,7 @@ export function RunHistory({owner='',scheduleId,counties=[],onView,onSchedule,re
    <td data-label="Scope / origin">{title(r.target_kind)}<small>{r.config?.target_kind==='sam'?'Arkansas statewide':r.config?.counties?.map(c=>c.name).join(', ')||'Saved scope in details'}</small><small>{title(r.origin)}</small></td>
    <td data-label="Created / finished">{formatLocal(r.created_at)}<small>{r.finished_at?formatLocal(r.finished_at):'Finish unknown'}</small></td>
    <td data-label="Outcome">{runLabel(r)}</td><td data-label="Validated leads">{r.leads?.completeness==='known'?`${r.leads.added} new · ${r.leads.updated} updated · ${r.leads.unchanged} unchanged`:r.leads?.completeness==='not_applicable'?'Not applicable':'Unknown'}</td>
-   <td data-label="Recorded activity">{duration(r.timing?.recorded_activity_ms)}<small>{r.timing?.completeness==='partial'?'Partial recorded intervals':'Completed step intervals'}</small></td>
+   <td data-label="Recorded activity">{duration(r.timing?.recorded_activity_ms)}<small>{r.timing?.reason??(r.timing?.completeness==='partial'?'Partial recorded intervals':'Completed step intervals')}</small></td>
    <td data-label="Actions"><div className="admin-inline"><button type="button" className="text-button" onClick={()=>onView(r.id,'overview')}>View run</button><button type="button" className="text-button" onClick={()=>onView(r.id,'logs')}>Logs</button><button type="button" className="text-button" onClick={()=>onView(r.id,'sources')}>Sources</button></div></td>
   </tr>)}</tbody></table></div>
   {page.next_offset!==null&&<button type="button" className="text-button" disabled={busy} onClick={()=>void more()}>More runs</button>}

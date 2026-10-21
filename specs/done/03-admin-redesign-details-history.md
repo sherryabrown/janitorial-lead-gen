@@ -60,3 +60,7 @@ Expose existing trigger timestamps, but show Unknown for attention runs missing 
 - User spot-check: refresh the local app, open a real schedule, traverse History → run → Logs/Sources → Back, and confirm the expected saved scope and readable unknown metrics. Local automated/browser coverage passed; live preview release/acceptance is not claimed for this phase.
 
 Proposed commit: `feat: add schedule details and run history`.
+
+### Release verification follow-up
+
+The first live full-history read exceeded the existing 10,000-step scoped-read bound even though five-run checks passed. The bounded timing loader now leaves the run page/counts/outcomes available and marks recorded activity Unknown with “Timing unavailable for this selection; narrow filters or view run logs.” It keeps the limit, preserves reliable creation/finish timestamps and does not return a partial sum as a total. Detailed logs remain cursor-paginated. Other database failures still surface normally. A 10,001-step isolated regression and a read-only check of all 35 existing runs passed; import, collection, recurrence and budget behavior are unchanged. The fix requires the matching backend and preview release, with Netlify production preserved.

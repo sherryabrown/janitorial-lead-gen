@@ -26,9 +26,13 @@ export function activityTiming(run,steps){
 export async function reportRunHistory(db,runs){
  runs=runs.map(r=>({id:r.id,target_kind:r.target_kind,state:r.state,config:r.config,created_at:r.created_at,finished_at:r.finished_at??null,origin:r.origin,schedule_id:r.schedule_id??null,occurrence_id:r.occurrence_id??null}));
  const projected=await reportSchedules(db,runs.map(r=>({id:r.id,last_run:r})));
- const steps=[];
- for(let i=0;i<runs.length;i+=100)steps.push(...await rows(db,'procurement_workflow_steps',q=>q.in('trigger_id',runs.slice(i,i+100).map(r=>r.id)),'id,trigger_id,started_at,finished_at'));
- return runs.map((run,i)=>({...projected[i].reporting.last_run,timing:activityTiming(run,steps.filter(s=>s.trigger_id===run.id)),
+ const steps=[],bounded=new Set();
+ for(let i=0;i<runs.length;i+=100){
+  const ids=runs.slice(i,i+100).map(r=>r.id);
+  try{steps.push(...await rows(db,'procurement_workflow_steps',q=>q.in('trigger_id',ids),'id,trigger_id,started_at,finished_at'));}
+  catch(error){if(error.message!=='Scoped read exceeded bound; narrow the query before proceeding')throw error;for(const id of ids)bounded.add(id);}
+ }
+ return runs.map((run,i)=>({...projected[i].reporting.last_run,timing:{...activityTiming(run,steps.filter(s=>s.trigger_id===run.id)),...(bounded.has(run.id)?{reason:'Timing unavailable for this selection; narrow filters or view run logs.'}:{})},
   categories:{completeness:run.config?.check_updates===false?'not_applicable':'unknown',forecast:null,opportunity:null,award:null,reason:'Verified historical category attribution is unavailable'},
   candidates_attention:{value:null,completeness:run.config?.check_updates===false?'not_applicable':'unknown',reason:run.config?.check_updates===false?'Source maintenance only':'Review saved candidate validation; intake count is not a blocker count'}}));
 }
