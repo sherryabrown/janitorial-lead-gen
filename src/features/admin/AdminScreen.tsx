@@ -479,7 +479,7 @@ export default function AdminScreen({
           error={scheduleReadError} onRetry={()=>setRevision(n=>n+1)}
           focusSchedule={savedScheduleFocus}
           onAdd={target=>setScheduleEditor({target})}
-          onMore={() => void loadMore()} onEdit={(s) => { void edit(s); navigate('schedules', true); }}
+          onMore={() => void loadMore()} onEdit={(s) => { void edit(s); }}
           onAction={(s, a) => void scheduleAction(s, a)} busy={busy} />
       </div>
       <div hidden={!!scheduleEditor||navigation.section!=='manual'||!!selected} ref={manualRef} tabIndex={-1} className="admin-navigation-section" aria-label="Manual runs">

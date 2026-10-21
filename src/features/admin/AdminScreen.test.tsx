@@ -678,3 +678,15 @@ it('does not let a delayed schedule edit overwrite a newer county draft',async()
   await waitFor(()=>expect(screen.getByRole('checkbox',{name:'Ashley County'})).toHaveProperty('checked',true));
   expect(screen.queryByText('Editing a saved schedule')).toBeNull();
 });
+
+it('returns from cancelled schedule editing to the same detail tab instead of manual controls',async()=>{
+ const original=mocks.request.getMockImplementation()!;
+ mocks.request.mockImplementation((p,o)=>p==='/v1/schedules?lifecycle=current'?Promise.resolve({items:[schedule],next_offset:null}):original(p,o));
+ await start();fireEvent.click(screen.getByRole('button',{name:'Schedules'}));
+ fireEvent.click(screen.getByRole('button',{name:'Morning check'}));
+ await screen.findByRole('heading',{name:'Schedule settings'});
+ fireEvent.click(within(screen.getByRole('region',{name:'Schedule details: Morning check'})).getByRole('button',{name:'Edit'}));
+ await screen.findByRole('heading',{name:'Edit Morning check'});fireEvent.click(screen.getByRole('button',{name:'Cancel'}));
+ expect(screen.getByRole('tab',{name:'Overview'})).toBeTruthy();expect(screen.getByRole('heading',{name:'Schedule settings'})).toBeTruthy();
+ expect(screen.queryByRole('checkbox',{name:'Pulaski County'})).toBeNull();
+});
