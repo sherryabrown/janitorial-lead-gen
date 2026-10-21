@@ -103,6 +103,7 @@ afterEach(() => {
 });
 async function start() {
   render(<AdminScreen owner="owner" onViewLeads={() => {}} />);
+  fireEvent.click(screen.getByRole('button',{name:'Run now: choose scope'}));
   await screen.findByText(
     'No saved state sources yet. New findings will appear here.',
   );
@@ -235,6 +236,7 @@ it('retains the same mutation key after uncertain submit and preserves selection
   await screen.findByText(/Run queued. Selection kept/);
   const sent = calls.filter((c) => c.path === '/v1/triggers' && c.body);
   expect(sent[0].key).toBe(sent[1].key);
+  fireEvent.click(screen.getByRole('button',{name:'Run now: choose scope'}));
   expect(
     screen.getByRole('checkbox', { name: 'Pulaski County' }),
   ).toHaveProperty('checked', true);
@@ -285,20 +287,18 @@ it('isolates schedule editing from manual selection and sends the saved version'
   );
   await start();
   fireEvent.click(screen.getByRole('checkbox', { name: 'Ashley County' }));
+  fireEvent.click(screen.getByRole('button',{name:'Schedules'}));
   fireEvent.click(screen.getByRole('button', { name: 'Actions for Morning check' }));
-  fireEvent.click(screen.getByRole('menuitem', { name: 'Edit Morning check' }));
-  await screen.findByText('Editing a saved schedule');
-  expect(
-    screen.getByRole('checkbox', { name: 'Pulaski County' }),
-  ).toHaveProperty('checked', true);
-  fireEvent.click(screen.getByRole('button', { name: 'Cancel editing' }));
-  expect(
-    screen.getByRole('checkbox', { name: 'Ashley County' }),
-  ).toHaveProperty('checked', true);
-  expect(
-    screen.getByRole('checkbox', { name: 'Pulaski County' }),
-  ).toHaveProperty('checked', false);
+  fireEvent.click(screen.getByRole('menuitem', { name: 'Edit' }));
+  await screen.findByRole('heading',{name:'Edit Morning check'});
+  expect(screen.queryByRole('checkbox',{name:'Pulaski County'})).toBeNull();
+  expect(screen.getByLabelText('About saved counties')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button',{name:'Cancel'}));
+  fireEvent.click(screen.getByRole('button',{name:'Run now: choose scope'}));
+  expect(screen.getByRole('checkbox',{name:'Ashley County'})).toHaveProperty('checked',true);
+  fireEvent.click(screen.getByRole('button',{name:'Schedules'}));
   fireEvent.click(screen.getByRole('button', { name: 'Actions for Morning check' }));
+  fireEvent.click(screen.getByRole('menuitem',{name:'Disable'}));
   fireEvent.click(screen.getByRole('menuitem', { name: 'Pause' }));
   await waitFor(() =>
     expect(
@@ -319,14 +319,12 @@ it('supports multiple daily times, weekly and monthly controls while schedules s
   });
   fireEvent.click(screen.getByRole('button', { name: 'Add time' }));
   expect(
-    screen.getByRole('button', { name: 'Review schedule' }),
+    screen.getByRole('button', { name: 'Save schedule' }),
   ).toHaveProperty('disabled', true);
   fireEvent.change(screen.getByLabelText('Local time 2'), {
     target: { value: '14:00' },
   });
-  expect(
-    screen.getByRole('button', { name: 'Review schedule' }),
-  ).toHaveProperty('disabled', false);
+  await waitFor(()=>expect(screen.getByRole('button',{name:'Save schedule'})).toHaveProperty('disabled',false));
   fireEvent.click(screen.getByRole('button', { name: 'Remove time 2' }));
   fireEvent.change(screen.getByLabelText('Frequency'), {
     target: { value: 'weekly' },
@@ -361,6 +359,7 @@ it('shows independent state sources without enabling a recurrence and scopes the
       : old(p, o),
   );
   render(<AdminScreen owner="owner" onViewLeads={() => {}} />);
+  fireEvent.click(screen.getByRole('button',{name:'Run now: choose scope'}));
   await screen.findByText('State procurement');
   expect(screen.getByText(/Not checked.*Not scheduled/)).toBeTruthy();
   fireEvent.click(
@@ -492,8 +491,7 @@ it.each([
     fireEvent.change(screen.getByLabelText('Schedule name'), {
       target: { value: 'County check' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Review schedule' }));
-    await screen.findByRole('button', { name: 'Confirm and save schedule' });
+    await waitFor(()=>expect(calls.some(c=>c.path==='/v1/schedules/preview')).toBe(true));
     expect(
       calls.find((c) => c.path === '/v1/schedules/preview')?.body,
     ).toMatchObject({
@@ -510,11 +508,13 @@ it('restores an unsaved schedule editor after leaving Admin without overwriting 
   });
   cleanup();
   await start();
+  fireEvent.click(screen.getByRole('button',{name:'Save schedule'}));
   expect(screen.getByLabelText('Schedule name')).toHaveProperty(
     'value',
     'Unsaved county checks',
   );
-  fireEvent.click(screen.getByRole('button', { name: 'Cancel editing' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  fireEvent.click(screen.getByRole('button',{name:'Run now: choose scope'}));
   expect(
     screen.getByRole('checkbox', { name: 'Pulaski County' }),
   ).toHaveProperty('checked', true);
@@ -576,6 +576,7 @@ it('separates source-scope restrictions from registry availability and restores 
       : old(p, o),
   );
   render(<AdminScreen owner="owner" onViewLeads={() => {}} />);
+  fireEvent.click(screen.getByRole('button',{name:'Run now: choose scope'}));
   await screen.findByText('State procurement');
   fireEvent.click(screen.getByRole('checkbox', { name: 'Faulkner County' }));
   fireEvent.click(screen.getByRole('checkbox', { name: 'Saline County' }));
@@ -618,9 +619,12 @@ it('preserves loaded schedule pages after a control refresh without refetching t
     return original(p, o);
   });
   await start();
+  fireEvent.click(screen.getByRole('button',{name:'Schedules'}));
   fireEvent.click(screen.getByRole('button', { name: 'More schedules' }));
   await screen.findByText('Later page');
+  fireEvent.click(screen.getByRole('button',{name:'Schedules'}));
   fireEvent.click(screen.getByRole('button', { name: 'Actions for Saved 0' }));
+  fireEvent.click(screen.getByRole('menuitem',{name:'Disable'}));
   fireEvent.click(screen.getAllByRole('menuitem', { name: /^Pause$/ })[0]);
   await waitFor(() => expect(mocks.request.mock.calls.filter(([p]) => p === '/v1/schedules?lifecycle=current&offset=50')).toHaveLength(2));
   expect(screen.getByText('Later page')).toBeTruthy();
@@ -638,35 +642,37 @@ it('ignores late paging results after a schedule refresh', async () => {
     return original(p, o);
   });
   await start();
+  fireEvent.click(screen.getByRole('button',{name:'Schedules'}));
   fireEvent.click(screen.getByRole('button', { name: 'More schedules' }));
   expect(screen.getByRole('button', { name: 'More schedules' })).toHaveProperty('disabled', true);
   refreshed = true;
+  fireEvent.click(screen.getByRole('button',{name:'Schedules'}));
   fireEvent.click(screen.getByRole('button', { name: 'Actions for Morning check' }));
+  fireEvent.click(screen.getByRole('menuitem',{name:'Disable'}));
   fireEvent.click(screen.getByRole('menuitem', { name: /^Pause$/ }));
   await waitFor(() => expect(screen.queryByRole('button', { name: 'More schedules' })).toBeNull());
   resolvePage({ items: [{ ...schedule, id: 'stale', name: 'Stale schedule' }], next_offset: 100 });
   await waitFor(() => expect(screen.queryByText('Stale schedule')).toBeNull());
 });
 
-it('adds county and SAM schedules through their existing separate editors without losing county selection',async()=>{
-  await start();
-  fireEvent.click(screen.getByRole('checkbox',{name:'Ashley County'}));
-  fireEvent.click(screen.getByRole('button',{name:'Add schedule'}));
-  expect(screen.getByLabelText('Schedule name')).toBeTruthy();
-  fireEvent.click(screen.getByRole('button',{name:'Cancel editing'}));
-  expect(screen.getByRole('checkbox',{name:'Ashley County'})).toHaveProperty('checked',true);
-  fireEvent.change(screen.getByLabelText('New schedule target'),{target:{value:'sam'}});
-  fireEvent.click(screen.getByRole('button',{name:'Add schedule'}));
-  await waitFor(()=>expect(within(screen.getByRole('region',{name:'SAM statewide checks'})).getByLabelText('Schedule name')).toBeTruthy());
-  expect(screen.getByRole('checkbox',{name:'Ashley County'})).toHaveProperty('checked',true);
+it('adds county and SAM schedules through the common editor without changing the manual draft',async()=>{
+ await start();fireEvent.click(screen.getByRole('checkbox',{name:'Ashley County'}));
+ fireEvent.click(screen.getByRole('button',{name:'Schedules'}));fireEvent.click(screen.getByRole('button',{name:'Add schedule'}));
+ expect(screen.getByLabelText('Schedule name')).toBeTruthy();fireEvent.click(screen.getByRole('button',{name:'Cancel'}));
+ fireEvent.change(screen.getByLabelText('New schedule target'),{target:{value:'sam'}});fireEvent.click(screen.getByRole('button',{name:'Add schedule'}));
+ expect(screen.getByRole('region',{name:'Schedule editor'})).toBeTruthy();expect(screen.getByText('Arkansas statewide · NAICS 561720')).toBeTruthy();
+ fireEvent.click(screen.getByRole('button',{name:'Cancel'}));fireEvent.click(screen.getByRole('button',{name:'Run now: choose scope'}));
+ expect(screen.getByRole('checkbox',{name:'Ashley County'})).toHaveProperty('checked',true);
 });
 
 it('does not let a delayed schedule edit overwrite a newer county draft',async()=>{
   const original=mocks.request.getMockImplementation()!;let finish!:(value:Schedule)=>void;
   mocks.request.mockImplementation((p,o)=>p==='/v1/schedules?lifecycle=current'?Promise.resolve({items:[schedule],next_offset:null}):p==='/v1/schedules/saved'?new Promise(resolve=>{finish=resolve;}):original(p,o));
   await start();
+  fireEvent.click(screen.getByRole('button',{name:'Schedules'}));
   fireEvent.click(screen.getByRole('button',{name:'Actions for Morning check'}));
-  fireEvent.click(screen.getByRole('menuitem', { name: 'Edit Morning check'}));
+  fireEvent.click(screen.getByRole('menuitem', { name: 'Edit'}));
+  fireEvent.click(screen.getByRole('button',{name:'Run now: choose scope'}));
   fireEvent.click(screen.getByRole('checkbox',{name:'Ashley County'}));
   finish(schedule);
   await waitFor(()=>expect(screen.getByRole('checkbox',{name:'Ashley County'})).toHaveProperty('checked',true));

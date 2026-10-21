@@ -1,5 +1,6 @@
 /* global localStorage, window, document, innerWidth */
 // Local browser acceptance: real app/auth client, intercepted fixture HTTP, no production mutations.
+import {verifyScheduleRevision} from './schedule-revision-browser.mjs';
 import { chromium } from 'playwright';
 import { spawn } from 'node:child_process';
 import { readFile, mkdir, writeFile } from 'node:fs/promises';
@@ -97,8 +98,8 @@ const run = {
 // Verified reporting DTO fixture; no canonical database mutation is performed.
 schedule.reporting={as_of:'2026-10-20T14:00:00Z',last_run:{...run,leads:{added:2,updated:1,unchanged:3,completeness:'known'}},latest_occurrence:null};
 const bodies = [];
-let savedSchedule = false;
-let failRunRead = true;
+let savedSchedule = process.argv.includes('--schedule-revision');
+let failRunRead = !process.argv.includes('--schedule-revision');
 let queueReads = 0;
 let samSchedule = null;
 const samRun={...run,id:'sam-run',state:'completed',next_action:'View automatically saved leads',target_kind:'sam',county_count:0,config:{target_kind:'sam',requested_categories:['opportunity'],publication_window:{from:'2026-09-20',to:'2026-10-19'}},children:[{request_id:'sam-request',county_id:null,role:'sam'}]};
@@ -225,7 +226,7 @@ try {
       } else if (p === '/v1/schedules' && req.method() === 'POST') {
         if(input.config.target_kind==='sam'){samSchedule={...input,id:'sam-schedule',version:1,next_due_at:null};body=samSchedule;}
         else {savedSchedule = true;Object.assign(schedule, input);body = schedule;}
-      } else if (p.endsWith('/occurrences') && url.searchParams.has('offset')) body={items:[{id:'linked',due_at:'2026-10-19T12:00:00Z',state:'queued',trigger_id:'run'}],next_offset:null};
+      } else if (p.endsWith('/update')) {Object.assign(schedule,input);body=schedule;} else if (p.endsWith('/occurrences') && url.searchParams.has('offset')) body={items:[{id:'linked',due_at:'2026-10-19T12:00:00Z',state:'queued',trigger_id:'run'}],next_offset:null};
       else if (p.endsWith('/occurrences')) body={items:[{id:'blocked',due_at:'2026-10-19T12:00:00Z',effective_at:'2026-10-19T13:00:00Z',origin:'scheduled',version:1,config:{target_kind:'county_scope',county_ids:['05119'],counties:[{id:'05119',name:'Original Pulaski snapshot',cities:[]}]},state:'blocked',reason:'scope_changed',missed_from:'2026-10-18T12:00:00Z',missed_through:'2026-10-19T12:00:00Z'}],next_offset:1};
       else if (p.endsWith('/events')) body={items:[{id:'event',action:'archive',version:2,at:'2026-10-19T12:00:00Z'}],next_offset:null};
       else if (p === '/v1/schedules/schedule') body=schedule;
@@ -319,6 +320,7 @@ try {
   const page = await context.newPage(),
     errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
+  if(process.argv.includes('--schedule-revision')){await verifyScheduleRevision({page,origin,out,errors,bodies});}else{
   await page.goto(origin);
   await page.getByRole('button',{name:'Settings',exact:true}).waitFor();
   assert.equal(await page.getByRole('button',{name:'Admin',exact:true}).count(),0);
@@ -699,6 +701,7 @@ try {
   console.log(
     'Browser acceptance passed: desktop, 390px, 320px, keyboard, confirmed manual run, paused multiple-time schedule; zero production mutations.',
   );
+  }
 } catch(error) {
   if(browser){const page=browser.contexts()[0]?.pages()[0];if(page){await page.screenshot({path:`${out}/acceptance-failure.png`,fullPage:false});console.error((await page.locator('body').innerText()).slice(0,6000));}}
   throw error;

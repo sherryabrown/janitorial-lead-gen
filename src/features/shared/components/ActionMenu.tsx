@@ -1,14 +1,19 @@
-import { useId, useLayoutEffect, useRef, useState } from 'react';
+import { useId, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { MoreHorizontal } from 'lucide-react';
 
-export type MenuAction = { label: string; disabled?: boolean; title?: string; onSelect: () => void };
+export type MenuAction = { label: string; disabled?: boolean; title?: string; onSelect?: () => void; children?: MenuAction[] };
 
 // Controlled by the containing list so only one row's menu can be open.
-export function ActionMenu({ label, open, onOpenChange, actions }: {
-  label: string; open: boolean; onOpenChange: (open: boolean) => void; actions: MenuAction[];
+export function ActionMenu({ label, open, onOpenChange, actions, text }: {
+  text?: string; label: string; open: boolean; onOpenChange: (open: boolean) => void; actions: MenuAction[];
 }) {
   const id = useId(), trigger = useRef<HTMLButtonElement>(null), menu = useRef<HTMLDivElement>(null);
+  const [branch,setBranch]=useState<MenuAction|null>(null);
+  const parentItem=useRef<string|null>(null);
+  const back=()=>{setBranch(null);requestAnimationFrame(()=>Array.from(menu.current?.querySelectorAll<HTMLButtonElement>('[role=menuitem]')??[]).find(b=>b.textContent===parentItem.current)?.focus());};
+  useEffect(()=>{if(!open)setBranch(null);},[open]);
+  const visible=branch ? [{label:"Back",onSelect:back},...branch.children!] : actions;
   const [last, setLast] = useState(false);
   useLayoutEffect(() => {
     if (!open || !menu.current || !trigger.current) return;
@@ -43,25 +48,26 @@ export function ActionMenu({ label, open, onOpenChange, actions }: {
       window.removeEventListener('scroll', scroll, true);
       window.removeEventListener('resize', resize);
     };
-  }, [open, last, onOpenChange]);
+  }, [open, last, onOpenChange, branch]);
   return <>
     <button ref={trigger} type="button" className="secondary-button compact action-menu-trigger"
       aria-label={label} aria-haspopup="menu" aria-expanded={open} aria-controls={open ? id : undefined}
-      onClick={() => { setLast(false); onOpenChange(!open); }}
+      onClick={() => { setBranch(null); setLast(false); onOpenChange(!open); }}
       onKeyDown={e => { if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); setLast(e.key === 'ArrowUp'); onOpenChange(true); } }}>
-      <MoreHorizontal size={20} aria-hidden="true" />
+      {text??<MoreHorizontal size={20} aria-hidden="true" />}
     </button>
-    {open && createPortal(<div ref={menu} id={id} role="menu" aria-label={label} className="floating-action-menu" onKeyDown={e => {
+    {open && createPortal(<div ref={menu} id={id} role="menu" aria-label={branch?`${branch.label} options`:label} className="floating-action-menu" onKeyDown={e => {
       const items = Array.from(menu.current!.querySelectorAll<HTMLButtonElement>('[role="menuitem"]'));
       const index = items.indexOf(document.activeElement as HTMLButtonElement);
       const next = e.key === 'Home' ? 0 : e.key === 'End' ? items.length - 1 : e.key === 'ArrowDown' ? (index + 1) % items.length : e.key === 'ArrowUp' ? (index - 1 + items.length) % items.length : null;
       if (next !== null) { e.preventDefault(); items[next]?.focus(); }
-      if (e.key === 'Escape') { e.preventDefault(); onOpenChange(false); trigger.current?.focus(); }
+      if (e.key === 'Escape'||e.key==='ArrowLeft'&&branch) { e.preventDefault(); if(branch){setBranch(null);requestAnimationFrame(()=>Array.from(menu.current?.querySelectorAll<HTMLButtonElement>('[role=menuitem]')??[]).find(b=>b.textContent===parentItem.current)?.focus());}else{onOpenChange(false);trigger.current?.focus();} }
+      if(e.key==='ArrowRight'&&!branch){const action=actions[index];if(action?.children&&!action.disabled){e.preventDefault();parentItem.current=action.label;setBranch(action);}}
       if (e.key === 'Tab') { trigger.current?.focus(); onOpenChange(false); }
     }}>
-      {actions.map(action => <button key={action.label} type="button" role="menuitem" className="text-button"
-        aria-disabled={action.disabled || undefined} title={action.title}
-        onClick={() => { if (!action.disabled) { onOpenChange(false); trigger.current?.focus(); action.onSelect(); } }}>{action.label}</button>)}
+      {visible.map((action,index) => <div key={action.label}><button type="button" role="menuitem" className="text-button"
+        aria-describedby={action.disabled&&action.title?`${id}-reason-${index}`:undefined} aria-haspopup={action.children?"menu":undefined} aria-expanded={action.children?false:undefined} aria-disabled={action.disabled || undefined} title={action.title}
+        onClick={() => { if (!action.disabled) { if(action.children){parentItem.current=action.label;setBranch(action);}else if(action.label==='Back'&&branch){action.onSelect?.();}else{onOpenChange(false);trigger.current?.focus();action.onSelect?.();} } }}>{action.label}</button>{action.disabled&&action.title&&<small id={`${id}-reason-${index}`} className="action-menu-reason">{action.title}</small>}</div>)}
     </div>, document.body)}
   </>;
 }

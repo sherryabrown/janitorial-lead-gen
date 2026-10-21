@@ -35,3 +35,12 @@ it('supports arrow/Home/End/Escape, focus return, Tab exit and safe scroll/resiz
   fireEvent.keyDown(document.activeElement!,{key:'Escape'});
   fireEvent.click(trigger);fireEvent.resize(window);expect(screen.queryByRole('menu')).toBeNull();
 });
+it('opens a Disable submenu by keyboard, explains unavailable deletion and backs out without mutations',()=>{
+ function Nested(){const [open,setOpen]=useState(false);return <ActionMenu label="Schedule actions" open={open} onOpenChange={setOpen} actions={[{label:'Details',onSelect:select},{label:'Disable',children:[{label:'Pause',onSelect:select},{label:'Delete',disabled:true,title:'This schedule has run; archive instead.'}]}]}/>;}
+ select.mockClear();render(<Nested/>);fireEvent.click(screen.getByRole('button',{name:'Schedule actions'}));
+ fireEvent.keyDown(document.activeElement!,{key:'End'});fireEvent.keyDown(document.activeElement!,{key:'ArrowRight'});
+ expect(screen.getByRole('menu',{name:'Disable options'})).toBeTruthy();expect(screen.getByText('This schedule has run; archive instead.')).toBeTruthy();
+ fireEvent.click(screen.getByRole('menuitem',{name:'Delete'}));expect(select).not.toHaveBeenCalled();
+ fireEvent.keyDown(document.activeElement!,{key:'Escape'});expect(screen.getByRole('menuitem',{name:'Disable'})).toBeTruthy();
+ fireEvent.keyDown(screen.getByRole('menuitem',{name:'Disable'}),{key:'Escape'});expect(screen.queryByRole('menu')).toBeNull();
+});

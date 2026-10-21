@@ -38,13 +38,13 @@ it('provides all detail sections, saved geography, honest metrics and archived c
  const view=vi.fn();mocked.request.mockImplementation(async(path:string)=>path==='/v1/schedules/schedule'?schedule:{items:[run],next_offset:null,total:1});
  function Fixture(){const [section,setSection]=useState<ScheduleSection>('overview');return <ScheduleDetail id="schedule" initial={schedule} section={section} onSection={setSection} onClose={()=>{}} onView={view} onEdit={()=>{}} onAction={()=>{}} busy={false}/>;}
  render(<Fixture/>);await screen.findByRole('heading',{name:'Renamed county checks'});
- expect(screen.getByRole('button',{name:'Run saved schedule now'})).toHaveProperty('disabled',true);
- const nav=screen.getByRole('navigation',{name:'Schedule sections'});
- fireEvent.click(within(nav).getByRole('button',{name:'Related geography'}));expect(screen.getByText('Benton')).toBeTruthy();
- fireEvent.click(within(nav).getByRole('button',{name:'Sources'}));expect(screen.getByRole('button',{name:'View saved source evidence'})).toBeTruthy();
- fireEvent.click(within(nav).getByRole('button',{name:'Logs'}));expect(screen.getByText(/Choose a run/)).toBeTruthy();
+ expect(screen.getByRole('button',{name:'Run now'})).toHaveProperty('disabled',true);
+ const nav=screen.getByRole('tablist',{name:'Schedule sections'});
+ fireEvent.click(within(nav).getByRole('tab',{name:'Related geography'}));expect(screen.getByText('Benton')).toBeTruthy();
+ fireEvent.click(within(nav).getByRole('tab',{name:'Sources'}));expect(screen.getByRole('heading',{name:'Saved run evidence'})).toBeTruthy();
+ fireEvent.click(within(nav).getByRole('tab',{name:'Logs'}));expect(screen.getByRole('heading',{name:'Run logs'})).toBeTruthy();
  await within(screen.getByRole('region',{name:'Schedule runs'})).findByRole('button',{name:'Sources'});fireEvent.click(within(screen.getByRole('region',{name:'Schedule runs'})).getByRole('button',{name:'Sources'}));expect(view).toHaveBeenCalledWith('run','sources');
- fireEvent.click(within(nav).getByRole('button',{name:'Overview / Stats'}));expect(screen.getByText('New leads')).toBeTruthy();expect(screen.getByText(/historical verified category attribution unavailable/)).toBeTruthy();
+ fireEvent.click(within(nav).getByRole('tab',{name:'Overview'}));expect(screen.getByRole('heading',{name:'Schedule settings'})).toBeTruthy();expect(screen.queryByText('Latest run · validated outcomes')).toBeNull();
 });
 it('keeps run progress visible when logs fail, retries reads and renders diagnostic references safely',async()=>{
  let failed=true;

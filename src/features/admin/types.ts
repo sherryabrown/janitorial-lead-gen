@@ -54,6 +54,7 @@ export type Preview = {
   actions?: { county_id: string; state_research?: { action: string }[] }[];
 };
 export type Schedule = Draft & {
+  can_delete?: boolean;
   updated_at?: string;
   reporting?: { as_of: string; latest_occurrence?: {state: string; reason?: string; trigger_id?: string; created_at: string} | null;
     last_run: (Run & {leads: {added: number | null; updated: number | null; unchanged: number | null; completeness: string; reason?: string}}) | null };

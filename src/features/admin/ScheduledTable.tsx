@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import {scheduleDisableActions} from './ScheduleDisable';
 import { ActionMenu } from '../shared/components/ActionMenu';
 import { InfoTooltip } from '../shared/components/InfoTooltip';
 import { ScheduleDetail, type ScheduleSection } from './ScheduleDetail';
@@ -25,6 +26,7 @@ export function ScheduleList({items,more,paging,onMore,onEdit,onAction,busy,onVi
   const current=items.find(s=>s.id===detail?.id)??(focusSchedule?.id===detail?.id?focusSchedule:undefined);
   const open=(s:AnySchedule,section:Section)=>{setSelected({id:s.id,section});onContext?.({id:s.id,section:section==='details'||section==='stats'?'overview':section});};
   return <section className="admin-section" aria-label="Saved schedules">
+    <div hidden={!!detail}>
     <div className="admin-section-heading"><h2>Schedules</h2>{onAdd&&<div className="admin-inline">
       <label>Schedule target<select aria-label="New schedule target" value={target} onChange={e=>setTarget(e.target.value)}><option value="county_scope">Counties</option><option value="state_source">State source</option><option value="sam">SAM statewide</option></select></label>
       <button type="button" className="primary-button compact" disabled={busy} onClick={()=>onAdd(target)}>Add schedule</button>
@@ -41,7 +43,7 @@ export function ScheduleList({items,more,paging,onMore,onEdit,onAction,busy,onVi
     <span className="admin-hint" role="status">{loading?'Loading schedules…':total!=null?`${total} schedules`:`${items.length} loaded schedules`}</span>
     {error&&<div role="alert">{error} <button type="button" className="text-button" onClick={onRetry}>Retry schedules</button></div>}
     {!error&&!loading&&!items.length&&<p>No schedules match. Add a schedule or change filters.</p>}
-    <div className="schedule-table-wrap"><table className="schedule-table"><caption className="sr-only">Schedules · times in America/Chicago · AI usage from last run</caption><thead><tr>{['Name','Geography','Frequency','Last run','Last run leads','Next run','AI credits','AI spent','Status','Quick actions'].map(h=><th key={h} scope="col">{h}{h==='AI credits'&&<InfoTooltip label="About schedule AI credits">Provider-reported credits only. Missing reports or mixed units show Unknown; tokens are not credits.</InfoTooltip>}</th>)}</tr></thead>
+    <div className="schedule-table-wrap"><table className="schedule-table"><caption className="sr-only">Schedules · times in America/Chicago · AI usage from last run</caption><thead><tr>{['Name','Geography','Frequency','Last run','Last run leads','Next run','AI credits','AI spent','Status','Quick actions'].map(h=><th key={h} scope="col">{h}{h==='Quick actions'&&<InfoTooltip label="About quick actions">Run now starts this saved schedule. Details opens settings and runs. Edit changes settings. Disable: Pause stops future runs; Archive keeps history; Delete is available only before any run. Current runs continue.</InfoTooltip>}{h==='AI credits'&&<InfoTooltip label="About schedule AI credits">Provider-reported credits only. Missing reports or mixed units show Unknown; tokens are not credits.</InfoTooltip>}</th>)}</tr></thead>
       <tbody>{items.map(s=>{const archived=!!s.archived_at||!!s.archived,r=s.reporting?.last_run,o=s.reporting?.latest_occurrence;
         return <tr key={s.id} id={`schedule-row-${s.id}`}>
           <td data-label="Name"><button className="text-button schedule-name" type="button" onClick={()=>open(s,'details')}>{s.name}</button></td>
@@ -55,16 +57,16 @@ export function ScheduleList({items,more,paging,onMore,onEdit,onAction,busy,onVi
           <td data-label="Status">{archived?'Archived':s.enabled?'Active':'Paused'}{s.blocker&&<small>Needs action · {title(s.blocker)}</small>}</td>
           <td data-label="Quick actions"><div className="schedule-actions"><button type="button" className="secondary-button compact" aria-label={`Run ${s.name} now`} disabled={busy||archived} onClick={()=>onAction(s,'run-now')}>Run now</button>
             <ActionMenu label={`Actions for ${s.name}`} open={menuId===s.id} onOpenChange={value=>setMenuId(value?s.id:null)} actions={[
-              {label:`Edit ${s.name}`,disabled:busy||archived,onSelect:()=>onEdit(s)},
-              {label:s.enabled?'Pause':'Resume',title:'Pause stops scheduled work; manual runs continue.',disabled:busy||archived||!!s.blocker&&!s.enabled,onSelect:()=>onAction(s,s.enabled?'pause':'resume')},
-              {label:'Archive schedule',disabled:busy||archived,onSelect:()=>{if(window.confirm('Archive this schedule? Future scheduled work stops. Saved history remains; manual runs already started are not cancelled.'))onAction(s,'archive');}},
-              ...(['stats','history','logs','geography','details','sources'] as const).map(section=>({label:({stats:'Go to Stats',history:`History for ${s.name}`,logs:'Go to History/Logs',geography:'Show related geography',details:'View details',sources:'Go to Sources'})[section],onSelect:()=>open(s,section)})),
+              {label:'Details',onSelect:()=>open(s,'details')},
+              {label:'Edit',disabled:busy||archived,onSelect:()=>onEdit(s)},
+              {label:'Disable',disabled:busy||archived,children:scheduleDisableActions(s,busy,onAction)},
             ]}/></div></td>
         </tr>;})}</tbody></table></div>
     {more&&<button type="button" className="text-button" disabled={paging} onClick={onMore}>More schedules</button>}
+    </div>
     {detail&&<ScheduleDetail key={detail.id} id={detail.id} initial={current??undefined} owner={owner} section={detail.section}
       onSection={section=>{setSelected({id:detail.id,section});onContext?.({...detail,section});}}
-      onClose={()=>{setSelected(null);onContext?.(null);const row=document.getElementById(`schedule-row-${detail.id}`);row?.querySelector<HTMLButtonElement>('button')?.focus({preventScroll:true});row?.scrollIntoView?.({block:'nearest'});}}
+      onClose={()=>{setSelected(null);onContext?.(null);const row=document.getElementById(`schedule-row-${detail.id}`);row?.querySelector<HTMLButtonElement>('button')?.focus({preventScroll:true});requestAnimationFrame(()=>{row?.querySelector<HTMLButtonElement>('button')?.focus({preventScroll:true});row?.scrollIntoView?.({block:'nearest'});});}}
       onView={onView} onEdit={onEdit} onAction={onAction} busy={busy} counties={counties}/>}
   </section>;
 }

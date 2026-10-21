@@ -173,3 +173,32 @@ test('comparable baseline keeps latest confirmed evidence and excludes mismatche
     assert.equal((await f.sql.query('select count(*)::int n from procurement_runs')).rows[0].n,4);
   }finally{await f.sql.close();}
 });
+
+test('saved county identity is immutable in SQL; never-run deletion retains audit and rejects all future work',async()=>{
+ const f=await fixture();try{
+  assert.equal((await f.schedules.get(f.saved.id)).can_delete,true);
+  const same={...input,name:'Renamed'};const preview=await f.schedules.preview(same);
+  await f.schedules.save(f.saved.id,{...same,preview_hash:preview.preview_hash,confirmed_scope:true,expected_version:1},actor,null);
+  for(const config of [{...input.config,county_ids:[]},{...input.config,county_ids:['05125']},{...input.config,target_kind:'sam'}]){
+   await assert.rejects(f.sql.query('update procurement_schedules set config=$2 where id=$1',[f.saved.id,config]),/To change counties/);
+  }
+  const result=await f.schedules.control(f.saved.id,'delete',{expected_version:2},actor);assert.equal(result.deleted,true);
+  assert.equal((await f.schedules.list()).total,0);
+  assert.equal((await f.schedules.control(f.saved.id,'delete',{expected_version:2},actor)).deleted,true,'Acknowledgement-loss replay');
+  assert.ok((await f.schedules.events(f.saved.id)).items.some(e=>e.action==='delete'));
+  await assert.rejects(f.schedules.get(f.saved.id));
+  await assert.rejects(f.schedules.runNow(f.saved.id,{expected_version:3},actor,'deleted-run-key'));
+  await assert.rejects(f.schedules.control(f.saved.id,'resume',{expected_version:3},actor));
+  assert.equal((await f.schedules.tick()).queued,0);
+  assert.equal((await f.sql.query('select count(*)::int n from procurement_triggers')).rows[0].n,0);
+ }finally{await f.sql.close();}
+});
+test('a real run wins over deletion and its evidence/audit links survive',async()=>{
+ const f=await fixture();try{
+  const run=await f.schedules.runNow(f.saved.id,{expected_version:1},actor,'run-before-delete');assert.ok(run.trigger_id);
+  assert.equal((await f.schedules.get(f.saved.id)).can_delete,false);
+  await assert.rejects(f.schedules.control(f.saved.id,'delete',{expected_version:1},actor));
+  assert.equal((await f.schedules.list()).total,1);
+  assert.equal((await f.sql.query('select count(*)::int n from procurement_triggers where schedule_id=$1',[f.saved.id])).rows[0].n,1);
+ }finally{await f.sql.close();}
+});

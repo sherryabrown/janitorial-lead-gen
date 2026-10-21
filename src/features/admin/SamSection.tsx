@@ -99,6 +99,7 @@ export function SamSection({
   onSaved,
   onKeepDraft,
   onBusyChange,
+  onSchedule,
 }: {
   owner: string;
   editing: SamSchedule | null;
@@ -110,6 +111,7 @@ export function SamSection({
   onSaved?: (saved: SamSchedule) => void;
   onKeepDraft?: () => void;
   onBusyChange?: (busy:boolean) => void;
+  onSchedule?: () => void;
 }) {
   const restored = useRef(savedDraft(owner));
   const [manual, setManual] = useState(() => restored.current.manual),
@@ -396,6 +398,7 @@ export function SamSection({
                 className="secondary-button"
                 disabled={busy}
                 onClick={() => {
+                  if(onSchedule){onSchedule();return;}
                   setMode('schedule');
                   setPreview(null);
                 }}

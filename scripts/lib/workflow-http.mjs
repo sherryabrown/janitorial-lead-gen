@@ -63,7 +63,7 @@ export function workflowServer({authenticate,workflow,imports,discovery,sam,samP
           if(segments.length===3&&request.method==='GET')result=await schedules.get(id);
           else if(segments.length===4&&['occurrences','events'].includes(segments[3])&&request.method==='GET')result=await schedules[segments[3]](id,{offset,limit});
           else if(segments.length===4&&segments[3]==='update'&&request.method==='POST')result=await schedules.save(id,input,actor,null);
-          else if(segments.length===4&&['pause','resume','archive'].includes(segments[3])&&request.method==='POST')result=await schedules.control(id,segments[3],input,actor);
+          else if(segments.length===4&&['pause','resume','archive','delete'].includes(segments[3])&&request.method==='POST')result=await schedules.control(id,segments[3],input,actor);
           else if(segments.length===4&&segments[3]==='run-now'&&request.method==='POST'){result=await schedules.runNow(id,input,actor,request.headers['idempotency-key']);kick();send(202,result);return;}
         }
       }

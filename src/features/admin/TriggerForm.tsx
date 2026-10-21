@@ -13,6 +13,7 @@ export function TriggerForm({
   onCancel,
   error,
   monthlyCap,
+  externalSave=false,
 }: {
   draft: Draft;
   onChange: (d: Draft) => void;
@@ -24,6 +25,7 @@ export function TriggerForm({
   onSubmit: () => void;
   onCancel: () => void;
   error: string;
+  externalSave?: boolean;
   monthlyCap: number | null | undefined;
 }) {
   const update = (v: Partial<Draft>) => onChange({ ...draft, ...v });
@@ -230,7 +232,7 @@ export function TriggerForm({
           </button>
         </div>
       )}
-      {!preview && (
+      {!preview && !externalSave && (
         <div className="admin-form-actions">
           <button
             type="button"

@@ -2,7 +2,7 @@
 
 Status: planning complete, 2026-10-20. No application implementation, data writes or release authorized by this plan. The user confirmed metric choices D1–D3 below; the six child plans are ready for sequential implementation.
 
-Implementation checkpoint (2026-10-20): phases 1–2 were subsequently released to Render and the approved Netlify preview at d594602. Phase 3 is completed and verified locally, including schedule sections, server-filtered history, safe step reporting and URL/Back context. Phases 4–6 remain planned. Phase 3 adds no migration and has not been committed or externally deployed. Netlify production remains unchanged. Audit rows below describe the original baseline; completed-child checkpoints supersede their missing-work notes.
+Implementation checkpoint (2026-10-20): original phases 1–3 are deployed to Render and the approved Netlify preview, including the large-history reporting fix at 20b63fb. Netlify production remains unchanged. The requested Phase 3 amendment is now completed locally in [03-admin-redesign-detail-revision.md](../done/03-admin-redesign-detail-revision.md); its layout, immutable county membership, three-action menu and never-run deletion requirements supersede conflicting original Phase 2/3 requirements. Phases 4–6 remain planned. Original audit rows and completed-child evidence remain historical.
 
 ## Initiating request
 
@@ -25,7 +25,7 @@ Full requirements carried forward:
 | --- | --- | --- |
 | 1 | [Navigation and Settings shell — completed locally](../done/01-admin-redesign-navigation.md) | Parent; no other child |
 | 2 | [Schedules and management — completed locally](../done/02-admin-redesign-schedules.md) | 1 |
-| 3 | [Details, history and logs — completed locally](../done/03-admin-redesign-details-history.md) | 1–2 |
+| 3 | [Original details/history — released](../done/03-admin-redesign-details-history.md); [detail revision — completed locally](../done/03-admin-redesign-detail-revision.md) | 1–2; revision uses deployed Phase 3 |
 | 4 | [Stats and analytics](04-admin-redesign-analytics.md) | 2–3 reporting contracts |
 | 5 | [Sources and related geography](05-admin-redesign-sources-geography.md) | 1–3; 4 optional for statistics links |
 | 6 | [Acceptance and release](06-admin-redesign-acceptance-release.md) | 1–5 |
@@ -61,9 +61,9 @@ Repository baseline: d218166; source code audit only, not confirmation that this
 
 ## Information architecture and interactions
 
-Settings opens Admin on Schedules by default; preserve last view/context on return during the session. The workspace has five clearly named views. “Run now” at workspace level opens existing manual county/state/SAM controls in a compact task surface, distinct from row Run Now (uses that saved schedule). “Add schedule” opens the reused scoped editor. Keep forms, county-map preview and existing evidence/import actions available while replacing the long page.
+Settings opens Admin on Schedules by default; preserve last view/context on return during the session. The workspace has five clearly named views. “Run now” at workspace level opens existing manual county/state/SAM controls in a compact task surface, distinct from detail Run now (uses that saved schedule). “Add schedule” opens the reused scoped editor. Keep forms, county-map preview and existing evidence/import actions available while replacing the long page.
 
-Schedule detail uses summary + section navigation: Overview/Stats, History, Logs, Related geography, Sources. Sections load independently; one failure must not blank unrelated data. Schedule name opens detail; row Run Now is immediately visible, other quick actions in one accessible overflow menu. Editing and pause/resume/archive are available there and in details. No seven equal-weight buttons per row.
+Schedule detail uses a focused page with matching schedule identity and Back to schedules, then Overview, History, Logs, Related geography and Sources tabs. Sections load independently; one failure must not blank unrelated data. The latest run appears only in the run list. Row Quick actions contain Details, Edit and Disable; Disable opens a Pause/Archive/eligible never-run Delete submenu without an intermediate dialog. Run now is visible in both list and details. Quick actions help is accessible on hover/focus/tap. Schedule saving uses an inline scope summary and one Save action, retaining background preview/hash validation without a separate Review step. Re-enable paused schedules through Edit. Use the completed Phase 3 amendment and wireframe for layout and lifecycle details.
 
 Use a semantic desktop table with all requested fields, short headers and contextual scope labels. Group last-run timestamp/outcome and new/update counts sensibly; usage columns are explicit. Narrow layouts use readable labeled rows or a contained table region with a pinned identifying field, not a clipped whole document. At 320/390px no required action depends on hover, no data silently disappears, no page-wide overflow. Do not copy raw cron strings from attachment. Status has text/icon, never color alone.
 
@@ -122,7 +122,7 @@ D2 confirmed by user: schedule-row AI credits/money reflect the last run. Label 
 D3 confirmed by user: global Stats defaults to last 7 CT calendar days, including today (today minus six days at 00:00 CT through tomorrow at 00:00 CT, with current-day data only through as_of). Detail Overview retains all-time available totals, with per-run/period drilldowns.
 No unresolved product decision currently blocks phase 1. Implementation must report newly discovered behavior impacts or data limitations before expanding scope; incomplete historical metrics are handled explicitly above.
 
-Already specified/preserved: archive rather than destructive delete; all active signed-in users retain current Admin access (no new role gate); timezone stays America/Chicago; no schedule ownership transfer; same overlap/missed/DST behavior; manual controls remain. No new product decision is needed for those preservation constraints. Source/geography views are read-only because the request asks for views; propose a separate scoped plan if editing becomes desired.
+Updated lifecycle decision: archive schedules with actual runs; allow guarded deletion only for never-run schedules while retaining audit history. Saved county membership is immutable; creation selects counties, later changes require archive/recreate. Other preserved defaults: all active signed-in users retain current Admin access (no new role gate); timezone stays America/Chicago; no schedule ownership transfer; same overlap/missed/DST behavior; manual controls remain. No new product decision is needed for those preservation constraints. Source/geography views are read-only because the request asks for views; propose a separate scoped plan if editing becomes desired.
 
 ## Acceptance and release rules
 

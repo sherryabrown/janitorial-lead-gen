@@ -1,5 +1,7 @@
 # Phase 5 — Sources by geography and related geography
 
+Integration note: use the [completed Phase 3 detail revision](../done/03-admin-redesign-detail-revision.md) for scope identity, fixed saved county membership and focused tabs. Source/geography links belong inside details, not extra schedule row quick actions.
+
 Status: planned. Parent: [geography/source rules](admin-workspace-redesign.md).
 Initiating instruction: add read-only source/geography views and schedule quick-action/detail integrations.
 Dependencies: phases 1–3; consume phase 4 Stats links when available, without introducing a dependency for ordinary browsing.

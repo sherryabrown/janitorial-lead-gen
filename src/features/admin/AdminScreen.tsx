@@ -4,6 +4,7 @@ import {
   mutationKey,
   acknowledged,
 } from '../../lib/procurement-workflow';
+import {ScheduleEditor} from './ScheduleEditor';
 import { CountySelector } from './CountySelector';
 import { SamSection } from './SamSection';
 import { TriggerForm } from './TriggerForm';
@@ -88,12 +89,13 @@ export default function AdminScreen({
   onViewLeads: () => void;
   active?: boolean;
 }) {
+  const [scheduleEditor,setScheduleEditor]=useState<{saved?:AnySchedule;target:string}|null>(null);
   const [scheduleQuery,setScheduleQuery]=useState(()=>{try{return sessionStorage.getItem(`spin-admin-schedule-filter:${owner}`)??'lifecycle=current';}catch{return 'lifecycle=current';}});
-  const [scheduleTotal,setScheduleTotal]=useState<number|undefined>(),[samScheduleToken,setSamScheduleToken]=useState(0);
+  const [scheduleTotal,setScheduleTotal]=useState<number|undefined>();
   const [reloadedSchedule,setReloadedSchedule]=useState<Schedule|null>(null);
   const [scheduleReadError,setScheduleReadError]=useState('');
   const [savedScheduleFocus,setSavedScheduleFocus]=useState<AnySchedule|null>(null);
-  const [samBusy,setSamBusy]=useState(false);
+
   const stateSourcesRef=useRef<HTMLDivElement>(null),samRef=useRef<HTMLDivElement>(null);
   const [navigation, setNavigation] = useState<AdminContext>(() => {
     const saved = readAdminLocation(owner);
@@ -153,7 +155,6 @@ export default function AdminScreen({
     [connectionRevision, setConnectionRevision] = useState(0),
     [paging, setPaging] = useState(false);
   const detailRef = useRef<HTMLDivElement>(null),
-    editorLoadGeneration=useRef(0),
     scopeRevision = useRef(0),
     collectionGeneration = useRef(0),
     pagingRef = useRef(false),
@@ -373,6 +374,7 @@ export default function AdminScreen({
             ? 'Run queued from the saved schedule.'
             : `Run ${r.state ?? 'not queued'}${r.reason ? ' · '+r.reason.replaceAll('_',' ') : ''}; review schedule history.`,
         );
+      } else if(action==='delete'){setSavedScheduleFocus(null);commitNavigation({view:'schedules',returnTo:'contracts'});setNotice(`${s.name}: deleted; audit history retained.`);
       } else {
         setSavedScheduleFocus(old=>old?.id===s.id?{...old,...r} as AnySchedule:old);
         setNotice(
@@ -386,46 +388,12 @@ export default function AdminScreen({
       setBusy(false);
     }
   };
-  const edit = async (s: AnySchedule) => {
-    const generation=++editorLoadGeneration.current,revision=scopeRevision.current;
-    if (s.config?.target_kind === 'sam') {
-      if(samBusy){setNotice('Finish the current SAM action before editing its schedule.');return;}
-      try {
-        const loaded=await workflowRequest<SamSchedule>(`/v1/schedules/${s.id}`);
-        if(generation!==editorLoadGeneration.current||revision!==scopeRevision.current)return;
-        setSamEditor(loaded);
-      } catch (e) {
-        setError((e as Error).message);
-      }
-      return;
-    }
-    setError('');
-    try {
-      const full = await workflowRequest<Schedule>(`/v1/schedules/${s.id}`);
-      if(generation!==editorLoadGeneration.current||revision!==scopeRevision.current)return;
-      setEditor({
-        id: full.id,
-        version: full.version,
-        intent: 'schedule',
-        draft: {
-          config: full.config,
-          window_policy: {
-            ...initialDraft().window_policy,
-            ...full.window_policy,
-          },
-          recurrence: full.recurrence,
-          name: full.name,
-          enabled: full.enabled,
-        },
-      });
-      setPreview(null);
-      scopeRevision.current++;
-      window.scrollTo?.({ top: 0, behavior: 'smooth' });
-    } catch (e) {
-      setError((e as Error).message);
-    }
+  const edit = async (s:AnySchedule) => {
+    const version=scopeRevision.current;
+    try{const full=await workflowRequest<AnySchedule>(`/v1/schedules/${s.id}`);if(version===scopeRevision.current)setScheduleEditor({saved:full,target:full.config.target_kind});}catch(e){setError((e as Error).message);}
   };
   const sourceAction = async (s: StateSource, intent: 'run' | 'schedule') => {
+    if(intent==='schedule'&&!s.schedule_id){setScheduleEditor({target:'state_source'});return;}
     if (intent === 'schedule' && s.schedule_id) {
       void edit({ id: s.schedule_id } as Schedule);
       return;
@@ -504,21 +472,17 @@ export default function AdminScreen({
             service activation before they run.
           </p>
         )}
-      <div ref={schedulesRef} tabIndex={-1} className="admin-navigation-section" aria-label="Schedules">
+      {scheduleEditor&&<ScheduleEditor key={scheduleEditor.saved?.id??'new'} owner={owner} initial={manual} saved={scheduleEditor.saved} target={scheduleEditor.target} counties={counties} sources={sources} registryState={registryState} onClose={()=>setScheduleEditor(null)} onSaved={s=>{setScheduleEditor(null);setSavedScheduleFocus(s);setRevision(n=>n+1);commitNavigation({view:'schedules',scheduleId:s.id,section:'overview',returnTo:'contracts'});}}/>}
+      <div hidden={!!scheduleEditor||navigation.view==='history'||navigation.section==='manual'||!!selected} ref={schedulesRef} tabIndex={-1} className="admin-navigation-section" aria-label="Schedules">
         <ScheduleList owner={owner} context={navigation.scheduleId?{id:navigation.scheduleId,section:navigation.section==='manual'? 'overview':navigation.section??'overview'}:null} onContext={value=>commitNavigation({...navigation,view:'schedules',scheduleId:value?.id,section:value?.section,runId:undefined})} onView={viewRun} items={schedules} paging={paging} more={scheduleOffset !== null}
           query={scheduleQuery} onFilters={filterSchedules} counties={counties} total={scheduleTotal} loading={loading||paging}
           error={scheduleReadError} onRetry={()=>setRevision(n=>n+1)}
           focusSchedule={savedScheduleFocus}
-          onAdd={target=>{
-            editorLoadGeneration.current++;scopeRevision.current++;setPreview(null);
-            if(target==='state_source'){setNotice(sources.length?'Choose a state source and Set schedule below.':'No saved state sources yet. County research discovers them.');navigate('schedules',true);stateSourcesRef.current?.focus();stateSourcesRef.current?.scrollIntoView?.({block:'start'});}
-            else if(target==='sam'){if(samBusy){setNotice('Finish the current SAM action before adding a schedule.');return;}setSamScheduleToken(n=>n+1);navigate('schedules',true);samRef.current?.focus();samRef.current?.scrollIntoView?.({block:'start'});}
-            else{if(!editor)setEditor({draft:structuredClone(manual),intent:'schedule'});navigate('schedules',true);}
-          }}
+          onAdd={target=>setScheduleEditor({target})}
           onMore={() => void loadMore()} onEdit={(s) => { void edit(s); navigate('schedules', true); }}
           onAction={(s, a) => void scheduleAction(s, a)} busy={busy} />
       </div>
-      <div ref={manualRef} tabIndex={-1} className="admin-navigation-section" aria-label="Manual runs">
+      <div hidden={!!scheduleEditor||navigation.section!=='manual'||!!selected} ref={manualRef} tabIndex={-1} className="admin-navigation-section" aria-label="Manual runs">
       {editor && (
         <div className="admin-editor-banner">
           <strong>
@@ -576,7 +540,7 @@ export default function AdminScreen({
           saving={!!saving}
           preview={preview}
           pending={busy}
-          onPreview={(mode) => void review(mode)}
+          onPreview={(mode) => mode==='schedule'?setScheduleEditor({target:draft.config.target_kind}):void review(mode)}
           onSubmit={() => void submit()}
           onCancel={cancel}
           error={preview ? error : ''}
@@ -587,10 +551,10 @@ export default function AdminScreen({
       <SamSection
         owner={owner}
         editing={samEditor}
-        newScheduleToken={samScheduleToken}
+        newScheduleToken={0}
+        onSchedule={()=>setScheduleEditor({target:'sam'})}
         onSaved={s=>{setSavedScheduleFocus(s);commitNavigation({view:'schedules',returnTo:'contracts',scheduleId:s.id,section:'overview'});}}
         onKeepDraft={()=>setSamEditor(null)}
-        onBusyChange={setSamBusy}
         onEdited={() => setSamEditor(null)}
         onRun={setSelected}
         onChanged={() => setRevision((x) => x + 1)}
@@ -606,7 +570,7 @@ export default function AdminScreen({
       />
       </div>
       </div>
-      <div ref={historyRef} tabIndex={-1} className="admin-navigation-section" aria-label="History and logs">
+      <div hidden={!!scheduleEditor||navigation.view!=='history'&&!selected} ref={historyRef} tabIndex={-1} className="admin-navigation-section" aria-label="History and logs">
       {navigation.view==='history'&&<RunHistory owner={owner} counties={counties} refreshSignal={revision} onView={viewRun} onSchedule={id=>commitNavigation({view:'schedules',scheduleId:id,section:'history',returnTo:'contracts'})}/>}
       {selected && (
         <div ref={detailRef}>

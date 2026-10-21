@@ -99,7 +99,7 @@ try {
   assert.equal((await api('rpc/ingest_procurement_intake',token('service_role'),intakeBody)).status,200,'Authorized server ingestion remains available');
   // New Admin persistence stays server-only, while any authenticated user can use the HTTP management layer.
   const serverToken=token('service_role');
-  for(const table of ['procurement_triggers','procurement_trigger_requests','procurement_county_state_research','procurement_state_trigger_associations','procurement_workflow_steps','procurement_schedules','procurement_schedule_overview','procurement_schedule_occurrences','procurement_schedule_events','procurement_scheduler_settings','procurement_scheduler_deliveries']) {
+  for(const table of ['procurement_triggers','procurement_trigger_requests','procurement_county_state_research','procurement_state_trigger_associations','procurement_workflow_steps','procurement_schedules','procurement_schedule_overview','procurement_schedule_deletion','procurement_schedule_occurrences','procurement_schedule_events','procurement_scheduler_settings','procurement_scheduler_deliveries']) {
     for(const jwt of [undefined,nonMember,member])assert.ok([401,403].includes((await api(table+'?select=*&limit=1',jwt)).status),'Private Admin table denied');
     assert.equal((await api(table+'?select=id&limit=1',serverToken)).status,200);
   }
@@ -173,6 +173,26 @@ try {
   assert.equal(globalHistory.items[0].checkpoint,undefined);assert.equal(globalHistory.items[0].lease_token,undefined);
   const safeRun=await triggers.status(occurrences.items[0].trigger_id);assert.equal(safeRun.reporting.checkpoint,undefined);assert.equal(safeRun.reporting.lease_token,undefined);
   assert.equal((await adminRead('/v1/admin/history?origin=unsafe')).status,422);
+  // Never-run deletion is serialized against the same row lock used by enqueue.
+  const neverInput={...input,name:'Disposable never-run',enabled:false};
+  const neverPreview=await schedules.preview(neverInput);
+  const never=await schedules.save(null,{...neverInput,preview_hash:neverPreview.preview_hash,confirmed_scope:true},first,'native-delete-test');
+  const lockClient=new pg.Client({host:'127.0.0.1',port:dbPort,user:'postgres',database:'postgres'});
+  const enqueueClient=new pg.Client({host:'127.0.0.1',port:dbPort,user:'postgres',database:'postgres'});
+  await lockClient.connect();await enqueueClient.connect();
+  try{
+   await lockClient.query('begin');
+   await lockClient.query('select delete_procurement_schedule($1,$2,1,$3)',[never.id,first,'2026-10-13T14:00:00Z']);
+   let enqueueSettled=false;
+   const attempted=enqueueClient.query("select enqueue_procurement_schedule($1,1,'manual',$2,'native-delete-race',$3,$3,null,$3,$4,'hash',null) as result",[never.id,first,'2026-10-13T14:00:00Z',neverPreview.config]).then(r=>{enqueueSettled=true;return r;});
+   await new Promise(r=>setTimeout(r,100));assert.equal(enqueueSettled,false,'Enqueue waits for deletion row lock');
+   await lockClient.query('commit');assert.equal((await attempted).rows[0].result.state,'stale');
+   assert.equal((await schedules.list()).items.some(s=>s.id===never.id),false);
+   assert.ok((await schedules.events(never.id)).items.some(e=>e.action==='delete'));
+   assert.equal((await api('rpc/delete_procurement_schedule',nonMember,{p_id:never.id,p_actor:first,p_version:1,p_now:'2026-10-13T14:00:00Z'})).status>=400,true);
+   await assert.rejects(schedules.control(savedSchedule.body,'delete',{expected_version:2},first),'A schedule with a run cannot be deleted');
+  }finally{await lockClient.end();await enqueueClient.end();}
+
   assert.equal((await fetch(`http://127.0.0.1:${backend.address().port}/v1/admin/history`)).status,401);
   const historyResponse=await adminRead(`/v1/schedules/${savedSchedule.body}/occurrences`);
   assert.equal(historyResponse.status,200);assert.equal((await historyResponse.json()).items[0].trigger_id,occurrences.items[0].trigger_id);

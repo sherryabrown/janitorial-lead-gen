@@ -30,10 +30,11 @@ export function procurementSchedules({db,triggers,now=()=>new Date()}) {
     if(input?.confirmed_scope!==true||!input.preview_hash)throw Error('Confirm the displayed schedule scope');
     if(!id&&!/^[A-Za-z0-9_-]{8,100}$/.test(key??''))throw Error('Valid Idempotency-Key required');
     if(id&&(!Number.isInteger(input.expected_version)||input.expected_version<1))throw Error('Expected schedule version required');
+    if(id){const saved=await one(db,'procurement_schedules',id);if(!saved||saved.deleted_at)throw Error('Schedule not found');if(saved.config.target_kind==='county_scope'&&(input.config?.target_kind!=='county_scope'||JSON.stringify([...new Set(saved.config.county_ids)].sort())!==JSON.stringify([...new Set(input.config.county_ids)].sort())))throw Error('To change counties, archive this schedule and create a new one');}
     const submissionHash=hash(input);
     if(!id) {
       const existing=checked(await db.from('procurement_schedules').select('id,submission_hash').eq('created_by',actor).eq('client_key',key).maybeSingle());
-      if(existing){if(existing.submission_hash!==submissionHash)throw Error('Schedule key reused for different input');return get(existing.id);}
+      if(existing){if((await one(db,'procurement_schedules',existing.id))?.deleted_at)throw Error('Schedule deleted; create a new schedule');if(existing.submission_hash!==submissionHash)throw Error('Schedule key reused for different input');return get(existing.id);}
     }
     const current=await preview(input);
     if(current.preview_hash!==input.preview_hash)throw Error('Schedule scope changed; preview again');
@@ -46,7 +47,8 @@ export function procurementSchedules({db,triggers,now=()=>new Date()}) {
     const [result]=await reportSchedules(db,[{id:value.id,name:value.name,enabled:value.enabled,archived:value.archived_at!==null,version:value.version,
       owner_id:value.owner_id,config:value.config,recurrence:value.recurrence,window_policy:value.window_policy,
       next_due_at:value.next_due_at?new Date(value.next_due_at).toISOString():null,blocker:value.blocker,updated_at:value.updated_at,last_run:value.last_run,latest_occurrence:value.latest_occurrence}]);
-    return result;
+    const flags=checked(await db.from('procurement_schedule_deletion').select('id,can_delete').eq('id',id).single());
+    return {...result,can_delete:flags.can_delete};
   }
   async function list({offset=0,limit=50,...input}={}) {
     const f=scheduleFilters(input);
@@ -59,7 +61,9 @@ export function procurementSchedules({db,triggers,now=()=>new Date()}) {
     else if(f.geography)q=q.contains('config',{county_ids:[f.geography]});
     const response=await q.order(f.sort,{ascending:f.direction==='asc',nullsFirst:false}).order('id').range(offset,offset+limit);
     const data=checked(response);
-    return {items:await reportSchedules(db,data.slice(0,limit)),next_offset:data.length>limit?offset+limit:null,total:response.count};
+    const page=data.slice(0,limit);
+    const flags=page.length?checked(await db.from('procurement_schedule_deletion').select('id,can_delete').in('id',page.map(s=>s.id))):[];
+    return {items:(await reportSchedules(db,page)).map(s=>({...s,can_delete:flags.find(f=>f.id===s.id)?.can_delete??false})),next_offset:data.length>limit?offset+limit:null,total:response.count};
   }
   async function occurrences(id,{offset=0,limit=50}={}) {
     if(!await one(db,'procurement_schedules',id))throw Error('Schedule not found');
@@ -72,6 +76,7 @@ export function procurementSchedules({db,triggers,now=()=>new Date()}) {
   }
   async function control(id,action,input,actor) {
     if(!Number.isInteger(input?.expected_version)||input.expected_version<1)throw Error('Expected schedule version required');
+    if(action==='delete'){const response=await db.rpc('delete_procurement_schedule',{p_id:id,p_actor:actor,p_version:input.expected_version,p_now:now().toISOString()});if(response.error?.message?.includes('Schedule has run'))throw Error('Schedule has run; archive instead');checked(response);return {id,deleted:true};}
     const saved=await get(id);
     const next=action==='resume'?nextOccurrence(saved.recurrence,now()):null;
     await rpc('control_procurement_schedule',{p_id:id,p_actor:actor,p_action:action,p_version:input.expected_version,
@@ -95,9 +100,9 @@ export function procurementSchedules({db,triggers,now=()=>new Date()}) {
     if(!/^[A-Za-z0-9_-]{8,100}$/.test(key??'')||!Number.isInteger(input?.expected_version))throw Error('Version and Idempotency-Key required');
     // Acknowledgment loss replays the saved occurrence, not a fresh timestamp/window.
     const runKey=`manual-${hash([id,actor,key])}`;
+    const saved=await one(db,'procurement_schedules',id);if(!saved||saved.deleted_at)throw Error('Schedule not found');
     const prior=checked(await db.from('procurement_schedule_occurrences').select('id,trigger_id,state,version').eq('schedule_id',id).eq('run_key',runKey).maybeSingle());
     if(prior){if(prior.version!==input.expected_version)throw Error('Run key reused for another version');return prior;}
-    const saved=await one(db,'procurement_schedules',id);if(!saved)throw Error('Schedule not found');
     if(saved.version!==input.expected_version)throw Error('Schedule version changed; reload');
     return enqueue(saved,{origin:'manual',actor,key:runKey,due:now().toISOString(),effective:now().toISOString()});
   }
@@ -117,7 +122,7 @@ export function procurementSchedules({db,triggers,now=()=>new Date()}) {
   async function status() {return rpc('procurement_scheduler_status',{});}
   async function events(id,{offset=0,limit=50}={}) {
     if(!await one(db,'procurement_schedules',id))throw Error('Schedule not found');const data=checked(await db.from('procurement_schedule_events').select('id,actor_id,action,version,at,summary').eq('schedule_id',id).order('at',{ascending:false}).order('id').range(offset,offset+limit));
-    return {items:data.slice(0,limit).map(e=>({...e,action:['created','edited','pause','resume','archive','owner_inactive','queued','skipped','blocked'].includes(e.action)?e.action:'saved_event',summary:{occurrence_id:publicId(e.summary?.occurrence_id),reason:publicReason(e.summary?.reason)}})),next_offset:data.length>limit?offset+limit:null};
+    return {items:data.slice(0,limit).map(e=>({...e,action:['created','edited','pause','resume','archive','delete','owner_inactive','queued','skipped','blocked'].includes(e.action)?e.action:'saved_event',summary:{occurrence_id:publicId(e.summary?.occurrence_id),reason:publicReason(e.summary?.reason)}})),next_offset:data.length>limit?offset+limit:null};
   }
   return {preview,save,get,list,occurrences,events,control,runNow,tick,status,history:adminRunHistory(db)};
 }
