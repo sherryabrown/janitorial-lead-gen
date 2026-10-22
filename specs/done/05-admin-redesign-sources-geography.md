@@ -1,10 +1,10 @@
 # Phase 5 — Sources by geography and related geography
 
-Implemented Phase 3 contract extension (local, release pending): [editor/work reservations/multiple state sources](../done/03-admin-schedule-editor-and-work-scopes.md). Consume grouped state schedule membership and once-per-parent reporting; do not assume every state schedule has only one source. Preserve the latest local visual correction and the parent's terminology/default decisions.
+Implemented Phase 3 contract extension (released at ec18074): [editor/work reservations/multiple state sources](../done/03-admin-schedule-editor-and-work-scopes.md). Consume grouped state schedule membership and once-per-parent reporting; do not assume every state schedule has only one source. Preserve the latest visual correction and the parent's terminology/default decisions.
 
 Integration note: use the [completed Phase 3 detail revision](../done/03-admin-redesign-detail-revision.md) for scope identity, fixed saved county membership and focused tabs. Source/geography links belong inside details, not extra schedule row quick actions.
 
-Status: planned. Parent: [geography/source rules](admin-workspace-redesign.md).
+Status: completed locally, October 22, 2026; hosted release remains separate. Parent: [geography/source rules](../todo/admin-workspace-redesign.md). [Acceptance evidence](../../docs/reviews/2026-10-22-admin-source-geography-catalogs.md).
 Initiating instruction: add read-only source/geography views and schedule quick-action/detail integrations.
 Dependencies: phases 1–3; consume phase 4 Stats links when available, without introducing a dependency for ordinary browsing.
 
@@ -31,3 +31,7 @@ No geography/source edit/delete, new schedule target, automatic discovery from b
 - Test routing/capability/readiness parity with existing sourceInventory, safe metadata/XSS handling, authenticated pagination, full filtered results beyond first page, partial failed lookup, stale selection.
 - Affected existing geography/source/HTTP tests, npm run check and native access checks for any SQL changes. Desktop/390/320/keyboard table-to-detail-to-back retains context; long geography/source names readable.
 - No claim of new source coverage or solved portal access. Phase passes when views accurately expose registry/membership/attention, including real unresolved gaps.
+
+## Completed contract
+
+Implemented read-only `/v1/admin/sources` and `/v1/admin/geographies` through the existing authenticated backend. Source and geography detail use validated query identities rather than additional route families. Existing Sources run evidence is retained; the current registry is an expandable section. Related geography retains the saved snapshot with an additional current registry comparison. No schema changes/migration, collection changes, commits or hosted deployments. The review above records the full test matrix, known historical/capture bounds and real read-only Saline acceptance. No product decision or required local acceptance remains blocked.

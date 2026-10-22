@@ -1,3 +1,4 @@
+import {verifyCatalogBrowser} from './catalog-browser.mjs';
 import {verifyScheduleActivityBrowser} from './schedule-activity-browser.mjs';
 import {verifySettingsReadsBrowser} from './settings-reads-browser.mjs';
 /* global localStorage, window, document, innerWidth */
@@ -103,8 +104,8 @@ const run = {
 // Verified reporting DTO fixture; no canonical database mutation is performed.
 schedule.reporting={as_of:'2026-10-20T14:00:00Z',last_run:{...run,leads:{added:2,updated:1,unchanged:3,completeness:'known'}},latest_occurrence:null};
 const bodies = [];
-let savedSchedule = process.argv.includes('--schedule-revision')||process.argv.includes('--analytics')||process.argv.includes('--settings-reads')||process.argv.includes('--schedule-activity');
-let failRunRead = !process.argv.includes('--schedule-revision')&&!process.argv.includes('--analytics')&&!process.argv.includes('--settings-reads')&&!process.argv.includes('--schedule-activity');
+let savedSchedule = process.argv.includes('--catalog')||process.argv.includes('--schedule-revision')||process.argv.includes('--analytics')||process.argv.includes('--settings-reads')||process.argv.includes('--schedule-activity');
+let failRunRead = !process.argv.includes('--catalog')&&!process.argv.includes('--schedule-revision')&&!process.argv.includes('--analytics')&&!process.argv.includes('--settings-reads')&&!process.argv.includes('--schedule-activity');
 let queueReads = 0;
 let samSchedule = null;
 const samRun={...run,id:'sam-run',state:'completed',next_action:'View automatically saved leads',target_kind:'sam',county_count:0,config:{target_kind:'sam',requested_categories:['opportunity'],publication_window:{from:'2026-09-20',to:'2026-10-19'}},children:[{request_id:'sam-request',county_id:null,role:'sam'}]};
@@ -239,6 +240,7 @@ try {
       else if (p === '/v1/schedules/schedule') body=schedule;
       else if(p==='/v1/schedules/archived')body={...schedule,id:'archived',name:'Archived checks',archived_at:'2026-10-19T12:00:00Z'};
       else if(p==='/v1/schedules/sam-schedule')body=samSchedule;
+      else if(['/v1/admin/sources','/v1/admin/geographies'].includes(p))body={items:[],total:0,next_offset:null,as_of:'2026-10-22T12:00:00Z',scope:null,basis:'Current registry'};
       else if(p==='/v1/admin/analytics')body=analyticsFixture({offset:Number(url.searchParams.get('offset')??0),sam:url.searchParams.get('target')==='sam',all:url.searchParams.get('period')==='all'});
       else if(p==='/v1/admin/history'){
         const historyRun={...run,schedule_id:url.searchParams.get('schedule')||null,schedule_name:url.searchParams.get('schedule')?'Morning checks':null,leads:{added:2,updated:1,unchanged:3,completeness:'known'},timing:{recorded_activity_ms:1800,completeness:'known'}};
@@ -253,7 +255,7 @@ try {
       else if (p === '/v1/triggers') body = { items: [run], next_offset: null };
       else if (p === '/v1/triggers/run') {
         if(failRunRead){failRunRead=false;await route.fulfill({status:503,contentType:'application/json',headers:{'access-control-allow-origin':origin},body:'{}'});return;}
-        body=process.argv.includes('--schedule-activity')?{...run,schedule_id:'schedule',created_at:'2026-10-22T14:00:00Z',origin:'scheduled'}:run;
+        body=(process.argv.includes('--schedule-activity')||process.argv.includes('--catalog'))?{...run,schedule_id:'schedule',created_at:'2026-10-22T14:00:00Z',origin:'scheduled'}:run;
       }
       else if(p==='/v1/triggers/sam-run')body=samRun;
       else if(p==='/v1/triggers/sam-run/steps')body={items:[],next_cursor:null};
@@ -328,7 +330,7 @@ try {
   const page = await context.newPage(),
     errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  if(process.argv.includes('--schedule-activity')){await verifyScheduleActivityBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--settings-reads')){await verifySettingsReadsBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--analytics')){await verifyAnalyticsBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--schedule-revision')){await verifyScheduleRevision({page,origin,out,errors,bodies});}else{
+  if(process.argv.includes('--catalog')){await verifyCatalogBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--schedule-activity')){await verifyScheduleActivityBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--settings-reads')){await verifySettingsReadsBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--analytics')){await verifyAnalyticsBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--schedule-revision')){await verifyScheduleRevision({page,origin,out,errors,bodies});}else{
   await page.goto(origin);
   await page.getByRole('button',{name:'Settings',exact:true}).waitFor();
   assert.equal(await page.getByRole('button',{name:'Admin',exact:true}).count(),0);

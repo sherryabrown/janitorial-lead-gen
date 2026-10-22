@@ -10,7 +10,7 @@ async function body(request) {
   }
   try {return JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{throw new HttpError(400,'Invalid JSON');}
 }
-export function workflowServer({authenticate,workflow,imports,discovery,sam,samPacket,samStatus,samReconcile,samHistory,samProcess,browser,attention,triggers,schedules,schedulerKey,aiPolicy,audit,db,kick=()=>{},allowedOrigins=[]}) {
+export function workflowServer({authenticate,workflow,imports,discovery,sam,samPacket,samStatus,samReconcile,samHistory,samProcess,browser,attention,triggers,schedules,catalog,schedulerKey,aiPolicy,audit,db,kick=()=>{},allowedOrigins=[]}) {
   return createServer(async(request,response)=>{
     response.setHeader('Content-Type','application/json');response.setHeader('Cache-Control','no-store');
     response.setHeader('X-Content-Type-Options','nosniff');
@@ -47,6 +47,10 @@ export function workflowServer({authenticate,workflow,imports,discovery,sam,samP
       let result;
       const execute=async()=>{
       if(schedules&&url.pathname==='/v1/scheduler/status'&&request.method==='GET')result={...await schedules.status(),backend_key_configured:typeof schedulerKey==='string'&&schedulerKey.length>=32,...(aiPolicy?{ai_policy:{enabled:aiPolicy.enabled,monthly_usd:aiPolicy.monthlyUsd}}:{})};
+      else if(catalog&&['/v1/admin/sources','/v1/admin/geographies'].includes(url.pathname)&&request.method==='GET') {
+        try{result=await catalog[url.pathname.endsWith('sources')?'sources':'geographies'](Object.fromEntries(url.searchParams));}
+        catch(error){if(error.message.startsWith('Invalid catalog'))throw new HttpError(400,'Invalid catalog filters');if(['Schedule not found','Geography not in scope'].includes(error.message))throw new HttpError(404,'Saved scope is unavailable');if(error.message==='Scoped read exceeded bound; narrow the query before proceeding')result={unavailable:'Registry exceeds the safe read bound. No truncated catalog is shown.'};else throw error;}
+      }
       else if(schedules&&url.pathname==='/v1/admin/analytics'&&request.method==='GET') {
         const limit=Number(url.searchParams.get('limit')??25),offset=Number(url.searchParams.get('offset')??0);
         if(!Number.isInteger(limit)||limit<1||limit>100||!Number.isInteger(offset)||offset<0)throw new HttpError(400,'Invalid pagination');

@@ -11,6 +11,7 @@ import { TriggerForm } from './TriggerForm';
 import { ScheduleList, StateSourceList } from './ScheduleList';
 import {RunHistory} from './RunHistory';
 import {Analytics} from './Analytics';
+import {Catalog} from './Catalog';
 import { RunDetail } from './RunDetail';
 import { initialDraft, invalidDraft, resolvedConfig, readFailure } from './model';
 import type {
@@ -100,7 +101,7 @@ export default function AdminScreen({
   const stateSourcesRef=useRef<HTMLDivElement>(null),samRef=useRef<HTMLDivElement>(null);
   const [navigation, setNavigation] = useState<AdminContext>(() => {
     const saved = readAdminLocation(owner);
-    return saved.view === 'schedules' || saved.view === 'history' || saved.view === 'stats' ? saved : { view: 'schedules', returnTo: 'contracts' };
+    return saved;
   });
   const headingRef = useRef<HTMLHeadingElement>(null);
   const returnFocus=useRef<HTMLElement|null>(null),previousRun=useRef<string|null>(null),restoreFocus=useRef(false);
@@ -118,7 +119,7 @@ export default function AdminScreen({
   const setSelected=(value:string|null|((old:string|null)=>string|null))=>{const id=typeof value==='function'?value(selected):value;commitNavigation({...navigation,runId:id??undefined,runSection:'overview'});};
   const viewRun=(id:string,section:'overview'|'logs'|'sources'='overview')=>{returnFocus.current=document.activeElement as HTMLElement;commitNavigation({...navigation,runId:id,runSection:section});};
   useEffect(()=>{if(previousRun.current&&!selected&&restoreFocus.current&&returnFocus.current?.isConnected){returnFocus.current.focus({preventScroll:true});returnFocus.current.scrollIntoView?.({block:'nearest'});}restoreFocus.current=false;previousRun.current=selected;},[selected]);
-  const navigate = (view: 'schedules' | 'history' | 'stats', manual = false) => {
+  const navigate = (view: AdminContext['view'], manual = false) => {
     commitNavigation({ view, returnTo: 'contracts', ...(manual ? { section: 'manual' } : {}) });
     const target = manual ? manualRef.current : view === 'history' ? historyRef.current : view==='stats'?statsRef.current:schedulesRef.current;
     target?.focus(); target?.scrollIntoView?.({ block: 'start' });
@@ -439,6 +440,8 @@ export default function AdminScreen({
         <button type="button" className="secondary-button compact" aria-current={navigation.view === 'schedules' && navigation.section !== 'manual' ? 'page' : undefined} onClick={() => navigate('schedules')}>Schedules</button>
         <button type="button" className="text-button" aria-current={navigation.view === 'history' ? 'page' : undefined} onClick={() => navigate('history')}>History / logs</button>
         <button type="button" className="text-button" aria-current={navigation.view === 'stats' ? 'page' : undefined} onClick={() => navigate('stats')}>Stats / analytics</button>
+        <button type="button" className="text-button" aria-current={navigation.view === 'sources' ? 'page' : undefined} onClick={() => navigate('sources')}>Sources by geography</button>
+        <button type="button" className="text-button" aria-current={navigation.view === 'geography' ? 'page' : undefined} onClick={() => navigate('geography')}>Related geography</button>
       </nav></div>
       {notice && (
         <p className="admin-notice" role="status">
@@ -471,7 +474,7 @@ export default function AdminScreen({
         )}
       {scheduleEditor&&<ScheduleEditor key={scheduleEditor.saved?.id??'new'} owner={owner} initial={manual} saved={scheduleEditor.saved} target={scheduleEditor.target} counties={counties} sources={sources} registryState={registryState} onClose={()=>setScheduleEditor(null)} onSaved={s=>{setScheduleEditor(null);setSavedScheduleFocus(s);setRevision(n=>n+1);commitNavigation({view:'schedules',scheduleId:s.id,section:'overview',returnTo:'contracts'});}}/>}
       <div hidden={!!scheduleEditor||navigation.view!=='schedules'||navigation.section==='manual'||!!selected} ref={schedulesRef} tabIndex={-1} className="admin-navigation-section" aria-label="Schedules">
-        <ScheduleList active={active&&!selected&&!scheduleEditor&&navigation.view==='schedules'&&navigation.section!=='manual'} owner={owner} context={navigation.scheduleId?{id:navigation.scheduleId,section:navigation.section==='manual'? 'overview':navigation.section??'overview',scheduleRunId:navigation.scheduleRunId}:null} onContext={value=>commitNavigation({...navigation,view:'schedules',scheduleId:value?.id,section:value?.section,scheduleRunId:value?.scheduleRunId,runId:undefined})} onView={viewRun} onViewLeads={onViewLeads} items={schedules} paging={paging} more={scheduleOffset !== null}
+        <ScheduleList active={active&&!selected&&!scheduleEditor&&navigation.view==='schedules'&&navigation.section!=='manual'} owner={owner} context={navigation.scheduleId?{id:navigation.scheduleId,section:navigation.section==='manual'? 'overview':navigation.section??'overview',scheduleRunId:navigation.scheduleRunId,sourceId:navigation.sourceId,geographyId:navigation.geographyId}:null} onContext={value=>commitNavigation({...navigation,view:'schedules',scheduleId:value?.id,section:value?.section,scheduleRunId:value?.scheduleRunId,sourceId:value?.sourceId,geographyId:value?.geographyId,runId:undefined})} onView={viewRun} onViewLeads={onViewLeads} items={schedules} paging={paging} more={scheduleOffset !== null}
           query={scheduleQuery} onFilters={filterSchedules} counties={counties} total={scheduleTotal} loading={loading||paging}
           error={scheduleReadError} onRetry={()=>{if(failedSchedulePage.current)void loadMore();else setRevision(n=>n+1);}}
           focusSchedule={savedScheduleFocus}
@@ -568,6 +571,7 @@ export default function AdminScreen({
       </div>
       </div>
       {navigation.view==='stats'&&<div hidden={!!selected||!!scheduleEditor} ref={statsRef} tabIndex={-1} className="admin-navigation-section"><Analytics owner={owner} counties={counties} onView={viewRun}/></div>}
+      {(navigation.view==='sources'||navigation.view==='geography')&&<div hidden={!!selected||!!scheduleEditor} className="admin-navigation-section"><Catalog key={navigation.view} mode={navigation.view} owner={owner} counties={counties} sourceId={navigation.sourceId} geographyId={navigation.geographyId} onSource={id=>commitNavigation({view:'sources',sourceId:id,returnTo:'contracts'})} onGeography={id=>commitNavigation({view:'geography',geographyId:id,returnTo:'contracts'})} onState={()=>{navigate('schedules',true);requestAnimationFrame(()=>stateSourcesRef.current?.scrollIntoView?.({block:'start'}));}}/></div>}
       <div hidden={!!scheduleEditor||navigation.view!=='history'&&!selected} ref={historyRef} tabIndex={-1} className="admin-navigation-section" aria-label="History and logs">
       <div hidden={!!selected}>{navigation.view==='history'&&<RunHistory owner={owner} counties={counties} refreshSignal={revision} onView={viewRun} onSchedule={id=>commitNavigation({view:'schedules',scheduleId:id,section:'history',returnTo:'contracts'})}/>}</div>
       {selected && (

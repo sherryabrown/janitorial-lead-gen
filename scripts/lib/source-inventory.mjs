@@ -1,4 +1,4 @@
-import { adapterContract, categories, covers, unsupportedCategory } from './known-source-execution.mjs';
+import { adapterContract, categories, covers, unsupportedCategory, capabilityCoversRoute } from './known-source-execution.mjs';
 
 // Reconcile current status from capability evidence on every read. Legacy config remains
 // historical evidence, never an override of a newer verified capability.
@@ -6,13 +6,13 @@ export function sourceInventory(sources, capabilities, geographies, now = new Da
   return [...sources].sort((a,b) => a.code.localeCompare(b.code)).map(source => {
     const caps = capabilities.filter(c => c.source_id === source.id);
     const routes = geographies.filter(g => g.source_active &&
-      (covers(source,g) || caps.some(c => c.route_geography_id === g.id)));
+      (covers(source,g) || caps.some(c => capabilityCoversRoute(c,g.id))));
     const historical = Object.values(source.config?.research_persistence?.coverage_by_scope ?? {});
     const warnings = [];
     if (!routes.length) warnings.push('No resolved active geography; verify agency/service-area applicability');
     if (historical.length) warnings.push('Historical request associations require agency-coverage review; they do not prove work sites');
     const categoryRows = routes.flatMap(route => categories.map(kind => {
-      const attached = caps.filter(c => c.route_geography_id === route.id && c.kind === kind);
+      const attached = caps.filter(c => capabilityCoversRoute(c,route.id) && c.kind === kind);
       const methods = attached.map(capability => {
         try { return { id: capability.id, status: 'verified', verified_at: capability.verified_at,
           verified_until: capability.verified_until, evidence: capability.verification_evidence,
