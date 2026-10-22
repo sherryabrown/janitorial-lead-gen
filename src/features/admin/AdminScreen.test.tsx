@@ -530,7 +530,7 @@ it('keeps a successful county registry usable when another Admin list fails', as
     screen.getByRole('checkbox', { name: 'Pulaski County' }),
   ).toHaveProperty('disabled', false);
   expect(screen.queryAllByText('Unavailable')).toHaveLength(0);
-  expect(screen.getByText('Schedules could not load')).toBeTruthy();
+  expect(screen.getByText(/Schedules could not load/)).toBeTruthy();
   selectPulaski();
   expect(screen.getByRole('button', { name: 'Run now' })).toHaveProperty(
     'disabled',
@@ -688,4 +688,27 @@ it('returns from cancelled schedule editing to the same detail tab instead of ma
  await screen.findByRole('heading',{name:'Edit schedule'});fireEvent.click(screen.getByRole('button',{name:'Cancel'}));
  expect(screen.getByRole('tab',{name:'Overview'})).toBeTruthy();expect(screen.getByRole('heading',{name:'Schedule settings'})).toBeTruthy();
  expect(screen.queryByRole('checkbox',{name:'Pulaski County'})).toBeNull();
+});
+
+it('focuses one run workspace and restores the hidden history row without parent polling reads',async()=>{
+ const original=mocks.request.getMockImplementation()!;
+ mocks.request.mockImplementation((p,o)=>p.startsWith('/v1/schedules?')?Promise.resolve({items:[],next_offset:null,total:0}):p.startsWith('/v1/admin/history')?Promise.resolve({items:[{id:'run-1',state:'completed',created_at:'2026-10-20T12:00:00Z',children:[]}],next_offset:null,total:1}):original(p,o));
+ await start();fireEvent.click(screen.getByRole('button',{name:'History / logs'}));const row=await screen.findByRole('button',{name:/Oct 20/});row.focus();fireEvent.click(row);
+ await screen.findByRole('region',{name:'Run details'});expect(screen.queryByRole('region',{name:'Run history'})).toBeNull();expect(screen.queryByRole('button',{name:'Refresh history'})).toBeNull();
+ const before=calls.filter(c=>c.path==='/v1/schedules?lifecycle=current').length;fireEvent.click(await screen.findByRole('button',{name:'Refresh run'}));await screen.findByRole('button',{name:'Refresh run'});expect(calls.filter(c=>c.path==='/v1/schedules?lifecycle=current')).toHaveLength(before);
+ fireEvent.click(screen.getByRole('button',{name:'Back to previous view'}));await waitFor(()=>expect(screen.getByRole('region',{name:'Run history'})).toBeTruthy());expect(document.activeElement).toBe(row);
+});
+
+it('retries a failed schedule page without replacing loaded rows',async()=>{
+ const original=mocks.request.getMockImplementation()!;let fail=true;
+ mocks.request.mockImplementation((p,o)=>{if(p.startsWith('/v1/schedules?')){if(p.includes('offset=50')){if(fail)return Promise.reject(Error('Page unavailable'));return Promise.resolve({items:[{...schedule,id:'second',name:'Second check'}],next_offset:null,total:2});}return Promise.resolve({items:[schedule],next_offset:50,total:2});}return original(p,o);});
+ await start();fireEvent.click(screen.getByRole('button',{name:'Schedules'}));fireEvent.click(await screen.findByRole('button',{name:'More schedules'}));await screen.findByRole('button',{name:'Retry schedules'});expect(screen.getByRole('button',{name:'Morning check'})).toBeTruthy();
+ const count=mocks.request.mock.calls.filter(([p])=>p==='/v1/schedules?lifecycle=current').length;fail=false;fireEvent.click(screen.getByRole('button',{name:'Retry schedules'}));await screen.findByRole('button',{name:'Second check'});expect(screen.getByRole('button',{name:'Morning check'})).toBeTruthy();expect(mocks.request.mock.calls.filter(([p])=>p==='/v1/schedules?lifecycle=current')).toHaveLength(count);
+});
+
+it('retains keyboard focus on schedule tabs instead of refocusing the schedule heading',async()=>{
+ const original=mocks.request.getMockImplementation()!;
+ mocks.request.mockImplementation((p,o)=>p==='/v1/schedules?lifecycle=current'?Promise.resolve({items:[schedule],next_offset:null}):p.includes('/occurrences')||p.includes('/events')?Promise.resolve({items:[],next_offset:null}):original(p,o));
+ await start();fireEvent.click(screen.getByRole('button',{name:'Schedules'}));fireEvent.click(await screen.findByRole('button',{name:'Morning check'}));await screen.findByRole('heading',{name:'Schedule settings'});
+ const tabs=screen.getByRole('tablist',{name:'Schedule sections'}),overview=within(tabs).getByRole('tab',{name:'Overview'});overview.focus();fireEvent.keyDown(tabs,{key:'ArrowRight'});await screen.findByRole('heading',{name:'Occurrences'});expect(document.activeElement).toBe(within(tabs).getByRole('tab',{name:'History'}));fireEvent.keyDown(tabs,{key:'ArrowLeft'});expect(document.activeElement).toBe(overview);
 });

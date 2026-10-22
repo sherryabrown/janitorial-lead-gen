@@ -1,8 +1,10 @@
+import {useOwnedRead} from './read-owner';
+import {ReadAction} from './ReadAction';
 import {useEffect,useRef,useState} from 'react';
 import {workflowRequest} from '../../lib/procurement-workflow';
 import {HistoryScheduleFilter} from './HistoryScheduleFilter';
 import {InfoTooltip} from '../shared/components/InfoTooltip';
-import {duration,formatLocal,title,runLabel} from './model';
+import {duration,formatLocal,title,runLabel,readFailure} from './model';
 import type {County,Usage,RunTiming} from './types';
 export type Metric={value:number|null;known_subtotal:number;completeness:string;reason?:string};
 type Outcomes=Record<'added'|'updated'|'unchanged',Metric>;
@@ -32,39 +34,43 @@ export function AnalyticsSummary({report,compact=false}:{report:AnalyticsReport;
   </>}
  </section>;
 }
-export function ScheduleAnalyticsSummary({id}:{id:string}){
- const [report,setReport]=useState<AnalyticsReport|null>(null),[error,setError]=useState(''),[revision,setRevision]=useState(0);
- useEffect(()=>{const a=new AbortController();setError('');setReport(null);void workflowRequest<AnalyticsReport>(`/v1/admin/analytics?${new URLSearchParams({schedule:id,period:'all',limit:'1'})}`,{signal:a.signal}).then(r=>{if(r.unavailable)throw Error(r.unavailable);if(!r.summary||!r.coverage)throw Error('Reporting data is unavailable.');if(!a.signal.aborted)setReport(r);}).catch(e=>{if(!a.signal.aborted)setError(e.message);});return()=>a.abort();},[id,revision]);
- return <section className="schedule-results">{report?<AnalyticsSummary report={report} compact/>:error?<p role="status">Results unavailable. {error} <button type="button" className="text-button" onClick={()=>setRevision(n=>n+1)}>Retry totals</button></p>:<p role="status">Loading available totals…</p>}</section>;
+export function ScheduleAnalyticsSummary({id,active=true}:{id:string;active?:boolean}){
+ const [report,setReport]=useState<AnalyticsReport|null>(null),[error,setError]=useState(''),[revision,setRevision]=useState(0),[busy,setBusy]=useState(true);
+ useEffect(()=>{if(!active){setBusy(false);return;}const a=new AbortController();setBusy(true);setError('');void workflowRequest<AnalyticsReport>(`/v1/admin/analytics?${new URLSearchParams({schedule:id,period:'all',limit:'1'})}`,{signal:a.signal}).then(r=>{if(r.unavailable)throw Error(r.unavailable);if(!r.summary||!r.coverage)throw Error('Reporting data is unavailable.');if(!a.signal.aborted)setReport(r);}).catch(e=>{if(!a.signal.aborted)setError(readFailure(e,'Schedule totals'));}).finally(()=>{if(!a.signal.aborted)setBusy(false);});return()=>a.abort();},[id,revision,active]);
+ const read=()=>setRevision(n=>n+1),owned=useOwnedRead('totals',{busy,error,loaded:!!report},read,active);
+ return <section className="schedule-results">{!owned&&<ReadAction scope="totals" busy={busy} error={!!error} loaded={!!report} onRead={read}/>} {error&&<p role="alert">{error}</p>}{report?<AnalyticsSummary report={report} compact/>:busy?<p role="status">Loading available totals…</p>:null}</section>;
+
 }
 const defaults={schedule:'',target:'',geography:'',origin:'',category:'',from:'',through:'',sort:'created_at',direction:'desc'};
 function restored(key:string){try{const saved=JSON.parse(sessionStorage.getItem(key)??'{}');return Object.fromEntries(Object.entries(defaults).map(([k,v])=>[k,typeof saved[k]==='string'&&saved[k].length<=100?saved[k]:v])) as typeof defaults;}catch{return defaults;}}
 export function Analytics({owner,counties,onView}:{owner:string;counties:County[];onView:(id:string)=>void}){
  const key=`spin-admin-stats-filter:${owner}`;
- const [filters,setFilters]=useState(()=>restored(key)),[report,setReport]=useState<AnalyticsReport|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[revision,setRevision]=useState(0),[offset,setOffset]=useState(0);
+ const [filters,setFilters]=useState(()=>restored(key)),[report,setReport]=useState<AnalyticsReport|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[revision,setRevision]=useState(0),[offset,setOffset]=useState(0),[choicesError,setChoicesError]=useState(''),[choicesBusy,setChoicesBusy]=useState(false),[choiceRevision,setChoiceRevision]=useState(0);
  const anchor=useRef<{as_of:string;snapshot:string}|null>(null),shownOffset=useRef(0);
  const query=new URLSearchParams(Object.entries(filters).filter(([,v])=>v)).toString();
  useEffect(()=>{const a=new AbortController();setBusy(true);setError('');const q=new URLSearchParams(query);q.set('offset',String(offset));if(anchor.current){q.set('as_of',anchor.current.as_of);q.set('snapshot',anchor.current.snapshot);}
-  void workflowRequest<AnalyticsReport>(`/v1/admin/analytics?${q}`,{signal:a.signal}).then(r=>{if(r.unavailable)throw Error(r.unavailable);if(!r.summary||!r.coverage)throw Error('Reporting data is unavailable.');if(!a.signal.aborted){anchor.current={as_of:r.as_of,snapshot:r.snapshot};shownOffset.current=offset;setReport(r);}}).catch(e=>{if(!a.signal.aborted){setReport(null);setError(e.message);}}).finally(()=>{if(!a.signal.aborted)setBusy(false);});return()=>a.abort();
+  void workflowRequest<AnalyticsReport>(`/v1/admin/analytics?${q}`,{signal:a.signal}).then(r=>{if(r.unavailable)throw Error(r.unavailable);if(!r.summary||!r.coverage)throw Error('Reporting data is unavailable.');if(!a.signal.aborted){anchor.current={as_of:r.as_of,snapshot:r.snapshot};shownOffset.current=offset;setReport(r);}}).catch(e=>{if(!a.signal.aborted){if(/snapshot|consistent report|results changed/i.test(e.message)){setReport(null);setError(e.message);}else setError(readFailure(e,'Stats'));}}).finally(()=>{if(!a.signal.aborted)setBusy(false);});return()=>a.abort();
  },[query,offset,revision]);
  const change=(k:keyof typeof defaults,v:string)=>{anchor.current=null;setOffset(0);setReport(null);const next={...filters,[k]:v};setFilters(next);try{sessionStorage.setItem(key,JSON.stringify(next));}catch{/* Mounted state remains available. */}};
- const refresh=()=>{anchor.current=null;setOffset(0);setReport(null);setRevision(n=>n+1);};
+ const refresh=()=>{if(choicesError)setChoiceRevision(n=>n+1);if(error||!choicesError){anchor.current=null;setOffset(0);setRevision(n=>n+1);}};
  return <section className="admin-section analytics" aria-label="Stats and analytics" aria-busy={busy}>
-  <div className="admin-section-heading"><h2>Stats / analytics</h2><button type="button" className="text-button" onClick={refresh}>Refresh stats</button></div>
+  <div className="admin-section-heading"><h2>Stats / analytics</h2></div>
+  <ReadAction scope="stats" busy={busy||choicesBusy} loaded={!!report} error={!!error||!!choicesError} onRead={refresh}/>
   <div className="schedule-filters analytics-filters"><label>Reporting period<select value={filters.from||filters.through?'custom':'7'} onChange={e=>{if(e.target.value==='7'){anchor.current=null;setOffset(0);setReport(null);setFilters(f=>({...f,from:'',through:''}));try{sessionStorage.setItem(key,JSON.stringify({...filters,from:'',through:''}));}catch{/* Mounted period remains. */}}else{const today=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Chicago',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());change('from',today);}}}><option value="7">Last 7 days</option><option value="custom">Custom dates</option></select></label>
-   <label>From · CT<input type="date" value={filters.from} onChange={e=>change('from',e.target.value)}/></label><label>Through · CT<input type="date" value={filters.through} onChange={e=>change('through',e.target.value)}/></label>
-   <HistoryScheduleFilter value={filters.schedule} onChange={v=>change('schedule',v)}/>
+   {(filters.from||filters.through)&&<><label>From · CT<input type="date" value={filters.from} onChange={e=>change('from',e.target.value)}/></label><label>Through · CT<input type="date" value={filters.through} onChange={e=>change('through',e.target.value)}/></label></>}
+   <HistoryScheduleFilter value={filters.schedule} onChange={v=>change('schedule',v)} refreshSignal={choiceRevision} onReadError={setChoicesError} onReadBusy={setChoicesBusy}/>
    <label>Type<select value={filters.target} onChange={e=>change('target',e.target.value)}><option value="">All types</option><option value="county_scope">Counties</option><option value="state_source">State sources</option><option value="sam">SAM.gov</option></select></label>
+  </div><details className="settings-more-filters"><summary>More filters{[filters.geography,filters.category,filters.origin].filter(Boolean).length?` · ${[filters.geography,filters.category,filters.origin].filter(Boolean).length} applied`:""}</summary><div className="schedule-filters">
    <label>Geography<select value={filters.geography} onChange={e=>change('geography',e.target.value)}><option value="">All geography</option><option value="05">Statewide</option>{counties.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
    <label>Lead category<select value={filters.category} onChange={e=>change('category',e.target.value)}><option value="">All categories</option>{['forecast','opportunity','award'].map(c=><option key={c} value={c}>{title(c)}</option>)}</select></label>
    <label>Origin<select value={filters.origin} onChange={e=>change('origin',e.target.value)}><option value="">All origins</option><option value="manual">Manual</option><option value="scheduled">Scheduled</option></select></label>
-  </div>
-  {busy&&<p role="status">Loading stats…</p>}{error&&<p role="alert">{error} <button type="button" className="text-button" onClick={refresh}>Retry stats</button></p>}
+  </div></details>
+  {busy&&<p role="status">Loading stats…</p>}{error&&<p role="alert">{error}</p>}
   {report&&<><small className="run-history-caption">{report.filters.from} – {report.filters.through} · America/Chicago · As of {formatLocal(report.as_of)} · Run creation dates · {report.total} runs</small>
    <AnalyticsSummary report={report}/>
    <section className="analytics-block"><div className="admin-section-heading"><h3>Runs</h3><div className="admin-inline"><label>Sort runs<select value={filters.sort} onChange={e=>change('sort',e.target.value)}>{[['created_at','Created'],['added','New leads'],['updated','Updated leads'],['unchanged','Unchanged matches'],['activity','Recorded activity']].map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label><label>Run order<select value={filters.direction} onChange={e=>change('direction',e.target.value)}><option value="desc">Descending</option><option value="asc">Ascending</option></select></label></div></div>
    {!report.items.length&&<p>No matching runs.</p>}
-   <div className="schedule-table-wrap"><table className="schedule-table history-table"><caption className="sr-only">Analytics runs</caption><thead><tr>{['Created / origin','Type / outcome','New','Updated','Unchanged','Attention','Recorded activity','Action'].map(h=><th scope="col" key={h}>{h}</th>)}</tr></thead><tbody>{report.items.map(r=><tr key={r.id}><td data-label="Created / origin">{formatLocal(r.created_at)}<small>{title(r.origin)}</small></td><td data-label="Type / outcome">{title(r.target_kind)}<small>{runLabel({id:r.id,created_at:r.created_at,state:r.state,target_kind:r.target_kind,presentation:r.presentation})}</small></td>{(['added','updated','unchanged'] as const).map(k=><td key={k} data-label={title(k)}>{amount(r.leads[k])}</td>)}<td data-label="Attention">{r.sources_attention} sources · {r.route_gaps} gaps<small>{amount(r.candidates_attention)} candidates</small></td><td data-label="Recorded activity">{duration(r.timing.recorded_activity_ms)}<small>{r.timing.reason??title(r.timing.completeness)}</small></td><td data-label="Action"><button type="button" className="text-button" onClick={()=>onView(r.id)}>View run</button></td></tr>)}</tbody></table></div>
+   <div className="schedule-table-wrap"><table className="schedule-table history-table"><caption className="sr-only">Analytics runs</caption><thead><tr>{['Created / origin','Type / outcome','New','Updated','Unchanged','Attention','Recorded activity'].map(h=><th scope="col" key={h}>{h}</th>)}</tr></thead><tbody>{report.items.map(r=><tr key={r.id}><td data-label="Created / origin"><button type="button" className="text-button" onClick={()=>onView(r.id)}>{formatLocal(r.created_at)}</button><small>{title(r.origin)}</small></td><td data-label="Type / outcome">{title(r.target_kind)}<small>{runLabel({id:r.id,created_at:r.created_at,state:r.state,target_kind:r.target_kind,presentation:r.presentation})}</small></td>{(['added','updated','unchanged'] as const).map(k=><td key={k} data-label={title(k)}>{amount(r.leads[k])}</td>)}<td data-label="Attention">{r.sources_attention} sources · {r.route_gaps} gaps<small>{amount(r.candidates_attention)} candidates</small></td><td data-label="Recorded activity">{duration(r.timing.recorded_activity_ms)}<small>{r.timing.reason??title(r.timing.completeness)}</small></td></tr>)}</tbody></table></div>
    <div className="admin-inline"><button type="button" className="text-button" disabled={busy||offset===0} onClick={()=>setOffset(n=>Math.max(0,n-25))}>Previous runs</button><span>Page {Math.floor(shownOffset.current/25)+1} · {report.total} runs</span><button type="button" className="text-button" disabled={busy||report.next_offset===null} onClick={()=>setOffset(report.next_offset??0)}>Next runs</button></div>
    </section></>}
  </section>;

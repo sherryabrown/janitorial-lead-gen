@@ -1,3 +1,4 @@
+import {ReadAction} from './ReadAction';
 import { useEffect, useState } from 'react';
 import {scheduleDisableActions} from './ScheduleDisable';
 import { ActionMenu } from '../shared/components/ActionMenu';
@@ -7,11 +8,11 @@ import { formatLocal, runLabel, title, recurrenceLabel } from './model';
 import type { AnySchedule, County } from './types';
 const defaults={q:'',target:'all',geography:'',lifecycle:'all',blocker:'all',sort:'name',direction:'asc'};
 type Section='details'|'stats'|'overview'|'history'|'logs'|'geography'|'sources';
-export function ScheduleList({items,more,paging,onMore,onEdit,onAction,busy,onView,onAdd,onFilters,counties=[],query='',total,loading=false,error='',onRetry,focusSchedule,owner='',context,onContext}: {
-  items: AnySchedule[]; more: boolean; paging?: boolean; onMore:()=>void; onEdit:(s:AnySchedule)=>void;
+export function ScheduleList({items,more,paging,onMore,onEdit,onAction,busy,onView,onAdd,onFilters,counties=[],query='',total,loading=false,error='',onRetry,focusSchedule,owner='',context,onContext,onViewLeads,active=true}: {
+  active?:boolean;items: AnySchedule[]; more: boolean; paging?: boolean; onMore:()=>void; onEdit:(s:AnySchedule)=>void;
   onAction:(s:AnySchedule,a:string)=>void; busy:boolean; onView:(id:string,section?:'overview'|'logs'|'sources')=>void; onAdd?:(target:string)=>void;
   onFilters?:(query:string)=>void; counties?:County[]; query?:string; total?:number; loading?:boolean; error?:string; onRetry?:()=>void;
-  focusSchedule?: AnySchedule|null; owner?:string; context?:{id:string;section:ScheduleSection}|null; onContext?:(value:{id:string;section:ScheduleSection}|null)=>void;
+  focusSchedule?: AnySchedule|null; owner?:string; context?:{id:string;section:ScheduleSection;scheduleRunId?:string}|null; onContext?:(value:{id:string;section:ScheduleSection;scheduleRunId?:string}|null)=>void;onViewLeads?:()=>void;
 }) {
   const [filters,setFilters]=useState(()=>({...defaults,...Object.fromEntries(new URLSearchParams(query))}));
   const [selected,setSelected]=useState<{id:string;section:Section}|null>(null),[returnedId,setReturnedId]=useState<string|null>(null);
@@ -28,6 +29,7 @@ export function ScheduleList({items,more,paging,onMore,onEdit,onAction,busy,onVi
   return <section className="admin-section" aria-label="Saved schedules">
     <div hidden={!!detail}>
     <div className="admin-section-heading schedule-list-heading"><h2>Schedules</h2>{onAdd&&<button type="button" className="primary-button compact" disabled={busy} onClick={()=>onAdd('county_scope')}>Add schedule</button>}</div>
+    <ReadAction scope="schedules" busy={loading} loaded={items.length>0} error={!!error} onRead={()=>onRetry?.()}/>
     <div className="schedule-filters" aria-label="Schedule filters">
       <label>Search schedules<input value={filters.q} maxLength={100} onChange={e=>change('q',e.target.value)} /></label>
       <label>Type<select value={filters.target} onChange={e=>change('target',e.target.value)}><option value="all">All types</option><option value="county_scope">Counties</option><option value="state_source">State sources</option><option value="sam">SAM</option></select></label>
@@ -40,7 +42,7 @@ export function ScheduleList({items,more,paging,onMore,onEdit,onAction,busy,onVi
       <label>Order<select value={filters.direction} onChange={e=>change('direction',e.target.value)}><option value="asc">Ascending</option><option value="desc">Descending</option></select></label>
     </div></details>
     <span className="admin-hint" role="status">{loading?'Loading schedules…':total!=null?`${total} ${total===1?'schedule':'schedules'}`:`${items.length} loaded schedules`}</span>
-    {error&&<div role="alert">{error} <button type="button" className="text-button" onClick={onRetry}>Retry schedules</button></div>}
+    {error&&<div role="alert">{error}</div>}
     {!error&&!loading&&!items.length&&<p>No schedules match. Add a schedule or change filters.</p>}
     <div className="schedule-table-wrap"><table className="schedule-table schedule-list-table"><caption className="sr-only">Schedules · times in America/Chicago · AI usage from last run</caption><thead><tr>{['Name','Geography','Frequency','Last run','Last run leads','Next run','AI credits','AI spent','Status','Quick actions'].map(h=><th key={h} scope="col">{h}{h==='Quick actions'&&<InfoTooltip label="About quick actions">Run now starts this saved schedule. Details opens settings and runs. Edit changes settings. Disable: Pause stops future runs; Archive keeps history; Delete is available only before any run. Current runs continue.</InfoTooltip>}{h==='AI credits'&&<InfoTooltip label="About schedule AI credits">Provider-reported credits only. Missing reports or mixed units show Unknown; tokens are not credits.</InfoTooltip>}</th>)}</tr></thead>
       <tbody>{items.map(s=>{const archived=!!s.archived_at||!!s.archived,r=s.reporting?.last_run,o=s.reporting?.latest_occurrence;
@@ -63,7 +65,7 @@ export function ScheduleList({items,more,paging,onMore,onEdit,onAction,busy,onVi
         </tr>;})}</tbody></table></div>
     {more&&<button type="button" className="text-button" disabled={paging} onClick={onMore}>More schedules</button>}
     </div>
-    {detail&&<ScheduleDetail key={detail.id} id={detail.id} initial={current??undefined} owner={owner} section={detail.section}
+    {detail&&<ScheduleDetail active={active} key={detail.id} id={detail.id} initial={current??undefined} owner={owner} section={detail.section} selectedRunId={"scheduleRunId" in detail?detail.scheduleRunId:undefined} onSelectedRun={runId=>onContext?.({...detail,scheduleRunId:runId})} onViewLeads={onViewLeads}
       onSection={section=>{setSelected({id:detail.id,section});onContext?.({...detail,section});}}
       onClose={()=>{setReturnedId(detail.id);setSelected(null);onContext?.(null);const row=document.getElementById(`schedule-row-${detail.id}`);row?.querySelector<HTMLButtonElement>('button')?.focus({preventScroll:true});requestAnimationFrame(()=>{row?.querySelector<HTMLButtonElement>('button')?.focus({preventScroll:true});row?.scrollIntoView?.({block:'nearest'});});}}
       onView={onView} onEdit={onEdit} onAction={onAction} busy={busy} counties={counties}/>}

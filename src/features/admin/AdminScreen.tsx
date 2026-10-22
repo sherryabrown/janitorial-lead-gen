@@ -12,7 +12,7 @@ import { ScheduleList, StateSourceList } from './ScheduleList';
 import {RunHistory} from './RunHistory';
 import {Analytics} from './Analytics';
 import { RunDetail } from './RunDetail';
-import { initialDraft, invalidDraft, resolvedConfig } from './model';
+import { initialDraft, invalidDraft, resolvedConfig, readFailure } from './model';
 import type {
   Draft,
   AnySchedule,
@@ -25,7 +25,7 @@ import type {
   SchedulerStatus,
 } from './types';
 import './admin.css';
-import {readAdminLocation,pushAdminLocation,saveAdminContext, type AdminContext } from './navigation';
+import {readAdminLocation,pushAdminLocation,replaceAdminLocation,saveAdminContext, type AdminContext } from './navigation';
 type Editor = {
   draft: Draft;
   id?: string;
@@ -105,11 +105,12 @@ export default function AdminScreen({
   const headingRef = useRef<HTMLHeadingElement>(null);
   const returnFocus=useRef<HTMLElement|null>(null),previousRun=useRef<string|null>(null),restoreFocus=useRef(false);
   const schedulesRef = useRef<HTMLDivElement>(null), manualRef = useRef<HTMLDivElement>(null), historyRef = useRef<HTMLDivElement>(null),statsRef=useRef<HTMLDivElement>(null);
+  const manualView=navigation.section==='manual';
   useEffect(() => {
     if(!active)return;
-    const target=navigation.runId?detailRef.current?.querySelector<HTMLElement>('h2'):navigation.view==='stats'?statsRef.current:navigation.scheduleId?schedulesRef.current?.querySelector<HTMLElement>('.schedule-detail h2'):navigation.view==='history'?historyRef.current:navigation.section==='manual'?manualRef.current:headingRef.current;
-    target?.focus();if(navigation.runId||navigation.scheduleId||navigation.view==='history'||navigation.section==='manual')target?.scrollIntoView?.({block:'nearest'});
-  }, [active,navigation.view,navigation.scheduleId,navigation.runId,navigation.section]);
+    const target=navigation.runId?detailRef.current?.querySelector<HTMLElement>('h2'):navigation.view==='stats'?statsRef.current:navigation.scheduleId?schedulesRef.current?.querySelector<HTMLElement>('.schedule-detail h2'):navigation.view==='history'?historyRef.current:manualView?manualRef.current:headingRef.current;
+    target?.focus();if(navigation.runId||navigation.scheduleId||navigation.view==='history'||manualView)target?.scrollIntoView?.({block:'nearest'});
+  }, [active,navigation.view,navigation.scheduleId,navigation.runId,manualView]);
   useEffect(() => { saveAdminContext(owner, navigation); }, [owner, navigation]);
   useEffect(()=>{const back=()=>{const context=readAdminLocation(owner);if(previousRun.current&&!context.runId)restoreFocus.current=true;setNavigation(context);};window.addEventListener('popstate',back);return()=>window.removeEventListener('popstate',back);},[owner]);
   const commitNavigation=(context:AdminContext)=>{pushAdminLocation(owner,context);setNavigation(context);};
@@ -132,6 +133,7 @@ export default function AdminScreen({
     [preview, setPreview] = useState<Preview | null>(null),
     [previewMode, setPreviewMode] = useState<'run' | 'schedule'>('run'),
     [error, setError] = useState(''),
+    [connectionError,setConnectionError]=useState(''),
     [notice, setNotice] = useState(''),
     [busy, setBusy] = useState(false),
     [samEditor, setSamEditor] = useState<SamSchedule | null>(() => {
@@ -158,12 +160,13 @@ export default function AdminScreen({
   const detailRef = useRef<HTMLDivElement>(null),
     scopeRevision = useRef(0),
     collectionGeneration = useRef(0),
+    failedSchedulePage=useRef(false),
     pagingRef = useRef(false),
     loaded = useRef({schedules:(()=>{try{const n=Number(sessionStorage.getItem(`spin-admin-schedule-page:${owner}`));return Number.isInteger(n)&&n>=50&&n<=5000?n:50;}catch{return 50;}})(),triggers:50});
   const filterSchedules=useCallback((query:string)=>{
     if(query===scheduleQuery)return;
     collectionGeneration.current++;
-    loaded.current.schedules=50;setSchedules([]);setScheduleTotal(undefined);setScheduleQuery(query);
+    failedSchedulePage.current=false;loaded.current.schedules=50;setSchedules([]);setScheduleTotal(undefined);setScheduleQuery(query);
     try{sessionStorage.setItem(`spin-admin-schedule-filter:${owner}`,query);sessionStorage.removeItem(`spin-admin-schedule-page:${owner}`);}catch{/* Mounted filters remain. */}
   },[owner,scheduleQuery]);
   useEffect(()=>{if(editor?.id)manualRef.current?.focus();},[editor?.id]);
@@ -207,9 +210,9 @@ export default function AdminScreen({
     ]).then(([c, st]) => {
       if (a.signal.aborted) return;
       if (c.status === 'fulfilled') { setCounties(c.value.counties); setRegistryState('ready'); }
-      else { setRegistryState('error'); setError(c.reason.message); }
+      else { setRegistryState('error'); setConnectionError(c.reason.message); }
       if (st.status === 'fulfilled') setStatus(st.value);
-      else setError(st.reason.message);
+      else setConnectionError(st.reason.message);
     });
     return () => a.abort();
   }, [connectionRevision]);
@@ -234,10 +237,10 @@ export default function AdminScreen({
     ]).then(([s, sch]) => {
       if (a.signal.aborted) return;
       if (s.status === 'fulfilled') setSources(s.value.items);
-      if (sch.status === 'fulfilled') { setSchedules(sch.value.items); setScheduleOffset(sch.value.next_offset); setScheduleReadError(''); }
-      else setScheduleReadError(sch.reason instanceof Error?sch.reason.message:'Schedules could not load.');
+      if (sch.status === 'fulfilled') { failedSchedulePage.current=false;setSchedules(sch.value.items); setScheduleOffset(sch.value.next_offset); setScheduleReadError(''); }
+      else setScheduleReadError(readFailure(sch.reason,'Schedules'));
       const failed = [s].find(x => x.status === 'rejected');
-      if (failed?.status === 'rejected') setError(failed.reason instanceof Error ? failed.reason.message : 'Some Admin data could not load. Retry the connection.');
+      if (failed?.status === 'rejected') setConnectionError(failed.reason instanceof Error ? failed.reason.message : 'Some Admin data could not load. Retry the connection.');
     }).finally(() => { if (!a.signal.aborted) { setLoading(false); setPaging(false); pagingRef.current = false; } });
     return () => { a.abort(); collectionGeneration.current = epoch + 1; };
   }, [revision, connectionRevision, scheduleQuery]);
@@ -420,8 +423,8 @@ export default function AdminScreen({
       const params=new URLSearchParams(scheduleQuery);params.set('offset',String(scheduleOffset));
       const p=await workflowRequest<Page<AnySchedule>>(`/v1/schedules?${params}`);
       if(generation!==collectionGeneration.current)return;
-      loaded.current.schedules=scheduleOffset+Math.max(p.items.length,1);try{sessionStorage.setItem(`spin-admin-schedule-page:${owner}`,String(loaded.current.schedules));}catch{/* Mounted pages remain. */}setSchedules(x=>merge(x,p.items));setScheduleOffset(p.next_offset);
-    }catch(e){if(generation===collectionGeneration.current)setScheduleReadError((e as Error).message);}
+      loaded.current.schedules=scheduleOffset+Math.max(p.items.length,1);try{sessionStorage.setItem(`spin-admin-schedule-page:${owner}`,String(loaded.current.schedules));}catch{/* Mounted pages remain. */}failedSchedulePage.current=false;setSchedules(x=>merge(x,p.items));setScheduleOffset(p.next_offset);
+    }catch(e){if(generation===collectionGeneration.current){failedSchedulePage.current=true;setScheduleReadError(readFailure(e,'More schedules'));}}
     finally{if(generation===collectionGeneration.current){pagingRef.current=false;setPaging(false);}}
   };
   const sourceScope =
@@ -442,19 +445,19 @@ export default function AdminScreen({
           {notice}
         </p>
       )}
-      {error && !preview && (
+      {(error||connectionError&&navigation.section==='manual') && !preview && navigation.view==='schedules' && !selected && (
         <p role="alert" className="admin-error">
-          {error}{' '}
-          <button
+          {error||connectionError}{' '}
+          {connectionError&&<button
             type="button"
             className="text-button"
-            onClick={() => { setError(''); setConnectionRevision(x => x + 1); }}
+            onClick={() => { setConnectionError(''); setConnectionRevision(x => x + 1); }}
           >
             Retry Admin connection
-          </button>
+          </button>}
         </p>
       )}
-      {loading && (
+      {loading && navigation.view==='schedules' && !selected && (
         <p role="status">Loading county registry and saved activity…</p>
       )}
       {status &&
@@ -468,9 +471,9 @@ export default function AdminScreen({
         )}
       {scheduleEditor&&<ScheduleEditor key={scheduleEditor.saved?.id??'new'} owner={owner} initial={manual} saved={scheduleEditor.saved} target={scheduleEditor.target} counties={counties} sources={sources} registryState={registryState} onClose={()=>setScheduleEditor(null)} onSaved={s=>{setScheduleEditor(null);setSavedScheduleFocus(s);setRevision(n=>n+1);commitNavigation({view:'schedules',scheduleId:s.id,section:'overview',returnTo:'contracts'});}}/>}
       <div hidden={!!scheduleEditor||navigation.view!=='schedules'||navigation.section==='manual'||!!selected} ref={schedulesRef} tabIndex={-1} className="admin-navigation-section" aria-label="Schedules">
-        <ScheduleList owner={owner} context={navigation.scheduleId?{id:navigation.scheduleId,section:navigation.section==='manual'? 'overview':navigation.section??'overview'}:null} onContext={value=>commitNavigation({...navigation,view:'schedules',scheduleId:value?.id,section:value?.section,runId:undefined})} onView={viewRun} items={schedules} paging={paging} more={scheduleOffset !== null}
+        <ScheduleList active={active&&!selected&&!scheduleEditor&&navigation.view==='schedules'&&navigation.section!=='manual'} owner={owner} context={navigation.scheduleId?{id:navigation.scheduleId,section:navigation.section==='manual'? 'overview':navigation.section??'overview',scheduleRunId:navigation.scheduleRunId}:null} onContext={value=>commitNavigation({...navigation,view:'schedules',scheduleId:value?.id,section:value?.section,scheduleRunId:value?.scheduleRunId,runId:undefined})} onView={viewRun} onViewLeads={onViewLeads} items={schedules} paging={paging} more={scheduleOffset !== null}
           query={scheduleQuery} onFilters={filterSchedules} counties={counties} total={scheduleTotal} loading={loading||paging}
-          error={scheduleReadError} onRetry={()=>setRevision(n=>n+1)}
+          error={scheduleReadError} onRetry={()=>{if(failedSchedulePage.current)void loadMore();else setRevision(n=>n+1);}}
           focusSchedule={savedScheduleFocus}
           onAdd={target=>setScheduleEditor({target})}
           onMore={() => void loadMore()} onEdit={(s) => { void edit(s); }}
@@ -566,7 +569,7 @@ export default function AdminScreen({
       </div>
       {navigation.view==='stats'&&<div hidden={!!selected||!!scheduleEditor} ref={statsRef} tabIndex={-1} className="admin-navigation-section"><Analytics owner={owner} counties={counties} onView={viewRun}/></div>}
       <div hidden={!!scheduleEditor||navigation.view!=='history'&&!selected} ref={historyRef} tabIndex={-1} className="admin-navigation-section" aria-label="History and logs">
-      {navigation.view==='history'&&<RunHistory owner={owner} counties={counties} refreshSignal={revision} onView={viewRun} onSchedule={id=>commitNavigation({view:'schedules',scheduleId:id,section:'history',returnTo:'contracts'})}/>}
+      <div hidden={!!selected}>{navigation.view==='history'&&<RunHistory owner={owner} counties={counties} refreshSignal={revision} onView={viewRun} onSchedule={id=>commitNavigation({view:'schedules',scheduleId:id,section:'history',returnTo:'contracts'})}/>}</div>
       {selected && (
         <div ref={detailRef}>
           <RunDetail
@@ -574,11 +577,11 @@ export default function AdminScreen({
             id={selected}
             owner={owner}
             section={navigation.runSection}
-            onSection={section=>commitNavigation({...navigation,runSection:section})}
-            onClose={() => {restoreFocus.current=true;if(window.history.state?.adminOwner===owner&&window.history.state?.adminReturn?.runId&&window.history.state.adminReturn.runId!==selected)window.history.back();else setSelected(null);}}
+            onSection={section=>{const context={...navigation,runSection:section};replaceAdminLocation(owner,context);setNavigation(context);}}
+            onClose={() => {restoreFocus.current=true;if(window.history.state?.adminOwner===owner&&window.history.state?.adminReturn&&window.history.state.adminReturn.runId!==selected)window.history.back();else setSelected(null);}}
             onViewLeads={onViewLeads}
             onSource={setSelected}
-            changed={() => setRevision((x) => x + 1)}
+            changed={() => { /* Refresh the originating view explicitly after returning; active-run polling owns this workspace. */ }}
           />
         </div>
       )}

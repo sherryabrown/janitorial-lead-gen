@@ -1,3 +1,5 @@
+import {verifyScheduleActivityBrowser} from './schedule-activity-browser.mjs';
+import {verifySettingsReadsBrowser} from './settings-reads-browser.mjs';
 /* global localStorage, window, document, innerWidth */
 // Local browser acceptance: real app/auth client, intercepted fixture HTTP, no production mutations.
 import {verifyScheduleRevision} from './schedule-revision-browser.mjs';
@@ -7,7 +9,8 @@ import { chromium } from 'playwright';
 import { spawn } from 'node:child_process';
 import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import assert from 'node:assert/strict';
-const origin = 'http://127.0.0.1:5181',
+const port=process.env.ADMIN_UI_TEST_PORT||'5181';
+const origin = `http://127.0.0.1:${port}`,
   out = 'outputs/deployment/admin-ui';
 const env = await readFile('.env', 'utf8').catch(() => '');
 const publicUrl =
@@ -100,8 +103,8 @@ const run = {
 // Verified reporting DTO fixture; no canonical database mutation is performed.
 schedule.reporting={as_of:'2026-10-20T14:00:00Z',last_run:{...run,leads:{added:2,updated:1,unchanged:3,completeness:'known'}},latest_occurrence:null};
 const bodies = [];
-let savedSchedule = process.argv.includes('--schedule-revision')||process.argv.includes('--analytics');
-let failRunRead = !process.argv.includes('--schedule-revision')&&!process.argv.includes('--analytics');
+let savedSchedule = process.argv.includes('--schedule-revision')||process.argv.includes('--analytics')||process.argv.includes('--settings-reads')||process.argv.includes('--schedule-activity');
+let failRunRead = !process.argv.includes('--schedule-revision')&&!process.argv.includes('--analytics')&&!process.argv.includes('--settings-reads')&&!process.argv.includes('--schedule-activity');
 let queueReads = 0;
 let samSchedule = null;
 const samRun={...run,id:'sam-run',state:'completed',next_action:'View automatically saved leads',target_kind:'sam',county_count:0,config:{target_kind:'sam',requested_categories:['opportunity'],publication_window:{from:'2026-09-20',to:'2026-10-19'}},children:[{request_id:'sam-request',county_id:null,role:'sam'}]};
@@ -112,7 +115,7 @@ const server = spawn(
     '--host',
     '127.0.0.1',
     '--port',
-    '5181',
+    port,
     '--strictPort',
   ],
   { stdio: 'ignore', windowsHide: true, env:{...process.env,VITE_PROCUREMENT_API_URL:'https://janitorial-procurement-backend.onrender.com'} },
@@ -126,7 +129,7 @@ try {
       /* Server still starting. */
     }
     await new Promise((r) => setTimeout(r, 100));
-    if (i === 99) throw Error('Local Vite start timed out');
+    if (i === 99) throw Error(`Local Vite start timed out (exit ${server.exitCode??'running'})`);
   }
   browser = await chromium.launch({ headless: true, channel: 'msedge' });
   const context = await browser.newContext({
@@ -195,7 +198,7 @@ try {
               next_due_at: null,
               last_finished_at: null,
             },
-            ...(process.argv.includes('--schedule-revision')?[{id:'state-two',source_id:'state-source-two',name:'Arkansas statewide public procurement with a long descriptive source name for wrapping verification',category:'opportunity',county_ids:['05119'],schedule_id:null}]:[]),
+            ...((process.argv.includes('--schedule-revision')||process.argv.includes('--settings-reads'))?[{id:'state-two',source_id:'state-source-two',name:'Arkansas statewide public procurement with a long descriptive source name for wrapping verification',category:'opportunity',county_ids:['05119'],schedule_id:null}]:[]),
           ],
         };
       else if (p === '/v1/scheduler/status')
@@ -242,7 +245,7 @@ try {
         body={items:[historyRun],next_offset:null,total:1};
       }
       else if (p === '/v1/schedules') {
-        const items=[...(savedSchedule ? [schedule] : []),...(process.argv.includes('--schedule-revision')?[{...schedule,id:'long-name',name:'Automatic county acceptance — disposable 2026-10-20T13:25:00Z longunbrokenidentifier123456789012345678901234567890'}]:[]),...(samSchedule?[samSchedule]:[]),{...schedule,id:'archived',name:'Archived checks',archived_at:'2026-10-19T12:00:00Z'}].filter(s=>url.searchParams.get('lifecycle')!=='current'||!s.archived_at);
+        const items=[...(savedSchedule ? [schedule] : []),...((process.argv.includes('--schedule-revision')||process.argv.includes('--settings-reads'))?[{...schedule,id:'long-name',name:'Automatic county acceptance — disposable 2026-10-20T13:25:00Z longunbrokenidentifier123456789012345678901234567890'}]:[]),...(samSchedule?[samSchedule]:[]),{...schedule,id:'archived',name:'Archived checks',archived_at:'2026-10-19T12:00:00Z'}].filter(s=>url.searchParams.get('lifecycle')!=='current'||!s.archived_at);
         body = {items,next_offset:null,total:items.length};
       }
       else if (p === '/v1/triggers' && req.method() === 'POST')
@@ -250,7 +253,7 @@ try {
       else if (p === '/v1/triggers') body = { items: [run], next_offset: null };
       else if (p === '/v1/triggers/run') {
         if(failRunRead){failRunRead=false;await route.fulfill({status:503,contentType:'application/json',headers:{'access-control-allow-origin':origin},body:'{}'});return;}
-        body=run;
+        body=process.argv.includes('--schedule-activity')?{...run,schedule_id:'schedule',created_at:'2026-10-22T14:00:00Z',origin:'scheduled'}:run;
       }
       else if(p==='/v1/triggers/sam-run')body=samRun;
       else if(p==='/v1/triggers/sam-run/steps')body={items:[],next_cursor:null};
@@ -325,7 +328,7 @@ try {
   const page = await context.newPage(),
     errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  if(process.argv.includes('--analytics')){await verifyAnalyticsBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--schedule-revision')){await verifyScheduleRevision({page,origin,out,errors,bodies});}else{
+  if(process.argv.includes('--schedule-activity')){await verifyScheduleActivityBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--settings-reads')){await verifySettingsReadsBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--analytics')){await verifyAnalyticsBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--schedule-revision')){await verifyScheduleRevision({page,origin,out,errors,bodies});}else{
   await page.goto(origin);
   await page.getByRole('button',{name:'Settings',exact:true}).waitFor();
   assert.equal(await page.getByRole('button',{name:'Admin',exact:true}).count(),0);

@@ -32,3 +32,17 @@ it('keeps metrics and trustworthy completion samples visible when detailed step 
  mocked.request.mockImplementation(async(path:string)=>path.startsWith('/v1/schedules')?{items:[],next_offset:null}:{...report,summary:{...report.summary,timing:{average_ms:60000,median_ms:60000,samples:2,excluded:24,recorded_activity_unavailable:true}}});
  render(<Analytics owner="a" counties={[]} onView={()=>{}}/>);await screen.findByText('Recorded activity unavailable for this selection; view run logs.');expect(screen.getByRole('heading',{name:'Validated results'})).toBeTruthy();expect(screen.getByText('2 / 24')).toBeTruthy();expect(screen.queryByRole('alert')).toBeNull();
 });
+
+it('retains same-scope stats on a failed refresh with one retry and clears them on filter change',async()=>{
+ let fail=false;mocked.request.mockImplementation(async(path:string)=>{if(path.startsWith('/v1/schedules'))return {items:[],next_offset:null};if(fail)throw Error('Saved report unavailable');return report;});
+ render(<Analytics owner="a" counties={[]} onView={()=>{}}/>);await screen.findByRole('heading',{name:'Validated results'});
+ fail=true;fireEvent.click(await screen.findByRole('button',{name:'Refresh stats'}));await screen.findByRole('button',{name:'Retry stats'});
+ expect(screen.getByRole('heading',{name:'Validated results'})).toBeTruthy();expect(screen.getByText('Saved view · update failed')).toBeTruthy();expect(screen.queryByRole('button',{name:'Refresh stats'})).toBeNull();
+ fireEvent.change(screen.getByRole('combobox',{name:/^Type/}),{target:{value:'sam'}});expect(screen.queryByRole('heading',{name:'Validated results'})).toBeNull();
+});
+it('retries only failed schedule choices without discarding a healthy report',async()=>{
+ let fail=true;mocked.request.mockImplementation(async(path:string)=>{if(path.startsWith('/v1/schedules')){if(fail)throw Error('Choices unavailable');return {items:[],next_offset:null};}return report;});
+ render(<Analytics owner="a" counties={[]} onView={()=>{}}/>);await screen.findByRole('button',{name:'Retry stats'});await screen.findByRole('heading',{name:'Validated results'});
+ const count=mocked.request.mock.calls.filter(([p])=>p.startsWith('/v1/admin/analytics')).length;fail=false;fireEvent.click(screen.getByRole('button',{name:'Retry stats'}));await screen.findByRole('button',{name:'Refresh stats'});
+ expect(mocked.request.mock.calls.filter(([p])=>p.startsWith('/v1/admin/analytics'))).toHaveLength(count);expect(mocked.request.mock.calls.every(([,o])=>!o?.body)).toBe(true);
+});

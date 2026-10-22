@@ -113,8 +113,8 @@ it('keeps the review mounted through a real run transition and isolates another 
 it('offers an initial run read retry without issuing a mutation', async () => {
   mocked.request.mockRejectedValueOnce(Error('Connection failed')).mockResolvedValue({ items: [], next_cursor: null });
   render(<RunDetail id="run" owner="owner" onClose={() => {}} onViewLeads={() => {}} onSource={() => {}} changed={() => {}} />);
-  await screen.findByText(/Some run data could not load/);
-  expect(screen.getByRole('button', { name: 'Retry progress' })).toBeTruthy();
+  await screen.findByText(/Run progress could not load/);
+  expect(screen.getByRole('button', { name: 'Retry run' })).toBeTruthy();
   expect(mocked.request.mock.calls.every(([, options]) => options?.body === undefined)).toBe(true);
 });
 
@@ -124,8 +124,8 @@ it('shows failed SAM packet reads and retries saved data only', async () => {
     return results;
   });
   render(<RequestReview id="request" owner="owner" sam onViewLeads={() => {}} />);
-  await screen.findByText('Saved SAM evidence could not load');
-  fireEvent.click(screen.getByRole('button', { name: 'Refresh results' }));
+  await screen.findByText(/Saved results could not load/);
+  fireEvent.click(screen.getByRole('button', { name: 'Retry results' }));
   await waitFor(() => expect(mocked.request.mock.calls.filter(([p]) => p.endsWith('/packet'))).toHaveLength(2));
   expect(mocked.request.mock.calls.every(([, options]) => options?.body === undefined)).toBe(true);
 });

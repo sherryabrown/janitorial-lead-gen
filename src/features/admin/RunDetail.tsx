@@ -1,8 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import {useOwnedRead} from './read-owner';
+import {ReadAction} from './ReadAction';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { workflowRequest } from '../../lib/procurement-workflow';
 import { RequestReview } from './RequestReview';
 import {RunStepLog} from './RunStepLog';
-import {duration} from './model';
+import {duration,readFailure} from './model';
 import type { Run, Step } from './types';
 import { activeRun, title, usageText, formatLocal, runLabel, hasSourceAttention } from './model';
 function savedLogPage(owner:string,id:string){try{const n=Number(sessionStorage.getItem(`spin-admin-log-page:${owner}:${id}`));return Number.isInteger(n)&&n>0&&n<=5000?n:0;}catch{return 0;}}
@@ -13,7 +15,7 @@ export function RunDetail({
   onViewLeads,
   onSource,
   changed,
-  section:requestedSection,onSection,
+  section:requestedSection,onSection,embedded=false,active=true,expectedScheduleId,
 }: {
   id: string;
   owner: string;
@@ -21,6 +23,7 @@ export function RunDetail({
   onViewLeads: () => void;
   onSource: (id: string) => void;
   changed: () => void;
+  embedded?:boolean;active?:boolean;expectedScheduleId?:string;
   section?:'overview'|'logs'|'sources';onSection?:(section:'overview'|'logs'|'sources')=>void;
 }) {
   const [run, setRun] = useState<Run | null>(null),
@@ -30,8 +33,13 @@ export function RunDetail({
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
     [refresh, setRefresh] = useState(0);
+  const [readBusy,setReadBusy]=useState(true),[statusError,setStatusError]=useState(''),[logsError,setLogsError]=useState(''),[resultsRead,setResultsRead]=useState({busy:false,error:''}),[resultRevision,setResultRevision]=useState(0);
+  const resultsState=useCallback((value:{busy:boolean;error:string})=>setResultsRead(value),[]);
+  const retryResources=useRef({status:true,logs:true}),failedPage=useRef(false),runRef=useRef<Run|null>(null);
   const [localSection,setLocalSection]=useState<'overview'|'logs'|'sources'>('overview');
   const section=requestedSection??localSection;
+  const [resultsVisited,setResultsVisited]=useState(!embedded||section!=='logs');
+  useEffect(()=>{if(!embedded||section!=='logs')setResultsVisited(true);},[embedded,section]);
   const heading=useRef<HTMLHeadingElement>(null),lastId=useRef(''),loadedSteps=useRef(50);
   const changedRef = useRef(changed),
     pageGeneration = useRef(0),
@@ -40,25 +48,27 @@ export function RunDetail({
     changedRef.current = changed;
   }, [changed]);
   useEffect(() => {
+    if(!active){setReadBusy(false);return;}
     const abort = new AbortController();
     let timer: ReturnType<typeof setTimeout>,
       delay = 2500,
       previous = '';
     const epoch = ++pageGeneration.current;
-    if(lastId.current!==id){lastId.current=id;loadedSteps.current=savedLogPage(owner,id);setRun(null);setChild('');setSteps([]);}
+    if(lastId.current!==id){lastId.current=id;loadedSteps.current=savedLogPage(owner,id);setRun(null);runRef.current=null;setChild('');setSteps([]);setResultsRead({busy:false,error:''});}
     morePending.current = false;
-    setError('');
+    const resources={...retryResources.current};retryResources.current={status:true,logs:true};
+    if(resources.status)setStatusError('');if(resources.logs&&!failedPage.current)setLogsError('');
     const load = async () => {
+      setReadBusy(true);
       try {
         const target=loadedSteps.current;
         const [status, logs] = await Promise.allSettled([
-          workflowRequest<Run>(`/v1/triggers/${id}`, {
-            signal: abort.signal,
-          }),
-          (async()=>{const result:{items:Step[];next_cursor:string|null}={items:[],next_cursor:null};do{const next=await workflowRequest<{items:Step[];next_cursor:string|null}>(`/v1/triggers/${id}/steps${result.next_cursor?`?cursor=${result.next_cursor}`:''}`,{signal:abort.signal});result.items.push(...next.items);result.next_cursor=next.next_cursor;}while(result.next_cursor&&result.items.length<target);return result;})(),
+          resources.status?workflowRequest<Run>(`/v1/triggers/${id}`, {signal: abort.signal}):Promise.resolve(runRef.current),
+          resources.logs?(async()=>{const result:{items:Step[];next_cursor:string|null}={items:[],next_cursor:null};do{const next=await workflowRequest<{items:Step[];next_cursor:string|null}>(`/v1/triggers/${id}/steps${result.next_cursor?`?cursor=${result.next_cursor}`:''}`,{signal:abort.signal});result.items.push(...next.items);result.next_cursor=next.next_cursor;}while(result.next_cursor&&result.items.length<target);return result;})():Promise.resolve(null),
         ]);
         if (abort.signal.aborted) return;
-        if(logs.status==='fulfilled'){
+        if(expectedScheduleId&&status.status==='fulfilled'&&status.value?.schedule_id!==expectedScheduleId){setStatusError('Selected run does not belong to this schedule. Choose another saved run.');runRef.current=null;setRun(null);setSteps([]);setChild('');return;}
+        if(logs.status==='fulfilled'&&logs.value){
           const s=logs.value;
           setSteps((old) =>
             [
@@ -69,19 +79,21 @@ export function RunDetail({
           );
           if(target===loadedSteps.current){setCursor(s.next_cursor);loadedSteps.current=s.items.length;}
         }
-        if(status.status==='rejected'||logs.status==='rejected')setError('Some run data could not load. Loaded progress and logs remain available.');else setError('');
-        if(status.status==='rejected')return;
-        const r=status.value;setRun(r);
+        if(resources.status)setStatusError(status.status==='rejected'?readFailure(status.reason,'Run progress'):'');
+        if(resources.logs&&(logs.status==='rejected'||!failedPage.current))setLogsError(logs.status==='rejected'?readFailure(logs.reason,'Step logs'):'');
+        const r=status.status==='fulfilled'?status.value:runRef.current;
+        if(!r)return;runRef.current=r;setRun(r);
         setChild((c) => c || r.children?.[0]?.request_id || '');
         if (previous && previous !== r.state) changedRef.current();
         previous = r.state;
-        if (activeRun(r.state)) {
+        resources.status=true;resources.logs=true;
+        if (activeRun(r.state)&&!(status.status==='rejected'&&status.reason?.code==='SESSION')) {
           timer = setTimeout(load, delay);
           delay = Math.min(delay * 1.5, 15000);
         }
       } catch (e) {
-        if (!abort.signal.aborted) setError((e as Error).message);
-      }
+        if (!abort.signal.aborted) setStatusError(readFailure(e,'Run progress'));
+      } finally {if(!abort.signal.aborted)setReadBusy(false);}
     };
     void load();
     return () => {
@@ -89,9 +101,9 @@ export function RunDetail({
       abort.abort();
       clearTimeout(timer);
     };
-  }, [id, refresh,owner]);
+  }, [id, refresh,owner,active,expectedScheduleId]);
   const hasRun=!!run;
-  useEffect(()=>{heading.current?.focus();},[id,section,hasRun]);
+  useEffect(()=>{if(!embedded)heading.current?.focus();},[id,section,hasRun,embedded]);
   const control = async (action: string) => {
     setBusy(true);
     try {
@@ -115,7 +127,7 @@ export function RunDetail({
         next_cursor: string | null;
       }>(`/v1/triggers/${id}/steps?cursor=${start}`);
       if (generation !== pageGeneration.current) return;
-      loadedSteps.current+=s.items.length;
+      failedPage.current=false;setLogsError('');loadedSteps.current+=s.items.length;
       try{sessionStorage.setItem(`spin-admin-log-page:${owner}:${id}`,String(loadedSteps.current));}catch{/* Mounted logs remain. */}
       setSteps((x) => [
         ...x,
@@ -123,28 +135,37 @@ export function RunDetail({
       ]);
       setCursor(s.next_cursor);
     } catch (e) {
-      if (generation === pageGeneration.current) setError((e as Error).message);
+      if (generation === pageGeneration.current){failedPage.current=true;setLogsError(readFailure(e,'More step logs'));}
     } finally { if (generation === pageGeneration.current) morePending.current = false; }
   };
+  const read=()=>{
+        const failed=!!statusError||!!logsError||(section!=='logs'&&!!resultsRead.error);
+        if(failedPage.current&&logsError)void more();
+        if(!failed||statusError||logsError&&!failedPage.current){retryResources.current={status:!failed||!!statusError,logs:!failed||!!logsError&&!failedPage.current};setRefresh(n=>n+1);}
+        if(section!=='logs'&&(!failed||resultsRead.error))setResultRevision(n=>n+1);
+      };
+  const owned=useOwnedRead('selected-run',{busy:readBusy||(section!=='logs'&&resultsRead.busy),error:statusError||logsError||(section!=='logs'?resultsRead.error:''),loaded:!!run||steps.length>0},read,active&&embedded);
   return (
     <section
-      className="admin-run-detail"
+      className={embedded?"admin-run-panel":"admin-run-detail"}
       aria-label="Run details"
       tabIndex={-1}
     >
-      <div className={`admin-section-heading${run && hasSourceAttention(run) ? ' has-source-attention' : ''}`}>
-        <h2 ref={heading} tabIndex={-1}>{run ? runLabel(run) : 'Loading run…'}</h2>
+      {!embedded&&<div className={`admin-section-heading${run && hasSourceAttention(run) ? ' has-source-attention' : ''}`}>
+        <h2 ref={heading} tabIndex={-1}>{run ? runLabel(run) : statusError?'Run progress unavailable':'Loading run…'}</h2>
         <button type="button" className="text-button" onClick={onClose}>
-          Close details
+          Back to previous view
         </button>
-      </div>
+      </div>}
+      {run&&<small className="run-history-caption">{run.schedule_name??(run.schedule_id?'Saved schedule':'Standalone')} · Run {run.id} · {formatLocal(run.created_at)} · {title(run.origin)}{embedded?` · ${runLabel(run)}`:""}</small>}
       {error && (
         <p className="admin-error" role="alert">
           {error}
         </p>
       )}
-      {!run && <button type="button" className="text-button" onClick={() => setRefresh(n => n + 1)}>Retry progress</button>}
-          <nav className="admin-workspace-nav detail-sections" aria-label="Run sections">{(['overview','logs','sources'] as const).map(value=><button key={value} type="button" className="text-button" aria-current={section===value?'page':undefined} onClick={()=>{setLocalSection(value);onSection?.(value);}}>{title(value)}</button>)}</nav>
+      {!owned&&<ReadAction scope="run" busy={readBusy||(section!=='logs'&&resultsRead.busy)} loaded={!!run||steps.length>0} error={!!statusError||!!logsError||(section!=='logs'&&!!resultsRead.error)} onRead={read}/>}
+      {statusError&&<p role="alert">{statusError}</p>}{logsError&&<p role="alert">{logsError}</p>}
+          {!embedded&&<nav className="admin-workspace-nav detail-sections" aria-label="Run sections">{(['overview','logs','sources'] as const).map(value=><button key={value} type="button" className="text-button" aria-current={section===value?'page':undefined} onClick={()=>{setLocalSection(value);onSection?.(value);}}>{title(value)}</button>)}</nav>}
       {run && (
         <>
           <div hidden={section!=='overview'}><dl className="admin-facts"><dt>Next action</dt><dd>{run.next_action}</dd><dt>Origin</dt><dd>{title(run.origin)}</dd><dt>Created</dt><dd>{formatLocal(run.created_at)}</dd><dt>Finished</dt><dd>{run.finished_at?formatLocal(run.finished_at):'Unknown'}</dd><dt>Recorded activity</dt><dd>{duration(run.reporting?.timing?.recorded_activity_ms)}{run.reporting?.timing?.completeness==='partial'?' · partial intervals':''}{run.reporting?.timing?.reason&&<small>{run.reporting.timing.reason}</small>}</dd><dt>Created → finished</dt><dd>{duration(run.reporting?.timing?.created_to_finished_ms)}</dd><dt>AI usage</dt><dd>{usageText(run.usage)}</dd><dt>New / updated / unchanged</dt><dd>{run.reporting?.leads?.completeness==='known'?`${run.reporting.leads.added} / ${run.reporting.leads.updated} / ${run.reporting.leads.unchanged}`:run.reporting?.leads?.completeness==='not_applicable'?'Not applicable':'Unknown'}</dd><dt>Category breakdown</dt><dd>{run.reporting?.categories?.completeness==='known'?`${run.reporting.categories.forecast} forecasts · ${run.reporting.categories.opportunity} opportunities (${run.reporting.categories.historical_opportunity??'Unknown'} historical) · ${run.reporting.categories.award} awards`:run.reporting?.categories?.reason??'Historical category attribution unavailable'}</dd><dt>Candidates needing attention</dt><dd>{run.reporting?.candidates_attention?.value??'Unknown · review candidate validation'}</dd><dt>Source checks needing attention</dt><dd>{run.presentation?.outcome==='source_attention'?run.presentation.attention_count:'See saved source checks'}</dd></dl></div>
@@ -173,19 +194,12 @@ export function RunDetail({
             <button
               type="button"
               className="text-button"
-              onClick={() => setRefresh((n) => n + 1)}
-            >
-              Refresh progress
-            </button>
-            <button
-              type="button"
-              className="text-button"
               onClick={onViewLeads}
             >
               View leads
             </button>
           </div>
-          <details>
+          <div hidden={section!=='overview'}><details>
             <summary>
               Saved scope ·{' '}
               {run.config?.target_kind === 'sam'
@@ -223,7 +237,7 @@ export function RunDetail({
               ))}
             </details>
           )}
-          <div hidden={section==='logs'}><label className="input-field">
+          </div><div hidden={section==='logs'}><label className="input-field">
             <span>
               {run.target_kind === 'sam'
                 ? 'SAM results'
@@ -241,10 +255,13 @@ export function RunDetail({
               ))}
             </select>
           </label>
-          {child && (
+          {child && (!embedded||resultsVisited) && (
             <RequestReview
               key={child}
-              refreshSignal={run.state}
+              embedded
+              leadNavigationOwned={embedded}
+              onReadState={resultsState}
+              refreshSignal={`${run.state}:${resultRevision}`}
               id={child}
               owner={owner}
               sam={run.target_kind === 'sam'}
@@ -255,7 +272,7 @@ export function RunDetail({
         </>
       )}
       <div hidden={section!=='logs'}><RunStepLog steps={steps} run={run} cursor={cursor} onMore={()=>void more()}/></div>
-      {!run&&section==='sources'&&<p>Saved source scope is unavailable. Retry progress.</p>}
+      {!run&&section==='sources'&&<p>Saved source scope is unavailable. Use the run read control above.</p>}
     </section>
   );
 }

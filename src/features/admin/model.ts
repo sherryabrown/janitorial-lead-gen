@@ -154,3 +154,9 @@ export function invalidScheduleTiming(d:Pick<Draft,'name'|'recurrence'>){
 }
 
 export const duration=(value:number|null|undefined)=>value==null?'Unknown':value<1000?`${value} ms`:`${(value/1000).toFixed(1)} s`;
+
+// Read failures must not imply that a mutation or import was attempted.
+export function readFailure(error:unknown,resource:string){
+ if(error instanceof Error&&'code' in error&&error.code==='SESSION')return error.message;
+ return `${resource} could not load. Use Retry above.`;
+}

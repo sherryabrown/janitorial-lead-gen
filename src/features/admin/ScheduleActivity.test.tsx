@@ -1,0 +1,110 @@
+// @vitest-environment jsdom
+import {useState} from 'react';
+import {afterEach,beforeEach,expect,it,vi} from 'vitest';
+import {act,cleanup,fireEvent,render,screen,waitFor,within} from '@testing-library/react';
+import {ScheduleDetail,type ScheduleSection} from './ScheduleDetail';
+import {initialDraft} from './model';
+import type {AnySchedule,Run,Schedule} from './types';
+import type {AnalyticsReport} from './Analytics';
+const mock=vi.hoisted(()=>({request:vi.fn()}));
+vi.mock('../../lib/procurement-workflow',()=>({workflowRequest:mock.request,mutationKey:()=> 'key',acknowledged:()=>{}}));
+const base={...initialDraft(),id:'schedule',name:'Saved schedule',version:2,next_due_at:null} as Schedule;
+const run={id:'newest',schedule_id:'schedule',state:'completed',origin:'scheduled',created_at:'2026-10-22T14:00:00Z',target_kind:'county_scope',config:base.config,children:[{request_id:'request',county_id:'05119',role:'county'}]} as Run;
+const step={id:'step',sequence:1,phase:'collect',state:'completed',started_at:null,finished_at:null,summary:{},usage:{ai:'unknown',input_tokens:null,output_tokens:null,actual_usd:null}};
+const candidate={intake_id:'candidate',intake_hash:'hash',title:'Cleaning opportunity',state:'pending_review'};
+const results={tasks:[],jobs:[],candidates:[candidate],total_candidates:1,next_offset:null};
+const k={value:0,known_subtotal:0,completeness:'known'};
+const report={as_of:'2026-10-22T14:00:00Z',coverage:{verified_identity_runs:1,total_runs:1,first_run:null,last_run:null},summary:{unique_leads:k,outcomes:{added:k,updated:k,unchanged:k},categories:{forecast:k,opportunity:k,award:k},candidates_attention:k}} as AnalyticsReport;
+function fixture(section:ScheduleSection='overview',initial:AnySchedule=base,selected?:string){
+ function Fixture(){const [tab,setTab]=useState<ScheduleSection>(section),[selection,setSelection]=useState(selected);return <ScheduleDetail id="schedule" initial={initial} owner="owner" section={tab} onSection={setTab} selectedRunId={selection} onSelectedRun={setSelection} onClose={()=>{}} onView={()=>{}} onViewLeads={()=>{}} onEdit={()=>{}} onAction={()=>{}} busy={false}/>;}
+ return render(<Fixture/>);
+}
+function tab(name:string){fireEvent.click(within(screen.getByRole('tablist',{name:'Schedule sections'})).getByRole('tab',{name}));}
+beforeEach(()=>{sessionStorage.clear();mock.request.mockReset();mock.request.mockImplementation(async(path:string)=>{
+ if(path==='/v1/schedules/schedule')return base;
+ if(path.startsWith('/v1/admin/analytics'))return report;
+ if(path.startsWith('/v1/admin/history'))return {items:[run],next_offset:null,total:1};
+ if(path.includes('/steps'))return {items:[step],next_cursor:null};
+ if(path.startsWith('/v1/triggers/'))return {...run,id:path.split('/').at(-1)};
+ if(path.startsWith('/v1/sam/'))return {category:'opportunity',run_ids:[],captures:[],candidates:[],records:0,partial:false,automatic:{verified:true,added:0,updated:0,unchanged:0,exclusions:[]}};
+ if(path.startsWith('/v1/requests/'))return results;
+ return {items:[],next_offset:null};
+ });});
+afterEach(cleanup);
+it.each(['county_scope','state_source','sam'])('shows actual selected logs and evidence for %s without repeated run tables',async(kind)=>{
+ const original=mock.request.getMockImplementation()!;
+ const current={...base,config:{...base.config,target_kind:kind}} as AnySchedule;
+ mock.request.mockImplementation((p,o)=>p==='/v1/schedules/schedule'?Promise.resolve(current):p.startsWith('/v1/triggers/')&&!p.includes('/steps')?Promise.resolve({...run,target_kind:kind,config:current.config}):original(p,o));
+ fixture('overview',current);await screen.findByRole('heading',{name:'All-time available results'});expect(screen.getByRole('table',{name:'Saved execution history'})).toBeTruthy();
+ tab('Logs');await screen.findByRole('table',{name:/Run step logs/});expect(screen.queryByRole('table',{name:'Saved execution history'})).toBeNull();expect(screen.queryByRole('navigation',{name:'Run sections'})).toBeNull();expect(screen.getAllByRole('columnheader')).toHaveLength(6);await screen.findByRole('button',{name:'Refresh schedule'});
+ tab('Sources');await screen.findByRole('region',{name:'Saved results'});expect(screen.queryByRole('button',{name:'Refresh results'})).toBeNull();expect(screen.queryByRole('table',{name:'Saved execution history'})).toBeNull();await screen.findByRole('button',{name:'Refresh schedule'});expect(screen.getAllByRole('button',{name:'Refresh schedule'})).toHaveLength(1);expect(mock.request.mock.calls.every(([,o])=>!o?.body)).toBe(true);
+});
+it('keeps the chosen run and written review across tabs and a newer run arriving',async()=>{
+ fixture('sources');fireEvent.click(await screen.findByRole('checkbox',{name:/Cleaning opportunity/}));fireEvent.change(screen.getByLabelText('Reason for processing reviewed candidates'),{target:{value:'Keep my review'}});
+ tab('Logs');await screen.findByText('Collect');tab('History');await screen.findByRole('heading',{name:'Occurrences'});tab('Sources');expect(screen.getByLabelText('Reason for processing reviewed candidates')).toHaveProperty('value','Keep my review');
+ const original=mock.request.getMockImplementation()!;mock.request.mockImplementation((p,o)=>p.startsWith('/v1/admin/history')?Promise.resolve({items:[{...run,id:'newer',created_at:'2026-10-23T14:00:00Z'},run],next_offset:null}):original(p,o));
+ fireEvent.click(await screen.findByRole('button',{name:'Refresh schedule'}));await screen.findByRole('option',{name:/Oct 23/});expect(screen.getByLabelText('Run')).toHaveProperty('value','newest');expect(screen.getByLabelText('Reason for processing reviewed candidates')).toHaveProperty('value','Keep my review');
+});
+it('does not render foreign or missing run data and requires an explicit safe selection',async()=>{
+ const original=mock.request.getMockImplementation()!;mock.request.mockImplementation((p,o)=>p.includes('run=foreign')?Promise.resolve({items:[],next_offset:null}):original(p,o));fixture('logs',base,'foreign');
+ await screen.findByText(/Selected run is unavailable for this schedule/);expect(screen.queryByRole('table',{name:/Run step logs/})).toBeNull();expect(mock.request.mock.calls.some(([p])=>p.includes('/v1/triggers/foreign'))).toBe(false);
+ fireEvent.change(screen.getByLabelText('Run'),{target:{value:'newest'}});await screen.findByText('Collect');
+});
+it('offers no fabricated selector for a never-run schedule',async()=>{
+ const original=mock.request.getMockImplementation()!;mock.request.mockImplementation((p,o)=>p.startsWith('/v1/admin/history')?Promise.resolve({items:[],next_offset:null}):original(p,o));fixture('logs');await screen.findByText('No runs yet.');expect(screen.queryByLabelText('Run')).toBeNull();expect(screen.queryByRole('table',{name:/Run step logs/})).toBeNull();
+});
+it('retries only failed schedule changes and retains occurrences and immutable snapshots',async()=>{
+ const original=mock.request.getMockImplementation()!;let fail=true;
+ mock.request.mockImplementation((p,o)=>p.includes('/occurrences')?Promise.resolve({items:[{id:'occ',state:'skipped',due_at:run.created_at,version:1,config:base.config}],next_offset:null}):p.includes('/events')?fail?Promise.reject(Error('private error')):Promise.resolve({items:[],next_offset:null}):original(p,o));
+ fixture('history');await screen.findByText('Skipped');await screen.findByRole('button',{name:'Retry schedule'});const before=mock.request.mock.calls.filter(([p])=>p.includes('/occurrences')).length;
+ fail=false;fireEvent.click(screen.getByRole('button',{name:'Retry schedule'}));await screen.findByRole('button',{name:'Refresh schedule'});expect(screen.getByText('Skipped')).toBeTruthy();expect(mock.request.mock.calls.filter(([p])=>p.includes('/occurrences'))).toHaveLength(before);expect(screen.queryByText('private error')).toBeNull();
+});
+it('selects older paged runs and restores the owner-scoped selected identity after remount',async()=>{
+ const original=mock.request.getMockImplementation()!;
+ mock.request.mockImplementation((p,o)=>p.startsWith('/v1/admin/history')?Promise.resolve({items:p.includes('offset=50')?[{...run,id:'older',created_at:'2026-10-20T14:00:00Z'}]:[run],next_offset:p.includes('offset=50')?null:50}):original(p,o));
+ const mounted=fixture('logs');await screen.findByText('Collect');fireEvent.click(screen.getByRole('button',{name:'More run choices'}));await screen.findByRole('option',{name:/Oct 20/});fireEvent.change(screen.getByLabelText('Run'),{target:{value:'older'}});await waitFor(()=>expect(sessionStorage.getItem('spin-admin-schedule-run:owner:schedule')).toBe('older'));
+ mounted.unmount();fixture('sources');await screen.findByLabelText('Run');await waitFor(()=>expect(screen.getByLabelText('Run')).toHaveProperty('value','older'));expect(screen.queryByText(/Selected run is unavailable/)).toBeNull();
+});
+it('aborts a late selected run response instead of showing evidence for an earlier choice',async()=>{
+ const original=mock.request.getMockImplementation()!;let resolve!:(r:Run)=>void;
+ mock.request.mockImplementation((p,o)=>p.startsWith('/v1/admin/history')?Promise.resolve({items:[run,{...run,id:'older'}],next_offset:null}):p==='/v1/triggers/newest'?new Promise(r=>{resolve=r;}):original(p,o));
+ fixture('logs');await screen.findByLabelText('Run');await waitFor(()=>expect(resolve).toBeTypeOf('function'));fireEvent.change(screen.getByLabelText('Run'),{target:{value:'older'}});await screen.findByText(/Run older/);await act(async()=>resolve(run));expect(screen.queryByText(/Run newest/)).toBeNull();
+});
+
+it('keeps Overview runs when totals fail and retries only totals',async()=>{
+ const original=mock.request.getMockImplementation()!;let fail=true;mock.request.mockImplementation((p,o)=>p.startsWith('/v1/admin/analytics')?fail?Promise.reject(Error('Totals unavailable')):Promise.resolve(report):original(p,o));
+ fixture();await screen.findByRole('button',{name:'Retry schedule'});expect(screen.getByRole('table',{name:'Saved execution history'})).toBeTruthy();const count=mock.request.mock.calls.filter(([p])=>p.startsWith('/v1/admin/history')).length;
+ fail=false;fireEvent.click(screen.getByRole('button',{name:'Retry schedule'}));await screen.findByRole('heading',{name:'All-time available results'});expect(mock.request.mock.calls.filter(([p])=>p.startsWith('/v1/admin/history'))).toHaveLength(count);expect(screen.queryByRole('button',{name:'Retry totals'})).toBeNull();
+});
+it('retries a failed run-choice page while keeping the selected run logs',async()=>{
+ const original=mock.request.getMockImplementation()!;let fail=true;mock.request.mockImplementation((p,o)=>p.startsWith('/v1/admin/history')?p.includes('offset=50')?fail?Promise.reject(Error('Page unavailable')):Promise.resolve({items:[{...run,id:'older'}],next_offset:null}):Promise.resolve({items:[run],next_offset:50}):original(p,o));
+ fixture('logs');await screen.findByText('Collect');fireEvent.click(screen.getByRole('button',{name:'More run choices'}));await screen.findByRole('button',{name:'Retry schedule'});const reads=mock.request.mock.calls.filter(([p])=>p.includes('/steps')).length;
+ fail=false;fireEvent.click(screen.getByRole('button',{name:'Retry schedule'}));await waitFor(()=>expect(screen.getByLabelText('Run').querySelectorAll('option')).toHaveLength(3));await screen.findByRole('button',{name:'Refresh schedule'});expect(screen.getByLabelText('Run')).toHaveProperty('value','newest');expect(mock.request.mock.calls.filter(([p])=>p.includes('/steps'))).toHaveLength(reads);expect(sessionStorage.getItem('spin-admin-schedule-runs-page:owner:schedule')).toBe('100');
+});
+it('keeps saved evidence on a result refresh failure and retries results without reloading logs',async()=>{
+ const original=mock.request.getMockImplementation()!;let fail=false;mock.request.mockImplementation((p,o)=>fail&&p.startsWith('/v1/requests/')?Promise.reject(Error('Unavailable')):original(p,o));
+ fixture('sources');await screen.findByText('Cleaning opportunity');await screen.findByRole('button',{name:'Refresh schedule'});fail=true;fireEvent.click(screen.getByRole('button',{name:'Refresh schedule'}));await screen.findByRole('button',{name:'Retry schedule'});expect(screen.getByText('Cleaning opportunity')).toBeTruthy();const reads=mock.request.mock.calls.filter(([p])=>p.startsWith('/v1/triggers/')).length;
+ fail=false;fireEvent.click(screen.getByRole('button',{name:'Retry schedule'}));await screen.findByRole('button',{name:'Refresh schedule'});expect(mock.request.mock.calls.filter(([p])=>p.startsWith('/v1/triggers/'))).toHaveLength(reads);
+});
+it('does not display a status response that belongs to a different schedule',async()=>{
+ const original=mock.request.getMockImplementation()!;mock.request.mockImplementation((p,o)=>p==='/v1/triggers/newest'?Promise.resolve({...run,schedule_id:'foreign'}):original(p,o));fixture('sources');await screen.findByText(/Selected run does not belong/);expect(screen.queryByRole('region',{name:'Saved results'})).toBeNull();expect(screen.queryByRole('table',{name:/Run step logs/})).toBeNull();expect(mock.request.mock.calls.some(([p])=>p.startsWith('/v1/requests/'))).toBe(false);
+});
+it('retries only a failed occurrence page and preserves both history datasets',async()=>{
+ const original=mock.request.getMockImplementation()!;let fail=true;const occurrence={id:'one',state:'skipped',due_at:run.created_at,version:1,config:base.config};
+ mock.request.mockImplementation((p,o)=>p.includes('/occurrences')?p.includes('offset=50')?fail?Promise.reject(Error('Page unavailable')):Promise.resolve({items:[occurrence,{...occurrence,id:'two',state:'queued'}],next_offset:null}):Promise.resolve({items:[occurrence],next_offset:50}):p.includes('/events')?Promise.resolve({items:[{id:'event',action:'update',version:2,at:run.created_at}],next_offset:null}):original(p,o));
+ fixture('history');fireEvent.click(await screen.findByRole('button',{name:'More occurrences'}));await screen.findByRole('button',{name:'Retry schedule'});const events=mock.request.mock.calls.filter(([p])=>p.includes('/events')).length;
+ fail=false;fireEvent.click(screen.getByRole('button',{name:'Retry schedule'}));await screen.findByText('Queued');expect(within(screen.getByRole('table',{name:'Schedule occurrences'})).getAllByRole('row')).toHaveLength(3);expect(mock.request.mock.calls.filter(([p])=>p.includes('/events'))).toHaveLength(events);expect(screen.getByRole('table',{name:'Schedule changes'})).toBeTruthy();
+});
+
+it('loads source evidence only when Sources is opened and retains it when returning from Logs',async()=>{
+ fixture('logs');await screen.findByText('Collect');expect(mock.request.mock.calls.some(([p])=>p.startsWith('/v1/requests/'))).toBe(false);tab('Sources');await screen.findByText('Cleaning opportunity');tab('Logs');tab('Sources');expect(screen.getByText('Cleaning opportunity')).toBeTruthy();
+});
+it('keeps grouped state-source children independent within one selected schedule run',async()=>{
+ const original=mock.request.getMockImplementation()!;const config={...initialDraft().config,target_kind:'state_source' as const,state_sources:[{id:'a',source_id:'a',name:'State source A',category:'opportunity' as const,county_ids:['05119']},{id:'b',source_id:'b',name:'State source B',category:'opportunity' as const,county_ids:['05119']}]};
+ const grouped={...base,config};mock.request.mockImplementation((p,o)=>p==='/v1/schedules/schedule'?Promise.resolve(grouped):p==='/v1/triggers/newest'?Promise.resolve({...run,target_kind:'state_source',config,children:[{request_id:'a',county_id:'05119',role:'state',source_name:'State source A'},{request_id:'b',county_id:'05119',role:'state',source_name:'State source B'}]}):original(p,o));
+ fixture('sources',grouped);await screen.findByLabelText('County/source results');fireEvent.change(screen.getByLabelText('County/source results'),{target:{value:'b'}});await waitFor(()=>expect(mock.request.mock.calls.some(([p])=>p==='/v1/requests/b')).toBe(true));tab('Logs');tab('Sources');expect(screen.getByLabelText('County/source results')).toHaveProperty('value','b');expect(screen.getByLabelText('Run')).toHaveProperty('value','newest');expect(mock.request.mock.calls.every(([,o])=>!o?.body)).toBe(true);
+});
+
+it('keeps one working lead navigation action when embedded automatic results also offer it',async()=>{
+ const original=mock.request.getMockImplementation()!;mock.request.mockImplementation((p,o)=>p.startsWith('/v1/requests/')?Promise.resolve({...results,automatic_county:true,automatic_import:{state:'verified',verified:true,added:1,updated:0,unchanged:0,exclusions:[]}}):original(p,o));fixture('sources');await screen.findByText('County results save automatically');expect(screen.getAllByRole('button',{name:'View leads'})).toHaveLength(1);expect(screen.queryByRole('checkbox')).toBeNull();
+});

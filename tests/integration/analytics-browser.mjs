@@ -10,7 +10,7 @@ export async function verifyAnalyticsBrowser({page,origin,out,errors,bodies}){
  await stats.getByRole('button',{name:'Previous runs',exact:true}).click();await stats.getByText('Page 1 · 26 runs').waitFor();
  await stats.getByRole('combobox',{name:/^Type/}).selectOption('sam');await stats.getByText('No matching runs.').waitFor();
  await stats.getByRole('combobox',{name:/^Type/}).focus();await page.keyboard.press('Home');await page.keyboard.press('Enter');await stats.getByText('Page 1 · 26 runs').waitFor();
- await stats.getByLabel('Sort runs').selectOption('updated');await stats.getByLabel('Run order').selectOption('asc');await stats.getByRole('button',{name:'View run',exact:true}).first().waitFor();
+ await stats.getByLabel('Sort runs').selectOption('updated');await stats.getByLabel('Run order').selectOption('asc');await stats.locator('tbody tr').first().getByRole('button').first().waitFor();
  for(const width of [1440,390,320]){
   await page.setViewportSize({width,height:1000});await stats.getByRole('heading',{name:'Stats / analytics',exact:true}).scrollIntoViewIfNeeded();
   assert.equal(await stats.evaluate(el=>el.scrollWidth<=el.clientWidth+1),true,`Stats has no internal overflow at ${width}px`);
@@ -19,7 +19,7 @@ export async function verifyAnalyticsBrowser({page,origin,out,errors,bodies}){
   await stats.getByRole('heading',{name:/^AI usage/}).scrollIntoViewIfNeeded();await page.screenshot({path:`${out}/analytics-usage-${width}.png`});
  }
  await page.setViewportSize({width:1440,height:1000});
- const open=stats.getByRole('button',{name:'View run',exact:true}).first();await open.focus();await page.keyboard.press('Enter');await page.getByRole('heading',{name:'Finished — some sources need attention',exact:true}).waitFor();
+ const open=stats.locator('tbody tr').first().getByRole('button').first();await open.focus();await page.keyboard.press('Enter');await page.getByRole('heading',{name:'Finished — some sources need attention',exact:true}).waitFor();
  await page.goBack();await stats.getByRole('heading',{name:'Validated results'}).waitFor();assert.equal(await stats.getByLabel('Sort runs').inputValue(),'updated');
  // Owner-scoped filters also survive remount/reload; browser Back retains focus.
  assert.equal(await open.evaluate(el=>document.activeElement===el),true);

@@ -13,20 +13,24 @@ import type {
   Job,
   SamPacket,
 } from './types';
-import { title } from './model';
+import { title,readFailure } from './model';
 export function RequestReview({
   id,
   owner,
   onViewLeads,
   sam = false,
   refreshSignal,
+  embedded = false, onReadState, leadNavigationOwned=false,
 }: {
   id: string;
   owner: string;
   onViewLeads: () => void;
   sam?: boolean;
   refreshSignal?: string;
+  leadNavigationOwned?:boolean;embedded?: boolean; onReadState?:(state:{busy:boolean;error:string})=>void;
 }) {
+  const [readBusy,setReadBusy]=useState(false),[readError,setReadError]=useState('');
+  useEffect(()=>{onReadState?.({busy:readBusy,error:readError});},[readBusy,readError,onReadState]);
   const [data, setData] = useState<RequestStatus | null>(null),
     [samPacket, setSamPacket] = useState<SamPacket | null>(null),
     [error, setError] = useState(''),
@@ -46,23 +50,16 @@ export function RequestReview({
     [sourceOffset, setSourceOffset] = useState<number | null>(0),
     [notice, setNotice] = useState('');
   const dataRef = useRef<RequestStatus | null>(null), selectedRef = useRef(selected),
-    generation = useRef(0), packetRead = useRef(0), candidatePaging = useRef(false);
+    previousRequest=useRef(id), generation = useRef(0), packetRead = useRef(0), candidatePaging = useRef(false);
   selectedRef.current = selected;
 
   useEffect(() => {
     const a = new AbortController();
     const epoch = ++generation.current;
     candidatePaging.current = false;
-    setSamPacket(null);
+    if(previousRequest.current!==id){previousRequest.current=id;dataRef.current=null;setData(null);setSamPacket(null);setPacket(null);setSelected([]);setJob(null);}
     setError('');
-    if (sam)
-      void workflowRequest<SamPacket>(`/v1/sam/requests/${id}/packet`, {
-        signal: a.signal,
-      })
-        .then((p) => {
-          if (!a.signal.aborted) setSamPacket(p);
-        })
-        .catch((e) => { if (!a.signal.aborted) setError(e.message); });
+    setReadBusy(true);setReadError('');
     const read = async () => {
       const needed = Math.max(50, dataRef.current?.candidates.length ?? 0);
       let result = await workflowRequest<RequestStatus>(`/v1/requests/${id}`, { signal: a.signal });
@@ -70,27 +67,17 @@ export function RequestReview({
         const page = await workflowRequest<RequestStatus>(`/v1/requests/${id}?offset=${result.next_offset}`, { signal: a.signal });
         result = { ...page, candidates: [...result.candidates, ...page.candidates] };
       }
-      return result;
+      if(a.signal.aborted)return;
+      const previous = dataRef.current;
+      const valid = selectedRef.current.filter(id => result.candidates.some(c => c.intake_id === id && c.state === 'pending_review' && c.intake_hash === previous?.candidates.find(old => old.intake_id === id)?.intake_hash));
+      if (valid.length !== selectedRef.current.length) setNotice('Some selected candidates changed. Review and select their current evidence; your written notes are kept.');
+      dataRef.current = result; setData(result); setSelected(valid);
+      const pending = !sam ? result.jobs.find((j) => j.stage?.startsWith('import_')) : undefined;
+      if(pending){const value=await workflowRequest<ImportStatus>(`/v1/imports/${pending.id}`,{signal:a.signal});if(!a.signal.aborted)setJob(value);}
     };
-    void read()
-      .then((r) => {
-        if (!a.signal.aborted) {
-          const previous = dataRef.current;
-          const valid = selectedRef.current.filter(id => r.candidates.some(c => c.intake_id === id && c.state === 'pending_review' && c.intake_hash === previous?.candidates.find(old => old.intake_id === id)?.intake_hash));
-          if (valid.length !== selectedRef.current.length) setNotice('Some selected candidates changed. Review and select their current evidence; your written notes are kept.');
-          dataRef.current = r; setData(r); setSelected(valid);
-          const pending = !sam ? r.jobs.find((j) => j.stage?.startsWith('import_')) : undefined;
-          if (pending)
-            void workflowRequest<ImportStatus>(`/v1/imports/${pending.id}`, {
-              signal: a.signal,
-            })
-              .then(value => { if (!a.signal.aborted) setJob(value); })
-              .catch((e) => { if (!a.signal.aborted) setError(e.message); });
-        }
-      })
-      .catch((e) => {
-        if (!a.signal.aborted) setError(e.message);
-      });
+    void Promise.allSettled([read(),...(sam?[workflowRequest<SamPacket>(`/v1/sam/requests/${id}/packet`,{signal:a.signal}).then(p=>{if(!a.signal.aborted)setSamPacket(p);})]:[])]).then(results=>{
+      if(!a.signal.aborted){setReadBusy(false);const failed=results.find(r=>r.status==='rejected'&&r.reason?.code==='SESSION')??results.find(r=>r.status==='rejected');if(failed?.status==='rejected')setReadError(readFailure(failed.reason,'Saved results'));}
+    });
     return () => { a.abort(); generation.current = epoch + 1; };
   }, [id, version, sam, refreshSignal]);
   useEffect(() => {
@@ -220,14 +207,16 @@ export function RequestReview({
     <section className="admin-request-review" aria-label="Saved results">
       <div className="admin-section-heading">
         <h3>Saved results</h3>
-        <button
+        {!embedded&&<button
           type="button"
           className="text-button"
+          disabled={readBusy}
           onClick={() => setVersion((x) => x + 1)}
         >
-          Refresh results
-        </button>
+          {readBusy?'Loading results…':readError?'Retry results':'Refresh results'}
+        </button>}
       </div>
+      {readError&&<p role="alert">{readError}</p>}
       {notice && <p role="status">{notice}</p>}
       {error && (
         <p role="alert" className="admin-error">
@@ -260,7 +249,7 @@ export function RequestReview({
                 data.jobs.some(j => ['pending', 'running'].includes(j.state)) ? 'Checking sources. Valid results save as they are verified.' :
                 data.automatic_import.verified ? 'Database results verified. Source coverage is shown separately.' : 'Valid results will save after validation.'}</p>
               <p>Added {data.automatic_import.added} · Updated {data.automatic_import.updated} · Unchanged {data.automatic_import.unchanged} · Not saved {data.automatic_import.exclusions.length}</p>
-              {(data.automatic_import.added + data.automatic_import.updated + data.automatic_import.unchanged > 0) &&
+              {!leadNavigationOwned&&(data.automatic_import.added + data.automatic_import.updated + data.automatic_import.unchanged > 0) &&
                 <button type="button" className="primary-button" onClick={onViewLeads}>View leads</button>}
               {data.automatic_import.exclusions.map(e => <p key={e.intake_id}><strong>{e.title || 'Result'}</strong> — {e.reason}</p>)}
               {data.automatic_import.state === 'outcome_unknown' && data.jobs.filter(j => j.stage === 'import_reconcile').map(j =>
@@ -291,13 +280,13 @@ export function RequestReview({
                       <strong>{x.title}</strong>: {x.reason}
                     </p>
                   ))}
-                  <button
+                  {!leadNavigationOwned&&<button
                     type="button"
                     className="text-button"
                     onClick={onViewLeads}
                   >
                     View saved leads
-                  </button>
+                  </button>}
                   {samPacket.automatic.can_continue && (
                     <button
                       type="button"
@@ -722,7 +711,7 @@ export function RequestReview({
                   Reconcile saved import
                 </button>
               )}
-              {job.stage === 'import_verified' && (
+              {!leadNavigationOwned&&job.stage === 'import_verified' && (
                 <button
                   type="button"
                   className="secondary-button"
