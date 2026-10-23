@@ -1,6 +1,6 @@
 # 05C2 — One schedule execution table and clear metric completeness
 
-Status: complete (2026-10-23); verified locally and against read-only saved data. Shared read migration applied with explicit approval; hosted release pending. Parent: [Admin workspace](../todo/admin-workspace-redesign.md). Presentation amendment to accepted [05B](../done/05B-schedule-and-run-detail-clarity.md) and [05C](../done/05C-history-submit-and-analytics-overview.md). Can build independently of [05C1](../done/05C1-county-addendum-identity-and-duplicate-repair.md); recheck exact metric links after both land.
+Status: complete (2026-10-23); verified locally and against read-only saved data. Shared read migration applied with explicit approval; Render and Netlify preview release verified at `65a0d8e`. Parent: [Admin workspace](../todo/admin-workspace-redesign.md). Presentation amendment to accepted [05B](../done/05B-schedule-and-run-detail-clarity.md) and [05C](../done/05C-history-submit-and-analytics-overview.md). Can build independently of [05C1](../done/05C1-county-addendum-identity-and-duplicate-repair.md); recheck exact metric links after both land.
 
 ## Initiating request
 
@@ -77,4 +77,6 @@ One accurate schedule execution table retains every real run and no-run attempt,
 
 ## Completion
 
-Implemented all three phases. See [acceptance report](../../docs/reviews/2026-10-23-schedule-execution-and-metric-clarity.md) for changes, cleanup, tests, read-only screenshot-run verification, migration and release order. No business-data changes or hosted deployments performed. The user subsequently approved the private read migration and local backend restart; both passed. Netlify production unchanged. Proposed commit: `feat: unify schedule activity and clarify metrics`.
+Implemented all three phases. See [acceptance report](../../docs/reviews/2026-10-23-schedule-execution-and-metric-clarity.md) for changes, cleanup, tests, read-only screenshot-run verification, migration and release order. No business-data changes or hosted deployments performed. The user subsequently approved the private read migration and local backend restart; both passed. Netlify production unchanged. Runtime commit: `65a0d8e` — `feat: unify schedule activity and clarify metrics`.
+
+Hosted release completed with subsequent explicit user authorization: Render `dep-dbdq8jfavr4c7391afeg` first, Netlify preview `6adba51409181c06a791e070` second, both at runtime `65a0d8e`. Authenticated API/real-data browser acceptance passed; Netlify production remains locked at `6ad583d1b9bb1b307abcf1fd`. See the acceptance report.
