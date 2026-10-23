@@ -1,6 +1,6 @@
 # Phase 6 — Integrated Admin acceptance
 
-Status: local/native verification passed; live release and disposable-schedule acceptance authorized and pending execution. Netlify production unchanged.
+Status: local/native and deployed browser/API verification passed. Live manual/scheduled acceptance is blocked by an existing county worker state loop; Phase 6 remains in todo. Netlify production unchanged.
 
 ## Preflight
 
@@ -40,3 +40,13 @@ Create paused, run once manually, wait for its saved outcome, then enable one ne
 The user explicitly authorized the exact commit/push, Render-first/preview release and disposable manual/naturally due acceptance schedule on 2026-10-23. If live acceptance is blocked, retain the parent and Phase 6 in todo and report the exact remaining requirement. Do not resume unrelated pending historical work to force a passing result.
 
 Rollback: return Render/preview to the prior compatible `65a0d8e` release if required. Archive only the disposable acceptance schedule. Preserve existing history/evidence and canonical leads. No schema rollback is needed for this phase.
+
+## Released build and live blocker
+
+- Committed/pushed `27f79fc` — `fix: verify integrated admin workflows`. Render `dep-dbdqv8om7kps73bdeql0` verified live first; Netlify preview `6adbb046de7263a00464e3d7` deployed second. Five deployed assets match the build. Production remains locked at `6ad583d1b9bb1b307abcf1fd`; full backend configuration hash unchanged. No new migration.
+- Authenticated API reporting, private projections/anonymous denial, grouped state preview and existing schedule contracts passed. Read-only real preview checks passed at 1440/390/320, keyboard and 200% zoom with zero workflow writes/page errors.
+- Disposable paused Arkansas County schedule `aa0e19ee-5a85-4e34-8532-9f68286a513b`; manual run `7b9dd68a-4371-4f47-b786-b2d9d9d5cdf5` remains pending with no steps/AI usage. No naturally due test was enabled while manual work remained pending.
+- Earlier county run `c006d0c2-1781-439d-83fc-2b1ff85e2de5` has its exact `api-workflow:<request>` coordinator blocked at collection with `workflow_stage_failed`, 18 pending child captures and no pending/running process job. Trigger aggregation treats those captures as active work, returns Pending, and oldest-first claiming repeatedly reclaims it. Waiting through lease expiry showed the same run reclaimed again.
+- Offline PGlite reproduction confirms two claims both select that stalled run while the newer run retains zero attempts. Existing artifact/lease protections stay intact. Proposed narrow correction: blocked collection-coordinator captures must not keep the run live Pending; report attention and let independent work proceed. Do not auto-retry failed collection or alter budgets, leases, schedule definitions or queue order. Worker behavior is outside the narrow UI acceptance corrections, so explicit user clarification was requested before implementation under repository instructions.
+
+Local private diagnostics/reproduction are retained under `outputs/deployment/06-admin-release/`. Do not mark the parent or Phase 6 done until real manual and naturally due outcomes are verified and the disposable schedule is archived.

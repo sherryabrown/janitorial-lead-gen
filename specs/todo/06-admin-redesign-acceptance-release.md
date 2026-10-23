@@ -2,7 +2,7 @@
 
 Current baseline (2026-10-23): runtime `65a0d8e` is deployed and verified on Render and the approved Netlify preview; HEAD `155a72c` adds documentation only. Phases 1–5 and amendments through 05C2 are accepted. The private activity migration is applied. See [integrated acceptance](../../docs/reviews/2026-10-23-admin-integrated-acceptance.md) and [05C2 release](../../docs/reviews/2026-10-23-schedule-execution-and-metric-clarity.md). Earlier unreleased checkpoints are superseded, not new instructions to apply source packages.
 
-Status: in progress; local/native verification passed, final live acceptance authorized and pending execution. Parent: [requirements](admin-workspace-redesign.md).
+Status: in progress; local/native and released browser/API verification passed. Live acceptance blocked by a pre-existing failed-coordinator/Pending-capture loop; proposed worker correction awaits user clarification. Parent: [requirements](admin-workspace-redesign.md).
 Initiating instruction: verify complete redesigned Admin and release only through authorized Render/Netlify preview workflow, leaving Netlify production unchanged.
 Dependencies: phases 1–5 accepted; verify confirmed D1–D3 in parent (new/separate updates, last-run usage, seven-day default). No new feature scope.
 
@@ -37,3 +37,5 @@ Update each child with checks/releases, move only accepted children to specs/don
 ## Current execution record
 
 See the integrated acceptance report for complete checks, the narrow schedule-name breadcrumb correction, retired obsolete browser scenario, prepared disposable live test, release/rollback scope and explicit user authorization. No new migration required. Parent moves last only after required live checks pass.
+
+Release `27f79fc` is verified on Render and preview; see the report’s live blocker section. A disposable schedule remains paused and its one manual run is queued. No naturally due acceptance run has been enabled. Parent/Phase 6 remain in todo.
