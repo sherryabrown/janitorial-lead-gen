@@ -1,6 +1,6 @@
 # 05C2 — One schedule execution table and clear metric completeness
 
-Status: planned. Parent: [Admin workspace](admin-workspace-redesign.md). Presentation amendment to accepted [05B](../done/05B-schedule-and-run-detail-clarity.md) and [05C](../done/05C-history-submit-and-analytics-overview.md). Can build independently of [05C1](05C1-county-addendum-identity-and-duplicate-repair.md); recheck exact metric links after both land.
+Status: planned. Parent: [Admin workspace](admin-workspace-redesign.md). Presentation amendment to accepted [05B](../done/05B-schedule-and-run-detail-clarity.md) and [05C](../done/05C-history-submit-and-analytics-overview.md). Can build independently of [05C1](../done/05C1-county-addendum-identity-and-duplicate-repair.md); recheck exact metric links after both land.
 
 ## Initiating request
 

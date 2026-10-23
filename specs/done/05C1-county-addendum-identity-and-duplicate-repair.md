@@ -1,6 +1,6 @@
 # 05C1 — County addendum identity and Clearwater duplicate repair
 
-Status: implemented locally; required shared-data repair/release acceptance pending. [Implementation, verification and guarded rollout](../../docs/reviews/2026-10-23-county-addendum-identity-and-repair.md). Keep in todo until the authorized two-record repair and live readback pass. Parent: [Admin workspace](admin-workspace-redesign.md). Amendment to accepted [05C](../done/05C-history-submit-and-analytics-overview.md). Independently buildable before or after [05C2](05C2-schedule-execution-table-and-metric-clarity.md); both precede final Phase 6 acceptance.
+Status: complete and accepted, 2026-10-23. [Implementation, verification and guarded rollout](../../docs/reviews/2026-10-23-county-addendum-identity-and-repair.md). Runtime commit `019c660` is deployed to Render and the Netlify preview; migration and targeted repair/readback passed. Original Applied stage and sales/history/FK data preserved. Netlify production unchanged. Parent: [Admin workspace](../todo/admin-workspace-redesign.md). Amendment to accepted [05C](05C-history-submit-and-analytics-overview.md). [05C2](../todo/05C2-schedule-execution-table-and-metric-clarity.md) remains planned; Phase 6 still follows.
 
 ## Initiating request and confirmed decision
 
@@ -58,3 +58,7 @@ Preserve automatic valid imports for manual and scheduled runs, evidence/locatio
 ## Success criteria
 
 Supported verified addenda update one canonical lead through manual and scheduled imports. Clearwater has one ordinary visible canonical lead with its original sales data, complete evidence and auditable alias repair. Independent solicitations remain distinct. Exact metric counts and member links agree. No unresolved product decision for the demonstrated case; unexpected user-data conflicts remain explicit exceptions.
+
+## Completion evidence
+
+167 frontend tests, 384 full offline workflow tests, 26 final focused checks, 12 identity compatibility checks, SQL/native access checks and native exact repair rehearsal passed. Live preview queue and canonical member counts both show one Clearwater lead, old-ID redirect works, and desktop/mobile/keyboard/200% zoom reconciliation context passed. No deletion; all prior evidence and receipts retained. See the linked verification report for the existing out-of-scope mobile status-strip limitation and administrative repair transport choice.
