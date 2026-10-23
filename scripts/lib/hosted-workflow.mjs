@@ -1,3 +1,4 @@
+import {publishedSolicitation} from './county-solicitation-identity.mjs';
 import { auditPhase,usageSummary } from './workflow-audit.mjs';
 import { hash } from './reviewed-batch.mjs';
 import { checked,rows,one,publicJobAction } from './hosted-store.mjs';
@@ -260,6 +261,10 @@ export function hostedWorkflow({db,project,serverKey,artifacts,aiConfig,ai=bound
           // key order. Bind that persisted digest, not a reordered serialization.
           expected.payload.known_source_interpretation.result_hash=current.result_hash;
           const actual={...i.payload};delete actual.manual_capture;
+          if(actual.county_solicitation_identity){
+            const identity=publishedSolicitation({...expected.payload,manual_capture:{confidence:expected.confidence,evidence:expected.evidence}},expected.external_id);
+            if(identity)expected.payload.county_solicitation_identity=identity;
+          }
           if(hash(actual)!==hash(expected.payload)||hash(i.payload.manual_capture?.evidence)!==hash(expected.evidence.map(({local_path,...e})=>{void local_path;return e;}))||
               i.payload.manual_capture?.confidence!=='primary'||!i.payload.manual_capture.request_ids.includes(requestId)||
               (i.payload.manual_capture.record_external_id??i.external_id)!==finding.record_id)throw Error('Candidate provenance changed');

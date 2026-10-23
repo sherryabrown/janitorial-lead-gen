@@ -79,6 +79,7 @@ export type ProcurementContract = {
   nextAction: string;
   notes: string[];
   researchNotes: string[];
+  canonicalRedirectFrom?: string;
   history: string[];
 };
 
@@ -162,10 +163,20 @@ export async function loadProcurementMetricLeads(client:SupabaseClient,ids:strin
  return {contracts:ids.flatMap(id=>{const row=byId.get(id);return row?[mapProcurementLead(row,sourceById.get(row.source_id??''))]:[];}),sources:sources.map(mapProcurementSource),unavailable:ids.length-rows.length};
 }
 
+const canonicalNotice='This addendum was reconciled to the original lead. Its sales stage and notes are preserved.';
+async function canonicalLead(client:SupabaseClient,id:string){
+  const read=async(key:string)=>{const {data,error}=await client.from('procurement_leads').select('*').eq('id',key).maybeSingle();if(error)throw error;if(!data)throw Error('Lead is unavailable.');return data as ProcurementLead;};
+  const original=await read(id),redirect=original.payload?.canonical_redirect;
+  if(!isRecord(redirect)||redirect.policy!=='county-ionwave-solicitation-v1')return {lead:original,redirected:false};
+  if(typeof redirect.lead_id!=='string'||!/^[a-f0-9-]{36}$/i.test(redirect.lead_id)||redirect.lead_id===id)throw Error('Canonical lead identity requires review.');
+  const lead=await read(redirect.lead_id);
+  if(lead.source_id!==original.source_id||lead.payload?.canonical_redirect)throw Error('Canonical lead identity requires review.');
+  return {lead,redirected:true};
+}
 export async function loadProcurementLeadDetail(client: SupabaseClient, id: string) {
-  const { data, error } = await client.from('procurement_leads').select('*').eq('id', id).single();
-  if (error) throw error;
-  return mapProcurementLead(data as ProcurementLead);
+  const {lead,redirected}=await canonicalLead(client,id),result=mapProcurementLead(lead);
+  if(redirected){result.canonicalRedirectFrom=id;if(!result.researchNotes.includes(canonicalNotice))result.researchNotes.unshift(canonicalNotice);}
+  return result;
 }
 
 export function mapProcurementLead(lead: ProcurementLead, source?: ProcurementSource): ProcurementContract {
@@ -208,13 +219,14 @@ export function mapProcurementLead(lead: ProcurementLead, source?: ProcurementSo
     contractLastUpdatedAt: lead.detected_change_at ?? undefined,
     nextAction: firstString(lead.next_action, payload.next_action, linkState.next_action) ?? 'Review lead',
     notes: lead.notes ? [lead.notes] : [],
-    researchNotes: [...new Set([firstString(payload.status_note), firstString(payload.verification_notes)].filter((note): note is string => Boolean(note)))],
+    researchNotes: [...new Set([...(Array.isArray(payload.canonical_corrections)&&payload.canonical_corrections.length?[canonicalNotice]:[]),firstString(payload.status_note), firstString(payload.verification_notes)].filter((note): note is string => Boolean(note)))],
     stageReason: lead.stage_reason ?? undefined,
     history: [],
   };
 }
 
 export async function loadProcurementLeadHistory(client: SupabaseClient, leadId: string) {
+  leadId=(await canonicalLead(client,leadId)).lead.id;
   const noteRows = await loadAllRows<LeadNoteRow>(client, 'procurement_lead_notes',
     'id,lead_id,body,created_by,created_at,updated_by,updated_at', query => query.eq('lead_id', leadId));
   const noteIds = noteRows.map(row => row.id);

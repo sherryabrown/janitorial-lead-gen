@@ -578,7 +578,10 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
     const notes = rows
       .filter((row) => row.event_type === 'note_added' && row.note_text && !(row.metadata as { edit?: boolean }).edit)
       .map((row) => ({ id: row.id, at: formatHistoryTimestamp(row.occurred_at), text: row.note_text ?? '' }));
-    setContracts((current) => current.map((contract) => contract.id === contractId ? { ...contract, researchNotes: [...detail.researchNotes, ...detail.notes], history, notes } : contract));
+    if(detail.canonicalRedirectFrom===contractId){
+      const canonical=makeContract({...detail,dateLabel:formatDateLabel(detail.date,detail.dateType),history,notes,researchNotes:[...detail.researchNotes,...detail.notes]});
+      setContracts(current=>current.filter(c=>c.id!==detail.id).map(c=>c.id===contractId?canonical:c));setSelectedContractId(detail.id);
+    }else setContracts((current) => current.map((contract) => contract.id === contractId ? { ...contract, researchNotes: [...detail.researchNotes, ...detail.notes], history, notes } : contract));
     return true;
   }, []);
 

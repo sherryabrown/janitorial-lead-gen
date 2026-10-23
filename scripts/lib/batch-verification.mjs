@@ -1,3 +1,4 @@
+import {redirectId} from './county-solicitation-identity.mjs';
 import { same } from './sam-normalize.mjs';
 
 export function verifyBatch(before,after,m) {
@@ -27,7 +28,7 @@ export function verifyBatch(before,after,m) {
     check(a?.status==='processed',`Intake not processed: ${d.intake.id}`);
     if(a) for(const [k,v] of Object.entries(d.intake)) if(!['status','updated_at'].includes(k)) check(same(a[k],v),`Intake evidence changed: ${d.intake.id}/${k}`);
     check(after.procurement_intake_leads.filter(k=>k.intake_id===d.intake.id&&k.lead_id===d.lead_id).length===1,`Missing/duplicate intake link: ${d.intake.id}`);
-    check(after.procurement_intake_leads.filter(k=>k.intake_id===d.intake.id).every(k=>k.lead_id===d.lead_id),`Unexpected intake target: ${d.intake.id}`);
+    check(after.procurement_intake_leads.filter(k=>k.intake_id===d.intake.id).every(k=>k.lead_id===d.lead_id||after.procurement_leads.some(l=>l.id===k.lead_id&&redirectId(l)===d.lead_id)),`Unexpected intake target: ${d.intake.id}`);
     if(d.request_reason) {
       const r=after.procurement_request_leads.find(r=>r.lead_id===d.lead_id&&r.search_request_id===m.request_id);
       check(r&&(d.expected_request?same(r,d.expected_request):r.match_status==='needs_location_review'&&r.match_reason===d.request_reason),`Request classification: ${d.lead_id}`);

@@ -3,7 +3,7 @@ const categories=['forecast','opportunity','award'];
 export const reportingCategory=c=>c==='historical_opportunity'?'opportunity':categories.includes(c)?c:null;
 export const outcomeRank={unchanged:0,updated:1,added:2};
 const category=reportingCategory,rank=outcomeRank;
-export function identitySnapshot(records){return hash(records.map(r=>({id:r.id,outcome:r.outcome,categories:[...(r.categories??[])].sort(),historical:!!r.historical})).sort((a,b)=>a.id.localeCompare(b.id)));}
+export function identitySnapshot(records){return hash(records.map(r=>({id:r.id,outcome:r.outcome,categories:[...(r.categories??[])].sort(),historical:!!r.historical,...(r.canonical_aliases?.length?{canonical_aliases:[...r.canonical_aliases].sort()}:{} )})).sort((a,b)=>a.id.localeCompare(b.id)));}
 export function verifiedRunOutcomes(run,jobs,selectedCategory){
  const imports=jobs.filter(j=>j.checkpoint?.automatic||j.checkpoint?.stage?.startsWith('import_'));
  const verified=imports.filter(j=>j.checkpoint?.receipt?.verified);
@@ -24,7 +24,7 @@ export function verifiedRunOutcomes(run,jobs,selectedCategory){
    const cats=new Set([...(prior?.categories??[]),...(category(r.category)?[category(r.category)]:[])]);
    if(!category(r.category))categoryComplete=false;
    records.set(r.id,{id:r.id,outcome:prior&&rank[prior.outcome]>rank[outcome]?prior.outcome:outcome,categories:cats,
-    historical:prior?.historical||r.category==='historical_opportunity'});
+    historical:prior?.historical||r.category==='historical_opportunity',...((prior?.canonical_aliases?.length||r.canonical_aliases?.length)?{canonical_aliases:[...new Set([...(prior?.canonical_aliases??[]),...(r.canonical_aliases??[])])]}:{})});
   }
  }
  if(run.config?.check_updates===false){complete=true;categoryComplete=true;}

@@ -2,7 +2,7 @@ import { manualSpecFromInterpretation } from './known-source-workflow.mjs';
 import { planManual } from './research-persistence.mjs';
 import {hash} from './reviewed-batch.mjs';
 
-const factualPayload=value=>Object.fromEntries(Object.entries(value).filter(([key])=>!['known_source_interpretation','manual_capture'].includes(key)));
+const factualPayload=value=>Object.fromEntries(Object.entries(value).filter(([key])=>!['known_source_interpretation','manual_capture','county_solicitation_identity'].includes(key)));
 const evidenceKey=evidence=>hash(evidence.map(e=>({url:e.url,content_sha256:e.content_sha256,locator:e.locator,excerpt:e.excerpt})));
 
 export function planInterpretationIntake(packet,result,before,evidencePaths,options={}) {

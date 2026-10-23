@@ -1,3 +1,4 @@
+import {resolveCountyIdentity} from './county-solicitation-identity.mjs';
 import {hash,planReviewedBatch,BatchValidationError} from './reviewed-batch.mjs';
 import {checked,one,rows} from './hosted-store.mjs';
 export const countyAutomaticPolicy='county-automatic-v1';
@@ -13,7 +14,7 @@ export async function countyAuthority(db,request,{runnable=true}={}) {
 }
 export function automaticCountyReview({request,candidates,proofs,exclusions=[],snapshot}) {
  const bindings=proofs.filter(p=>candidates.some(i=>i.id===p.intake_id)).sort((a,b)=>a.intake_id.localeCompare(b.intake_id));
- const key=hash({policy:countyAutomaticPolicy,validation_revision:2,request:request.id,bindings,candidates:candidates.map(i=>[i.id,hash(i.payload)]).sort()});
+ const key=hash({policy:countyAutomaticPolicy,validation_revision:3,request:request.id,bindings,candidates:candidates.map(i=>[i.id,hash(i.payload)]).sort()});
  const review={version:1,batch:`county-auto-${key.slice(0,48)}`,project_ref:snapshot.project_ref,request_id:request.id,work_state:'AR',
   scope:'Confirmed county and selected cities; current validated official evidence and requested dates',limitations:'Valid saved records only; unresolved sources are not complete coverage',
   reviewed_by:`system:${countyAutomaticPolicy}`,run_ids:[],authorization:{kind:'automatic_county_policy',version:countyAutomaticPolicy,bindings},decisions:[]};
@@ -30,7 +31,9 @@ export function automaticCountyReview({request,candidates,proofs,exclusions=[],s
   const i=group.sort((a,b)=>(b.created_at??'').localeCompare(a.created_at??'')||a.id.localeCompare(b.id))[0];
   const external=i.payload.manual_capture?.record_external_id??i.external_id;
   const parent=i.payload.manual_capture?.amends_intake_id&&snapshot.procurement_intake_items.find(p=>p.id===i.payload.manual_capture.amends_intake_id);
-  const existing=snapshot.procurement_leads.filter(l=>l.source_id===i.source_id&&l.external_id===external);
+  let resolved;
+  try{resolved=resolveCountyIdentity(snapshot,i);}catch(e){rejected.push({intake_id:i.id,title:i.payload.title,reason:e.message});continue;}
+  const existing=resolved.target?[resolved.target]:[];
   if(!existing.length&&snapshot.procurement_leads.some(l=>l.source_id!==i.source_id&&l.payload.source_url===i.payload.source_url&&
     (l.external_id===external||i.payload.solicitation_id&&l.payload.solicitation_id===i.payload.solicitation_id))){
     rejected.push({intake_id:i.id,title:i.payload.title,reason:'This exact record exists under another source; reconcile its identity mapping.'});continue;

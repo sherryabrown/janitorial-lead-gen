@@ -1,0 +1,71 @@
+{
+  "description": "Saved primary public IonWave listing excerpts. No credentials or user notes. Original and Addendum 1 use different portal IDs.",
+  "records": [
+    {
+      "external_id": "1642",
+      "payload": {
+        "title": "Janitorial Services at Clearwater Administrative Building and Clearwater Maintenance Complex",
+        "bid_type": "opportunity",
+        "deadline": "2026-11-05",
+        "work_city": "Little Rock",
+        "source_url": "https://arkansas.ionwave.net/PublicDetail.aspx?bidID=1642&SourceType=1",
+        "work_state": "AR",
+        "published_date": "2026-10-04",
+        "work_performance_locations": [
+          {
+            "evidence": "Published on-site visit starting location; not the buyer contact address. Other facilities remain unconfirmed.",
+            "city_name": "Little Rock",
+            "state_code": "AR"
+          }
+        ],
+        "manual_capture": {
+          "version": 1,
+          "confidence": "primary",
+          "evidence": [
+            {
+              "url": "https://arkansas.ionwave.net/SourcingEvents.aspx?SourceType=1",
+              "excerpt": "{\"bid_number\":\"26003\",\"title\":\"Janitorial Services at Clearwater Administrative Building and Clearwater Maintenance Complex\",\"bid_type\":\"RFP\",\"organization\":\"Little Rock Water Reclamation Authority\",\"issued\":\"10/4/2026\",\"closes\":\"11/5/2026 02:30:00 PM (CT)\",\"id\":\"1642\",\"source_url\":\"https://arkansas.ionwave.net/PublicDetail.aspx?bidID=1642&SourceType=1\"}",
+              "locator": "published bid row",
+              "capture_kind": "text/html; charset=utf-8",
+              "retrieved_at": "2026-10-20T00:16:46.971115+00:00",
+              "content_sha256": "479b88b1f6aea45afa6a6c5aba1e36e7ee5e9dbff96ec9b849a684901916ed0c"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "external_id": "1760",
+      "payload": {
+        "title": "Janitorial Services at Clearwater Administrative Building and Clearwater Maintenance Complex",
+        "bid_type": "opportunity",
+        "deadline": "2026-11-05",
+        "work_city": "Little Rock",
+        "source_url": "https://arkansas.ionwave.net/PublicDetail.aspx?bidID=1760&SourceType=1",
+        "work_state": "AR",
+        "published_date": "2026-10-04",
+        "work_performance_locations": [
+          {
+            "evidence": "Published on-site visit starting location; not the buyer contact address. Other facilities remain unconfirmed.",
+            "city_name": "Little Rock",
+            "state_code": "AR"
+          }
+        ],
+        "manual_capture": {
+          "version": 1,
+          "confidence": "primary",
+          "evidence": [
+            {
+              "url": "https://arkansas.ionwave.net/SourcingEvents.aspx?SourceType=1",
+              "excerpt": "{\"bid_number\":\"26003 Addendum 1\",\"title\":\"Janitorial Services at Clearwater Administrative Building and Clearwater Maintenance Complex\",\"bid_type\":\"RFP\",\"organization\":\"Little Rock Water Reclamation Authority\",\"issued\":\"10/4/2026\",\"closes\":\"11/5/2026 02:30:00 PM (CT)\",\"id\":\"1760\",\"source_url\":\"https://arkansas.ionwave.net/PublicDetail.aspx?bidID=1760&SourceType=1\"}",
+              "locator": "published bid row",
+              "capture_kind": "text/html; charset=utf-8",
+              "retrieved_at": "2026-10-22T22:44:18.840665+00:00",
+              "content_sha256": "5682a673b90dbd52faa7a9db04ef1e151dc1d557777111cf4f8c22a44fe49c21"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

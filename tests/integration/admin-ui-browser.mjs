@@ -1,3 +1,4 @@
+import {verifyCanonicalRedirect} from './canonical-redirect-browser.mjs';
 import {verifySubmittedHistoryBrowser} from './submitted-history-browser.mjs';
 import {verifyDetailClarityBrowser} from './detail-clarity-browser.mjs';
 import {verifyMetricBrowser} from './metric-drilldown-browser.mjs';
@@ -336,7 +337,7 @@ try {
   const page = await context.newPage(),
     errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  if(submittedHistory){await verifySubmittedHistoryBrowser({page,origin,out,errors,bodies});}else if(detailClarity){await verifyDetailClarityBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--metric-drilldowns')){await verifyMetricBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--catalog')){await verifyCatalogBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--schedule-activity')){await verifyScheduleActivityBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--settings-reads')){await verifySettingsReadsBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--analytics')){await verifyAnalyticsBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--schedule-revision')){await verifyScheduleRevision({page,origin,out,errors,bodies});}else{
+  if(process.argv.includes('--canonical-redirect')){await verifyCanonicalRedirect({page,origin,out,errors,bodies});}else if(submittedHistory){await verifySubmittedHistoryBrowser({page,origin,out,errors,bodies});}else if(detailClarity){await verifyDetailClarityBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--metric-drilldowns')){await verifyMetricBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--catalog')){await verifyCatalogBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--schedule-activity')){await verifyScheduleActivityBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--settings-reads')){await verifySettingsReadsBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--analytics')){await verifyAnalyticsBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--schedule-revision')){await verifyScheduleRevision({page,origin,out,errors,bodies});}else{
   await page.goto(origin);
   await page.getByRole('button',{name:'Settings',exact:true}).waitFor();
   assert.equal(await page.getByRole('button',{name:'Admin',exact:true}).count(),0);

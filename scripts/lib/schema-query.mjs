@@ -6,3 +6,6 @@ const inspectedSql=sql.replace("'procurement_parse_deadline'","'procurement_pars
  .replace("'triggers',","'permissions',(select jsonb_agg(jsonb_build_object('table',tablename,'roles',roles,'command',cmd,'qual',qual,'with_check',with_check)) from pg_policies where schemaname='public' and tablename in ("+tables+")),'triggers',");
 
 export const procurementSchemaQuery=inspectedSql;
+
+// Explicit repair-only inventory; routine imports retain their existing bounded schema.
+export const duplicateRepairSchemaQuery=inspectedSql.replaceAll("'procurement_sources',","'procurement_contacts','procurement_lead_links','procurement_lead_notes','procurement_lead_note_edits','procurement_lead_stage_changes','procurement_sources',");

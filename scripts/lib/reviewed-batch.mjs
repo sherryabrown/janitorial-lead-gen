@@ -1,3 +1,4 @@
+import {resolveCountyIdentity,mergeIdentity,leadSolicitation,redirectId,publishedSolicitation} from './county-solicitation-identity.mjs';
 import { createHash } from 'node:crypto';
 import { awardIdentity,actionIdentity,awardDate,awardPayload,responseSummary,same,stable } from './sam-normalize.mjs';
 import { exactAwards } from './intake-reconcile.mjs';
@@ -98,9 +99,15 @@ export function planReviewedBatch(snapshot,review,runs) {
   if(review.run_ids.length)need(sources.sam&&sources['sam-awards']&&sources.usaspending,'Required SAM/USAspending sources missing');
   need(snapshot.procurement_search_requests.some(r=>r.id===review.request_id),'Reviewed request not found');
   const collection=collectRuns(runs,review.run_ids,{allow_partial:review.allow_partial===true});
-  const records=new Map(),decisions=[],unresolved=[];let sameLead=0;
+  const records=new Map(),decisions=[],unresolved=[],identitySources=new Set();let sameLead=0;
   const leads=snapshot.procurement_leads;
-  for(const d of review.decisions) {
+  const canonicalId=id=>redirectId(leads.find(l=>l.id===id))??id;
+  const ordered=[...review.decisions];
+  if(review.authorization?.kind==='automatic_county_policy')ordered.sort((a,b)=>{
+    const identity=d=>{const i=snapshot.procurement_intake_items.find(i=>i.id===d.intake_id);try{return i&&publishedSolicitation(i.payload,i.payload.manual_capture?.record_external_id??i.external_id);}catch{return null;}};
+    const pa=identity(a),pb=identity(b);return pa&&pb&&pa.key===pb.key?Number(!!pa.observations[0].revision)-Number(!!pb.observations[0].revision):0;
+  });
+  for(const d of ordered) {
     const i=snapshot.procurement_intake_items.find(i=>i.id===d.intake_id);
     need(i&&hash(i.payload)===d.intake_hash,`Intake content changed/missing: ${d.intake_id}`);
     if(d.action==='defer') {unresolved.push({id:i.id,external_id:i.external_id,status:i.status,reason:d.reason});continue;}
@@ -115,7 +122,12 @@ export function planReviewedBatch(snapshot,review,runs) {
     if(evidence.kind==='notice') need(i.source_id===sources.sam,'Notice intake has wrong source');
     const manual=i.payload.manual_capture;
     const recordExternal=manual?.record_external_id??i.payload.routed_capture?.record_identity??i.external_id;
-    let matches=leads.filter(l=>l.source_id===i.source_id&&l.external_id===recordExternal),identity=null;
+    let matches=leads.filter(l=>l.source_id===i.source_id&&l.external_id===recordExternal),identity=null,countyIdentity=null;
+    if(d.automatic_county_update===true&&review.authorization?.kind==='automatic_county_policy'&&review.authorization.version==='county-automatic-v1'){
+      try{countyIdentity=resolveCountyIdentity(snapshot,i,[...records.values()]);}catch(e){throw new BatchValidationError(e.message);}
+      matches=countyIdentity.target?[countyIdentity.target]:[];
+      if(countyIdentity.proof)identitySources.add(i.source_id);
+    }
     if(manual?.amends_intake_id) {
       const parent=snapshot.procurement_intake_items.find(x=>x.id===manual.amends_intake_id);
       need(parent&&parent.source_id===i.source_id&&parent.status!=='ignored'&&
@@ -157,7 +169,7 @@ export function planReviewedBatch(snapshot,review,runs) {
       matches=target;
     }
     need(matches.length<=1,'Ambiguous existing lead identity');
-    const old=matches[0];
+    const old=matches[0],baseline=leads.find(l=>l.id===old?.id);
     // A validated first county observation may supersede a pending parent
     // without importing that ancestor. Later observations can share that parent;
     // require its already-processed sibling's exact canonical link as the anchor.
@@ -170,7 +182,7 @@ export function planReviewedBatch(snapshot,review,runs) {
         (s.payload.manual_capture?.record_external_id??s.external_id)===recordExternal&&
         snapshot.procurement_intake_leads.some(l=>l.intake_id===s.id&&l.lead_id===old.id));
     if(manual?.amends_intake_id)need((old&&snapshot.procurement_intake_leads.some(l=>
-      l.intake_id===manual.amends_intake_id&&l.lead_id===old.id)) ||
+      l.intake_id===manual.amends_intake_id&&canonicalId(l.lead_id)===old.id)) ||
       (!old&&d.supersedes_pending_intake_id===manual.amends_intake_id)||countyPendingSibling,
       'Amendment target must match the parent canonical lead');
     need(old||d.approve_new===true,'New lead requires explicit approve_new decision');
@@ -200,16 +212,17 @@ export function planReviewedBatch(snapshot,review,runs) {
       }
     } else {
       const provenance={intake_id:i.id,content_hash:hash(i.payload),reason:d.reason};
-      const sourceFacts=p=>Object.fromEntries(Object.entries(p).filter(([k])=>!['manual_capture','intake_source_evidence','known_source_interpretation'].includes(k)));
+      const sourceFacts=p=>Object.fromEntries(Object.entries(p).filter(([k])=>!['manual_capture','intake_source_evidence','known_source_interpretation','county_solicitation_identity'].includes(k)));
       const parent=manual?.amends_intake_id?snapshot.procurement_intake_items.find(x=>x.id===manual.amends_intake_id):null;
       // Retrieval/scope-only observations get intake links, without a business-change event.
-      const unchangedObservation=parent&&same(sourceFacts(parent.payload),sourceFacts(i.payload));
+      const unchangedObservation=(parent&&same(sourceFacts(parent.payload),sourceFacts(i.payload)))||
+        (countyIdentity?.proof&&old&&same(sourceFacts(old.payload),sourceFacts(i.payload)));
       patch=old?(unchangedObservation?{}:{intake_source_evidence:{...(old.payload.intake_source_evidence||{}),[i.id]:provenance}}):{...i.payload,intake_source_evidence:{[i.id]:provenance}};
       if(old&&d.automatic_county_update===true) {
         need(review.authorization?.kind==='automatic_county_policy'&&review.authorization.version==='county-automatic-v1','County automatic update policy required');
-        const latest=p=>Math.max(0,...(p.manual_capture?.evidence??[]).map(e=>Date.parse(e.retrieved_at)||0));
-        const priorEvidence=snapshot.procurement_intake_items.filter(item=>snapshot.procurement_intake_leads.some(l=>l.intake_id===item.id&&l.lead_id===old.id));
-        need(latest(i.payload)>=Math.max(0,...priorEvidence.map(p=>latest(p.payload))),'Older county evidence cannot replace newer facts');
+        const latest=p=>Math.max(0,...[...(p.manual_capture?.evidence??[]),...(p.county_solicitation_identity?.observations??[]).map(o=>o.evidence)].map(e=>Date.parse(e.retrieved_at)||0));
+        const priorEvidence=snapshot.procurement_intake_items.filter(item=>snapshot.procurement_intake_leads.some(l=>l.intake_id===item.id&&canonicalId(l.lead_id)===old.id));
+        need(latest(i.payload)>=Math.max(latest(old.payload),...priorEvidence.map(p=>latest(p.payload))),'Older county evidence cannot replace newer facts');
         const fields=['title','source_url','deadline','published_date','posted_date','work_city','work_county','work_state','work_performance_locations','contract_start','contract_end','renewal_date','expected_solicitation_date','planned_advertisement_period','award_date'];
         patch={...patch,...Object.fromEntries(fields.filter(k=>i.payload[k]!=null).map(k=>[k,i.payload[k]]))};
       }
@@ -237,14 +250,18 @@ export function planReviewedBatch(snapshot,review,runs) {
       need(patch.work_performance_locations.some(l=>l.state_code===review.work_state)||d.allow_location_uncertainty===true,'Out-of-scope/unknown location needs explicit review');
       need(typeof d.request_match_reason==='string'&&d.request_match_reason.trim(),'New lead requires request-location explanation');
     }
+    if(countyIdentity?.proof){
+      const previous=old?.payload.county_solicitation_identity??(old?leadSolicitation(old,snapshot):null);
+      patch={...patch,county_solicitation_identity:mergeIdentity(previous,countyIdentity.proof)};
+    }
     const source=old?.source_id||i.source_id,external=old?.external_id||recordExternal,key=`${source}/${external}`;
     const prior=records.get(key),id=old?.id||prior?.id||idFor(review.batch,source,external);
     const links=snapshot.procurement_intake_leads.filter(k=>k.intake_id===i.id);
-    need(links.every(k=>k.lead_id===id),'Existing multi-lead/conflicting provenance needs a separately reviewed mapping; do not overwrite it');
+    need(links.every(k=>k.lead_id===id||leads.some(l=>l.id===k.lead_id&&redirectId(l)===id)),'Existing multi-lead/conflicting provenance needs a separately reviewed mapping; do not overwrite it');
     const payload={...(prior?.payload||old?.payload||{}),...patch};
     if(prior) for(const k of Object.keys(patch)) need(!Object.hasOwn(prior.payload,k)||!['sam_api_evidence','sam_notice_evidence'].includes(k)||same(prior.payload[k],patch[k]),'Two intakes propose conflicting source evidence');
     const terms=[old?.search_term_used,prior?.search_term_used,...evidence.queries].filter(Boolean).flatMap(x=>x.split('\n'));
-    records.set(key,{id,source_id:source,external_id:external,expected_payload:old?.payload??null,expected_search_term:old?.search_term_used??null,
+    records.set(key,{id,source_id:source,external_id:external,expected_payload:baseline?.payload??null,expected_search_term:baseline?.search_term_used??null,
       reviewed_award_promotion:d.promote_existing_to_award===true,
       payload,search_term_used:terms.length?[...new Set(terms)].sort().join('\n'):old?.search_term_used??null,
       identity:identity||prior?.identity||null,piid:identity?(evidence.payload?.award_id||evidence.record?.award?.number):prior?.piid||null});
@@ -264,6 +281,7 @@ export function planReviewedBatch(snapshot,review,runs) {
   }
   const rows=[...records.values()];
   return {version:1,batch:review.batch,project_ref:review.project_ref,sources,request_id:review.request_id,run_ids:review.run_ids,
+    ...(identitySources.size?{county_identity_scope:[...identitySources].map(source_id=>({source_id,leads:leads.filter(l=>l.source_id===source_id).map(l=>({id:l.id,payload:l.payload}))}))}:{}),
     coverage:{scope:review.scope,limitations:review.limitations,partial:collection.partial},records:rows,decisions,unresolved,
     summary:{baseline_leads:leads.length,found_actions_or_notices:collection.returned,distinct_awards:collection.awards.size,distinct_notices:collection.notices.size,
       scoped_intakes:review.decisions.length,already_staged:review.decisions.length,matched_existing_intakes:sameLead,

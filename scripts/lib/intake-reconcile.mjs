@@ -129,7 +129,17 @@ begin
  if not exists(select 1 from ${schema}.procurement_search_requests where id='${m.request_id}') then raise exception 'Missing pilot request'; end if;
  if exists(select 1 from jsonb_each_text((select data->'sources' from reconciliation_manifest)) s
    where not exists(select 1 from ${schema}.procurement_sources p where p.id=s.value::uuid and p.code=s.key)) then raise exception 'Source registry changed'; end if;
- if exists(select 1 from lead_delta d left join ${schema}.procurement_leads l using(source_id,external_id)
+${m.county_identity_scope?.length?` -- Full bounded source identity baselines prevent a competing alias/new ID from
+ -- slipping between planning and the serialized canonical write. Replay accepts
+ -- only this manifest's exact resulting payloads; sales fields are never compared/written.
+ if exists(select 1 from jsonb_array_elements(coalesce((select data->'county_identity_scope' from reconciliation_manifest),'[]'::jsonb)) s
+   join ${schema}.procurement_leads l on l.source_id=(s->>'source_id')::uuid
+   where not exists(select 1 from jsonb_array_elements(s->'leads') b where (b->>'id')::uuid=l.id and b->'payload'=l.payload)
+    and not exists(select 1 from lead_delta d where d.id=l.id and d.payload=l.payload))
+ or exists(select 1 from jsonb_array_elements(coalesce((select data->'county_identity_scope' from reconciliation_manifest),'[]'::jsonb)) s,
+   lateral jsonb_array_elements(s->'leads') b where not exists(select 1 from ${schema}.procurement_leads l where l.id=(b->>'id')::uuid))
+ then raise exception 'County solicitation identity baseline changed'; end if;
+`:''} if exists(select 1 from lead_delta d left join ${schema}.procurement_leads l using(source_id,external_id)
    where (l.id is null and d.expected_payload is not null) or (l.id is not null and (l.id<>d.id or not (
      (l.payload is not distinct from d.expected_payload and l.search_term_used is not distinct from d.expected_search_term)
      or (l.payload=d.payload and l.search_term_used is not distinct from d.search_term_used))))) then raise exception 'Canonical baseline changed'; end if;
@@ -145,7 +155,7 @@ begin
          and exists(select 1 from ${schema}.procurement_leads l join lead_delta x on l.id=x.id where l.id=d.lead_id and l.payload=x.payload
            and l.search_term_used is not distinct from x.search_term_used)))) then raise exception 'Intake baseline changed'; end if;
  if exists(select 1 from intake_delta d join ${schema}.procurement_intake_leads k on k.intake_id=(d.intake->>'id')::uuid
-   where k.lead_id<>d.lead_id or (jsonb_array_length(d.expected_links)>0 and not d.expected_links @> jsonb_build_array(to_jsonb(k))))
+   where ${m.county_identity_scope?.length?`(k.lead_id<>d.lead_id and not exists(select 1 from ${schema}.procurement_leads alias where alias.id=k.lead_id and alias.payload->'canonical_redirect'->>'policy'='county-ionwave-solicitation-v1' and alias.payload->'canonical_redirect'->>'lead_id'=d.lead_id::text))`:'k.lead_id<>d.lead_id'} or (jsonb_array_length(d.expected_links)>0 and not d.expected_links @> jsonb_build_array(to_jsonb(k))))
    or exists(select 1 from intake_delta d cross join lateral jsonb_array_elements(d.expected_links) k
      where not exists(select 1 from ${schema}.procurement_intake_leads l where to_jsonb(l)=k)) then raise exception 'Intake links changed'; end if;
  if exists(select 1 from intake_delta d where d.request_reason is not null and d.expected_request is not null

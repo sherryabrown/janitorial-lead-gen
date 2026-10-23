@@ -1,3 +1,4 @@
+import {publishedSolicitation} from './county-solicitation-identity.mjs';
 import {hash} from './reviewed-batch.mjs';
 import {same} from './sam-normalize.mjs';
 import {validLinkState} from './api-record-links.mjs';
@@ -129,6 +130,7 @@ export function planManual(spec,before){
     externalId=f.external_id+'::observation:'+hash({...f.payload,manual_capture:capture});
   }
   const payload=safeMetadata({...f.payload,manual_capture:capture});
+  const published=publishedSolicitation(payload,f.external_id);if(published)payload.county_solicitation_identity=published;
   const matches=before.procurement_intake_items.filter(x=>x.source_id===f.source_id&&x.external_id===externalId);need(matches.length<=1,'Ambiguous intake identity');
   const old=matches[0];need(!old||same(old.payload,payload),'Changed intake evidence: retain original and stage a reviewed amendment identity');
   if(!old)rows.push(delta('procurement_intake_items',null,{id:stableId(['manual-intake',f.source_id,externalId]),source_id:f.source_id,external_id:externalId,payload,status:'pending',review_reason:f.review_reason}));

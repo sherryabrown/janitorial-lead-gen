@@ -1,3 +1,4 @@
+import {canonicalReportingJobs} from './canonical-reporting.mjs';
 import {reportingCategory as category,outcomeRank as rank,verifiedRunOutcomes as outcomes,identitySnapshot} from './reporting-identities.mjs';
 import {rows,checked} from './hosted-store.mjs';
 import {historyFilters,activityTiming} from './admin-run-history.mjs';
@@ -121,7 +122,7 @@ export function adminAnalytics(db,{now=()=>new Date()}={}){
   const [children,timing]=await Promise.all([batch('procurement_trigger_requests','trigger_id',[...periodIds],'trigger_id,request_id,role'),timingRead()]);
   const requests=children.map(c=>c.request_id);
   const [projected,targets]=await Promise.all([batch('procurement_jobs','search_request_id',requests,'id,search_request_id,task_id,kind,state,updated_at,a:checkpoint->automatic,r:checkpoint->receipt,c:checkpoint->county_records,v:checkpoint->reporting_records,s:checkpoint->>stage,b:checkpoint->>blocker,e:checkpoint->>error_code,h:checkpoint->hosted_browser_attempt,t:checkpoint->>task_id,sx:checkpoint->automatic_exclusions,sc:checkpoint->automatic_completed'),batch('procurement_request_targets','search_request_id',requests,'id,search_request_id,geography_id,target_key')]);
-  const jobs=projected.map(j=>({...j,checkpoint:{automatic:j.a,receipt:j.r,county_records:j.c,reporting_records:j.v,stage:j.s,blocker:j.b,error_code:j.e,hosted_browser_attempt:j.h,task_id:j.t,sam_exclusions:j.sx,sam_completed:j.sc}}));
+  const jobs=await canonicalReportingJobs(db,projected.map(j=>({...j,checkpoint:{automatic:j.a,receipt:j.r,county_records:j.c,reporting_records:j.v,stage:j.s,blocker:j.b,error_code:j.e,hosted_browser_attempt:j.h,task_id:j.t,sam_exclusions:j.sx,sam_completed:j.sc}})));
   const exclusionIds=jobs.flatMap(j=>(j.checkpoint.automatic?.exclusions??j.checkpoint.sam_exclusions??[]).map(e=>e.intake_id)).filter(Boolean);
   const [tasks,intakes]=await Promise.all([batch('procurement_coverage_tasks','target_id',targets.map(t=>t.id),'id,target_id,source_id,kind,state,reason'),batch('procurement_intake_items','id',exclusionIds,'id,status,category:payload->>bid_type')]);
   let members;

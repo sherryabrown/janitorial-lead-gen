@@ -16,6 +16,7 @@ test('queue SQL spans API limits, applies filters/counts, preserves order and de
       await db.exec(readFileSync(path,'utf8'));
     }
     await db.exec(readFileSync('supabase/migrations/20261020000100_forecast_quarter_queue.sql','utf8'));
+    await db.exec(readFileSync('supabase/migrations/20261023000100_canonical_county_lead_reads.sql','utf8'));
     const fixture=JSON.parse(readFileSync('tests/fixtures/research/mapping.json','utf8'));
     const source=fixture.procurement_sources[0];
     await db.query('insert into procurement_sources(id,code,name,url,business_category,contracting_entity_geo_level) values($1,$2,$3,$4,$5,$6)',[source.id,source.code,source.name,source.url,source.business_category,source.contracting_entity_geo_level]);
@@ -68,6 +69,10 @@ test('queue SQL spans API limits, applies filters/counts, preserves order and de
     assert.equal(quarter.rows[0].response_deadline,null,'Quarter boundaries never become deadlines');
     assert.equal((await query({query:'Quarter regression',dateFrom:'2027-01-01',dateTo:'2027-01-31'})).total,0);
     assert.equal((await query({query:'Quarter regression exact',dateFrom:'2026-09-01',dateTo:'2026-09-01'})).total,1,'Existing exact primary-date behavior stays unchanged');
+    await db.exec('reset role;');
+    const retire=(await db.query("select id from procurement_leads where external_id='isolated-1'")).rows[0].id;
+    await db.query("update procurement_leads set payload=payload||jsonb_build_object('canonical_redirect',jsonb_build_object('policy','county-ionwave-solicitation-v1','lead_id',$1::text)) where id=$2",[first.rows[0].id,retire]);
+    await db.exec('set role authenticated;');assert.equal((await query({query:'SSC',bidType:'award'})).total,1004,'Only the retired duplicate disappears from queue totals and paging');
     await db.exec('reset role; set role anon;');
     await assert.rejects(()=>db.query('select * from procurement_leads'),/permission denied/);
     await assert.rejects(()=>db.query('select procurement_queue_page()'),/permission denied/);

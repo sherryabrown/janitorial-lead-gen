@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { createProcurementSourceCache, loadProcurementContracts, loadProcurementLeadHistory, mapProcurementLead, type ProcurementLead } from './procurement';
+import { createProcurementSourceCache, loadProcurementContracts, loadProcurementLeadHistory, loadProcurementLeadDetail, mapProcurementLead, type ProcurementLead } from './procurement';
 
 it('uses a literal forecast quarter only when no existing exact primary date is present', () => {
   const lead = { id:'quarter', bid_type:'forecast', payload:{title:'Forecast',planned_advertisement_period:'Q4 2026'} } as unknown as ProcurementLead;
@@ -12,6 +12,12 @@ it('uses a literal forecast quarter only when no existing exact primary date is 
 });
 
 type Row = Record<string, unknown>;
+it('resolves a retired duplicate to the original sales record and original history',async()=>{
+ const a='10000000-0000-4000-8000-000000000302',b='10000000-0000-4000-8000-000000000303';
+ const {client}=database({procurement_leads:[{id:a,source_id:'same-source',stage:'applied',payload:{title:'Original lead'},created_at:'2026-10-04T12:00:00Z'},{id:b,source_id:'same-source',stage:'new',payload:{canonical_redirect:{policy:'county-ionwave-solicitation-v1',lead_id:a}}}],procurement_lead_notes:[{id:'note',lead_id:a,body:'Original owner note',created_at:'2026-10-04T12:00:00Z',created_by:'owner'}]});
+ const detail=await loadProcurementLeadDetail(client,b);expect(detail.id).toBe(a);expect(detail.status).toBe('applied');expect(detail.canonicalRedirectFrom).toBe(b);expect(detail.researchNotes.join(' ')).toContain('reconciled');
+ const history=await loadProcurementLeadHistory(client,b);expect(history.some(r=>r.note_text==='Original owner note')).toBe(true);
+});
 function database(tables: Record<string, Row[]>) {
   const reads: {table:string; start:number; end:number; ids?:unknown[]}[] = [];
   const client = {

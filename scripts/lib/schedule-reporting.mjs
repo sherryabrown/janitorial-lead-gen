@@ -1,3 +1,4 @@
+import {canonicalReportingJobs} from './canonical-reporting.mjs';
 import {verifiedRunOutcomes,identitySnapshot} from './reporting-identities.mjs';
 import {rows} from './hosted-store.mjs';
 import {usageSummary} from './workflow-audit.mjs';
@@ -53,11 +54,12 @@ export async function reportSchedules(db,items) {
   batch('procurement_trigger_requests','trigger_id',ids,'trigger_id,request_id,role'),
   batch('procurement_usage_ledger','trigger_id',ids,'id,trigger_id,state,input_tokens,output_tokens,actual_usd,reserved_usd,usage')]);
  const jobs=await batch('procurement_jobs','search_request_id',children.map(c=>c.request_id),'id,search_request_id,state,checkpoint:checkpoint->automatic,receipt:checkpoint->receipt,records:checkpoint->county_records,reporting_records:checkpoint->reporting_records,stage:checkpoint->>stage');
+ const normalized=await canonicalReportingJobs(db,jobs.map(j=>({...j,checkpoint:{automatic:j.checkpoint,receipt:j.receipt,reporting_records:j.reporting_records,...(j.records?{county_records:j.records}:{}),stage:j.stage}})));
  const presentations=await countyPresentations(db,runs,{children,usage});
  return items.map(s=>{
   if(!s.last_run)return {...s,reporting:{as_of:new Date().toISOString(),last_run:null,latest_occurrence:s.latest_occurrence}};
   const r=s.last_run,requests=new Set(children.filter(c=>c.trigger_id===r.id).map(c=>c.request_id));
-  const js=jobs.filter(j=>requests.has(j.search_request_id)).map(j=>({...j,checkpoint:{automatic:j.checkpoint,receipt:j.receipt,reporting_records:j.reporting_records,...(j.records?{county_records:j.records}:{}),stage:j.stage}}));
+  const js=normalized.filter(j=>requests.has(j.search_request_id));
   return {...s,reporting:{as_of:new Date().toISOString(),latest_occurrence:s.latest_occurrence,last_run:{...r,identity_snapshot:identitySnapshot(verifiedRunOutcomes(r,js).records),...(presentations.get(r.id)?{presentation:presentations.get(r.id)}:{}),leads:verifiedLeadCounts(r,js),categories:verifiedCategoryCounts(r,js),usage:usageSummary(usage.filter(u=>u.trigger_id===r.id))}}};
  });
 }

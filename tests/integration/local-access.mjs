@@ -60,6 +60,7 @@ try {
   sql('create schema storage; create table storage.buckets(id text primary key,name text,public boolean);');
   for(const name of adminMigrations)sql(readFileSync('supabase/migrations/'+name,'utf8'));
   sql(readFileSync('supabase/migrations/20261020000100_forecast_quarter_queue.sql','utf8'));
+  sql(readFileSync('supabase/migrations/20261023000100_canonical_county_lead_reads.sql','utf8'));
   const fixtures=JSON.parse(readFileSync('tests/fixtures/research/mapping.json','utf8'));
   const source=fixtures.procurement_sources[0],payload=fixtures.procurement_leads[1].payload;
   sql(`insert into auth.users values('${first}'),('${second}'); insert into procurement_members(user_id) values('${second}');

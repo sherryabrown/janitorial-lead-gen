@@ -1,3 +1,4 @@
+import {countyDuplicateRepairSql,verifyCountyDuplicateRepair} from './county-duplicate-repair.mjs';
 import {readFile} from 'node:fs/promises';
 import {contract} from './native-rehearsal-contract.mjs';
 import {hash} from './reviewed-batch.mjs';
@@ -6,10 +7,10 @@ import {verifyBatch} from './batch-verification.mjs';
 import {reconciliationSql} from './intake-reconcile.mjs';
 import {linkRepairSql,verifyLinkRepair} from './api-link-repair.mjs';
 import {persistenceSql,verifyPersistence} from './research-persistence.mjs';
-const generatedSql=(m,options)=>m.kind==='registry'?persistenceSql(m,options):m.kind==='api-link-repair'?linkRepairSql(m,options):reconciliationSql(m,options);
+const generatedSql=(m,options)=>m.kind==='county-duplicate-repair'?countyDuplicateRepairSql(m,options):m.kind==='registry'?persistenceSql(m,options):m.kind==='api-link-repair'?linkRepairSql(m,options):reconciliationSql(m,options);
 
 export const rehearsalPolicy=contract.version;
-export const rehearsalTables=['procurement_sources','procurement_leads','procurement_intake_items','procurement_intake_leads',
+export const rehearsalTables=['procurement_contacts','procurement_lead_links','procurement_lead_notes','procurement_lead_note_edits','procurement_lead_stage_changes','procurement_sources','procurement_leads','procurement_intake_items','procurement_intake_leads',
   'procurement_request_leads','procurement_search_requests','procurement_versions','procurement_events',
   'procurement_geographies','procurement_source_capabilities','procurement_request_sources'];
 const functions=['procurement_lead_changed','procurement_sync_lead_columns','procurement_parse_date',
@@ -102,7 +103,7 @@ export function nativeRehearsal(pool) {
       await client.query('select pg_advisory_xact_lock(187643,2)');
       if(Number((await client.query(objects)).rows[0].count)!==0)throw new Error('Unexpected persistent rehearsal objects; operator reconciliation required');
       await client.query('create table procurement_test.actor_identities(id uuid primary key)');
-      for(const id of new Set((before.procurement_search_requests??[]).map(r=>r.initiated_by).filter(Boolean)))
+      for(const id of new Set([...(before.procurement_search_requests??[]).map(r=>r.initiated_by),...(before.procurement_lead_notes??[]).flatMap(n=>[n.created_by,n.updated_by]),...(before.procurement_lead_note_edits??[]).map(n=>n.edited_by),...(before.procurement_lead_stage_changes??[]).map(n=>n.changed_by)].filter(Boolean)))
         await client.query('insert into procurement_test.actor_identities values($1) on conflict do nothing',[id]);
       for(const ddl of b.tableDdl)await client.query(ddl);
       for(const t of b.tables) {
@@ -123,10 +124,10 @@ export function nativeRehearsal(pool) {
       await client.query('rollback to savepoint fault_check');
       if(!injected||!same(initial,await snapshot()))throw new Error('Native rollback test failed');
       await client.query(b.sql);
-      const after=await snapshot(),verification=manifest.kind==='registry'?verifyPersistence(initial,after,manifest):manifest.kind==='api-link-repair'?verifyLinkRepair(initial,after,manifest):verifyBatch(initial,after,manifest);
+      const after=await snapshot(),verification=manifest.kind==='county-duplicate-repair'?verifyCountyDuplicateRepair(initial,after,manifest):manifest.kind==='registry'?verifyPersistence(initial,after,manifest):manifest.kind==='api-link-repair'?verifyLinkRepair(initial,after,manifest):verifyBatch(initial,after,manifest);
       if(!verification.verified)throw new Error(`Native readback did not verify: ${verification.errors.join('; ')}`);
       // Temporary generator tables live until outer rollback, so remove only those fixed names before replay.
-      if(manifest.kind!=='registry')await client.query(manifest.kind==='api-link-repair'?
+      if(manifest.kind!=='registry')await client.query(manifest.kind==='county-duplicate-repair'?'drop table pg_temp.county_repair_delta,pg_temp.county_repair_changed':manifest.kind==='api-link-repair'?
         'drop table pg_temp.link_repair_manifest,pg_temp.link_repair_delta,pg_temp.link_repair_changed':
         'drop table pg_temp.reconciliation_manifest,pg_temp.lead_delta,pg_temp.intake_delta,pg_temp.canonical_columns_before');
       await client.query(b.sql);
