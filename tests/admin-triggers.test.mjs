@@ -32,6 +32,34 @@ test('a planning failure cannot appear completed just because it created no cove
     await service.step();assert.equal((await service.status(run.trigger_id)).state,'needs_review');
   }finally{await sql.close();}
 });
+
+test('a failed collection coordinator yields attention instead of starving newer runs behind untouched captures',async()=>{
+  const {sql,service}=await fixture();try {
+    const config={...input,county_ids:['05001'],maintain_sources:false},p=await service.preview(config),submission={...config,confirmed_scope:true,preview_hash:p.preview_hash};
+    const first=await service.submit(submission,actor,'failed-collection-old');
+    const request=(await service.status(first.trigger_id)).children[0].request_id;
+    await sql.query("update procurement_jobs set state='blocked',checkpoint=$2 where search_request_id=$1",[request,{stage:'collect',error_code:'workflow_stage_failed'}]);
+    await sql.query("insert into procurement_jobs(search_request_id,dedupe_key,kind,state) values($1,'untouched-capture','collect','pending')",[request]);
+    const second=await service.submit(submission,actor,'failed-collection-new');
+    await service.step();assert.equal((await service.status(first.trigger_id)).state,'needs_review');
+    await service.step();
+    const values=(await sql.query('select id,attempts from procurement_triggers')).rows;
+    assert.equal(values.find(r=>r.id===first.trigger_id).attempts,1);assert.equal(values.find(r=>r.id===second.trigger_id).attempts,1);
+    assert.equal((await sql.query("select state from procurement_jobs where dedupe_key='untouched-capture'")).rows[0].state,'pending','No failed collection is retried or discarded');
+  }finally{await sql.close();}
+});
+
+for(const [coordinator,child,expected] of [
+  ['pending','pending','pending'],['blocked','running','pending'],['blocked','outcome_unknown','outcome_unknown'],
+])test(`collection attention preserves ${coordinator} coordinator / ${child} capture safeguards`,async()=>{
+ const {sql,service}=await fixture();try{
+  const config={...input,county_ids:['05001'],maintain_sources:false},p=await service.preview(config),run=await service.submit({...config,confirmed_scope:true,preview_hash:p.preview_hash},actor,'collection-safeguard');
+  const request=(await service.status(run.trigger_id)).children[0].request_id;
+  await sql.query('update procurement_jobs set state=$2,checkpoint=$3 where search_request_id=$1',[request,coordinator,{stage:'collect',...(coordinator==='blocked'?{error_code:'workflow_stage_failed'}:{})}]);
+  await sql.query("insert into procurement_jobs(search_request_id,dedupe_key,kind,state) values($1,'capture-safeguard','collect',$2)",[request,child]);
+  await service.step();assert.equal((await service.status(run.trigger_id)).state,expected);
+ }finally{await sql.close();}
+});
 test('confirmed multi-county submission is atomic, all-city scoped, idempotent and skips repeated state onboarding',async()=>{
   const {sql,service}=await fixture();try {
     const preview=await service.preview(input);

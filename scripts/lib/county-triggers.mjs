@@ -223,8 +223,13 @@ export function countyTriggers({db,discovery,workflow,audit,automaticCounty}) {
           const legacyWait=job=>automatic&&job.state==='blocked'&&(
             job.dedupe_key===`api-workflow:${request.id}`&&job.checkpoint?.stage==='interpret'&&!job.checkpoint.error_code||
             automatic.verified&&job.dedupe_key?.startsWith('api-import:')&&!job.checkpoint.automatic&&job.checkpoint.stage==='import_awaiting_approval');
+          // A failed collection coordinator cannot drive its untouched captures.
+          // Keep their evidence/controls, but let the parent finish with attention
+          // rather than repeatedly claiming the oldest Pending trigger forever.
+          const failedCollection=jobs.some(j=>j.dedupe_key===`api-workflow:${request.id}`&&j.state==='blocked'&&j.checkpoint?.stage==='collect'&&j.checkpoint.error_code);
+          const activeJob=j=>['pending','running'].includes(j.state)&&!(failedCollection&&j.kind==='collect'&&j.state==='pending');
           if(jobs.some(j=>j.state==='outcome_unknown')||automatic?.state==='outcome_unknown')state='outcome_unknown';
-          else if(state!=='outcome_unknown'&&jobs.some(j=>['pending','running'].includes(j.state)))state='pending';
+          else if(state!=='outcome_unknown'&&jobs.some(activeJob))state='pending';
           else if(!['pending','outcome_unknown'].includes(state)) {
             if(automatic?.state==='outcome_unknown')state='outcome_unknown';
             else if(automatic?.state==='saving')state='pending';
