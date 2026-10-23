@@ -1,6 +1,6 @@
 # 05C1 — County addendum identity and Clearwater duplicate repair
 
-Status: complete and accepted, 2026-10-23. [Implementation, verification and guarded rollout](../../docs/reviews/2026-10-23-county-addendum-identity-and-repair.md). Runtime commit `019c660` is deployed to Render and the Netlify preview; migration and targeted repair/readback passed. Original Applied stage and sales/history/FK data preserved. Netlify production unchanged. Parent: [Admin workspace](../todo/admin-workspace-redesign.md). Amendment to accepted [05C](05C-history-submit-and-analytics-overview.md). [05C2](../todo/05C2-schedule-execution-table-and-metric-clarity.md) remains planned; Phase 6 still follows.
+Status: complete and accepted, 2026-10-23. [Implementation, verification and guarded rollout](../../docs/reviews/2026-10-23-county-addendum-identity-and-repair.md). Runtime commit `019c660` is deployed to Render and the Netlify preview; migration and targeted repair/readback passed. Original Applied stage and sales/history/FK data preserved. Netlify production unchanged. Parent: [Admin workspace](admin-workspace-redesign.md). Amendment to accepted [05C](05C-history-submit-and-analytics-overview.md). [05C2](../todo/05C2-schedule-execution-table-and-metric-clarity.md) remains planned; Phase 6 still follows.
 
 ## Initiating request and confirmed decision
 

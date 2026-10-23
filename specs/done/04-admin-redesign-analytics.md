@@ -4,7 +4,7 @@ Existing Phase 3 contract extension: [editor/work reservations/multiple state so
 
 Integration note: use the [completed Phase 3 detail revision](../done/03-admin-redesign-detail-revision.md) for focused details, tabs and row actions. Do not restore a separate latest-run panel or extra row-menu shortcuts when adding analytics.
 
-Status: implemented and verified locally, 2026-10-20. Parent: [metric definitions and decisions](../todo/admin-workspace-redesign.md). No release performed.
+Status: implemented and verified locally, 2026-10-20. Parent: [metric definitions and decisions](admin-workspace-redesign.md). No release performed.
 Initiating instruction: accurate overall/per-schedule/per-run category, lead-outcome, attention, duration and AI reporting from existing data.
 Dependency: phases 2–3 reporting projections and navigation. D1–D3 confirmed: new leads/separate updates, last-run row usage, Stats defaults to last 7 days.
 

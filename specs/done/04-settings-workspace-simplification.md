@@ -1,6 +1,8 @@
 # Phase 4 amendment — focused Settings workspaces
 
-Status: 04A/04B are accepted and released; current runtime `65a0d8e` includes both and the later amendments. Phase 6 integrated acceptance is active. Historical local/planning checkpoints below are retained for provenance.
+Status: complete; integrated local/native, released browser/API and real manual/naturally due acceptance passed. Netlify production unchanged.
+
+Parent: [requirements](admin-workspace-redesign.md).
 Parent: [Admin workspace requirements](admin-workspace-redesign.md). Baseline: `cd0d61c`; recheck the checkout before building.
 
 ## Initiating prompt
@@ -104,3 +106,7 @@ Updated planning checks: eight views × 1440/390/320px = 24 combinations passed;
 
 
 04B local completion: [schedule activity acceptance](../../docs/reviews/2026-10-22-settings-schedule-activity.md). Both implementation children passed their acceptance gates. The main workspace parent stays active for Phase 5/6; release remains separate.
+
+## Final integrated acceptance
+
+Completed with Phase 6 at runtime `6174426`; see [release and verification](../../docs/reviews/2026-10-23-admin-integrated-acceptance.md). Netlify production unchanged.

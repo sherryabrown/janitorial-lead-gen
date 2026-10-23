@@ -2,7 +2,9 @@
 
 Follow-up planned 2026-10-23: [05C1](../done/05C1-county-addendum-identity-and-duplicate-repair.md) addresses proven solicitation/addendum identity and the existing Clearwater duplicate, retaining the original lead's notes/stage. [05C2](../done/05C2-schedule-execution-table-and-metric-clarity.md) supersedes Run-ID-first ordering, the separate Overview occurrence table and ambiguous completeness wording. Use one schedule execution table with date/time first, full ID secondary and preserved no-run attempts/snapshots. Metrics use proper verified/recorded labels and numbers, with incomplete coverage in contextual help rather than appended known/unknown text. Keep configuration-change History separate and global History Submit unchanged. 05C1 is complete/released; 05C2 is accepted and released at `65a0d8e`. Earlier 05A–05C completion below remains historical.
 
-Status: 05A–05C implemented and accepted; 05A–05C and the 05C1/05C2 follow-ups released through `65a0d8e`. Phase 6 remains pending. This document alone does not authorize release. Parent: [Admin workspace](admin-workspace-redesign.md). Build 05A → 05B → 05C, then Phase 6. These requirements supersede conflicting presentation/read-control requirements in earlier phases; retain all other requirements.
+Status: complete; integrated local/native, released browser/API and real manual/naturally due acceptance passed. Netlify production unchanged.
+
+Parent: [requirements](admin-workspace-redesign.md).
 
 ## Initiating prompt
 
@@ -72,3 +74,7 @@ Processing & attention / AI usage / Timing [concise existing accurate measures]
 3. [05C — History Submit and analytics overview](../done/05C-history-submit-and-analytics-overview.md): global query ownership, screenshot-style Stats and integrated acceptance.
 
 Each child is buildable after its declared dependencies and must leave working screens without stubs. Phase 6 must include these accepted amendments before final parent completion. Use read-only real-data checks and disposable native fixtures; release authority is separate. No deployment to Netlify production.
+
+## Final integrated acceptance
+
+Completed with Phase 6 at runtime `6174426`; see [release and verification](../../docs/reviews/2026-10-23-admin-integrated-acceptance.md). Netlify production unchanged.

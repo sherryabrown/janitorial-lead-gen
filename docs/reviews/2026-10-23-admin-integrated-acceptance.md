@@ -1,6 +1,6 @@
 # Phase 6 — Integrated Admin acceptance
 
-Status: local/native and deployed browser/API verification passed. Live manual/scheduled acceptance is blocked by an existing county worker state loop; Phase 6 remains in todo. Netlify production unchanged.
+Status: complete. Automated/native, released browser/API and real manual/browser-closed scheduled acceptance passed. Netlify production unchanged.
 
 ## Preflight
 
@@ -22,16 +22,16 @@ Status: local/native and deployed browser/API verification passed. Live manual/s
 
 | Area | Evidence |
 | --- | --- |
-| Complete regression | `npm run check` passed: lint, 169 frontend tests/23 files, 388 workflow tests, SQL validation/import/replay/concurrency checks, TypeScript/Vite build. Existing large-bundle advisory only. |
+| Complete regression | `npm run check` passed: lint, 169 frontend tests/23 files, 392 workflow tests, SQL validation/import/replay/concurrency checks, TypeScript/Vite build. Existing large-bundle advisory only. |
 | Native database | `npm run test:access` passed on disposable PostgreSQL 15/PostgREST, including the new schedule-name read assertion, audit/actor/RLS/privacy, recurrence/concurrency/ack loss, native manual/scheduled positive SAM/county imports, original sales data, grouped state scope, reporting identities and paging. No production fallback. |
 | Integrated browser | Actual built app with intercepted fixture HTTP: Settings/Profile/email/keyboard/touch/sign-out; paused county creation through map/city disclosure; immutable saved counties; edit/Run Now/run detail; Stats → current source blocker/method → related municipality → original filtered schedule list; pause/re-enable/archive/audit retention; separate weekly State and monthly SAM schedules; multiple daily times; disconnected read/Retry; 1440/390/320 and 200% zoom. Fixture writes never reach shared services. |
 | Amended browser matrix | Existing editor/menu, single-read-owner, schedule Logs/Sources, source/geography catalog, analytics, Issues/log tables, unified execution/metric completeness, submitted History, exact lead/issue cohort, and duplicate canonical redirect suites. Per-scenario receipts are retained privately. |
-| Preserved behavior | No changes to actual collection/import/scheduler implementations, validations, duplicate decisions, protected notes/stages, budgets/rates, Companies or email preview code. Current-source/related-geography reads remain read-only; state/SAM schedules remain independent from county work. |
+| Preserved behavior | The authorized failed-coordinator aggregation correction is the only execution-state exception. Collection/import execution, validations, duplicate decisions, protected notes/stages, budgets/rates, Companies and email preview code remain unchanged. Current-source/related-geography reads remain read-only; state/SAM schedules remain independent from county work. |
 | Timing/usage integrity | Last actual run remains distinct from skipped dispatch; unioned completed intervals are not wall time. Seven-day report defaults, exact canonical membership/precedence, overlapping categories, partial recorded usage, measured zero versus absent measurements and provider credit units retain existing semantics. |
 
 Private test logs/screenshots: `outputs/deployment/06-admin-release/` and `outputs/deployment/admin-ui/06/`; prior accepted-child receipts remain separate. The native and fixture suites establish positive imports without requiring a live matching opportunity or manufactured data.
 
-## Prepared live acceptance
+## Prepared live acceptance (executed below)
 
 Requested authorization: commit/push `fix: verify integrated admin workflows`, deploy matching Render backend first and Netlify draft preview second, then one disposable Arkansas County (`05001`) opportunity schedule for updates only. This county/work key was free at read-only preflight; recheck before creation. Use existing current AI settings/budgets, 120-day window, registered sources, validations and automatic imports. Do not initiate source-maintenance research or provider-access work.
 
@@ -41,7 +41,7 @@ The user explicitly authorized the exact commit/push, Render-first/preview relea
 
 Rollback: return Render/preview to the prior compatible `65a0d8e` release if required. Archive only the disposable acceptance schedule. Preserve existing history/evidence and canonical leads. No schema rollback is needed for this phase.
 
-## Released build and live blocker
+## Initial release and live blocker (resolved by authorized continuation)
 
 - Committed/pushed `27f79fc` — `fix: verify integrated admin workflows`. Render `dep-dbdqv8om7kps73bdeql0` verified live first; Netlify preview `6adbb046de7263a00464e3d7` deployed second. Five deployed assets match the build. Production remains locked at `6ad583d1b9bb1b307abcf1fd`; full backend configuration hash unchanged. No new migration.
 - Authenticated API reporting, private projections/anonymous denial, grouped state preview and existing schedule contracts passed. Read-only real preview checks passed at 1440/390/320, keyboard and 200% zoom with zero workflow writes/page errors.
@@ -54,3 +54,18 @@ Local private diagnostics/reproduction are retained under `outputs/deployment/06
 ## Authorized queue correction
 
 The user explicitly approved the narrow queue correction and another Render/preview release. The exact failed collection coordinator now prevents only its untouched Pending captures from holding the parent in Pending. Those child jobs remain unchanged for explicit recovery; running captures, pending processing, uncertain outcomes and original queue order/leases remain protected. Four regressions reproduce starvation and cover those safeguards. Full `npm run check` passed: 169 frontend tests, 392 workflow tests, SQL import/concurrency checks and TypeScript/Vite build. Native PostgreSQL/PostgREST acceptance also passed. Existing large-bundle advisory only.
+
+## Released acceptance
+
+- Runtime commit: `617442642c6fee33f7fa18c289d808e809351a60` — `fix: let blocked county runs yield the worker`; committed and pushed. Render `dep-dbdrah0m7kps73beh9gg` was verified live before Netlify preview `6adbb60f7d441b4fcdb2cdab`. All 5 preview assets matched the local build.
+- Production remains locked at `6ad583d1b9bb1b307abcf1fd`. Full backend configuration hash unchanged. No new migration.
+- Authenticated reporting/management reads, grouped-state preview, private-table/browser denial and anonymous denial passed. Real preview at 1440/390/320, keyboard, 200% zoom, Issues/Logs/Sources and return focus passed with no workflow mutations or page errors.
+- Disposable Arkansas County schedule `aa0e19ee-5a85-4e34-8532-9f68286a513b`: paused creation, one manual run, one naturally due scheduled run with browser closed, saved steps/source evidence/usage readback, then archival. Original schedule definitions, versions, ownership and recurrence remained unchanged.
+- scheduled run `59a44474-b3ce-48f5-bf05-ed28ae3b6c9d`: partial; 4 returned steps; AI not_used, 0 calls, measured actual USD 0. Lead reporting: known; added 0, updated 0, unchanged 0.
+- manual run `7b9dd68a-4371-4f47-b786-b2d9d9d5cdf5`: partial; 4 returned steps; AI not_used, 0 calls, measured actual USD 0. Lead reporting: known; added 0, updated 0, unchanged 0.
+
+Positive automatic imports and protected sales fields were verified in native tests; live source gaps/no matches are not fabricated as new leads. Historical metrics without verified receipts/identities and provider-reported credits remain unavailable rather than invented. External source/provider access work stays in its separate plans. No remaining Admin product decisions.
+
+The authorized queue fix resolved the reproduced failed-coordinator starvation: the older run yielded with attention, untouched captures remained preserved, and independent acceptance work proceeded without a manual resume/cancel or lease change. Four isolated safeguards and the complete/native reruns passed.
+
+Both live updates-only Arkansas runs reported seven missing source channels, zero new/updated/unchanged leads and measured zero AI usage. Source discovery was not enabled for the disposable schedule; these explicit gaps are not failed automatic imports. Real positive collection/import paths were covered by native acceptance.

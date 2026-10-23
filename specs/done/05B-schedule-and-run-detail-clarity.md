@@ -1,6 +1,6 @@
 # 05B — Clear schedule and run details
 
-Status: completed. Initiating prompt and shared requirements: [amendment](../todo/05-schedule-results-and-history-amendment.md), incorporated in full. Depends on accepted [05A](../done/05A-schedule-audit-and-lead-drilldowns.md). Reuse current CSS, `InfoTooltip`, read owners, navigation and existing guarded actions.
+Status: completed. Initiating prompt and shared requirements: [amendment](05-schedule-results-and-history-amendment.md), incorporated in full. Depends on accepted [05A](../done/05A-schedule-audit-and-lead-drilldowns.md). Reuse current CSS, `InfoTooltip`, read owners, navigation and existing guarded actions.
 
 ## Implementation
 

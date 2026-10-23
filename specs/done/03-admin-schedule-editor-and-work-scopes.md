@@ -1,6 +1,6 @@
 # Phase 3 amendment — Schedule editor, work reservations and multiple state sources
 
-Status: implemented locally, 2026-10-20; verification complete, release pending. Parent: [Settings/Admin requirements](../todo/admin-workspace-redesign.md). Builds on [completed Phase 3 amendment](../done/03-admin-redesign-detail-revision.md).
+Status: implemented locally, 2026-10-20; verification complete, release pending. Parent: [Settings/Admin requirements](admin-workspace-redesign.md). Builds on [completed Phase 3 amendment](../done/03-admin-redesign-detail-revision.md).
 
 Baseline: released `8e80b13`, plus the current **uncommitted visual alignment correction**. That correction changes AdminScreen, ScheduledTable, ScheduleDetail, RunHistory, admin.css, tests and documentation. Preserve and incorporate those changes; do not reset the workspace to the released commit or restore its older layout. This plan supersedes conflicting earlier requirements only for the changes explicitly specified here. Netlify production stays unchanged.
 

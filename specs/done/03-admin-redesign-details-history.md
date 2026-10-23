@@ -2,7 +2,7 @@
 
 Follow-up: the original implementation was subsequently committed/released through `20b63fb`. The requested [Phase 3 detail revision](03-admin-redesign-detail-revision.md) is the completed local amendment and supersedes conflicting layout/action requirements below. This document retains the original implementation and verification evidence.
 
-Status: completed locally, 2026-10-20. Parent: [requirements](../todo/admin-workspace-redesign.md). No commit, push or external deployment performed for this phase.
+Status: completed locally, 2026-10-20. Parent: [requirements](admin-workspace-redesign.md). No commit, push or external deployment performed for this phase.
 Initiating instruction: provide schedule detail summary, stats, history, logs, sources and related-geography sections with preserved context.
 Dependency: phases 1–2. Stats uses verified overview counts now; full aggregation is phase 4. Read-only source/relationship sections can use current saved scope/associations until phase 5's catalog.
 

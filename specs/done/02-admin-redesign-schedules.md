@@ -1,6 +1,6 @@
 # Phase 2 — Scheduled list and management
 
-Status: completed locally including the floating Quick actions menu amendment, 2026-10-20. Parent: [requirements/metric dictionary/decisions](../todo/admin-workspace-redesign.md). Release remains separate; the reporting migration must precede the matching backend/UI release.
+Status: completed locally including the floating Quick actions menu amendment, 2026-10-20. Parent: [requirements/metric dictionary/decisions](admin-workspace-redesign.md). Release remains separate; the reporting migration must precede the matching backend/UI release.
 Initiating instruction: build the requested compact schedule list and complete schedule management by reusing existing scheduler services.
 Dependency: phase 1. D1/D2 confirmed: new leads plus separate updates; AI usage reflects last run. No independent scheduler implementation.
 

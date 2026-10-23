@@ -1,6 +1,6 @@
 # Phase 1 — Admin header and Settings navigation
 
-Status: completed locally, 2026-10-20. Parent: [requirements and original prompt](../todo/admin-workspace-redesign.md).
+Status: completed locally, 2026-10-20. Parent: [requirements and original prompt](admin-workspace-redesign.md).
 Initiating phase instruction: implement header/navigation and Settings shell while preserving existing Admin actions and all unrelated behavior.
 Dependency: parent only. Deliverable is usable immediately; no reporting API required.
 

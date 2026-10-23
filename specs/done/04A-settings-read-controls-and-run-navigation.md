@@ -1,6 +1,6 @@
 # 04A — Settings read controls and focused run navigation
 
-Status: completed locally, October 22, 2026. Dependency: existing Phase 4; use [amendment requirements and initiating prompt](../todo/04-settings-workspace-simplification.md) and [parent](../todo/admin-workspace-redesign.md). No implementation/release is authorized by this plan alone.
+Status: completed locally, October 22, 2026. Dependency: existing Phase 4; use [amendment requirements and initiating prompt](04-settings-workspace-simplification.md) and [parent](admin-workspace-redesign.md). No implementation/release is authorized by this plan alone.
 
 ## Objective and scope
 

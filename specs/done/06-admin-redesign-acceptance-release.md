@@ -1,8 +1,10 @@
 # Phase 6 — Integrated Admin acceptance and coordinated release
 
-Current baseline (2026-10-23): runtime `65a0d8e` is deployed and verified on Render and the approved Netlify preview; HEAD `155a72c` adds documentation only. Phases 1–5 and amendments through 05C2 are accepted. The private activity migration is applied. See [integrated acceptance](../../docs/reviews/2026-10-23-admin-integrated-acceptance.md) and [05C2 release](../../docs/reviews/2026-10-23-schedule-execution-and-metric-clarity.md). Earlier unreleased checkpoints are superseded, not new instructions to apply source packages.
+Accepted runtime 6174426 is deployed to Render and the approved preview. All implementation phases/amendments and required live acceptance passed; no new migration. Earlier checkpoints below are historical.
 
-Status: in progress; local/native and released browser/API verification passed. Live acceptance blocked by a pre-existing failed-coordinator/Pending-capture loop; narrow worker correction explicitly authorized and under verification. Parent: [requirements](admin-workspace-redesign.md).
+Status: complete; integrated local/native, released browser/API and real manual/naturally due acceptance passed. Netlify production unchanged.
+
+Parent: [requirements](admin-workspace-redesign.md).
 Initiating instruction: verify complete redesigned Admin and release only through authorized Render/Netlify preview workflow, leaving Netlify production unchanged.
 Dependencies: phases 1–5 accepted; verify confirmed D1–D3 in parent (new/separate updates, last-run usage, seven-day default). No new feature scope.
 
@@ -38,8 +40,12 @@ Update each child with checks/releases, move only accepted children to specs/don
 
 See the integrated acceptance report for complete checks, the narrow schedule-name breadcrumb correction, retired obsolete browser scenario, prepared disposable live test, release/rollback scope and explicit user authorization. No new migration required. Parent moves last only after required live checks pass.
 
-Release `27f79fc` is verified on Render and preview; see the report’s live blocker section. A disposable schedule remains paused and its one manual run is queued. No naturally due acceptance run has been enabled. Parent/Phase 6 remain in todo.
+Initial release `27f79fc` exposed the queue blocker recorded in the report. The authorized correction is released at `6174426`; manual and naturally due checks passed, and the disposable schedule is archived. Parent/Phase 6 are accepted.
 
 ## Authorized queue-blocker continuation
 
 User approved fixing the queue blocker and completing live acceptance on 2026-10-23. Restrict the correction to run aggregation when the exact request collection coordinator is blocked at `collect` with a saved error: untouched pending captures do not keep the parent Pending. Keep child jobs/evidence unchanged and expose the existing attention outcome. Real running jobs, other pending processing and uncertain outcomes retain their current guards. Do not retry failed collection, cancel older work, change queue order/leases, or alter budgets/import policies. Add isolated starvation and pending/running/uncertain regressions; rerun full/native checks; commit/push, release Render first and preview second, then finish the existing disposable manual/naturally due acceptance and archive it.
+
+## Final integrated acceptance
+
+Completed with Phase 6 at runtime `6174426`; see [release and verification](../../docs/reviews/2026-10-23-admin-integrated-acceptance.md). Netlify production unchanged.

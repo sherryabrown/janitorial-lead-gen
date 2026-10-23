@@ -1,6 +1,6 @@
 # 05C — Submitted History searches and compact analytics
 
-Status: completed and accepted locally, 2026-10-23. [Verification](../../docs/reviews/2026-10-23-history-submit-and-analytics-overview.md). No migration or deployment performed. Initiating prompt and shared requirements: [amendment](../todo/05-schedule-results-and-history-amendment.md), incorporated in full. Depends on accepted [05A](../done/05A-schedule-audit-and-lead-drilldowns.md) and [05B](../done/05B-schedule-and-run-detail-clarity.md). This is the final amendment before integrated Phase 6.
+Status: completed and accepted locally, 2026-10-23. [Verification](../../docs/reviews/2026-10-23-history-submit-and-analytics-overview.md). No migration or deployment performed. Initiating prompt and shared requirements: [amendment](05-schedule-results-and-history-amendment.md), incorporated in full. Depends on accepted [05A](../done/05A-schedule-audit-and-lead-drilldowns.md) and [05B](../done/05B-schedule-and-run-detail-clarity.md). This is the final amendment before integrated Phase 6.
 
 ## Implementation
 

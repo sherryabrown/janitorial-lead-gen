@@ -1,6 +1,6 @@
 # 04B — Focused schedule activity and integrated acceptance
 
-Status: completed locally, October 22, 2026. Depends on completed [04A](../done/04A-settings-read-controls-and-run-navigation.md). Use the [amendment and initiating prompt](../todo/04-settings-workspace-simplification.md), [parent](../todo/admin-workspace-redesign.md) and current Phase 3 amendments. Implemented and verified locally; no release performed.
+Status: completed locally, October 22, 2026. Depends on completed [04A](../done/04A-settings-read-controls-and-run-navigation.md). Use the [amendment and initiating prompt](04-settings-workspace-simplification.md), [parent](admin-workspace-redesign.md) and current Phase 3 amendments. Implemented and verified locally; no release performed.
 
 ## Objective
 

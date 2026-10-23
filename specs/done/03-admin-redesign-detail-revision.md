@@ -1,6 +1,6 @@
 # Phase 3 amendment — Focused schedule details and management
 
-Status: completed locally, 2026-10-20; no shared migration, commit, push or deployment. Baseline: `20b63fb`. Parent: [Admin workspace requirements](../todo/admin-workspace-redesign.md). Extends the [completed original Phase 3](03-admin-redesign-details-history.md) and supersedes conflicting Phase 2/3 layout and action requirements. Original completion evidence remains historical. Execute this amendment before final integrated acceptance; phases 4/5 must use this navigation and section hierarchy.
+Status: completed locally, 2026-10-20; no shared migration, commit, push or deployment. Baseline: `20b63fb`. Parent: [Admin workspace requirements](admin-workspace-redesign.md). Extends the [completed original Phase 3](03-admin-redesign-details-history.md) and supersedes conflicting Phase 2/3 layout and action requirements. Original completion evidence remains historical. Execute this amendment before final integrated acceptance; phases 4/5 must use this navigation and section hierarchy.
 
 ## Initiating prompt
 

@@ -4,7 +4,7 @@ Implemented Phase 3 contract extension (released at ec18074): [editor/work reser
 
 Integration note: use the [completed Phase 3 detail revision](../done/03-admin-redesign-detail-revision.md) for scope identity, fixed saved county membership and focused tabs. Source/geography links belong inside details, not extra schedule row quick actions.
 
-Status: completed locally, October 22, 2026; hosted release remains separate. Parent: [geography/source rules](../todo/admin-workspace-redesign.md). [Acceptance evidence](../../docs/reviews/2026-10-22-admin-source-geography-catalogs.md).
+Status: completed locally, October 22, 2026; hosted release remains separate. Parent: [geography/source rules](admin-workspace-redesign.md). [Acceptance evidence](../../docs/reviews/2026-10-22-admin-source-geography-catalogs.md).
 Initiating instruction: add read-only source/geography views and schedule quick-action/detail integrations.
 Dependencies: phases 1–3; consume phase 4 Stats links when available, without introducing a dependency for ordinary browsing.
 

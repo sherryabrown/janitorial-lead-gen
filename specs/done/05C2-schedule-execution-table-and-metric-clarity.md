@@ -1,6 +1,6 @@
 # 05C2 — One schedule execution table and clear metric completeness
 
-Status: complete (2026-10-23); verified locally and against read-only saved data. Shared read migration applied with explicit approval; Render and Netlify preview release verified at `65a0d8e`. Parent: [Admin workspace](../todo/admin-workspace-redesign.md). Presentation amendment to accepted [05B](../done/05B-schedule-and-run-detail-clarity.md) and [05C](../done/05C-history-submit-and-analytics-overview.md). Can build independently of [05C1](../done/05C1-county-addendum-identity-and-duplicate-repair.md); recheck exact metric links after both land.
+Status: complete (2026-10-23); verified locally and against read-only saved data. Shared read migration applied with explicit approval; Render and Netlify preview release verified at `65a0d8e`. Parent: [Admin workspace](admin-workspace-redesign.md). Presentation amendment to accepted [05B](../done/05B-schedule-and-run-detail-clarity.md) and [05C](../done/05C-history-submit-and-analytics-overview.md). Can build independently of [05C1](../done/05C1-county-addendum-identity-and-duplicate-repair.md); recheck exact metric links after both land.
 
 ## Initiating request
 

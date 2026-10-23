@@ -1,6 +1,6 @@
 # 05A — Schedule change audit and exact lead drilldowns
 
-Status: implemented and accepted locally, 2026-10-22; release pending. Requirements and initiating prompt: [amendment](../todo/05-schedule-results-and-history-amendment.md), incorporated in full. Depends on completed Phase 5; no dependency on 05B/05C. No layout overhaul in this phase.
+Status: implemented and accepted locally, 2026-10-22; release pending. Requirements and initiating prompt: [amendment](05-schedule-results-and-history-amendment.md), incorporated in full. Depends on completed Phase 5; no dependency on 05B/05C. No layout overhaul in this phase.
 
 ## Objective and implementation
 
