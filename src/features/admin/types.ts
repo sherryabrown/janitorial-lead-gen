@@ -59,7 +59,7 @@ export type Schedule = Draft & {
   can_delete?: boolean;
   updated_at?: string;
   reporting?: { as_of: string; latest_occurrence?: {state: string; reason?: string; trigger_id?: string; created_at: string} | null;
-    last_run: (Run & {leads: {added: number | null; updated: number | null; unchanged: number | null; completeness: string; reason?: string}}) | null };
+    last_run: (Run & {leads: {identities?:boolean;added: number | null; updated: number | null; unchanged: number | null; completeness: string; reason?: string}}) | null };
   id: string;
   version: number;
   next_due_at: string | null;
@@ -79,6 +79,7 @@ export type Usage = {
   credit_unit?: string | null;
 };
 export type Run = {
+ identity_snapshot?:string;
   finished_at?: string | null;
   schedule_id?: string | null;
   occurrence_id?: string | null;
@@ -120,9 +121,9 @@ export type Step = {
   summary: Record<string, unknown>;
   usage: Usage;
 };
-export type LeadCounts = {added: number|null; updated: number|null; unchanged: number|null; completeness: string; reason?: string};
+export type LeadCounts = {identities?:boolean;added: number|null; updated: number|null; unchanged: number|null; completeness: string; reason?: string};
 export type RunTiming = {created_at: string; finished_at: string|null; created_to_finished_ms: number|null; recorded_activity_ms: number|null; completeness: string; basis: string;reason?:string};
-export type RunMetrics = {leads?: LeadCounts; timing?: RunTiming; categories?: {completeness:string; forecast:number|null; opportunity:number|null; award:number|null; historical_opportunity?:number|null; reason:string}; candidates_attention?:{value:number|null;completeness:string;reason:string}};
+export type RunMetrics = {identity_snapshot?:string;leads?: LeadCounts; timing?: RunTiming; categories?: {completeness:string; forecast:number|null; opportunity:number|null; award:number|null; historical_opportunity?:number|null; reason:string}; candidates_attention?:{value:number|null;completeness:string;reason:string}};
 export type StateSource = {
   id: string;
   source_id: string;

@@ -10,7 +10,7 @@ type Occurrence = {
   reason?: string; trigger_id?: string; missed_from?: string; missed_through?: string;
   version?:number;origin?:string;config?:Config|SamConfig;run?:Run|null;
 };
-type Event = { id: string; action: string; at: string; version: number; actor_id?: string };
+type Event = { id: string; action: string; at: string; version: number; actor_id?: string;changes?:{field:string;before:unknown;after:unknown}[]|null };
 
 export function ScheduleHistory({ id, onView,owner='',active=true }: { id: string; onView: (id: string) => void;owner?:string;active?:boolean }) {
   const [occurrences, setOccurrences] = useState<Page<Occurrence>>({ items: [], next_offset: null });
@@ -66,7 +66,7 @@ export function ScheduleHistory({ id, onView,owner='',active=true }: { id: strin
     {occurrences.next_offset!==null&&<button type="button" className="text-button" disabled={busy} onClick={()=>void more('occurrences')}>More occurrences</button>}
     </section><section className="schedule-history-panel"><h3>Changes</h3>{errors.events&&<p role="alert">{errors.events}</p>}
     {!busy&&!errors.events&&!events.items.length&&<p>No saved changes.</p>}
-    {!!events.items.length&&<div className="schedule-table-wrap"><table className="schedule-table"><caption className="sr-only">Schedule changes</caption><thead><tr>{['When','Change','Version','Actor'].map(h=><th scope="col" key={h}>{h}</th>)}</tr></thead><tbody>{events.items.map(e=><tr key={e.id}><td data-label="When">{formatLocal(e.at)}</td><td data-label="Change">{title(e.action)}</td><td data-label="Version">{e.version}</td><td data-label="Actor"><details><summary>Actor</summary>{e.actor_id??'Actor unavailable · system or historical event'}</details></td></tr>)}</tbody></table></div>}
+    {!!events.items.length&&<div className="schedule-table-wrap"><table className="schedule-table"><caption className="sr-only">Schedule changes</caption><thead><tr>{['When','Change','Version','Actor'].map(h=><th scope="col" key={h}>{h}</th>)}</tr></thead><tbody>{events.items.map(e=><tr key={e.id}><td data-label="When">{formatLocal(e.at)}</td><td data-label="Change">{title(e.action)}{e.changes?.length?<dl>{e.changes.map(c=><div key={c.field}><dt>{title(c.field)}</dt><dd>{JSON.stringify(c.before)??'Not set'} → {JSON.stringify(c.after)??'Not set'}</dd></div>)}</dl>:<small>Details not recorded</small>}</td><td data-label="Version">{e.version}</td><td data-label="Actor"><details><summary>Actor</summary>{e.actor_id??'Actor unavailable · system or historical event'}</details></td></tr>)}</tbody></table></div>}
     {events.next_offset!==null&&<button type="button" className="text-button" disabled={busy} onClick={()=>void more('events')}>More changes</button>}
     </section>
   </section>;

@@ -1,3 +1,4 @@
+import {RunLeadCount} from './MetricLink';
 import {useOwnedRead} from './read-owner';
 import {ReadAction} from './ReadAction';
 import {useEffect,useRef,useState} from 'react';
@@ -54,7 +55,7 @@ export function RunHistory({owner='',scheduleId,counties=[],onView,onSchedule,re
    <td data-label="Scope / origin">{title(r.target_kind)}<small>{r.config?.target_kind==='sam'?'Arkansas statewide':r.config?.counties?.map(c=>c.name).join(', ')||'Saved scope in details'}</small><small>{title(r.origin)}</small></td>
    <td data-label="Created / finished">{formatLocal(r.created_at)}<small>{r.finished_at?formatLocal(r.finished_at):'Finish unknown'}</small></td>
    </>}
-   <td data-label="Outcome">{runLabel(r)}</td><td data-label="Validated leads">{r.leads?.completeness==='known'?`${r.leads.added} new · ${r.leads.updated} updated · ${r.leads.unchanged} unchanged`:r.leads?.completeness==='not_applicable'?'Not applicable':'Unknown'}</td>
+   <td data-label="Outcome">{runLabel(r)}</td><td data-label="Validated leads">{r.leads?.completeness==='known'?<>{(['added','updated','unchanged'] as const).map(k=><span key={k}><RunLeadCount id={r.id} snapshot={r.identity_snapshot} metric={k} value={r.leads?.[k]} identity={r.leads?.identities!==false}>{r.leads?.[k]} {k==='added'?'new':k}</RunLeadCount>{' '}</span>)}</>:r.leads?.completeness==='not_applicable'?'Not applicable':'Unknown'}</td>
    <td data-label="Recorded activity">{duration(r.timing?.recorded_activity_ms)}<small>{r.timing?.reason??(r.timing?.completeness==='partial'?'Partial recorded intervals':'Completed step intervals')}</small></td>
    {scheduleId&&<td data-label="AI usage">{r.usage?.ai==='not_used'?'Not used':r.usage?.ai==='used'?'Used':'Unknown'}<small>{r.usage?.actual_usd!=null?new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:4}).format(r.usage.actual_usd):'Cost unknown'}</small><details><summary>Usage details</summary><dl className="admin-facts"><dt>Input tokens</dt><dd>{r.usage?.input_tokens??'Unknown'}</dd><dt>Output tokens</dt><dd>{r.usage?.output_tokens??'Unknown'}</dd><dt>Credits</dt><dd>{r.usage?.credits!=null?`${r.usage.credits} ${r.usage.credit_unit??''}`:'Unknown'}</dd><dt>Known cost</dt><dd>{r.usage?.known_actual_usd??'Unknown'}</dd><dt>Reserved</dt><dd>{r.usage?.held_usd??'Unknown'}</dd></dl></details></td>}
 

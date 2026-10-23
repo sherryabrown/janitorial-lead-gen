@@ -64,6 +64,14 @@ it('retains keys across retry/remount, changes keys for changed input and clears
   acknowledged('user', 'run');
   expect(mutationKey('user', 'run', { ids: ['05001'] })).not.toBe(key);
 });
+it('explains missing report endpoints and read failures without suggesting a rejected mutation',async()=>{
+  for(const status of [404,422,500]){
+    vi.stubGlobal('fetch',vi.fn().mockResolvedValue(new Response('private diagnostic',{status})));
+    const read=workflowRequest('/v1/admin/metric-members?member_metric=added');
+    await expect(read).rejects.toMatchObject({code:'READ'});
+    await expect(read).rejects.toThrow(status===404?'Report links are unavailable on this backend':'Saved report records could not load');
+  }
+});
 it('rejects credential-bearing and malformed API origins', () => {
   for (const value of [
     'http://example.com',

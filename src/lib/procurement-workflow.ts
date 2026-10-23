@@ -91,6 +91,13 @@ export async function workflowRequest<T>(
       'Your session expired or this action is unavailable. Your draft is kept.',
       'SESSION',
     );
+  if (!response.ok && body === undefined && path.startsWith('/v1/admin/metric-members?'))
+    throw new WorkflowError(
+      response.status === 404
+        ? 'Report links are unavailable on this backend. Restart the local backend or deploy the matching backend, then retry.'
+        : 'Saved report records could not load. Return to the originating report, refresh it, and retry the link.',
+      'READ',
+    );
   if (!response.ok)
     throw new WorkflowError(
       'Action was not confirmed. Refresh saved progress; scope, review, or schedule version may have changed.',

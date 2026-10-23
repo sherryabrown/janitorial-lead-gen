@@ -1,3 +1,4 @@
+import {RunLeadCount} from './MetricLink';
 import {ReadAction} from './ReadAction';
 import { useEffect, useState } from 'react';
 import {scheduleDisableActions} from './ScheduleDisable';
@@ -51,7 +52,7 @@ export function ScheduleList({items,more,paging,onMore,onEdit,onAction,busy,onVi
           <td data-label="Geography">{s.config.target_kind==='county_scope'?'County':'State'}<small>{s.config.target_kind==='sam'?'SAM · Arkansas statewide':s.config.target_kind==='state_source'?`${new Set(s.config.state_sources?.map(a=>a.source_id)??[s.config.state_trigger_id]).size} state sources`:(s.config.counties?.map(c=>c.name).join(', ')||s.config.county_ids.map(id=>counties.find(c=>c.id===id)?.name??id).join(', '))}</small></td>
           <td data-label="Frequency">{recurrenceLabel(s)}</td>
           <td data-label="Last run">{r?<><time>{formatLocal(r.created_at)}</time><small>{runLabel(r)}</small></>:s.reporting?'Never run':'Unknown'}{o&&!o.trigger_id&&<small>{title(o.state)} · {title(o.reason)}</small>}</td>
-          <td data-label="Last run leads">{r?.leads?.completeness==='known'?<>{r.leads.added} new<small>{r.leads.updated} updated · {r.leads.unchanged} unchanged</small></>:r?.leads?.completeness==='not_applicable'?'Not applicable':r?'Unknown':s.reporting?'—':'Unknown'}{r?.leads?.reason&&<small>{r.leads.reason}</small>}</td>
+          <td data-label="Last run leads">{r?.leads?.completeness==='known'?<><RunLeadCount id={r.id} snapshot={r.identity_snapshot} metric="added" value={r.leads.added} identity={r.leads.identities!==false}>{r.leads.added} new</RunLeadCount><small>{(['updated','unchanged'] as const).map(k=><span key={k}><RunLeadCount id={r.id} snapshot={r.identity_snapshot} metric={k} value={r.leads[k]} identity={r.leads.identities!==false}>{r.leads[k]} {k}</RunLeadCount>{' '}</span>)}</small></>:r?.leads?.completeness==='not_applicable'?'Not applicable':r?'Unknown':s.reporting?'—':'Unknown'}{r?.leads?.reason&&<small>{r.leads.reason}</small>}</td>
           <td data-label="Next run">{archived?'Archived':s.next_due_at?formatLocal(s.next_due_at):s.enabled?'Unknown':'Paused'}</td>
           <td data-label="AI credits">{r?.usage?.ai==='not_used'?'Not used':r?.usage?.credits!=null?`${r.usage.credits} ${r.usage.credit_unit}`:r?'Unknown':s.reporting?'—':'Unknown'}</td>
           <td data-label="AI spent">{r?.usage?.actual_usd!=null?new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:4}).format(r.usage.actual_usd):r?'Unknown':s.reporting?'—':'Unknown'}{r?.usage?.actual_usd==null&&r?.usage?.known_actual_usd!=null&&<small>${r.usage.known_actual_usd} known</small>}{!!r?.usage?.held_usd&&<small>${r.usage.held_usd} reserved</small>}</td>

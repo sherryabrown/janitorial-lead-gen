@@ -6,13 +6,14 @@ import { mapProcurementLead, type ProcurementLead } from '../lib/procurement';
 import App from './AppShell';
 import { StrictMode } from 'react';
 
-const api = vi.hoisted(() => ({ load: vi.fn(), history: vi.fn(), detail: vi.fn(), write: vi.fn(), note: vi.fn(), edit: vi.fn(), authChanged: undefined as undefined | ((event: string, session: unknown) => void) }));
+const api = vi.hoisted(() => ({ metric:vi.fn(),members:vi.fn(), load: vi.fn(), history: vi.fn(), detail: vi.fn(), write: vi.fn(), note: vi.fn(), edit: vi.fn(), authChanged: undefined as undefined | ((event: string, session: unknown) => void) }));
 vi.mock('../lib/procurement', async (original) => ({
   ...await original<typeof import('../lib/procurement')>(),
-  loadProcurementContracts: api.load, loadProcurementLeadHistory: api.history,
+  loadProcurementMetricLeads:api.metric, loadProcurementContracts: api.load, loadProcurementLeadHistory: api.history,
   loadProcurementLeadDetail: api.detail, updateProcurementLeadStage: api.write,
   bulkUpdateProcurementLeadStage: api.write, addProcurementLeadNote: api.note, editProcurementLeadNote: api.edit,
 }));
+vi.mock('../lib/procurement-workflow',()=>({workflowRequest:api.members}));
 vi.mock('../lib/supabase', () => ({
   isSupabaseConfigured: true,
   supabase: {
@@ -39,6 +40,22 @@ beforeEach(() => {
   window.confirm=()=>true;
 });
 afterEach(cleanup);
+
+it('opens verified report membership across all stages without applying ordinary queue filters',async()=>{
+ const scope={metric:'added',label:'Saline run',filters:{run:'00000000-0000-4000-8000-000000000001',period:'all'},expected:1};
+ window.history.replaceState({},'','/?leadReport='+encodeURIComponent(JSON.stringify(scope)));
+ api.members.mockResolvedValue({kind:'leads',items:[{id:lead.id}],total:1,next_offset:null,as_of:'2026-10-22T14:00:00Z',snapshot:'a'.repeat(64)});
+ api.metric.mockResolvedValue({contracts:[{...mapProcurementLead(lead),status:'won'}],sources:[],unavailable:0});
+ try{render(<App/>);await screen.findByLabelText('Filtered report leads');await waitFor(()=>expect(api.metric).toHaveBeenCalled());expect(api.load).not.toHaveBeenCalled();expect(api.metric.mock.calls[0][1]).toEqual([lead.id]);expect(screen.getByText(/All sales stages/)).toBeTruthy();
+ fireEvent.click(screen.getByRole('button',{name:'Clear results filter'}));await waitFor(()=>expect(api.load).toHaveBeenCalled());expect(window.location.search).toBe('');
+ }finally{window.history.replaceState({},'','/');}
+});
+
+it('never substitutes the ordinary queue when a verified metric selection cannot load',async()=>{
+ window.history.replaceState({},'','/?leadReport='+encodeURIComponent(JSON.stringify({metric:'added',label:'Unavailable report',filters:{},expected:1})));
+ api.members.mockResolvedValue({unavailable:'Results changed. Reload the originating report.'});
+ try{render(<App/>);await screen.findByText(/Results changed/);expect(api.load).not.toHaveBeenCalled();expect(api.metric).not.toHaveBeenCalled();expect(screen.queryByRole('article')).toBeNull();}finally{window.history.replaceState({},'','/');}
+});
 
 it('retains research context after selection/history and refreshes qualifications from canonical data', async () => {
   render(<App />);

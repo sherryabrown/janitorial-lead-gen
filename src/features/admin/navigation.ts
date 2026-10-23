@@ -6,6 +6,7 @@ export type AdminContext = {
   scheduleId?: string;
   scheduleRunId?:string;
   runId?: string;
+  issueRequestId?:string;
   sourceId?: string;
   geographyId?: string;
   returnTo: 'contracts';
@@ -20,7 +21,7 @@ export function parseAdminContext(value: unknown): AdminContext {
   const result: AdminContext = { view: v.view as AdminView, returnTo: 'contracts' };
   if (['manual', 'overview', 'history', 'logs','sources','geography'].includes(v.section as string)) result.section = v.section as AdminContext['section'];
   if(['overview','logs','sources'].includes(v.runSection as string))result.runSection=v.runSection as AdminContext['runSection'];
-  for (const name of ['scheduleId', 'scheduleRunId', 'runId', 'sourceId', 'geographyId'] as const) {
+  for (const name of ['scheduleId', 'scheduleRunId', 'runId', 'issueRequestId', 'sourceId', 'geographyId'] as const) {
     if (typeof v[name] === 'string' && /^[a-zA-Z0-9_-]{1,100}$/.test(v[name])) result[name] = v[name];
   }
   return result;
@@ -39,11 +40,11 @@ export function clearAdminSession(owner: string) {
     for (const name of Object.keys(sessionStorage)) {
       if (prefixes.some(prefix => name === prefix || name.startsWith(prefix + ':'))) sessionStorage.removeItem(name);
     }
-    const url=new URL(window.location.href);for(const param of Object.values(parameters))url.searchParams.delete(param);window.history.replaceState({},'',url);
+    const url=new URL(window.location.href);url.searchParams.delete('leadReport');for(const param of Object.values(parameters))url.searchParams.delete(param);window.history.replaceState({},'',url);
   } catch { /* Auth boundary still removes the mounted UI. */ }
 }
 
-const parameters={view:'adminView',section:'adminSection',scheduleId:'adminSchedule',runId:'adminRun',runSection:'adminRunSection',scheduleRunId:'adminScheduleRun',sourceId:'adminSource',geographyId:'adminGeography'} as const;
+const parameters={view:'adminView',section:'adminSection',scheduleId:'adminSchedule',runId:'adminRun',issueRequestId:'adminIssueRequest',runSection:'adminRunSection',scheduleRunId:'adminScheduleRun',sourceId:'adminSource',geographyId:'adminGeography'} as const;
 export function hasAdminLocation(){return views.includes(new URLSearchParams(window.location.search).get('adminView') as AdminView);}
 export function leaveAdminLocation(){const url=new URL(window.location.href);for(const param of Object.values(parameters))url.searchParams.delete(param);window.history.pushState({},'',url);}
 export function readAdminLocation(owner:string):AdminContext{

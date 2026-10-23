@@ -1,3 +1,4 @@
+import {scheduleEvent} from './schedule-change-audit.mjs';
 import { timingSafeEqual } from 'node:crypto';
 import { checked,one } from './hosted-store.mjs';
 import { hash } from './reviewed-batch.mjs';
@@ -131,7 +132,7 @@ export function procurementSchedules({db,triggers,now=()=>new Date()}) {
   async function status() {return rpc('procurement_scheduler_status',{});}
   async function events(id,{offset=0,limit=50}={}) {
     if(!await one(db,'procurement_schedules',id))throw Error('Schedule not found');const data=checked(await db.from('procurement_schedule_events').select('id,actor_id,action,version,at,summary').eq('schedule_id',id).order('at',{ascending:false}).order('id').range(offset,offset+limit));
-    return {items:data.slice(0,limit).map(e=>({...e,action:['created','edited','pause','resume','archive','delete','owner_inactive','queued','skipped','blocked'].includes(e.action)?e.action:'saved_event',summary:{occurrence_id:publicId(e.summary?.occurrence_id),reason:publicReason(e.summary?.reason)}})),next_offset:data.length>limit?offset+limit:null};
+    return {items:data.slice(0,limit).map(e=>({...scheduleEvent(e),action:['created','edited','pause','resume','archive','delete','owner_inactive','queued','skipped','blocked'].includes(e.action)?e.action:'saved_event',summary:{occurrence_id:publicId(e.summary?.occurrence_id),reason:publicReason(e.summary?.reason)}})),next_offset:data.length>limit?offset+limit:null};
   }
   return {preview,save,get,list,occurrences,events,control,runNow,tick,status,history:adminRunHistory(db),analytics:adminAnalytics(db,{now})};
 }

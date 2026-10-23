@@ -1,3 +1,4 @@
+import {verifyMetricBrowser} from './metric-drilldown-browser.mjs';
 import {verifyCatalogBrowser} from './catalog-browser.mjs';
 import {verifyScheduleActivityBrowser} from './schedule-activity-browser.mjs';
 import {verifySettingsReadsBrowser} from './settings-reads-browser.mjs';
@@ -113,6 +114,7 @@ const server = spawn(
   process.execPath,
   [
     'node_modules/vite/bin/vite.js',
+    ...(process.argv.includes('--built')?['preview']:[]),
     '--host',
     '127.0.0.1',
     '--port',
@@ -330,7 +332,7 @@ try {
   const page = await context.newPage(),
     errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  if(process.argv.includes('--catalog')){await verifyCatalogBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--schedule-activity')){await verifyScheduleActivityBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--settings-reads')){await verifySettingsReadsBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--analytics')){await verifyAnalyticsBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--schedule-revision')){await verifyScheduleRevision({page,origin,out,errors,bodies});}else{
+  if(process.argv.includes('--metric-drilldowns')){await verifyMetricBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--catalog')){await verifyCatalogBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--schedule-activity')){await verifyScheduleActivityBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--settings-reads')){await verifySettingsReadsBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--analytics')){await verifyAnalyticsBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--schedule-revision')){await verifyScheduleRevision({page,origin,out,errors,bodies});}else{
   await page.goto(origin);
   await page.getByRole('button',{name:'Settings',exact:true}).waitFor();
   assert.equal(await page.getByRole('button',{name:'Admin',exact:true}).count(),0);

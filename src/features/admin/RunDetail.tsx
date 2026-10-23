@@ -1,3 +1,4 @@
+import {RunLeadCount} from './MetricLink';
 import {useOwnedRead} from './read-owner';
 import {ReadAction} from './ReadAction';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -10,6 +11,7 @@ import { activeRun, title, usageText, formatLocal, runLabel, hasSourceAttention 
 function savedLogPage(owner:string,id:string){try{const n=Number(sessionStorage.getItem(`spin-admin-log-page:${owner}:${id}`));return Number.isInteger(n)&&n>0&&n<=5000?n:0;}catch{return 0;}}
 export function RunDetail({
   id,
+  issueRequestId,
   owner,
   onClose,
   onViewLeads,
@@ -18,6 +20,7 @@ export function RunDetail({
   section:requestedSection,onSection,embedded=false,active=true,expectedScheduleId,
 }: {
   id: string;
+  issueRequestId?:string;
   owner: string;
   onClose: () => void;
   onViewLeads: () => void;
@@ -83,7 +86,7 @@ export function RunDetail({
         if(resources.logs&&(logs.status==='rejected'||!failedPage.current))setLogsError(logs.status==='rejected'?readFailure(logs.reason,'Step logs'):'');
         const r=status.status==='fulfilled'?status.value:runRef.current;
         if(!r)return;runRef.current=r;setRun(r);
-        setChild((c) => c || r.children?.[0]?.request_id || '');
+        setChild((c) => c || r.children?.find(child=>child.request_id===issueRequestId)?.request_id || r.children?.[0]?.request_id || '');
         if (previous && previous !== r.state) changedRef.current();
         previous = r.state;
         resources.status=true;resources.logs=true;
@@ -101,7 +104,7 @@ export function RunDetail({
       abort.abort();
       clearTimeout(timer);
     };
-  }, [id, refresh,owner,active,expectedScheduleId]);
+  }, [id, refresh,owner,active,expectedScheduleId,issueRequestId]);
   const hasRun=!!run;
   useEffect(()=>{if(!embedded)heading.current?.focus();},[id,section,hasRun,embedded]);
   const control = async (action: string) => {
@@ -168,7 +171,7 @@ export function RunDetail({
           {!embedded&&<nav className="admin-workspace-nav detail-sections" aria-label="Run sections">{(['overview','logs','sources'] as const).map(value=><button key={value} type="button" className="text-button" aria-current={section===value?'page':undefined} onClick={()=>{setLocalSection(value);onSection?.(value);}}>{title(value)}</button>)}</nav>}
       {run && (
         <>
-          <div hidden={section!=='overview'}><dl className="admin-facts"><dt>Next action</dt><dd>{run.next_action}</dd><dt>Origin</dt><dd>{title(run.origin)}</dd><dt>Created</dt><dd>{formatLocal(run.created_at)}</dd><dt>Finished</dt><dd>{run.finished_at?formatLocal(run.finished_at):'Unknown'}</dd><dt>Recorded activity</dt><dd>{duration(run.reporting?.timing?.recorded_activity_ms)}{run.reporting?.timing?.completeness==='partial'?' · partial intervals':''}{run.reporting?.timing?.reason&&<small>{run.reporting.timing.reason}</small>}</dd><dt>Created → finished</dt><dd>{duration(run.reporting?.timing?.created_to_finished_ms)}</dd><dt>AI usage</dt><dd>{usageText(run.usage)}</dd><dt>New / updated / unchanged</dt><dd>{run.reporting?.leads?.completeness==='known'?`${run.reporting.leads.added} / ${run.reporting.leads.updated} / ${run.reporting.leads.unchanged}`:run.reporting?.leads?.completeness==='not_applicable'?'Not applicable':'Unknown'}</dd><dt>Category breakdown</dt><dd>{run.reporting?.categories?.completeness==='known'?`${run.reporting.categories.forecast} forecasts · ${run.reporting.categories.opportunity} opportunities (${run.reporting.categories.historical_opportunity??'Unknown'} historical) · ${run.reporting.categories.award} awards`:run.reporting?.categories?.reason??'Historical category attribution unavailable'}</dd><dt>Candidates needing attention</dt><dd>{run.reporting?.candidates_attention?.value??'Unknown · review candidate validation'}</dd><dt>Source checks needing attention</dt><dd>{run.presentation?.outcome==='source_attention'?run.presentation.attention_count:'See saved source checks'}</dd></dl></div>
+          <div hidden={section!=='overview'}><dl className="admin-facts"><dt>Next action</dt><dd>{run.next_action}</dd><dt>Origin</dt><dd>{title(run.origin)}</dd><dt>Created</dt><dd>{formatLocal(run.created_at)}</dd><dt>Finished</dt><dd>{run.finished_at?formatLocal(run.finished_at):'Unknown'}</dd><dt>Recorded activity</dt><dd>{duration(run.reporting?.timing?.recorded_activity_ms)}{run.reporting?.timing?.completeness==='partial'?' · partial intervals':''}{run.reporting?.timing?.reason&&<small>{run.reporting.timing.reason}</small>}</dd><dt>Created → finished</dt><dd>{duration(run.reporting?.timing?.created_to_finished_ms)}</dd><dt>AI usage</dt><dd>{usageText(run.usage)}</dd><dt>New / updated / unchanged</dt><dd>{run.reporting?.leads?.completeness==='known'?<>{(['added','updated','unchanged'] as const).map(k=><span key={k}><RunLeadCount id={run.id} snapshot={run.reporting?.identity_snapshot} metric={k} value={run.reporting?.leads?.[k]} identity={run.reporting?.leads?.identities!==false}>{run.reporting?.leads?.[k]} {k==='added'?'new':k}</RunLeadCount>{' '}</span>)}</>:run.reporting?.leads?.completeness==='not_applicable'?'Not applicable':'Unknown'}</dd><dt>Category breakdown</dt><dd>{run.reporting?.categories?.completeness==='known'?<>{(['forecast','opportunity','award'] as const).map(k=><span key={k}><RunLeadCount id={run.id} snapshot={run.reporting?.identity_snapshot} metric={k} value={run.reporting?.categories?.[k]}>{run.reporting?.categories?.[k]} {k}</RunLeadCount>{' '}</span>)}(<RunLeadCount id={run.id} snapshot={run.reporting?.identity_snapshot} metric="historical_opportunities" value={run.reporting.categories.historical_opportunity}>{run.reporting.categories.historical_opportunity??'Unknown'} historical</RunLeadCount>)</>:run.reporting?.categories?.reason??'Historical category attribution unavailable'}</dd><dt>Validation issues</dt><dd>{run.reporting?.candidates_attention?.value!=null?<RunLeadCount id={run.id} snapshot={run.reporting.identity_snapshot} metric="candidates_attention" value={run.reporting.candidates_attention.value}/>: 'Unknown · inspect saved validation issues'}</dd><dt>Source checks needing attention</dt><dd>{run.presentation?.outcome==='source_attention'?<button type="button" className="text-button" onClick={()=>{setLocalSection('sources');onSection?.('sources');}}>{run.presentation.attention_count} · View saved source checks</button>:'See saved source checks'}</dd></dl></div>
 
           <div className="admin-inline">
             {activeRun(run.state) && (

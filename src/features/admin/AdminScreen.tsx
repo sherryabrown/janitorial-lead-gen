@@ -1,3 +1,5 @@
+import {MetricNavigation} from './MetricLink';
+import type {MetricScope} from './metric-scope';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   workflowRequest,
@@ -88,7 +90,7 @@ export default function AdminScreen({
   active = true,
 }: {
   owner: string;
-  onViewLeads: () => void;
+  onViewLeads: (scope?:MetricScope) => void;
   active?: boolean;
 }) {
   const [scheduleEditor,setScheduleEditor]=useState<{saved?:AnySchedule;target:string}|null>(null);
@@ -433,7 +435,7 @@ export default function AdminScreen({
       ? sources.find((s) => s.id === draft.config.state_trigger_id)
       : undefined;
   return (
-    <section className="admin-screen" aria-label="Admin county checks">
+    <MetricNavigation active={active} onLeads={onViewLeads} onRun={(id,requestId)=>{returnFocus.current=document.activeElement as HTMLElement;commitNavigation({...navigation,runId:id,runSection:'overview',issueRequestId:requestId});}}><section className="admin-screen" aria-label="Admin county checks">
       <h1 className="settings-context" ref={headingRef} tabIndex={-1}>Settings</h1>
       <div className="admin-workspace-bar">
       <nav className="admin-workspace-nav" aria-label="Admin views">
@@ -579,6 +581,7 @@ export default function AdminScreen({
           <RunDetail
             key={selected}
             id={selected}
+            issueRequestId={navigation.issueRequestId}
             owner={owner}
             section={navigation.runSection}
             onSection={section=>{const context={...navigation,runSection:section};replaceAdminLocation(owner,context);setNavigation(context);}}
@@ -590,6 +593,6 @@ export default function AdminScreen({
         </div>
       )}
       </div>
-    </section>
+    </section></MetricNavigation>
   );
 }

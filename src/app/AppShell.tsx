@@ -1,3 +1,5 @@
+import {workflowRequest} from '../lib/procurement-workflow';
+import {leadScopeLocation,readLeadScope,parseMetricScope,metricPath,type MetricScope,type MetricMembers} from '../features/admin/metric-scope';
 import { AuthGate } from '../features/auth/AuthGate';
 import type { ContractCategory, ContractStatus, ContractStatusFilter, ContractView, ContractBidTypeFilter, ContractDateRangePreset, ContractSortKey, ContractSortDirection, BidSource, ContractOpportunity, ContractFilters, ContractAction, ContractStageReason } from '../features/contracts/types';
 import { getDefaultContractFilters } from '../features/contracts/contract-utils';
@@ -20,7 +22,7 @@ import {
 } from 'lucide-react';
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { createProcurementSourceCache, addProcurementLeadNote, bulkUpdateProcurementLeadStage, loadProcurementContracts, loadProcurementLeadDetail, loadProcurementLeadHistory, updateProcurementLeadStage, editProcurementLeadNote, type ProcurementHistoryRow, type ProcurementBidType } from '../lib/procurement';
+import { createProcurementSourceCache, loadProcurementMetricLeads, addProcurementLeadNote, bulkUpdateProcurementLeadStage, loadProcurementContracts, loadProcurementLeadDetail, loadProcurementLeadHistory, updateProcurementLeadStage, editProcurementLeadNote, type ProcurementHistoryRow, type ProcurementBidType } from '../lib/procurement';
 import {
   closedContractStatuses as contractClosedStatuses,
   getDateRangeBounds as getContractDateRangeBounds,
@@ -402,6 +404,23 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
   const [contractView, setContractView] = useState<ContractView>(()=>hasAdminLocation()?'admin':'open');
   const [contracts, setContracts] = useState<ContractOpportunity[]>([]);
   const [contractPage, setContractPage] = useState(0);
+  const [leadScope,setLeadScope]=useState<MetricScope|null>(readLeadScope);
+  const [scopeUnavailable,setScopeUnavailable]=useState(0);
+  const activeMetric=useRef(leadScope);
+  useEffect(()=>{activeMetric.current=leadScope;},[leadScope]);
+  const leadAnchor=useRef<{as_of:string;snapshot:string}|null>(null);
+  const metricOrigin=useRef<HTMLElement|null>(null);
+  const priorQueue=useRef<{ids:Set<string>;records:Map<string,ContractOpportunity>;selected:string}|null>(null);
+  const restoreQueue=()=>{const old=priorQueue.current;setCheckedContractIds(old?.ids??new Set());setCheckedContractRecords(old?.records??new Map());setSelectedContractId(old?.selected??'');priorQueue.current=null;};
+  const priorLeadPage=useRef(0),reportOrigin=useRef<string|null>(null),metricHeading=useRef<HTMLDivElement>(null);
+  const openLeadScope=(value?:MetricScope)=>{
+   const scope=parseMetricScope(value);
+   if(!scope){if(leadScope)clearLeadScope();leaveAdminLocation();setLeadScope(null);setContractView(contractFilters.status);void refreshContracts();requestAnimationFrame(()=>settingsRef.current?.querySelector<HTMLButtonElement>('button')?.focus());return;}
+   priorQueue.current={ids:checkedContractIds,records:checkedContractRecords,selected:selectedContractId};metricOrigin.current=document.activeElement as HTMLElement;reportOrigin.current=window.location.href;priorLeadPage.current=contractPage;leadAnchor.current=null;contractRequestSequence.current++;
+   window.history.pushState({...window.history.state,leadReturn:window.location.href},'',leadScopeLocation(scope));setLeadScope(scope);setContractPage(0);setContracts([]);setCheckedContractIds(new Set());setCheckedContractRecords(new Map());setContractView(contractFilters.status);requestAnimationFrame(()=>metricHeading.current?.focus());
+  };
+  const clearLeadScope=()=>{const url=new URL(window.location.href);url.searchParams.delete('leadReport');window.history.replaceState({},'',url);leadAnchor.current=null;setLeadScope(null);setContractPage(priorLeadPage.current);setContracts([]);restoreQueue();};
+  const returnToReport=()=>{const url=reportOrigin.current??window.history.state?.leadReturn;if(url){window.history.pushState({},'',url);setLeadScope(null);setContractPage(priorLeadPage.current);setContractView('admin');restoreQueue();requestAnimationFrame(()=>{if(metricOrigin.current?.isConnected)metricOrigin.current.focus();else settingsRef.current?.querySelector<HTMLButtonElement>('button')?.focus();});}else clearLeadScope();};
   const [contractTotal, setContractTotal] = useState(0);
   const [queueCounts, setQueueCounts] = useState<Record<string, number>>({});
   const [checkedContractRecords, setCheckedContractRecords] = useState<Map<string, ContractOpportunity>>(new Map());
@@ -420,7 +439,7 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
   const [contextMode, setContextMode] = useState<ContextPanelMode>('note');
   const [expandedClosedMode, setExpandedClosedMode] = useState<WorkMode | null>(null);
   const [contractFilters, setContractFilters] = useState<ContractFilters>(getDefaultContractFilters);
-  useEffect(()=>{const navigate=()=>{if(hasAdminLocation()){setAdminVisited(true);setWorkMode('contracts');setContractView('admin');}else setContractView(current=>current==='admin'?contractFilters.status:current);};window.addEventListener('popstate',navigate);return()=>window.removeEventListener('popstate',navigate);},[contractFilters.status]);
+  useEffect(()=>{const navigate=()=>{const restoredScope=readLeadScope();if(restoredScope||activeMetric.current){setLeadScope(restoredScope);leadAnchor.current=null;setContractPage(restoredScope?0:priorLeadPage.current);setContracts([]);const prior=!restoredScope?priorQueue.current:null;setCheckedContractIds(prior?.ids??new Set());setCheckedContractRecords(prior?.records??new Map());if(prior){setSelectedContractId(prior.selected);priorQueue.current=null;}if(!restoredScope)requestAnimationFrame(()=>metricOrigin.current?.isConnected&&metricOrigin.current.focus());}if(hasAdminLocation()){setAdminVisited(true);setWorkMode('contracts');setContractView('admin');}else setContractView(current=>current==='admin'?contractFilters.status:current);};window.addEventListener('popstate',navigate);return()=>window.removeEventListener('popstate',navigate);},[contractFilters.status]);
   const [companyFilters, setCompanyFilters] = useState<CompanyFilters>({
     status: 'new',
     query: '',
@@ -451,9 +470,17 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
 
     const client = supabase;
     try {
+      if(new URLSearchParams(window.location.search).has('leadReport')&&!leadScope)throw Error('Invalid report filter. Clear the report link and return to Settings.');
       const bounds = getContractDateRangeBounds(contractFilters.dateRangePreset, contractFilters.dateFrom, contractFilters.dateTo);
       const changed = getContractDateRangeBounds(contractFilters.changedDateRangePreset, contractFilters.changedDateFrom, contractFilters.changedDateTo);
-      const result = await loadProcurementContracts(client, { ...contractFilters, ...bounds,
+      let result;
+      if(leadScope){
+       const members=await workflowRequest<MetricMembers>(metricPath({...leadScope,filters:{...leadScope.filters,...leadAnchor.current}},contractPage*50));
+       if(members.unavailable)throw Error(members.unavailable);if(members.kind!=='leads')throw Error('Saved lead membership unavailable.');
+       const scoped=await loadProcurementMetricLeads(client,members.items.map(i=>i.id),sourceCache);
+       if(requestId!==contractRequestSequence.current)return;leadAnchor.current={as_of:members.as_of,snapshot:members.snapshot};setScopeUnavailable(scoped.unavailable);
+       result={...scoped,total:members.total,counts:{}};
+      }else result = await loadProcurementContracts(client, { ...contractFilters, ...bounds,
         changedFrom: changed.dateFrom, changedTo: changed.dateTo, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone }, contractPage, sourceCache);
       if (requestId !== contractRequestSequence.current) return;
       const mappedContracts = result.contracts.map((contract) =>
@@ -466,7 +493,7 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
         }),
       );
       setContractTotal(result.total);
-      setQueueCounts(result.counts);
+      if(!leadScope)setQueueCounts(result.counts);
       if (contractPage > 0 && contractPage * 50 >= result.total) {
         setContractPage(Math.max(0, Math.ceil(result.total / 50) - 1));
       }
@@ -489,7 +516,8 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
       lastContractRefreshAt.current = Date.now();
     } catch (error) {
       if (requestId !== contractRequestSequence.current) return;
-      if (initial) {
+      if (initial||leadScope) {
+        if(leadScope)setContracts([]);
         const message = getLoadContractsErrorMessage(error);
         setContractsError(
           /401|403|permission|row-level|not authorized|jwt/i.test(message)
@@ -503,7 +531,7 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
         setIsRefreshingContracts(false);
       }
     }
-  }, [contractFilters, contractPage, sourceCache]);
+  }, [contractFilters, contractPage, sourceCache,leadScope]);
 
   const latestContractRefresh = useRef(refreshContracts);
   useEffect(() => { latestContractRefresh.current = refreshContracts; }, [refreshContracts]);
@@ -713,6 +741,7 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
   };
 
   const selectContractSummary = (status: ContractStatusFilter) => {
+    if(leadScope)clearLeadScope();
     if (contractView === 'admin' && status === contractFilters.status) { setContractView(status); return; }
     setContractView(status);
     setContractFilters((current) => ({
@@ -910,7 +939,7 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
         <h1 className="app-title">Executive Services SPIN Leads</h1>
         <div ref={settingsRef} className="topbar-account-area">
           <AccountControls email={session.user.email} active={workMode === 'contracts' && contractView === 'admin'}
-            onSignOut={onSignOut} onSettings={() => { if(!hasAdminLocation())pushAdminLocation(session.user.id,readAdminContext(session.user.id));setAdminVisited(true); setWorkMode('contracts'); setContractView('admin'); }} />
+            onSignOut={onSignOut} onSettings={() => { if(leadScope)clearLeadScope();if(!hasAdminLocation())pushAdminLocation(session.user.id,readAdminContext(session.user.id));setAdminVisited(true); setWorkMode('contracts'); setContractView('admin'); }} />
         </div>
       </header>
 
@@ -969,18 +998,18 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
           {adminVisited && <div hidden={workMode !== 'contracts' || contractView !== 'admin'}>
             <Suspense fallback={<p role="status">Loading Admin…</p>}><AdminScreen owner={session.user.id}
               active={workMode === 'contracts' && contractView === 'admin'}
-              onViewLeads={() => { leaveAdminLocation();setContractView(contractFilters.status); void refreshContracts(); requestAnimationFrame(() => settingsRef.current?.querySelector<HTMLButtonElement>('button')?.focus()); }} /></Suspense>
+              onViewLeads={openLeadScope} /></Suspense>
           </div>}
           {workMode === 'contracts' ? (
             contractView === 'admin' ? (
               null
             ) : (
               <>
-              <ContractFiltersBar
+              {leadScope?<div ref={metricHeading} tabIndex={-1} className="inline-status metric-scope" aria-label="Filtered report leads"><strong>Results from {leadScope.label}</strong><span> · All sales stages · Exact verified records</span>{scopeUnavailable>0&&<p>{scopeUnavailable} records on this page are unavailable or inaccessible.</p>}<button type="button" className="text-button" onClick={returnToReport}>Back to report</button><button type="button" className="text-button" onClick={clearLeadScope}>Clear results filter</button></div>:<ContractFiltersBar
                 filters={contractFilters}
                 onChange={setContractFilters}
                 onReset={() => setContractFilters(getDefaultContractFilters())}
-              />
+              />}
               <div className="list-header">
                 <div className="results-selection">
                   <div>
@@ -1054,7 +1083,7 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
               ) : (
                 <EmptyQueueState
                   title="No contracts match"
-                  hint="Clear filters or review closed contracts."
+                  hint={leadScope?'This verified result page contains no accessible saved Leads.':'Clear filters or review closed contracts.'}
                   actionLabel="Clear filters"
                   onAction={() => setContractFilters(getDefaultContractFilters())}
                 />

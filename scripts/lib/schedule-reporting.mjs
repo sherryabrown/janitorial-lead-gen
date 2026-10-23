@@ -1,3 +1,4 @@
+import {verifiedRunOutcomes,identitySnapshot} from './reporting-identities.mjs';
 import {rows} from './hosted-store.mjs';
 import {usageSummary} from './workflow-audit.mjs';
 import {countyPresentations} from './county-source-attention.mjs';
@@ -27,7 +28,7 @@ export function verifiedLeadCounts(run,jobs) {
  if(aggregates===1&&verified.length===1&&!unsettled) {
   const c=verified[0].checkpoint.receipt.counts;
   if([c?.actual_new_leads,c?.evidence_updates,c?.actual_processed].every(n=>Number.isInteger(n)&&n>=0)&&c.actual_processed>=c.actual_new_leads+c.evidence_updates)
-   return {added:c.actual_new_leads,updated:c.evidence_updates,unchanged:c.actual_processed-c.actual_new_leads-c.evidence_updates,completeness:'known'};
+   return {added:c.actual_new_leads,updated:c.evidence_updates,unchanged:c.actual_processed-c.actual_new_leads-c.evidence_updates,completeness:'known',identities:false};
  }
  if(!aggregates&&verified.length&&!unsettled)return {added:[...records.values()].filter(r=>r.added).length,updated:[...records.values()].filter(r=>!r.added&&r.updated).length,unchanged:[...records.values()].filter(r=>!r.added&&!r.updated).length,completeness:'known'};
  return {added:null,updated:null,unchanged:null,completeness:'unknown',reason:unsettled?'Run results are not fully verified':'Historical verified identities unavailable'};
@@ -57,6 +58,6 @@ export async function reportSchedules(db,items) {
   if(!s.last_run)return {...s,reporting:{as_of:new Date().toISOString(),last_run:null,latest_occurrence:s.latest_occurrence}};
   const r=s.last_run,requests=new Set(children.filter(c=>c.trigger_id===r.id).map(c=>c.request_id));
   const js=jobs.filter(j=>requests.has(j.search_request_id)).map(j=>({...j,checkpoint:{automatic:j.checkpoint,receipt:j.receipt,reporting_records:j.reporting_records,...(j.records?{county_records:j.records}:{}),stage:j.stage}}));
-  return {...s,reporting:{as_of:new Date().toISOString(),latest_occurrence:s.latest_occurrence,last_run:{...r,...(presentations.get(r.id)?{presentation:presentations.get(r.id)}:{}),leads:verifiedLeadCounts(r,js),categories:verifiedCategoryCounts(r,js),usage:usageSummary(usage.filter(u=>u.trigger_id===r.id))}}};
+  return {...s,reporting:{as_of:new Date().toISOString(),latest_occurrence:s.latest_occurrence,last_run:{...r,identity_snapshot:identitySnapshot(verifiedRunOutcomes(r,js).records),...(presentations.get(r.id)?{presentation:presentations.get(r.id)}:{}),leads:verifiedLeadCounts(r,js),categories:verifiedCategoryCounts(r,js),usage:usageSummary(usage.filter(u=>u.trigger_id===r.id))}}};
  });
 }

@@ -724,3 +724,9 @@
 @media(max-width:760px){ .schedule-run-picker { display:block; } .schedule-run-picker label { width:100%; } }
 
 .catalog .schedule-table td{overflow-wrap:anywhere}.catalog .schedule-table td small{display:block;margin-top:.3rem}.catalog-basis{display:grid;gap:.45rem;padding:1rem 0;border-bottom:1px solid var(--border-color,#e7ddd6);margin-bottom:1rem}.catalog-filters,.catalog-gaps,.catalog-disclosure{margin:1rem 0}.catalog-filters summary,.catalog-gaps summary,.catalog-disclosure summary{cursor:pointer;font-weight:600}.catalog .schedule-filters{display:flex;flex-wrap:wrap;gap:1rem;margin:1rem 0}.catalog .schedule-filters label{display:grid;gap:.4rem;min-width:0;max-width:100%}.catalog .schedule-filters input,.catalog .schedule-filters select{max-width:100%}.catalog .text-button{white-space:normal;overflow-wrap:anywhere;max-width:100%;text-align:left}.catalog h2,.catalog h3{overflow-wrap:anywhere}@media(max-width:600px){.catalog .schedule-filters label{width:100%}.catalog .admin-facts{overflow-wrap:anywhere}}
+
+.metric-link { font: inherit; }
+.metric-issues td, .metric-issues small { overflow-wrap: anywhere; }
+
+.metric-issues .text-button { white-space: normal; overflow-wrap: anywhere; max-width: 100%; min-width: 0; text-align: left; }
+.metric-issues h2 { overflow-wrap: anywhere; }

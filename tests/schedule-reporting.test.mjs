@@ -12,7 +12,7 @@ test('verified lead IDs deduplicate batches; unknown, source-only and aggregate 
  assert.equal(verifiedLeadCounts({config:{check_updates:false}},[]).completeness,'not_applicable');
  assert.equal(verifiedLeadCounts(run,[job([])]).added,0);
  const sam={checkpoint:{automatic:{policy:'sam-automatic-v1'},receipt:{verified:true,counts:{actual_new_leads:2,evidence_updates:1,actual_processed:4}}}};
- assert.deepEqual(verifiedLeadCounts(run,[sam]),{added:2,updated:1,unchanged:1,completeness:'known'});
+ assert.deepEqual(verifiedLeadCounts(run,[sam]),{added:2,updated:1,unchanged:1,completeness:'known',identities:false});
  assert.equal(verifiedLeadCounts(run,[sam,sam]).completeness,'unknown');
  assert.equal(verifiedLeadCounts(run,[job([],{receipt:{verified:false}})]).added,null);
  assert.equal(verifiedLeadCounts(run,[job([]),{state:'pending',checkpoint:{stage:'discovery_capture'}}]).added,null);

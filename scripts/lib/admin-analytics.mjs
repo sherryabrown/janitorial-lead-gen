@@ -1,3 +1,4 @@
+import {reportingCategory as category,outcomeRank as rank,verifiedRunOutcomes as outcomes,identitySnapshot} from './reporting-identities.mjs';
 import {rows,checked} from './hosted-store.mjs';
 import {historyFilters,activityTiming} from './admin-run-history.mjs';
 import {latestOccurrence,nextOccurrence} from './schedule-recurrence.mjs';
@@ -8,8 +9,6 @@ import {hash} from './reviewed-batch.mjs';
 const recurrence={frequency:'daily',timezone:'America/Chicago',local_times:['00:00']};
 const categories=['forecast','opportunity','award'];
 const ctDate=d=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/Chicago',year:'numeric',month:'2-digit',day:'2-digit'}).format(d);
-const category=c=>c==='historical_opportunity'?'opportunity':categories.includes(c)?c:null;
-const rank={unchanged:0,updated:1,added:2};
 const metric=(value,complete,reason)=>({value:complete?value:null,known_subtotal:value,completeness:complete?'known':value?'partial':'unknown',...(complete?{}:{reason})});
 const incomplete='Historical identities or unsettled results are missing; known subtotal only.';
 export function analyticsFilters(input={},now=new Date()){
@@ -18,7 +17,7 @@ export function analyticsFilters(input={},now=new Date()){
  const today=ctDate(new Date(asOf)),start=new Date(today+'T12:00:00Z');start.setUTCDate(start.getUTCDate()-6);
  const f=historyFilters({...input,from:input.from??start.toISOString().slice(0,10),through:input.through??today});
  const all=input.period==='all';
- if(input.period&&!['all','custom'].includes(input.period)||all&&(!f.schedule||f.schedule==='none')||!all&&(!f.from||!f.through)||
+ if(input.period&&!['all','custom'].includes(input.period)||all&&(!f.run&&(!f.schedule||f.schedule==='none'))||!all&&(!f.from||!f.through)||
   !all&&(Date.parse(f.through)-Date.parse(f.from)>366*86400000)||
   input.category&&!categories.includes(input.category)||input.sort&&!['created_at','added','updated','unchanged','activity'].includes(input.sort)||input.direction&&!['asc','desc'].includes(input.direction))throw Error('Invalid analytics filters');
  return {...f,category:input.category??'',period:all?'all':'custom',as_of:asOf,sort:input.sort??'created_at',direction:input.direction??'desc',
@@ -28,41 +27,13 @@ export function analyticsFilters(input={},now=new Date()){
 // Only recognized validation/evidence/identity failures are actionable. Irrelevant,
 // expired and out-of-scope exclusions are not counts of leads needing attention.
 const actionable=/evidence.*(?:required|unproven|did not pass)|no supported.*evidence|no valid response deadline|conflicting|conflicts|identity|canonical.*validation|validation.*did not pass|overlap needs manual review|cannot be silently revived|older .*replace|provenance needs/i;
-function outcomes(run,jobs,selectedCategory){
- const imports=jobs.filter(j=>j.checkpoint?.automatic||j.checkpoint?.stage?.startsWith('import_'));
- const verified=imports.filter(j=>j.checkpoint?.receipt?.verified);
- let complete=imports.length>0&&!imports.some(j=>!j.checkpoint?.receipt?.verified)&&!jobs.some(j=>['pending','running','outcome_unknown'].includes(j.state))&&!['pending','running','outcome_unknown'].includes(run.state),categoryComplete=true;
- if(!imports.length&&jobs.some(j=>j.checkpoint?.stage==='sam_review'&&j.checkpoint.sam_completed===true)&&!jobs.some(j=>['pending','running','outcome_unknown'].includes(j.state))&&!['pending','running','outcome_unknown'].includes(run.state))complete=true;
- const records=new Map(),resolved=new Set();
- for(const j of verified){
-  const c=j.checkpoint,versioned=c.reporting_records?.version===1?c.reporting_records.records:null;
-  const saved=versioned??c.county_records;
-  if(!Array.isArray(saved)){complete=false;categoryComplete=false;continue;}
-  for(const r of saved){
-   const outcome=versioned?r.outcome:r.added?'added':r.updated?'updated':'unchanged';
-   if(typeof r.id!=='string'||!r.id||!(outcome in rank)||!versioned&&(typeof r.added!=='boolean'||typeof r.updated!=='boolean')){complete=false;continue;}
-   for(const id of r.intake_ids??[])resolved.add(id);
-   const prior=records.get(r.id);
-   // Preserve all as-imported classifications for a category transition; a lead
-   // is still counted only once in total and in its highest-precedence outcome.
-   const cats=new Set([...(prior?.categories??[]),...(category(r.category)?[category(r.category)]:[])]);
-   if(!category(r.category))categoryComplete=false;
-   records.set(r.id,{id:r.id,outcome:prior&&rank[prior.outcome]>rank[outcome]?prior.outcome:outcome,categories:cats,
-    historical:prior?.historical||r.category==='historical_opportunity'});
-  }
- }
- if(run.config?.check_updates===false){complete=true;categoryComplete=true;}
- const filtered=[...records.values()].filter(r=>!selectedCategory||r.categories.has(selectedCategory));
- if(selectedCategory&&!categoryComplete)complete=false;
- return {records:filtered,complete,categoryComplete,resolved};
-}
-export function aggregateAnalytics({runs,jobs=[],children=[],usage=[],steps=[],tasks=[],targets=[],intakes=[],timingUnavailable=false},f){
+export function aggregateAnalytics({runs,jobs=[],children=[],usage=[],steps=[],tasks=[],targets=[],intakes=[],timingUnavailable=false},f,collect){
  const uniqueUsage=[...new Map(usage.map(u=>[u.id,u])).values()];
  const inPeriod=value=>Date.parse(value)<=Date.parse(f.as_of)&&(!f.start||Date.parse(value)>=Date.parse(f.start))&&Date.parse(value)<Date.parse(f.end);
  const periodRuns=runs.filter(r=>inPeriod(r.created_at));
  const globalRecords=new Map(),rowsOut=[],sourceIds=new Set(),routeGaps=new Set(),attention=new Set(),validation=new Set();
  let complete=true,categoryComplete=true,attentionComplete=true;
- const durationSamples=[];
+ const durationSamples=[],issueMembers=new Map();
  for(const run of periodRuns){
   const requestIds=new Set(children.filter(c=>c.trigger_id===run.id).map(c=>c.request_id));
   const runJobs=jobs.filter(j=>requestIds.has(j.search_request_id)),result=outcomes(run,runJobs,f.category);
@@ -83,20 +54,22 @@ export function aggregateAnalytics({runs,jobs=[],children=[],usage=[],steps=[],t
   // zero for older/unfinished imports with no persisted disposition evidence.
   if(!result.complete||runJobs.some(j=>j.checkpoint?.receipt?.verified&&!j.checkpoint.automatic))runAttentionComplete=false;
   attentionComplete&&=runAttentionComplete;
-  for(const id of runAttention)attention.add(id);for(const id of runValidation)validation.add(id);
+  for(const id of runAttention){attention.add(id);if(!issueMembers.has('validation:'+id))issueMembers.set('validation:'+id,{id,kind:'validation',run_id:run.id,request_id:runJobs.find(j=>(j.checkpoint?.automatic?.exclusions??j.checkpoint?.sam_exclusions??[]).some(e=>e.intake_id===id))?.search_request_id,blocker:'Saved evidence or identity validation did not pass.',next_action:'Open the saved run results to inspect the validation issue.'});}for(const id of runValidation)validation.add(id);
   const targetIds=new Set(targets.filter(t=>requestIds.has(t.search_request_id)).map(t=>t.id)),runSources=new Set(),runGaps=new Set();
   for(const task of tasks.filter(t=>targetIds.has(t.target_id)&&(!f.category||t.kind===f.category))){
-   if(!sourceAttention(task,runJobs))continue;
+   const detail=sourceAttention(task,runJobs);if(!detail)continue;
+   const target=targets.find(t=>t.id===task.target_id),key=task.source_id?'source:'+task.source_id:'gap:'+`${target?.geography_id??target?.target_key??task.target_id}:${task.kind}`;if(!issueMembers.has(key))issueMembers.set(key,{...detail,id:task.source_id??key,task_id:task.id,kind:task.source_id?'source':'gap',run_id:run.id,request_id:target?.search_request_id});
    if(task.source_id){sourceIds.add(task.source_id);runSources.add(task.source_id);}else{const target=targets.find(t=>t.id===task.target_id),key=`${target?.geography_id??target?.target_key??task.target_id}:${task.kind}`;routeGaps.add(key);runGaps.add(key);}
   }
   const timing=activityTiming(run,steps.filter(s=>s.trigger_id===run.id));
   if(timingUnavailable)timing.reason='Recorded activity unavailable for this selection; view run logs.';
   if(timing.created_to_finished_ms!==null)durationSamples.push(timing.created_to_finished_ms);
-  rowsOut.push({id:run.id,schedule_id:run.schedule_id??null,target_kind:run.target_kind,origin:run.origin,state:run.state,created_at:run.created_at,
+  rowsOut.push({identity_snapshot:identitySnapshot(result.records),id:run.id,schedule_id:run.schedule_id??null,target_kind:run.target_kind,origin:run.origin,state:run.state,created_at:run.created_at,
    leads:Object.fromEntries(Object.entries(counts).map(([k,v])=>[k,run.config?.check_updates===false?{value:null,known_subtotal:0,completeness:'not_applicable',reason:'Source maintenance only'}:metric(v,result.complete,incomplete)])),
    candidates_attention:metric(runAttention.size,runAttentionComplete,'Some candidate dispositions are unavailable.'),sources_attention:runSources.size,route_gaps:runGaps.size,timing});
  }
  const records=[...globalRecords.values()],catCounts={};
+ collect?.({records:records.map(r=>({...r,categories:[...r.categories].sort()})).sort((a,b)=>a.id.localeCompare(b.id)),issues:[...issueMembers.values()].sort((a,b)=>(a.kind+':'+a.id).localeCompare(b.kind+':'+b.id))});
  for(const c of categories)catCounts[c]=metric(records.filter(r=>r.categories.has(c)).length,complete&&categoryComplete,'Some as-imported categories are unavailable.');
  durationSamples.sort((a,b)=>a-b);const n=durationSamples.length;
  const runIds=new Set(runs.map(r=>r.id)),ledger=uniqueUsage.filter(u=>runIds.has(u.trigger_id)&&inPeriod(u.created_at));
@@ -117,9 +90,12 @@ export function aggregateAnalytics({runs,jobs=[],children=[],usage=[],steps=[],t
 // Hard read bounds are explicit failures, never silent truncated aggregates.
 // Each request computes the full filtered selection before paging public rows.
 export function adminAnalytics(db,{now=()=>new Date()}={}){
- return async({limit=25,offset=0,snapshot,...input}={})=>{
+ return async({limit=25,offset=0,snapshot,member_metric,expected,identity_snapshot,...input}={})=>{
+  const memberMetrics=['unique_leads','added','updated','unchanged','forecast','opportunity','award','historical_opportunities','unclassified_known_leads','candidates_attention','validation_failures','sources_attention','route_gaps'];
+  if(member_metric&&!memberMetrics.includes(member_metric)||expected!=null&&(!Number.isInteger(Number(expected))||Number(expected)<0))throw Error('Invalid metric selection');
   if(!Number.isInteger(limit)||limit<1||limit>100||!Number.isInteger(offset)||offset<0||snapshot&&!/^[a-f0-9]{64}$/.test(snapshot))throw Error('Invalid analytics pagination');
   const f=analyticsFilters(input,now());
+  if(identity_snapshot&&(!/^[a-f0-9]{64}$/.test(identity_snapshot)||!f.run))throw Error('Invalid metric identity snapshot');
   const scope=q=>{
    q=q.lte('created_at',f.as_of);if(f.schedule==='none')q=q.is('schedule_id',null);else if(f.schedule)q=q.eq('schedule_id',f.schedule);
    if(f.target)q=q.eq('target_kind',f.target);if(f.origin)q=q.eq('origin',f.origin);if(f.run)q=q.eq('id',f.run);if(f.outcome)q=q.eq('state',f.outcome);
@@ -148,8 +124,18 @@ export function adminAnalytics(db,{now=()=>new Date()}={}){
   const jobs=projected.map(j=>({...j,checkpoint:{automatic:j.a,receipt:j.r,county_records:j.c,reporting_records:j.v,stage:j.s,blocker:j.b,error_code:j.e,hosted_browser_attempt:j.h,task_id:j.t,sam_exclusions:j.sx,sam_completed:j.sc}}));
   const exclusionIds=jobs.flatMap(j=>(j.checkpoint.automatic?.exclusions??j.checkpoint.sam_exclusions??[]).map(e=>e.intake_id)).filter(Boolean);
   const [tasks,intakes]=await Promise.all([batch('procurement_coverage_tasks','target_id',targets.map(t=>t.id),'id,target_id,source_id,kind,state,reason'),batch('procurement_intake_items','id',exclusionIds,'id,status,category:payload->>bid_type')]);
-  const result=aggregateAnalytics({runs,jobs,children,usage,steps:timing.steps,tasks,targets,intakes,timingUnavailable:timing.unavailable},f);
-  const fingerprint=hash(result);if(snapshot&&snapshot!==fingerprint)throw Error('Analytics changed; refresh this report before paging.');
+  let members;
+  const result=aggregateAnalytics({runs,jobs,children,usage,steps:timing.steps,tasks,targets,intakes,timingUnavailable:timing.unavailable},f,value=>{members=value;});
+  const fingerprint=hash({result,members});if(snapshot&&snapshot!==fingerprint)throw Error('Analytics changed; refresh this report before paging.');
+  if(member_metric){
+   if(identity_snapshot&&identity_snapshot!==identitySnapshot(members.records))throw Error('Analytics changed; refresh this report before paging.');
+   const issue=['candidates_attention','validation_failures','sources_attention','route_gaps'].includes(member_metric);
+   const selected=issue?members.issues.filter(i=>i.kind===({candidates_attention:'validation',validation_failures:'validation',sources_attention:'source',route_gaps:'gap'}[member_metric])):members.records.filter(r=>member_metric==='unique_leads'||member_metric==='historical_opportunities'&&r.historical||member_metric==='unclassified_known_leads'&&!r.categories.length||['added','updated','unchanged'].includes(member_metric)&&r.outcome===member_metric||r.categories.includes(member_metric));
+   const descriptor=result.summary.outcomes[member_metric]??result.summary.categories[member_metric]??result.summary[member_metric];
+   const known=typeof descriptor==='number'?descriptor:descriptor?.known_subtotal;
+   if(expected!=null&&Number(expected)!==known)throw Error('Analytics changed; refresh this report before paging.');
+   return {kind:issue?'issues':'leads',metric:member_metric,descriptor,items:selected.slice(offset,offset+limit).map(r=>issue?r:{id:r.id}),total:selected.length,next_offset:offset+limit<selected.length?offset+limit:null,snapshot:fingerprint,as_of:f.as_of,filters:f};
+  }
   const factor=f.direction==='asc'?1:-1;
   result.runs.sort((a,b)=>{const av=f.sort==='activity'?a.timing.recorded_activity_ms:f.sort==='created_at'?a.created_at:a.leads[f.sort].value,bv=f.sort==='activity'?b.timing.recorded_activity_ms:f.sort==='created_at'?b.created_at:b.leads[f.sort].value;return av===null?(bv===null?a.id.localeCompare(b.id):1):bv===null?-1:factor*(av<bv?-1:av>bv?1:a.id.localeCompare(b.id));});
   const items=result.runs.slice(offset,offset+limit),pageIds=new Set(items.map(r=>r.id));

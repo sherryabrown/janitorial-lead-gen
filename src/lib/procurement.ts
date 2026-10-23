@@ -153,6 +153,15 @@ export async function loadProcurementContracts(client: SupabaseClient, filters: 
   };
 }
 
+// Explicit verified report membership; browser JWT/RLS still controls canonical reads.
+export async function loadProcurementMetricLeads(client:SupabaseClient,ids:string[],sourceCache:ReturnType<typeof createProcurementSourceCache>){
+ if(ids.length>50||ids.some(id=>!/^[a-f0-9-]{36}$/i.test(id)))throw Error('Invalid verified lead identities.');
+ const [response,sources]=await Promise.all([ids.length?client.from('procurement_leads').select('*').in('id',ids):Promise.resolve({data:[],error:null}),sourceCache.load(client)]);
+ if(response.error)throw response.error;
+ const rows=response.data as ProcurementLead[],byId=new Map(rows.map(r=>[r.id,r])),sourceById=new Map(sources.map(s=>[s.id,s]));
+ return {contracts:ids.flatMap(id=>{const row=byId.get(id);return row?[mapProcurementLead(row,sourceById.get(row.source_id??''))]:[];}),sources:sources.map(mapProcurementSource),unavailable:ids.length-rows.length};
+}
+
 export async function loadProcurementLeadDetail(client: SupabaseClient, id: string) {
   const { data, error } = await client.from('procurement_leads').select('*').eq('id', id).single();
   if (error) throw error;
