@@ -1,4 +1,6 @@
-import {useEffect,useRef,useState} from 'react';
+import {Breadcrumb} from './Breadcrumb';
+import {BreadcrumbParents} from './breadcrumb-context';
+import {useContext,useEffect,useRef,useState} from 'react';
 import {workflowRequest} from '../../lib/procurement-workflow';
 import {ReadAction} from './ReadAction';
 import {useOwnedRead} from './read-owner';
@@ -14,6 +16,7 @@ const label=(value:string)=>({verified_method:'Verified method',method_blocked:'
 const dated=(value:string|null|undefined)=>value?formatLocal(value):'Unknown';
 const safeLink=(url:string|null)=>{try{const u=new URL(url??'');return u.protocol==='https:'&&!u.username&&!u.password&&!u.search?u.href:null;}catch{return null;}};
 export function Catalog({mode,owner,counties=[],scheduleId,sourceId,geographyId,onSource,onGeography,onState,active=true}:{mode:'sources'|'geography';owner:string;counties?:County[];scheduleId?:string;sourceId?:string;geographyId?:string;onSource?:(id?:string)=>void;onGeography?:(id?:string)=>void;onState?:()=>void;active?:boolean}){
+ const parents=useContext(BreadcrumbParents);
  const storage=`spin-admin-catalog-filter:${owner}:${scheduleId??'global'}:${mode}`;
  const [query,setQuery]=useState(()=>{try{return sessionStorage.getItem(storage)??'';}catch{return '';}}),[pageRecord,setPageRecord]=useState<{key:string;value:Result}|null>(null),[detailRecord,setDetailRecord]=useState<{key:string;value:Result}|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(true),[revision,setRevision]=useState(0);
  const [localSelection,setLocalSelection]=useState<string|undefined>(()=>{try{return sessionStorage.getItem(storage+':selection')??undefined;}catch{return undefined;}});
@@ -40,7 +43,7 @@ export function Catalog({mode,owner,counties=[],scheduleId,sourceId,geographyId,
  <label>Sort by<select aria-label="Sort by" value={params.get('sort')??'name'} onChange={e=>update('sort',e.target.value)}><option value="name">Name</option><option value="kind">Type</option>{mode==='sources'&&<option value="readiness">Readiness</option>}</select></label><label>Order<select aria-label="Order" value={params.get('direction')??'asc'} onChange={e=>update('direction',e.target.value)}><option value="asc">Ascending</option><option value="desc">Descending</option></select></label></>;
  return <section className="admin-section catalog" aria-label={mode==='sources'?'Registered sources':'Geography catalog'}>
   {!selected&&<Heading>{mode==='sources'?'Sources by geography':'Related geography'}</Heading>}
-  {selected&&<><button className="text-button" type="button" onClick={()=>choose()}>Back to {mode==='sources'?'registered sources':'geography'}</button><Heading ref={heading} tabIndex={-1}>{source?.name??g?.name??'Saved selection'}</Heading></>}
+  {selected&&<><Breadcrumb items={[...(parents.length?[]:[{label:'Settings'}]),{label:mode==='sources'?'Sources by geography':'Related geography',ariaLabel:mode==='sources'?'Back to registered sources':'Back to geography',onClick:()=>choose()},{label:source?.name??g?.name??selected}]}/><Heading ref={heading} tabIndex={-1}>{source?.name??g?.name??'Saved selection'}</Heading></>}
   {!owned&&<ReadAction scope={mode==='sources'?'sources':'geography'} busy={busy} error={!!error} loaded={!!value} onRead={()=>setRevision(n=>n+1)}/>}
   {error&&<p role="alert">{error}</p>}
   <small>{value?.basis??'Current registry'}{value?.as_of&&` · ${formatLocal(value.as_of)}`}</small>

@@ -29,8 +29,8 @@ it('filters full server history, paginates and ignores late pages after a filter
 });
 it('preserves independent history panels and immutable occurrence scope when an endpoint fails',async()=>{
  mocked.request.mockImplementation(async(path:string)=>{if(path.endsWith('/events'))throw Error('private exception');return {items:[{id:'occ',state:'skipped',reason:'previous_run_active',due_at:run.created_at,version:1,config:{target_kind:'county_scope',county_ids:['05125'],counties:[{name:'Original saved scope'}]}}],next_offset:null};});
- render(<ScheduleHistory id="schedule" onView={()=>{}}/>);
- await screen.findByText('Skipped');expect(screen.getByText(/Loaded records remain available/)).toBeTruthy();
+ render(<ScheduleHistory mode="occurrences" id="schedule" onView={()=>{}}/>);
+ await screen.findByText('Skipped');expect(screen.queryByText(/Loaded records remain available/)).toBeNull();expect(mocked.request.mock.calls.some(([p])=>p.endsWith('/events'))).toBe(false);
  fireEvent.click(screen.getByText('Occurrence snapshot · version 1'));expect(screen.getByText('Original saved scope')).toBeTruthy();
  expect(screen.queryByRole('button',{name:'View run'})).toBeNull();expect(screen.queryByText('private exception')).toBeNull();
 });
@@ -43,8 +43,8 @@ it('provides all detail sections, saved geography, honest metrics and archived c
  fireEvent.click(within(nav).getByRole('tab',{name:'Related geography'}));expect(screen.getByText('Benton')).toBeTruthy();
  fireEvent.click(within(nav).getByRole('tab',{name:'Sources'}));expect(screen.getByRole('heading',{name:'Saved run evidence'})).toBeTruthy();
  fireEvent.click(within(nav).getByRole('tab',{name:'Logs'}));expect(screen.getByRole('heading',{name:'Run logs'})).toBeTruthy();
- fireEvent.click(within(nav).getByRole('tab',{name:'Overview'}));const runs=screen.getByRole('region',{name:'Schedule runs'});await within(runs).findByRole('button',{name:/Oct 20/});fireEvent.click(within(runs).getByRole('button',{name:/Oct 20/}));expect(view).toHaveBeenCalledWith('run','overview');
- fireEvent.click(within(nav).getByRole('tab',{name:'Overview'}));expect(screen.getByRole('heading',{name:'Schedule settings'})).toBeTruthy();expect(screen.queryByText('Latest run · validated outcomes')).toBeNull();
+ fireEvent.click(within(nav).getByRole('tab',{name:'Overview'}));const runs=screen.getByRole('region',{name:'Schedule runs'});await within(runs).findByRole('button',{name:'Run run'});fireEvent.click(within(runs).getByRole('button',{name:'Run run'}));expect(view).toHaveBeenCalledWith('run','overview');
+ fireEvent.click(within(nav).getByRole('tab',{name:'Overview'}));expect(screen.getByText('Schedule setup').closest('details')?.open).toBe(false);expect(screen.queryByText('Latest run · validated outcomes')).toBeNull();
 });
 it('keeps run progress visible when logs fail, retries reads and renders diagnostic references safely',async()=>{
  let failed=true;
@@ -53,7 +53,7 @@ it('keeps run progress visible when logs fail, retries reads and renders diagnos
   return run;
  });
  render(<RunDetail id="run" owner="owner" onClose={()=>{}} onViewLeads={()=>{}} onSource={()=>{}} changed={()=>{}}/>);
- await screen.findByRole('heading',{name:'Completed'});expect(screen.getByText(/Step logs could not load/)).toBeTruthy();
+ await screen.findByRole('heading',{name:/Run run/});expect(screen.getByText(/Step logs could not load/)).toBeTruthy();
  failed=false;fireEvent.click(screen.getByRole('button',{name:'Retry run'}));fireEvent.click(screen.getByRole('button',{name:'Logs'}));
  await screen.findByText('reference-id');expect(screen.getByText(/<script>unsafe/)).toBeTruthy();expect(document.querySelector('script')).toBeNull();
  expect(screen.getByText(/Finish unknown/)).toBeTruthy();expect(mocked.request.mock.calls.every(([,o])=>!o?.body)).toBe(true);
@@ -87,8 +87,8 @@ it('retries failed metadata independently of loaded step logs',async()=>{
 });
 it('retains loaded history and retries a failed next page once without duplicate rows',async()=>{
  let fail=true;mocked.request.mockImplementation(async(path:string)=>{if(path.includes('offset=50')){if(fail)throw Error('Next page failed');return {items:[run,{...run,id:'other',created_at:'2026-10-21T12:00:00Z'}],next_offset:null,total:2};}return {items:[run],next_offset:50,total:2};});
- render(<RunHistory scheduleId="schedule" onView={()=>{}}/>);await screen.findByRole('button',{name:/Oct 20/});fireEvent.click(screen.getByRole('button',{name:'More runs'}));await screen.findByRole('button',{name:'Retry history'});
- expect(screen.getAllByRole('row')).toHaveLength(2);fail=false;fireEvent.click(screen.getByRole('button',{name:'Retry history'}));await screen.findByRole('button',{name:/Oct 21/});expect(screen.getAllByRole('row')).toHaveLength(3);
+ render(<RunHistory scheduleId="schedule" onView={()=>{}}/>);await screen.findByRole('button',{name:'Run run'});fireEvent.click(screen.getByRole('button',{name:'More runs'}));await screen.findByRole('button',{name:'Retry history'});
+ expect(screen.getAllByRole('row')).toHaveLength(2);fail=false;fireEvent.click(screen.getByRole('button',{name:'Retry history'}));await screen.findByRole('button',{name:'Run other'});expect(screen.getAllByRole('row')).toHaveLength(3);
 });
 
 it('replaces run tabs without losing the originating history entry',async()=>{
@@ -110,6 +110,6 @@ it('keeps saved progress but stops active polling after session expiry',async()=
  vi.useFakeTimers();let reads=0;
  mocked.request.mockImplementation(async(path:string)=>{if(path.endsWith('/steps'))return {items:[],next_cursor:null};if(++reads>1)throw Object.assign(Error('Sign in again'),{code:'SESSION'});return {...run,state:'running'};});
  render(<RunDetail id="run" owner="owner" section="logs" onClose={()=>{}} onViewLeads={()=>{}} onSource={()=>{}} changed={()=>{}}/>);
- await act(async()=>{});await act(async()=>{await vi.advanceTimersByTimeAsync(3000);});expect(screen.getByText('Sign in again')).toBeTruthy();expect(screen.getByRole('heading',{name:'Running'})).toBeTruthy();
+ await act(async()=>{});await act(async()=>{await vi.advanceTimersByTimeAsync(3000);});expect(screen.getByText('Sign in again')).toBeTruthy();expect(screen.getByRole('heading',{name:/Run run/})).toBeTruthy();fireEvent.click(screen.getByText('Run attributes'));expect(screen.getByText('Running')).toBeTruthy();
  await act(async()=>{await vi.advanceTimersByTimeAsync(30000);});expect(reads).toBe(2);expect(mocked.request.mock.calls.every(([,o])=>!o?.body)).toBe(true);
 });

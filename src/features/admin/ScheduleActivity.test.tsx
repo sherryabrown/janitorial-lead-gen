@@ -41,7 +41,7 @@ it.each(['county_scope','state_source','sam'])('shows actual selected logs and e
 });
 it('keeps the chosen run and written review across tabs and a newer run arriving',async()=>{
  fixture('sources');fireEvent.click(await screen.findByRole('checkbox',{name:/Cleaning opportunity/}));fireEvent.change(screen.getByLabelText('Reason for processing reviewed candidates'),{target:{value:'Keep my review'}});
- tab('Logs');await screen.findByText('Collect');tab('History');await screen.findByRole('heading',{name:'Occurrences'});tab('Sources');expect(screen.getByLabelText('Reason for processing reviewed candidates')).toHaveProperty('value','Keep my review');
+ tab('Logs');await screen.findByText('Collect');tab('History');await screen.findByRole('heading',{name:'Schedule changes'});tab('Sources');expect(screen.getByLabelText('Reason for processing reviewed candidates')).toHaveProperty('value','Keep my review');
  const original=mock.request.getMockImplementation()!;mock.request.mockImplementation((p,o)=>p.startsWith('/v1/admin/history')?Promise.resolve({items:[{...run,id:'newer',created_at:'2026-10-23T14:00:00Z'},run],next_offset:null}):original(p,o));
  fireEvent.click(await screen.findByRole('button',{name:'Refresh schedule'}));await screen.findByRole('option',{name:/Oct 23/});expect(screen.getByLabelText('Run')).toHaveProperty('value','newest');expect(screen.getByLabelText('Reason for processing reviewed candidates')).toHaveProperty('value','Keep my review');
 });
@@ -53,11 +53,12 @@ it('does not render foreign or missing run data and requires an explicit safe se
 it('offers no fabricated selector for a never-run schedule',async()=>{
  const original=mock.request.getMockImplementation()!;mock.request.mockImplementation((p,o)=>p.startsWith('/v1/admin/history')?Promise.resolve({items:[],next_offset:null}):original(p,o));fixture('logs');await screen.findByText('No runs yet.');expect(screen.queryByLabelText('Run')).toBeNull();expect(screen.queryByRole('table',{name:/Run step logs/})).toBeNull();
 });
-it('retries only failed schedule changes and retains occurrences and immutable snapshots',async()=>{
+it('keeps configuration history separate from execution attempts and retries only failed audit reads',async()=>{
  const original=mock.request.getMockImplementation()!;let fail=true;
- mock.request.mockImplementation((p,o)=>p.includes('/occurrences')?Promise.resolve({items:[{id:'occ',state:'skipped',due_at:run.created_at,version:1,config:base.config}],next_offset:null}):p.includes('/events')?fail?Promise.reject(Error('private error')):Promise.resolve({items:[],next_offset:null}):original(p,o));
- fixture('history');await screen.findByText('Skipped');await screen.findByRole('button',{name:'Retry schedule'});const before=mock.request.mock.calls.filter(([p])=>p.includes('/occurrences')).length;
- fail=false;fireEvent.click(screen.getByRole('button',{name:'Retry schedule'}));await screen.findByRole('button',{name:'Refresh schedule'});expect(screen.getByText('Skipped')).toBeTruthy();expect(mock.request.mock.calls.filter(([p])=>p.includes('/occurrences'))).toHaveLength(before);expect(screen.queryByText('private error')).toBeNull();
+ mock.request.mockImplementation((p,o)=>p.includes('/events')?fail?Promise.reject(Error('private error')):Promise.resolve({items:[{id:'e',action:'pause',version:3,at:run.created_at}],next_offset:null}):original(p,o));
+ fixture('history');await screen.findByRole('button',{name:'Retry schedule'});expect(mock.request.mock.calls.some(([p])=>p.includes('/occurrences'))).toBe(false);
+ fail=false;fireEvent.click(screen.getByRole('button',{name:'Retry schedule'}));await screen.findByText('Pause');expect(screen.queryByText('private error')).toBeNull();
+ tab('Overview');fireEvent.click(screen.getByText('Execution attempts and skipped runs'));await screen.findByText('No saved occurrences.');
 });
 it('selects older paged runs and restores the owner-scoped selected identity after remount',async()=>{
  const original=mock.request.getMockImplementation()!;
@@ -68,7 +69,7 @@ it('selects older paged runs and restores the owner-scoped selected identity aft
 it('aborts a late selected run response instead of showing evidence for an earlier choice',async()=>{
  const original=mock.request.getMockImplementation()!;let resolve!:(r:Run)=>void;
  mock.request.mockImplementation((p,o)=>p.startsWith('/v1/admin/history')?Promise.resolve({items:[run,{...run,id:'older'}],next_offset:null}):p==='/v1/triggers/newest'?new Promise(r=>{resolve=r;}):original(p,o));
- fixture('logs');await screen.findByLabelText('Run');await waitFor(()=>expect(resolve).toBeTypeOf('function'));fireEvent.change(screen.getByLabelText('Run'),{target:{value:'older'}});await screen.findByText(/Run older/);await act(async()=>resolve(run));expect(screen.queryByText(/Run newest/)).toBeNull();
+ fixture('logs');await screen.findByLabelText('Run');await waitFor(()=>expect(resolve).toBeTypeOf('function'));fireEvent.change(screen.getByLabelText('Run'),{target:{value:'older'}});await screen.findByRole('heading',{name:/Run older/});await act(async()=>resolve(run));expect(screen.queryByRole('heading',{name:/Run newest/})).toBeNull();
 });
 
 it('keeps Overview runs when totals fail and retries only totals',async()=>{
@@ -92,8 +93,8 @@ it('does not display a status response that belongs to a different schedule',asy
 it('retries only a failed occurrence page and preserves both history datasets',async()=>{
  const original=mock.request.getMockImplementation()!;let fail=true;const occurrence={id:'one',state:'skipped',due_at:run.created_at,version:1,config:base.config};
  mock.request.mockImplementation((p,o)=>p.includes('/occurrences')?p.includes('offset=50')?fail?Promise.reject(Error('Page unavailable')):Promise.resolve({items:[occurrence,{...occurrence,id:'two',state:'queued'}],next_offset:null}):Promise.resolve({items:[occurrence],next_offset:50}):p.includes('/events')?Promise.resolve({items:[{id:'event',action:'update',version:2,at:run.created_at}],next_offset:null}):original(p,o));
- fixture('history');fireEvent.click(await screen.findByRole('button',{name:'More occurrences'}));await screen.findByRole('button',{name:'Retry schedule'});const events=mock.request.mock.calls.filter(([p])=>p.includes('/events')).length;
- fail=false;fireEvent.click(screen.getByRole('button',{name:'Retry schedule'}));await screen.findByText('Queued');expect(within(screen.getByRole('table',{name:'Schedule occurrences'})).getAllByRole('row')).toHaveLength(3);expect(mock.request.mock.calls.filter(([p])=>p.includes('/events'))).toHaveLength(events);expect(screen.getByRole('table',{name:'Schedule changes'})).toBeTruthy();
+ fixture('overview');fireEvent.click(screen.getByText('Execution attempts and skipped runs'));fireEvent.click(await screen.findByRole('button',{name:'More occurrences'}));await screen.findByRole('button',{name:'Retry schedule'});const events=mock.request.mock.calls.filter(([p])=>p.includes('/events')).length;
+ fail=false;fireEvent.click(screen.getByRole('button',{name:'Retry schedule'}));await screen.findByText('Queued');expect(within(screen.getByRole('table',{name:'Schedule occurrences'})).getAllByRole('row')).toHaveLength(3);expect(mock.request.mock.calls.filter(([p])=>p.includes('/events'))).toHaveLength(events);tab('History');await screen.findByRole('table',{name:'Schedule changes'});
 });
 
 it('loads source evidence only when Sources is opened and retains it when returning from Logs',async()=>{

@@ -66,7 +66,7 @@ Processing & attention / AI usage / Timing [concise existing accurate measures]
 ## Build plans
 
 1. [05A — Audit and exact lead drilldowns](../done/05A-schedule-audit-and-lead-drilldowns.md): additive backend/native verification plus real Leads destination.
-2. [05B — Schedule and run details](05B-schedule-and-run-detail-clarity.md): breadcrumbs, compact totals, collapsed attributes/setup, changes history and sources/Issues tables.
+2. [05B — Schedule and run details](../done/05B-schedule-and-run-detail-clarity.md): breadcrumbs, compact totals, collapsed attributes/setup, changes history and sources/Issues tables.
 3. [05C — History Submit and analytics overview](05C-history-submit-and-analytics-overview.md): global query ownership, screenshot-style Stats and integrated acceptance.
 
 Each child is buildable after its declared dependencies and must leave working screens without stubs. Phase 6 must include these accepted amendments before final parent completion. Use read-only real-data checks and disposable native fixtures; release authority is separate. No deployment to Netlify production.

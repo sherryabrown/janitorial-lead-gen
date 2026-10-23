@@ -1,3 +1,6 @@
+import type {AdminContext} from './navigation';
+import {runBreadcrumbs} from './run-breadcrumbs';
+import {Breadcrumb} from './Breadcrumb';
 import {RunLeadCount} from './MetricLink';
 import {useOwnedRead} from './read-owner';
 import {ReadAction} from './ReadAction';
@@ -7,11 +10,12 @@ import { RequestReview } from './RequestReview';
 import {RunStepLog} from './RunStepLog';
 import {duration,readFailure} from './model';
 import type { Run, Step } from './types';
-import { activeRun, title, usageText, formatLocal, runLabel, hasSourceAttention } from './model';
+import { activeRun, title, usageText, formatLocal, runLabel } from './model';
 function savedLogPage(owner:string,id:string){try{const n=Number(sessionStorage.getItem(`spin-admin-log-page:${owner}:${id}`));return Number.isInteger(n)&&n>0&&n<=5000?n:0;}catch{return 0;}}
 export function RunDetail({
   id,
   issueRequestId,
+  origin,onNavigate,
   owner,
   onClose,
   onViewLeads,
@@ -21,6 +25,7 @@ export function RunDetail({
 }: {
   id: string;
   issueRequestId?:string;
+  origin?:AdminContext;onNavigate?:(context:AdminContext)=>void;
   owner: string;
   onClose: () => void;
   onViewLeads: () => void;
@@ -43,6 +48,8 @@ export function RunDetail({
   const section=requestedSection??localSection;
   const [resultsVisited,setResultsVisited]=useState(!embedded||section!=='logs');
   useEffect(()=>{if(!embedded||section!=='logs')setResultsVisited(true);},[embedded,section]);
+  const attributes=useRef<HTMLDetailsElement>(null);
+  useEffect(()=>{if(attributes.current)attributes.current.open=false;},[id]);
   const heading=useRef<HTMLHeadingElement>(null),lastId=useRef(''),loadedSteps=useRef(50);
   const changedRef = useRef(changed),
     pageGeneration = useRef(0),
@@ -154,13 +161,12 @@ export function RunDetail({
       aria-label="Run details"
       tabIndex={-1}
     >
-      {!embedded&&<div className={`admin-section-heading${run && hasSourceAttention(run) ? ' has-source-attention' : ''}`}>
-        <h2 ref={heading} tabIndex={-1}>{run ? runLabel(run) : statusError?'Run progress unavailable':'Loading run…'}</h2>
-        <button type="button" className="text-button" onClick={onClose}>
-          Back to previous view
-        </button>
-      </div>}
-      {run&&<small className="run-history-caption">{run.schedule_name??(run.schedule_id?'Saved schedule':'Standalone')} · Run {run.id} · {formatLocal(run.created_at)} · {title(run.origin)}{embedded?` · ${runLabel(run)}`:""}</small>}
+      <Breadcrumb items={[...(origin?runBreadcrumbs(origin,run,onNavigate):(embedded?[]:[{label:'Settings'},{label:'Runs'}])),{label:`Run ${id}`},{label:section==='overview'?'Issues':title(section)}]}/>
+      <div className="admin-section-heading run-detail-heading">
+        {embedded?<h4>Run {id} · {run?formatLocal(run.created_at):'Created time unavailable'}</h4>:<h2 ref={heading} tabIndex={-1}>Run {id} · {run?formatLocal(run.created_at):'Created time unavailable'}</h2>}
+        {!embedded&&<button type="button" className="text-button" onClick={onClose}>Back to previous view</button>}
+      </div>
+      <small className="run-history-caption">Created time · America/Chicago</small>
       {error && (
         <p className="admin-error" role="alert">
           {error}
@@ -168,41 +174,7 @@ export function RunDetail({
       )}
       {!owned&&<ReadAction scope="run" busy={readBusy||(section!=='logs'&&resultsRead.busy)} loaded={!!run||steps.length>0} error={!!statusError||!!logsError||(section!=='logs'&&!!resultsRead.error)} onRead={read}/>}
       {statusError&&<p role="alert">{statusError}</p>}{logsError&&<p role="alert">{logsError}</p>}
-          {!embedded&&<nav className="admin-workspace-nav detail-sections" aria-label="Run sections">{(['overview','logs','sources'] as const).map(value=><button key={value} type="button" className="text-button" aria-current={section===value?'page':undefined} onClick={()=>{setLocalSection(value);onSection?.(value);}}>{title(value)}</button>)}</nav>}
-      {run && (
-        <>
-          <div hidden={section!=='overview'}><dl className="admin-facts"><dt>Next action</dt><dd>{run.next_action}</dd><dt>Origin</dt><dd>{title(run.origin)}</dd><dt>Created</dt><dd>{formatLocal(run.created_at)}</dd><dt>Finished</dt><dd>{run.finished_at?formatLocal(run.finished_at):'Unknown'}</dd><dt>Recorded activity</dt><dd>{duration(run.reporting?.timing?.recorded_activity_ms)}{run.reporting?.timing?.completeness==='partial'?' · partial intervals':''}{run.reporting?.timing?.reason&&<small>{run.reporting.timing.reason}</small>}</dd><dt>Created → finished</dt><dd>{duration(run.reporting?.timing?.created_to_finished_ms)}</dd><dt>AI usage</dt><dd>{usageText(run.usage)}</dd><dt>New / updated / unchanged</dt><dd>{run.reporting?.leads?.completeness==='known'?<>{(['added','updated','unchanged'] as const).map(k=><span key={k}><RunLeadCount id={run.id} snapshot={run.reporting?.identity_snapshot} metric={k} value={run.reporting?.leads?.[k]} identity={run.reporting?.leads?.identities!==false}>{run.reporting?.leads?.[k]} {k==='added'?'new':k}</RunLeadCount>{' '}</span>)}</>:run.reporting?.leads?.completeness==='not_applicable'?'Not applicable':'Unknown'}</dd><dt>Category breakdown</dt><dd>{run.reporting?.categories?.completeness==='known'?<>{(['forecast','opportunity','award'] as const).map(k=><span key={k}><RunLeadCount id={run.id} snapshot={run.reporting?.identity_snapshot} metric={k} value={run.reporting?.categories?.[k]}>{run.reporting?.categories?.[k]} {k}</RunLeadCount>{' '}</span>)}(<RunLeadCount id={run.id} snapshot={run.reporting?.identity_snapshot} metric="historical_opportunities" value={run.reporting.categories.historical_opportunity}>{run.reporting.categories.historical_opportunity??'Unknown'} historical</RunLeadCount>)</>:run.reporting?.categories?.reason??'Historical category attribution unavailable'}</dd><dt>Validation issues</dt><dd>{run.reporting?.candidates_attention?.value!=null?<RunLeadCount id={run.id} snapshot={run.reporting.identity_snapshot} metric="candidates_attention" value={run.reporting.candidates_attention.value}/>: 'Unknown · inspect saved validation issues'}</dd><dt>Source checks needing attention</dt><dd>{run.presentation?.outcome==='source_attention'?<button type="button" className="text-button" onClick={()=>{setLocalSection('sources');onSection?.('sources');}}>{run.presentation.attention_count} · View saved source checks</button>:'See saved source checks'}</dd></dl></div>
-
-          <div className="admin-inline">
-            {activeRun(run.state) && (
-              <button
-                type="button"
-                className="secondary-button compact"
-                disabled={busy}
-                onClick={() => void control('cancel')}
-              >
-                Stop run
-              </button>
-            )}
-            {['cancelled', 'partial'].includes(run.state) && (
-              <button
-                type="button"
-                className="secondary-button compact"
-                disabled={busy}
-                onClick={() => void control('resume')}
-              >
-                Resume run
-              </button>
-            )}
-            <button
-              type="button"
-              className="text-button"
-              onClick={onViewLeads}
-            >
-              View leads
-            </button>
-          </div>
-          <div hidden={section!=='overview'}><details>
+      {run&&<>          <details ref={attributes} className="run-attributes"><summary>Run attributes</summary><dl className="admin-facts"><dt>Status</dt><dd>{runLabel(run)}</dd><dt>Next action</dt><dd>{run.next_action}</dd><dt>Origin</dt><dd>{title(run.origin)}</dd><dt>Created</dt><dd>{formatLocal(run.created_at)}</dd><dt>Finished</dt><dd>{run.finished_at?formatLocal(run.finished_at):'Unknown'}</dd><dt>Recorded activity</dt><dd>{duration(run.reporting?.timing?.recorded_activity_ms)}{run.reporting?.timing?.completeness==='partial'?' · partial intervals':''}{run.reporting?.timing?.reason&&<small>{run.reporting.timing.reason}</small>}</dd><dt>Created → finished</dt><dd>{duration(run.reporting?.timing?.created_to_finished_ms)}</dd><dt>AI usage</dt><dd>{usageText(run.usage)}</dd><dt>New / updated / unchanged</dt><dd>{run.reporting?.leads?.completeness==='known'?<>{(['added','updated','unchanged'] as const).map(k=><span key={k}><RunLeadCount id={run.id} snapshot={run.reporting?.identity_snapshot} metric={k} value={run.reporting?.leads?.[k]} identity={run.reporting?.leads?.identities!==false}>{run.reporting?.leads?.[k]} {k==='added'?'new':k}</RunLeadCount>{' '}</span>)}</>:run.reporting?.leads?.completeness==='not_applicable'?'Not applicable':'Unknown'}</dd><dt>Category breakdown</dt><dd>{run.reporting?.categories?.completeness==='known'?<>{(['forecast','opportunity','award'] as const).map(k=><span key={k}><RunLeadCount id={run.id} snapshot={run.reporting?.identity_snapshot} metric={k} value={run.reporting?.categories?.[k]}>{run.reporting?.categories?.[k]} {k}</RunLeadCount>{' '}</span>)}(<RunLeadCount id={run.id} snapshot={run.reporting?.identity_snapshot} metric="historical_opportunities" value={run.reporting.categories.historical_opportunity}>{run.reporting.categories.historical_opportunity??'Unknown'} historical</RunLeadCount>)</>:run.reporting?.categories?.reason??'Historical category attribution unavailable'}</dd><dt>Validation issues</dt><dd>{run.reporting?.candidates_attention?.value!=null?<RunLeadCount id={run.id} snapshot={run.reporting.identity_snapshot} metric="candidates_attention" value={run.reporting.candidates_attention.value}/>: 'Unknown · inspect saved validation issues'}</dd><dt>Source checks needing attention</dt><dd>{run.presentation?.outcome==='source_attention'?<button type="button" className="text-button" onClick={()=>{setLocalSection('sources');onSection?.('sources');}}>{run.presentation.attention_count} · View saved source checks</button>:'See saved source checks'}</dd></dl>          <details>
             <summary>
               Saved scope ·{' '}
               {run.config?.target_kind === 'sam'
@@ -240,7 +212,43 @@ export function RunDetail({
               ))}
             </details>
           )}
-          </div><div hidden={section==='logs'}><label className="input-field">
+          </details></>}
+          {!embedded&&<nav className="admin-workspace-nav detail-sections" aria-label="Run sections">{(['overview','logs','sources'] as const).map(value=><button key={value} type="button" className="text-button" aria-current={section===value?'page':undefined} onClick={()=>{setLocalSection(value);onSection?.(value);}}>{value==='overview'?'Issues':title(value)}</button>)}</nav>}
+      {run && (
+        <>
+
+
+          {section==='overview'&&<section className="run-issue-status" aria-label="Execution status"><h3>Execution</h3><strong>{runLabel(run)}</strong><span>{run.next_action??(activeRun(run.state)?'Work is still in progress.':'Inspect saved source and validation results below; absence of issues does not confirm complete coverage.')}</span></section>}
+          <div className="admin-inline">
+            {activeRun(run.state) && (
+              <button
+                type="button"
+                className="secondary-button compact"
+                disabled={busy}
+                onClick={() => void control('cancel')}
+              >
+                Stop run
+              </button>
+            )}
+            {['cancelled', 'partial'].includes(run.state) && (
+              <button
+                type="button"
+                className="secondary-button compact"
+                disabled={busy}
+                onClick={() => void control('resume')}
+              >
+                Resume run
+              </button>
+            )}
+            <button
+              type="button"
+              className="text-button"
+              onClick={onViewLeads}
+            >
+              View leads
+            </button>
+          </div>
+<div hidden={section==='logs'}><label className="input-field">
             <span>
               {run.target_kind === 'sam'
                 ? 'SAM results'
@@ -262,6 +270,7 @@ export function RunDetail({
             <RequestReview
               key={child}
               embedded
+              presentation={section==='sources'?'sources':'issues'}
               leadNavigationOwned={embedded}
               onReadState={resultsState}
               refreshSignal={`${run.state}:${resultRevision}`}

@@ -19,15 +19,21 @@ const amount=(m:Metric)=>m.completeness==='not_applicable'?'Not applicable':m.va
 const money=(n:number)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:4}).format(n);
 export function AnalyticsSummary({report,compact=false}:{report:AnalyticsReport;compact?:boolean}){
  const s=report.summary;
- const linked=(metric:string,m:Metric|number)=>{const n=typeof m==='number'?m:m.completeness==='not_applicable'?null:m.value??(m.known_subtotal>0?m.known_subtotal:null);return <MetricLink scope={{metric,label:`${compact?'Schedule totals':'Report'} · ${metricLabels[metric]} · ${compact?'All-time':report.filters.from+' to '+report.filters.through}`,filters:{...report.filters,as_of:report.as_of,snapshot:report.snapshot}}} value={n}>{typeof m==='number'?m:amount(m)}</MetricLink>;};
+ const linked=(metric:string,m:Metric|number|undefined)=>{if(m==null)return <>Unknown</>;const n=typeof m==='number'?m:m.completeness==='not_applicable'?null:m.value??(m.known_subtotal>0?m.known_subtotal:null);return <MetricLink scope={{metric,label:`${compact?'Schedule totals':'Report'} · ${metricLabels[metric]} · ${compact?'All-time':report.filters.from+' to '+report.filters.through}`,filters:{...report.filters,as_of:report.as_of,snapshot:report.snapshot}}} value={n}>{typeof m==='number'?m:amount(m)}</MetricLink>;};
  return <section className="analytics-summary" aria-label="Validated result metrics">
   <h3>{compact?'All-time available results':'Validated results'} <InfoTooltip label="About lead metrics">Distinct verified lead IDs. New takes precedence over updated, then unchanged. Category totals can overlap when a lead changes category. Unknown values show only the known subtotal.</InfoTooltip></h3>
+  {compact?<>
+   <dl className="schedule-facts analytics-facts compact-result-metrics">{(['added','updated','unchanged'] as const).map(k=><div key={k}><dt>{k==='added'?'New leads':k==='updated'?'Updated leads':'Unchanged matches'}</dt><dd>{linked(k,s.outcomes[k])}</dd></div>)}<div><dt>Validation issues</dt><dd>{linked('candidates_attention',s.candidates_attention)}</dd></div></dl>
+   <div className="result-category-links">{(['forecast','opportunity','award'] as const).map(k=><span key={k}>{title(k)} {linked(k,s.categories[k])}</span>)}<InfoTooltip label="About category totals">Categories may overlap across runs. Distinct lead IDs; not additional leads.</InfoTooltip></div>
+   <div className="result-issue-metrics"><span>Source collection issues {linked('sources_attention',s.sources_attention)}</span><span>Unmapped routes {linked('route_gaps',s.route_gaps)}</span><span>Validation failures {linked('validation_failures',s.validation_failures)} <InfoTooltip label="About validation issues">Failures are a subset of validation issues. Source issues and route gaps are separate; do not add these counts together.</InfoTooltip></span></div>
+   <details><summary>Distinct totals and coverage</summary><div>Distinct leads {linked('unique_leads',s.unique_leads)}</div><div>Historical opportunities {linked('historical_opportunities',s.historical_opportunities)}</div><div>Unclassified known leads {linked('unclassified_known_leads',s.unclassified_known_leads)}</div></details>
+  </>:<>
   <dl className="schedule-facts analytics-facts">
    <div><dt>Distinct leads</dt><dd>{linked('unique_leads',s.unique_leads)}</dd></div>
    {(['added','updated','unchanged'] as const).map(k=><div key={k}><dt>{k==='added'?'New leads':k==='updated'?'Updated leads':'Unchanged matches'}</dt><dd>{linked(k,s.outcomes[k])}</dd></div>)}
    {(['forecast','opportunity','award'] as const).map(k=><div key={k}><dt>{title(k)}</dt><dd>{linked(k,s.categories[k])}</dd></div>)}
    <div><dt>Validation issues</dt><dd>{linked('candidates_attention',s.candidates_attention)}</dd></div>
-  </dl>
+  </dl></>}
   <small>Identity coverage · {report.coverage.verified_identity_runs} / {report.coverage.total_runs} runs · {report.coverage.first_run?formatLocal(report.coverage.first_run):'No saved runs'} – {report.coverage.last_run?formatLocal(report.coverage.last_run):'—'}</small>
   {!compact&&<>
    <section className="analytics-block"><h3>Processing & attention <InfoTooltip label="About processing and attention">Run events count a lead again when a later run processes it. They are separate from distinct lead totals. Validation failures are a subset of actionable candidates. Source attention counts distinct registered sources; unmapped routes are separate gaps.</InfoTooltip></h3>

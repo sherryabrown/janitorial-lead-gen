@@ -1,3 +1,4 @@
+import {verifyDetailClarityBrowser} from './detail-clarity-browser.mjs';
 import {verifyMetricBrowser} from './metric-drilldown-browser.mjs';
 import {verifyCatalogBrowser} from './catalog-browser.mjs';
 import {verifyScheduleActivityBrowser} from './schedule-activity-browser.mjs';
@@ -105,8 +106,9 @@ const run = {
 // Verified reporting DTO fixture; no canonical database mutation is performed.
 schedule.reporting={as_of:'2026-10-20T14:00:00Z',last_run:{...run,leads:{added:2,updated:1,unchanged:3,completeness:'known'}},latest_occurrence:null};
 const bodies = [];
-let savedSchedule = process.argv.includes('--catalog')||process.argv.includes('--schedule-revision')||process.argv.includes('--analytics')||process.argv.includes('--settings-reads')||process.argv.includes('--schedule-activity');
-let failRunRead = !process.argv.includes('--catalog')&&!process.argv.includes('--schedule-revision')&&!process.argv.includes('--analytics')&&!process.argv.includes('--settings-reads')&&!process.argv.includes('--schedule-activity');
+const detailClarity=process.argv.includes('--detail-clarity');
+let savedSchedule = detailClarity||process.argv.includes('--catalog')||process.argv.includes('--schedule-revision')||process.argv.includes('--analytics')||process.argv.includes('--settings-reads')||process.argv.includes('--schedule-activity');
+let failRunRead = !detailClarity&&!process.argv.includes('--catalog')&&!process.argv.includes('--schedule-revision')&&!process.argv.includes('--analytics')&&!process.argv.includes('--settings-reads')&&!process.argv.includes('--schedule-activity');
 let queueReads = 0;
 let samSchedule = null;
 const samRun={...run,id:'sam-run',state:'completed',next_action:'View automatically saved leads',target_kind:'sam',county_count:0,config:{target_kind:'sam',requested_categories:['opportunity'],publication_window:{from:'2026-09-20',to:'2026-10-19'}},children:[{request_id:'sam-request',county_id:null,role:'sam'}]};
@@ -257,7 +259,7 @@ try {
       else if (p === '/v1/triggers') body = { items: [run], next_offset: null };
       else if (p === '/v1/triggers/run') {
         if(failRunRead){failRunRead=false;await route.fulfill({status:503,contentType:'application/json',headers:{'access-control-allow-origin':origin},body:'{}'});return;}
-        body=(process.argv.includes('--schedule-activity')||process.argv.includes('--catalog'))?{...run,schedule_id:'schedule',created_at:'2026-10-22T14:00:00Z',origin:'scheduled'}:run;
+        body=(detailClarity||process.argv.includes('--schedule-activity')||process.argv.includes('--catalog'))?{...run,schedule_id:'schedule',created_at:'2026-10-22T14:00:00Z',origin:'scheduled'}:run;
       }
       else if(p==='/v1/triggers/sam-run')body=samRun;
       else if(p==='/v1/triggers/sam-run/steps')body={items:[],next_cursor:null};
@@ -332,7 +334,7 @@ try {
   const page = await context.newPage(),
     errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  if(process.argv.includes('--metric-drilldowns')){await verifyMetricBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--catalog')){await verifyCatalogBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--schedule-activity')){await verifyScheduleActivityBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--settings-reads')){await verifySettingsReadsBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--analytics')){await verifyAnalyticsBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--schedule-revision')){await verifyScheduleRevision({page,origin,out,errors,bodies});}else{
+  if(detailClarity){await verifyDetailClarityBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--metric-drilldowns')){await verifyMetricBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--catalog')){await verifyCatalogBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--schedule-activity')){await verifyScheduleActivityBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--settings-reads')){await verifySettingsReadsBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--analytics')){await verifyAnalyticsBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--schedule-revision')){await verifyScheduleRevision({page,origin,out,errors,bodies});}else{
   await page.goto(origin);
   await page.getByRole('button',{name:'Settings',exact:true}).waitFor();
   assert.equal(await page.getByRole('button',{name:'Admin',exact:true}).count(),0);

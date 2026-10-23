@@ -1,3 +1,4 @@
+import {resultTasks,sourceResult} from './source-results';
 import { useEffect, useRef, useState } from 'react';
 import {
   workflowRequest,
@@ -20,15 +21,18 @@ export function RequestReview({
   onViewLeads,
   sam = false,
   refreshSignal,
-  embedded = false, onReadState, leadNavigationOwned=false,
+  embedded = false, onReadState, leadNavigationOwned=false,presentation,
 }: {
   id: string;
   owner: string;
   onViewLeads: () => void;
   sam?: boolean;
   refreshSignal?: string;
+  presentation?:'issues'|'sources';
   leadNavigationOwned?:boolean;embedded?: boolean; onReadState?:(state:{busy:boolean;error:string})=>void;
 }) {
+  const diagnostics=useRef<HTMLDetailsElement>(null);
+  const showDiagnostics=()=>{if(diagnostics.current){diagnostics.current.open=true;diagnostics.current.querySelectorAll('details').forEach(d=>d.open=true);diagnostics.current.querySelector('summary')?.focus();diagnostics.current.scrollIntoView?.({block:'nearest'});}};
   const [readBusy,setReadBusy]=useState(false),[readError,setReadError]=useState('');
   useEffect(()=>{onReadState?.({busy:readBusy,error:readError});},[readBusy,readError,onReadState]);
   const [data, setData] = useState<RequestStatus | null>(null),
@@ -202,31 +206,62 @@ export function RequestReview({
       {j.access_handoff_id && <SavedAccess job={j} onChange={() => setVersion(x => x + 1)} />}
     </div>
   ));
+  const taskActions=(t:Task)=><div role={presentation?"group":undefined} aria-label={presentation?`Actions for ${t.source_name??t.location_name??t.source_id??t.id} · ${title(t.category)}`:undefined}>              <div className="admin-inline">
+                {t.pages > 0 && !['source_entry'].includes(t.category) && (
+                  <button
+                    type="button"
+                    className="text-button"
+                    disabled={busy}
+                    onClick={() => openPacket(t, false)}
+                  >
+                    Review captured evidence
+                  </button>
+                )}
+                {[
+                  'source_missing',
+                  'method_missing',
+                  'blocked',
+                  'partial',
+                ].includes(t.state) && !data?.automatic_county && (
+                  <>
+                    <button
+                      type="button"
+                      className="text-button"
+                      disabled={busy}
+                      onClick={() => openPacket(t, true)}
+                    >
+                      Review source research
+                    </button>
+                    {(!presentation||!t.attention||t.attention.action_kind==='retry')&&<button
+                      type="button"
+                      className="text-button"
+                      disabled={busy}
+                      onClick={() =>
+                        void perform(() =>
+                          workflowRequest(
+                            `/v1/requests/${id}/discover/resume`,
+                            { body: { task_id: t.id } },
+                          ),
+                        )
+                      }
+                    >
+                      Resume saved research
+                    </button>}
+                  </>
+                )}
+              </div>
+              {data?.automatic_county && t.discovery_state && ['source_missing','method_missing','blocked','partial'].includes(t.state) &&
+                <div className="admin-inline">
+                  {(t.attention === undefined || t.attention?.action_kind === 'retry') && <button type="button" className="text-button" disabled={busy || t.discovery_state !== 'blocked'} onClick={() => void perform(() =>
+                    workflowRequest(`/v1/requests/${id}/discover/resume`, { body: { task_id: t.id } }))}>Retry source</button>}
+                  <button type="button" className="text-button" disabled={busy} onClick={() => openPacket(t, true)}>View source evidence</button>
+                </div>}</div>;
+  const savedExclusions=data?.automatic_import?.exclusions??samPacket?.automatic?.exclusions??[];
+  const exclusions=[...savedExclusions,...(data?.candidates??[]).filter(c=>c.state==='link_review_required'&&!savedExclusions.some(e=>e.intake_id===c.intake_id)).map(c=>({intake_id:c.intake_id,title:c.title,reason:'The saved import has no verified canonical lead link. Inspect its saved receipt before retrying.'}))];
+  const visibleTasks=resultTasks(data?.tasks??[],presentation==='issues');
   const sourceAttentionLayout = Boolean(data?.automatic_import || data?.tasks.some(t => 'attention' in t));
-  return (
-    <section className="admin-request-review" aria-label="Saved results">
-      <div className="admin-section-heading">
-        <h3>Saved results</h3>
-        {!embedded&&<button
-          type="button"
-          className="text-button"
-          disabled={readBusy}
-          onClick={() => setVersion((x) => x + 1)}
-        >
-          {readBusy?'Loading results…':readError?'Retry results':'Refresh results'}
-        </button>}
-      </div>
-      {readError&&<p role="alert">{readError}</p>}
-      {notice && <p role="status">{notice}</p>}
-      {error && (
-        <p role="alert" className="admin-error">
-          {error}
-        </p>
-      )}
-      {!data ? (
-        <p>Loading saved results…</p>
-      ) : (
-        <>
+  const Processing=presentation?'details':'div';
+  const processingSummary=data&&<>
           <p className="admin-hint">
             {data.total_candidates} candidates ·{' '}
             {data.tasks.reduce((n, t) => n + (t.pages || 0), 0)} saved pages.
@@ -245,7 +280,7 @@ export function RequestReview({
               <h3>County results save automatically</h3>
               <p>{data.automatic_import.state === 'saving' ? 'Validating and saving results…' :
                 data.automatic_import.state === 'outcome_unknown' ? 'Database outcome needs reconciliation before retrying.' :
-                data.automatic_import.state === 'blocked' ? 'Automatic saving needs attention. Inspect the saved diagnostics below.' :
+                data.automatic_import.state === 'blocked' ? 'Automatic saving needs attention. Open saved processing details for diagnostics.' :
                 data.jobs.some(j => ['pending', 'running'].includes(j.state)) ? 'Checking sources. Valid results save as they are verified.' :
                 data.automatic_import.verified ? 'Database results verified. Source coverage is shown separately.' : 'Valid results will save after validation.'}</p>
               <p>Added {data.automatic_import.added} · Updated {data.automatic_import.updated} · Unchanged {data.automatic_import.unchanged} · Not saved {data.automatic_import.exclusions.length}</p>
@@ -404,8 +439,36 @@ export function RequestReview({
               )}
             </>
           )}
-          {!sourceAttentionLayout && jobRows}
-          {data.tasks.map((t) => (
+  </>;
+  return (
+    <section className="admin-request-review" aria-label="Saved results">
+      <div className="admin-section-heading">
+        {!presentation&&<h3>Saved results</h3>}
+        {!embedded&&<button
+          type="button"
+          className="text-button"
+          disabled={readBusy}
+          onClick={() => setVersion((x) => x + 1)}
+        >
+          {readBusy?'Loading results…':readError?'Retry results':'Refresh results'}
+        </button>}
+      </div>
+      {readError&&<p role="alert">{readError}</p>}
+      {notice && <p role="status">{notice}</p>}
+      {error && (
+        <p role="alert" className="admin-error">
+          {error}
+        </p>
+      )}
+      {!data ? (
+        <p>Loading saved results…</p>
+      ) : (
+        <>
+          {!presentation&&processingSummary}
+          {!presentation&&!sourceAttentionLayout && jobRows}
+          {presentation?<section className="saved-source-results" aria-label={presentation==='issues'?'Source issues':'Saved source checks'}><h3>{presentation==='issues'?'Source issues':'Saved source checks'}</h3><small>Saved run evidence · not the current source registry · checked time is unknown unless recorded.</small>
+          {!visibleTasks.length&&<p>{presentation==='issues'?'No source issues recorded for this selection. Queued checks and incomplete evidence can still limit coverage.':'No saved source checks for this selection.'}</p>}
+          {!!visibleTasks.length&&<div className="schedule-table-wrap"><table className="schedule-table source-results-table"><caption className="sr-only">{presentation==='issues'?'Source issues and next actions':'Saved source checks and next actions'}</caption><thead><tr>{['Source','Location','Category','Result / checked','Blocker','Next action'].map(h=><th scope="col" key={h}>{h}</th>)}</tr></thead><tbody>{visibleTasks.map(t=>{const v=sourceResult(t);return <tr key={t.id}><th scope="row" data-label="Source">{t.source_name??t.source_id??'Source not yet verified'}</th><td data-label="Location">{t.location_name??(sam?'Arkansas statewide':'Saved request location')}</td><td data-label="Category">{t.category==='source_entry'?'Website':title(t.category)}</td><td data-label="Result / checked">{v.result}<small>Checked time: unknown</small></td><td data-label="Blocker">{v.blocker}</td><td data-label="Next action"><span>{v.next}</span>{taskActions(t)}</td></tr>;})}</tbody></table></div>}</section>:data.tasks.map((t) => (
             <div className="admin-task" key={t.id}>
               <div>
                 <strong>
@@ -423,58 +486,15 @@ export function RequestReview({
                   <p><strong>Next action:</strong> {t.attention.next_action}</p>
                 </> : <p>{data.automatic_county && t.discovery_action ? t.discovery_action : t.reason}</p>}
               </div>
-              <div className="admin-inline">
-                {t.pages > 0 && !['source_entry'].includes(t.category) && (
-                  <button
-                    type="button"
-                    className="text-button"
-                    disabled={busy}
-                    onClick={() => openPacket(t, false)}
-                  >
-                    Review captured evidence
-                  </button>
-                )}
-                {[
-                  'source_missing',
-                  'method_missing',
-                  'blocked',
-                  'partial',
-                ].includes(t.state) && !data.automatic_county && (
-                  <>
-                    <button
-                      type="button"
-                      className="text-button"
-                      disabled={busy}
-                      onClick={() => openPacket(t, true)}
-                    >
-                      Review source research
-                    </button>
-                    <button
-                      type="button"
-                      className="text-button"
-                      disabled={busy}
-                      onClick={() =>
-                        void perform(() =>
-                          workflowRequest(
-                            `/v1/requests/${id}/discover/resume`,
-                            { body: { task_id: t.id } },
-                          ),
-                        )
-                      }
-                    >
-                      Resume saved research
-                    </button>
-                  </>
-                )}
-              </div>
-              {data.automatic_county && t.discovery_state && ['source_missing','method_missing','blocked','partial'].includes(t.state) &&
-                <div className="admin-inline">
-                  {(t.attention === undefined || t.attention?.action_kind === 'retry') && <button type="button" className="text-button" disabled={busy || t.discovery_state !== 'blocked'} onClick={() => void perform(() =>
-                    workflowRequest(`/v1/requests/${id}/discover/resume`, { body: { task_id: t.id } }))}>Retry source</button>}
-                  <button type="button" className="text-button" disabled={busy} onClick={() => openPacket(t, true)}>View source evidence</button>
-                </div>}
+              {taskActions(t)}
             </div>
           ))}
+          {presentation==='issues'&&<>
+           <section className="request-validation-issues" aria-label="Validation issues"><h3>Validation issues</h3><div className="schedule-table-wrap"><table className="schedule-table"><caption className="sr-only">Saved validation issues</caption><thead><tr><th scope="col">Record / issue</th><th scope="col">Blocker</th><th scope="col">Next action</th></tr></thead><tbody>{exclusions.map(c=><tr key={c.intake_id}><th scope="row">{c.title??c.intake_id}</th><td data-label="Blocker">{c.reason}</td><td data-label="Next action"><button type="button" className="text-button" onClick={showDiagnostics}>Inspect saved validation details</button></td></tr>)}</tbody></table></div>{!exclusions.length&&<p>No saved validation exception rows available here. Check processing details for pending or uncertain outcomes; source coverage is separate.</p>}</section>
+           <section aria-label="Execution issues"><h3>Execution issues</h3><div className="schedule-table-wrap"><table className="schedule-table"><caption className="sr-only">Saved execution issues</caption><thead><tr><th scope="col">Step</th><th scope="col">State</th><th scope="col">Next action</th></tr></thead><tbody>{data.jobs.filter(j=>['blocked','failed','outcome_unknown'].includes(j.state)).map(j=><tr key={j.id}><th scope="row">{title(j.stage??j.state)}</th><td data-label="State">{title(j.state)}</td><td data-label="Next action">{j.next_action}<button type="button" className="text-button" onClick={showDiagnostics}>Inspect saved workflow details</button></td></tr>)}{data.automatic_import&&['blocked','outcome_unknown'].includes(data.automatic_import.state)&&!data.jobs.some(j=>j.stage?.startsWith('import_')&&['blocked','failed','outcome_unknown'].includes(j.state))&&<tr><th scope="row">Automatic saving</th><td data-label="State">{title(data.automatic_import.state)}</td><td data-label="Next action"><button type="button" className="text-button" onClick={showDiagnostics}>Inspect saved import diagnostics</button></td></tr>}</tbody></table></div>{samPacket?.automatic?.collection_blocker&&<p>{samPacket.automatic.collection_blocker} <button type="button" className="text-button" onClick={showDiagnostics}>Inspect saved SAM details</button></p>}{!['blocked','outcome_unknown'].includes(data.automatic_import?.state??'')&&!samPacket?.automatic?.collection_blocker&&!data.jobs.some(j=>['blocked','failed','outcome_unknown'].includes(j.state))&&<p>{data.jobs.some(j=>['pending','running'].includes(j.state))?'Checks are queued or running; results are not final.':'No execution blockers recorded in this request.'}</p>}</section>
+          </>}
+          <Processing ref={(node:HTMLDivElement|HTMLDetailsElement|null)=>{diagnostics.current=node instanceof HTMLDetailsElement?node:null;}} className={presentation?"saved-validation-details":undefined}>{presentation&&<summary>{presentation==='issues'?'Validation and execution details':'Saved processing details'}</summary>}
+          {presentation&&processingSummary}
           {sourceAttentionLayout && <details><summary>Workflow details</summary>{jobRows}</details>}
           {!data.automatic_county && !!data.tasks.some((t) =>
             ['source_missing', 'method_missing'].includes(t.state),
@@ -541,6 +561,7 @@ export function RequestReview({
                 ))}
             </details>
           )}
+          </Processing>
           {packet && (
             <div className="admin-review-form">
               <button

@@ -1,3 +1,4 @@
+import {Breadcrumb} from './Breadcrumb';
 import {useEffect,useRef,useState} from 'react';
 import {workflowRequest,mutationKey,acknowledged} from '../../lib/procurement-workflow';
 import {CountySelector} from './CountySelector';
@@ -8,7 +9,7 @@ import {initialScheduleDraft,invalidDraft,invalidScheduleTiming,formatLocal} fro
 import type {AnySchedule,County,Draft,StateSource,Preview,SamConfig} from './types';
 type Resolved={config:Preview['config']|SamConfig;preview_hash:string;next_due_at?:string|null;conflicts?:{schedule_id:string;name:string;county_id:string;work:string}[]};
 const identity=(p:Resolved)=>JSON.stringify(p.config.target_kind==='sam'?{target:'sam',categories:p.config.requested_categories}:{target:p.config.target_kind,sources:p.config.state_trigger_ids??[p.config.state_trigger_id],members:p.config.state_sources,counties:p.config.counties});
-export function ScheduleEditor({owner,saved,target:initialTarget,counties,sources,registryState,initial,onClose,onSaved}:{owner:string;saved?:AnySchedule;target:string;counties:County[];sources:StateSource[];registryState:'loading'|'ready'|'error';initial?:Draft;onClose:()=>void;onSaved:(s:AnySchedule)=>void}){
+export function ScheduleEditor({owner,saved,target:initialTarget,counties,sources,registryState,initial,onClose,onSaved,onSchedules}:{owner:string;saved?:AnySchedule;target:string;counties:County[];sources:StateSource[];registryState:'loading'|'ready'|'error';initial?:Draft;onClose:()=>void;onSchedules?:()=>void;onSaved:(s:AnySchedule)=>void}){
  const storage=`spin-schedule-form:${owner}:${saved?.id??'new'}`;
  const restored=()=>{try{const old=JSON.parse(sessionStorage.getItem(storage)||'null');return old?.version===saved?.version?old:null;}catch{return null;}};
  const [target,setTarget]=useState(saved?.config.target_kind??restored()?.target??initialTarget);
@@ -59,7 +60,7 @@ export function ScheduleEditor({owner,saved,target:initialTarget,counties,source
  const included=target==='state_source'?stateCounties:draft.config.county_ids;
  const scopeCounties=saved&&target==='county_scope'?saved.config.target_kind!=='sam'?saved.config.counties:undefined:undefined;
  return <section className="admin-section schedule-editor" aria-label="Schedule editor">
-  <nav className="schedule-breadcrumb" aria-label="Breadcrumb"><button className="text-button" type="button" aria-label="Back to schedules" disabled={busy} onClick={onClose}>Schedules</button><span aria-hidden="true">/</span><span>{saved?'Edit schedule':'Add schedule'}</span></nav>
+  <Breadcrumb items={[{label:'Settings'},{label:'Schedules',ariaLabel:'Back to schedules',onClick:()=>{if(!busy)(onSchedules??onClose)();}},...(saved?[{label:saved.name,onClick:()=>{if(!busy)onClose();}}]:[]),{label:saved?'Edit schedule':'Add schedule'}]}/>
   <h2 ref={heading} tabIndex={-1}>{saved?'Edit schedule':'Add schedule'}</h2>
   <fieldset disabled={busy}><legend>Schedule type</legend>{saved?<span>{target==='sam'?'SAM.gov':target==='state_source'?'State':'Counties'}</span>:<div className="admin-inline">{[['county_scope','Counties'],['state_source','State'],['sam','SAM.gov']].map(([id,label])=><label key={id}><input type="radio" name="schedule-type" checked={target===id} onChange={()=>choose(id)}/>{label}</label>)}</div>}</fieldset>
   <label className="input-field">Schedule name<input maxLength={80} disabled={busy} value={draft.name} onChange={e=>setDraft({...draft,name:e.target.value})}/></label>

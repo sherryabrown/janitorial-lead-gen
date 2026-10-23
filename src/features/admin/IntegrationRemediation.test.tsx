@@ -17,7 +17,7 @@ it('labels settled county source gaps consistently in Activity and details witho
  expect(runLabel({...run,state:'running'})).toBe('Running');expect(runLabel({...run,target_kind:'sam'})).toBe('Needs review');
  mocked.request.mockImplementation(async(path:string)=>path.endsWith('/steps')?{items:[],next_cursor:null}:run);
  render(<><ActivityList items={[run]} onView={()=>{}} selected={null} more={false} onMore={()=>{}}/><RunDetail id="run" owner="owner" onClose={()=>{}} onViewLeads={()=>{}} onSource={()=>{}} changed={()=>{}}/></>);
- await screen.findByRole('heading',{name:'Finished — some sources need attention'});expect(screen.getAllByText(/Finished — some sources need attention/)).toHaveLength(2);
+ await screen.findByRole('heading',{name:/Run run/});expect(screen.getAllByText(/Finished — some sources need attention/)).toHaveLength(3);
  expect(screen.getByRole('button',{name:'View results'})).toBeTruthy();
 });
 
@@ -154,11 +154,11 @@ it('loads archived schedule history, paginates and opens only occurrences with a
   expect(mocked.request).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: 'Actions for Archived morning' }));
   fireEvent.click(screen.getByRole('menuitem', { name: 'Details' }));
-  fireEvent.click(screen.getByRole('tab',{name:'History'}));
+  fireEvent.click(screen.getByText('Execution attempts and skipped runs'));
   await screen.findByText(/No run was created/);
   expect(screen.queryByRole('button', { name: 'View run' })).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'More occurrences' }));
-  fireEvent.click(await screen.findByRole('button', { name: 'View run' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Run run' }));
   expect(onView).toHaveBeenCalledWith('run');
   fireEvent.click(screen.getByRole('button',{name:'Back to schedules'}));
   const actions=screen.getByRole('button', { name: 'Actions for Archived morning' });

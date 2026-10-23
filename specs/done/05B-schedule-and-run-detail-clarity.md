@@ -1,6 +1,6 @@
 # 05B — Clear schedule and run details
 
-Status: planned. Initiating prompt and shared requirements: [amendment](05-schedule-results-and-history-amendment.md), incorporated in full. Depends on accepted [05A](../done/05A-schedule-audit-and-lead-drilldowns.md). Reuse current CSS, `InfoTooltip`, read owners, navigation and existing guarded actions.
+Status: completed. Initiating prompt and shared requirements: [amendment](../todo/05-schedule-results-and-history-amendment.md), incorporated in full. Depends on accepted [05A](../done/05A-schedule-audit-and-lead-drilldowns.md). Reuse current CSS, `InfoTooltip`, read owners, navigation and existing guarded actions.
 
 ## Implementation
 
@@ -20,3 +20,14 @@ Status: planned. Initiating prompt and shared requirements: [amendment](05-sched
 - Verify audit DTOs with safe native fixtures and read-only actual history. `npm run check`, affected integration/browser checks; native DB tests if new SQL is introduced (prefer none beyond 05A).
 - Acceptance: schedule History explains actual changes; all execution evidence remains accessible; hierarchy follows amendment wireframe; every source issue has an accurate action/instruction; Leads links exact; run Logs behavior unchanged; no unrelated layout/editor/collection changes.
 - Record evidence, limitations and proposed commit message; move child to done only on acceptance. No release implied. Netlify production unchanged.
+
+
+## Completion — 2026-10-22
+
+Implemented using the existing reporting, audit, request/evidence, read-owner and guarded action services. No migration or backend change was required. All-time schedule metrics, Issues-first run details, collapsed setup/attributes, identity-first run links, responsive source/issue tables and complete origin-aware breadcrumbs are accepted. Configuration changes and execution attempts are separate; attempts load on disclosure expansion.
+
+Verification: lint/build, 158 frontend tests, 379 offline workflow tests and SQL checks passed. Built-app acceptance passed at 1440/390/320, keyboard and 200% schedule/run zoom, with full Run IDs, focus return, preserved disclosure state and zero workflow mutations. Read-only actual local-backend schedule/audit/run/source checks passed. Native audit fixtures are covered by the existing offline suite; no new SQL required a migration test.
+
+Evidence and limitations: [review](../../docs/reviews/2026-10-22-schedule-run-detail-clarity.md). Old audit diffs/actors and missing per-task checked timestamps remain explicitly unavailable. No new product decisions. Global History Submit and analytics overview remain in [05C](../todo/05C-history-submit-and-analytics-overview.md). No deployment performed; Netlify production unchanged.
+
+Proposed commit: `feat: clarify schedule and run details`.

@@ -1,3 +1,6 @@
+import {Breadcrumb} from './Breadcrumb';
+import {SettingsNavigation} from './breadcrumb-context';
+import {adminViewLabels} from './navigation';
 import {MetricNavigation} from './MetricLink';
 import type {MetricScope} from './metric-scope';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -435,7 +438,7 @@ export default function AdminScreen({
       ? sources.find((s) => s.id === draft.config.state_trigger_id)
       : undefined;
   return (
-    <MetricNavigation active={active} onLeads={onViewLeads} onRun={(id,requestId)=>{returnFocus.current=document.activeElement as HTMLElement;commitNavigation({...navigation,runId:id,runSection:'overview',issueRequestId:requestId});}}><section className="admin-screen" aria-label="Admin county checks">
+    <SettingsNavigation.Provider value={()=>navigate('schedules')}><MetricNavigation active={active} onLeads={onViewLeads} onRun={(id,requestId)=>{returnFocus.current=document.activeElement as HTMLElement;commitNavigation({...navigation,runId:id,runSection:'overview',issueRequestId:requestId});}}><section className="admin-screen" aria-label="Admin county checks">
       <h1 className="settings-context" ref={headingRef} tabIndex={-1}>Settings</h1>
       <div className="admin-workspace-bar">
       <nav className="admin-workspace-nav" aria-label="Admin views">
@@ -445,6 +448,7 @@ export default function AdminScreen({
         <button type="button" className="text-button" aria-current={navigation.view === 'sources' ? 'page' : undefined} onClick={() => navigate('sources')}>Sources by geography</button>
         <button type="button" className="text-button" aria-current={navigation.view === 'geography' ? 'page' : undefined} onClick={() => navigate('geography')}>Related geography</button>
       </nav></div>
+      {!selected&&!scheduleEditor&&!navigation.scheduleId&&!navigation.sourceId&&!navigation.geographyId&&<Breadcrumb items={[{label:'Settings'},{label:adminViewLabels[navigation.view]},...(manualView?[{label:'Manual runs'}]:[])]}/>}
       {notice && (
         <p className="admin-notice" role="status">
           {notice}
@@ -474,7 +478,7 @@ export default function AdminScreen({
             service activation before they run.
           </p>
         )}
-      {scheduleEditor&&<ScheduleEditor key={scheduleEditor.saved?.id??'new'} owner={owner} initial={manual} saved={scheduleEditor.saved} target={scheduleEditor.target} counties={counties} sources={sources} registryState={registryState} onClose={()=>setScheduleEditor(null)} onSaved={s=>{setScheduleEditor(null);setSavedScheduleFocus(s);setRevision(n=>n+1);commitNavigation({view:'schedules',scheduleId:s.id,section:'overview',returnTo:'contracts'});}}/>}
+      {scheduleEditor&&<ScheduleEditor key={scheduleEditor.saved?.id??'new'} owner={owner} initial={manual} saved={scheduleEditor.saved} target={scheduleEditor.target} counties={counties} sources={sources} registryState={registryState} onClose={()=>setScheduleEditor(null)} onSchedules={()=>{setScheduleEditor(null);navigate('schedules');}} onSaved={s=>{setScheduleEditor(null);setSavedScheduleFocus(s);setRevision(n=>n+1);commitNavigation({view:'schedules',scheduleId:s.id,section:'overview',returnTo:'contracts'});}}/>}
       <div hidden={!!scheduleEditor||navigation.view!=='schedules'||navigation.section==='manual'||!!selected} ref={schedulesRef} tabIndex={-1} className="admin-navigation-section" aria-label="Schedules">
         <ScheduleList active={active&&!selected&&!scheduleEditor&&navigation.view==='schedules'&&navigation.section!=='manual'} owner={owner} context={navigation.scheduleId?{id:navigation.scheduleId,section:navigation.section==='manual'? 'overview':navigation.section??'overview',scheduleRunId:navigation.scheduleRunId,sourceId:navigation.sourceId,geographyId:navigation.geographyId}:null} onContext={value=>commitNavigation({...navigation,view:'schedules',scheduleId:value?.id,section:value?.section,scheduleRunId:value?.scheduleRunId,sourceId:value?.sourceId,geographyId:value?.geographyId,runId:undefined})} onView={viewRun} onViewLeads={onViewLeads} items={schedules} paging={paging} more={scheduleOffset !== null}
           query={scheduleQuery} onFilters={filterSchedules} counties={counties} total={scheduleTotal} loading={loading||paging}
@@ -581,6 +585,8 @@ export default function AdminScreen({
           <RunDetail
             key={selected}
             id={selected}
+            origin={navigation}
+            onNavigate={context=>{restoreFocus.current=true;commitNavigation(context);}}
             issueRequestId={navigation.issueRequestId}
             owner={owner}
             section={navigation.runSection}
@@ -593,6 +599,6 @@ export default function AdminScreen({
         </div>
       )}
       </div>
-    </section></MetricNavigation>
+    </section></MetricNavigation></SettingsNavigation.Provider>
   );
 }
