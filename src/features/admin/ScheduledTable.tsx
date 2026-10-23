@@ -25,7 +25,8 @@ export function ScheduleList({items,more,paging,onMore,onEdit,onAction,busy,onVi
     onFilters?.(p.toString());
   };
   const detail=context===undefined?(selected?{id:selected.id,section:(selected.section==='details'||selected.section==='stats'?'overview':selected.section) as ScheduleSection}:null):context;
-  const current=items.find(s=>s.id===detail?.id)??(focusSchedule?.id===detail?.id?focusSchedule:undefined);
+  const listed=items.find(s=>s.id===detail?.id),acknowledged=focusSchedule?.id===detail?.id?focusSchedule:undefined;
+  const current=acknowledged&&(!listed||acknowledged.version>=listed.version)?acknowledged:listed;
   const open=(s:AnySchedule,section:Section)=>{setSelected({id:s.id,section});onContext?.({id:s.id,section:section==='details'||section==='stats'?'overview':section});};
   return <section className="admin-section" aria-label="Saved schedules">
     <div hidden={!!detail}>

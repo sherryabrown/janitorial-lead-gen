@@ -28,7 +28,7 @@ export async function verifyScheduleRevision({page,origin,out,errors,bodies}){
  const detail=page.getByRole('region',{name:'Schedule details: Morning checks'}),tabs=detail.getByRole('tablist');
  await detail.getByText('Schedule setup',{exact:true}).waitFor();assert.equal(await table.isVisible(),false);
  assert.equal(await detail.getByText('Latest run · validated outcomes').count(),0);
- const runRows=detail.locator('table tbody tr');await runRows.first().waitFor();assert.equal(await runRows.count(),1);
+ const runRows=detail.locator('table tbody tr');await runRows.first().waitFor();assert.equal(await runRows.count(),2);
  const runFilters=detail.getByText('More filters',{exact:true});await runFilters.focus();await page.keyboard.press('Enter');await detail.getByLabel('Run ID',{exact:true}).waitFor();await runFilters.press('Enter');
  assert.equal(await detail.getByLabel('Run ID',{exact:true}).isVisible(),false);
 

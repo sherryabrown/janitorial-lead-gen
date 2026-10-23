@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {scheduleActivity} from '../../scripts/lib/schedule-activity.mjs';
-export async function verifyScheduleActivity({sql,db}){
+export async function verifyScheduleActivity({sql,db,triggers}){
  const {rows:[s]}=await sql.query('select id,config,version from procurement_schedules limit 1');
  assert.ok(s);
  await sql.query(`insert into procurement_schedule_occurrences(schedule_id,version,due_at,effective_at,origin,run_key,config,state,reason,created_at)
@@ -15,6 +15,7 @@ export async function verifyScheduleActivity({sql,db}){
  assert.equal((await read(s.id,{from:'2026-11-01',through:'2026-11-01',kind:'run'})).total,0);
  await sql.query(`insert into procurement_schedule_occurrences(schedule_id,version,due_at,effective_at,origin,run_key,config,state,created_at) values($1,$2,'2026-11-01T06:30:00Z','2026-11-01T06:30:00Z','manual','activity-after-boundary',$3,'skipped','2032-01-01T00:00:00Z')`,[s.id,s.version,s.config]);
  assert.equal((await read(s.id,{from:'2026-11-01',through:'2026-11-01',as_of:first.as_of})).total,55,'New records cannot shift the fixed paging boundary');
+ const {rows:[linked]}=await sql.query('select t.id,s.name from procurement_triggers t join procurement_schedules s on s.id=t.schedule_id limit 1');assert.ok(linked);assert.equal((await triggers.status(linked.id)).schedule_name,linked.name,'Native run read returns its verified schedule name');
  const {rows:[acl]}=await sql.query("select has_table_privilege('anon','procurement_schedule_activity','select') a,has_table_privilege('authenticated','procurement_schedule_activity','select') b,has_table_privilege('service_role','procurement_schedule_activity','select') c");
  assert.deepEqual(acl,{a:false,b:false,c:true});
  return {passed:true,pages:3,rows:55,DST:true,private:true};

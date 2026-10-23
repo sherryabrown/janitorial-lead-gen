@@ -6,6 +6,15 @@ import {initialDraft,recurrenceLabel} from './model';
 import type {Schedule} from './types';
 afterEach(cleanup);
 const schedule:Schedule={...initialDraft(),id:'test',name:'Saline morning',version:1,next_due_at:null,config:{...initialDraft().config,county_ids:['05125']},reporting:{as_of:'2026-10-20T14:00:00Z',last_run:{id:'run',target_kind:'county_scope',state:'completed',created_at:'2026-10-20T13:00:00Z',leads:{added:2,updated:1,unchanged:3,completeness:'known'},usage:{ai:'unknown',input_tokens:null,output_tokens:null,actual_usd:null,known_actual_usd:.03,held_usd:.1,credits:null}}}};
+it('keeps acknowledged archival visible over an older list row and after filtering it out',()=>{
+ const props={more:false,onMore:()=>{},onEdit:()=>{},onAction:()=>{},busy:false,onView:()=>{},context:{id:schedule.id,section:'overview' as const}};
+ const archived={...schedule,version:2,archived:true,enabled:false};
+ const view=render(<ScheduleList {...props} items={[{...schedule,enabled:true}]} focusSchedule={archived}/>);
+ expect(screen.getByRole('region',{name:'Schedule details: Saline morning'}).querySelector('.schedule-status')?.textContent).toContain('Archived');
+ expect(screen.getByRole('button',{name:'Run now'})).toHaveProperty('disabled',true);
+ view.rerender(<ScheduleList {...props} items={[]} focusSchedule={archived}/>);
+ expect(screen.getByRole('button',{name:'Run now'})).toHaveProperty('disabled',true);
+});
 it('shows last-run metrics, nested controls and focused details',async()=>{
  const action=vi.fn();render(<ScheduleList items={[{...schedule,enabled:true}]} more={false} onMore={()=>{}} onEdit={()=>{}} onAction={action} busy={false} onView={()=>{}}/>);
  expect(screen.getByText('2 new')).toBeTruthy();

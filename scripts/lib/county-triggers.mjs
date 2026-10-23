@@ -94,7 +94,8 @@ export function countyTriggers({db,discovery,workflow,audit,automaticCounty}) {
     const presentation=(await countyPresentations(db,[t],{children})).get(t.id);
     const relatedState=t.target_kind==='sam'?[]:(await stateSources()).items.filter(s=>s.county_ids.some(c=>t.config.county_ids.includes(c)));
     const [reporting]=await reportRunHistory(db,[t]);
-    return {id:t.id,target_kind:t.target_kind,config:t.config,state:t.state,created_at:t.created_at,finished_at:t.finished_at,origin:t.origin,schedule_id:t.schedule_id,occurrence_id:t.occurrence_id,reporting,...(presentation?{presentation}:{}),
+    const schedule=t.schedule_id?checked(await db.from('procurement_schedules').select('name').eq('id',t.schedule_id).maybeSingle()):null;
+    return {id:t.id,target_kind:t.target_kind,config:t.config,state:t.state,created_at:t.created_at,finished_at:t.finished_at,origin:t.origin,schedule_id:t.schedule_id,schedule_name:schedule?.name??null,occurrence_id:t.occurrence_id,reporting,...(presentation?{presentation}:{}),
       children:children.map(c=>({request_id:c.request_id,county_id:c.county_id,role:c.role,...(c.role==='state_source'?{source_id:c.scope.source_id??t.config.state_sources?.find(s=>s.id===(c.scope.id??t.config.state_trigger_id))?.source_id,source_name:t.config.state_sources?.find(s=>s.id===(c.scope.id??t.config.state_trigger_id))?.name,category:c.scope.category}: {})})),
       related_state_sources:relatedState.map(s=>({...s,evidence_policy:'Review saved source run; verify county work location and dates before import'})),
       usage:usageSummary(usage),next_action:presentation?'View saved results and the affected sources below.':next(t.state)};

@@ -34,6 +34,7 @@ test('save/replay, edits/CAS, manual Run now and management audit share the exis
     const edited={...input,name:'Changed name',enabled:false};const preview=await f.schedules.preview(edited);
     const result=await f.schedules.save(f.saved.id,{...edited,confirmed_scope:true,preview_hash:preview.preview_hash,expected_version:1},actor,null);
     assert.equal(result.version,2);assert.equal(result.enabled,false);
+    assert.equal((await f.triggers.status(first.trigger_id)).schedule_name,'Changed name','Run breadcrumbs use the verified saved schedule name, including renamed schedules');
     await assert.rejects(f.schedules.save(f.saved.id,{...edited,confirmed_scope:true,preview_hash:preview.preview_hash,expected_version:1},actor,null),/Database operation failed/);
     await assert.rejects(f.schedules.runNow(f.saved.id,{expected_version:1},actor,'different-run-key'),/version changed/);
     assert.ok((await f.schedules.events(f.saved.id)).items.some(e=>e.action==='edited'));

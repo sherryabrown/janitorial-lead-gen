@@ -1,6 +1,6 @@
 # Phase 4 amendment — focused Settings workspaces
 
-Status: 04A and 04B completed and verified locally October 22, 2026. No release or deployment.
+Status: 04A/04B are accepted and released; current runtime `65a0d8e` includes both and the later amendments. Phase 6 integrated acceptance is active. Historical local/planning checkpoints below are retained for provenance.
 Parent: [Admin workspace requirements](admin-workspace-redesign.md). Baseline: `cd0d61c`; recheck the checkout before building.
 
 ## Initiating prompt

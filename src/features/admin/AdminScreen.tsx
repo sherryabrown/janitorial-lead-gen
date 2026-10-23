@@ -387,7 +387,7 @@ export default function AdminScreen({
         );
       } else if(action==='delete'){setSavedScheduleFocus(null);commitNavigation({view:'schedules',returnTo:'contracts'});setNotice(`${s.name}: deleted; audit history retained.`);
       } else {
-        setSavedScheduleFocus(old=>old?.id===s.id?{...old,...r} as AnySchedule:old);
+        setSavedScheduleFocus({...s,...r} as AnySchedule);
         setNotice(
           `${s.name}: ${action === 'archive' ? 'archived; saved evidence retained' : action === 'pause' ? 'paused' : 'resumed'}.`,
         );
