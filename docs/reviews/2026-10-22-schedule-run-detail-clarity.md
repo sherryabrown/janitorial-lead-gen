@@ -32,3 +32,8 @@ Evidence is saved locally under ignored `outputs/deployment/05B/` and `outputs/d
 - No new product decision is required. Release remains separate; Netlify production is unchanged.
 
 Proposed commit: `feat: clarify schedule and run details`.
+
+
+## Release verification follow-up — 2026-10-23
+
+Live acceptance found a 320px overflow when the run DTO supplied a verified schedule ID instead of a name in the clickable breadcrumb. Scoped wrapping now contains long breadcrumb labels and attribute actions. The browser regression includes full-length schedule/run identifiers. Lint/build and the 1440/390/320, keyboard and 200% zoom harness passed. An isolated browser applying only this CSS correction to the real preview also passed saved schedule/audit/source/log and focus checks (61 source rows; no workflow writes). Final deployment receipts are retained under ignored `outputs/deployment/05B-release-final/`.

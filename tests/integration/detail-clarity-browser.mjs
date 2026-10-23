@@ -29,8 +29,8 @@ export async function verifyDetailClarityBrowser({page,origin,out,errors,bodies}
  await page.setViewportSize({width:1440,height:1000});await page.getByRole('button',{name:'Morning checks',exact:true}).click();await detail.getByRole('button',{name:'Refresh schedule',exact:true}).waitFor();
  await page.evaluate(()=>{document.documentElement.style.zoom='2';});await capture('schedule-zoom-200');await page.evaluate(()=>{document.documentElement.style.zoom='';});
  const longId='00000000-0000-4000-8000-000000000123';
- await page.route(new RegExp('/v1/triggers/'+longId+'(?:/steps)?(?:\\?.*)?$'),route=>send(route,route.request().url().includes('/steps')?{items:[],next_cursor:null}:{id:longId,state:'completed',target_kind:'county_scope',origin:'manual',created_at:'2026-10-22T14:00:00Z',children:[]}));
- await page.goto(`${origin}/?adminView=history&adminRun=${longId}&adminRunSection=overview`);
+ await page.route(new RegExp('/v1/triggers/'+longId+'(?:/steps)?(?:\\?.*)?$'),route=>send(route,route.request().url().includes('/steps')?{items:[],next_cursor:null}:{id:longId,schedule_id:'schedule',schedule_name:longId,state:'completed',target_kind:'county_scope',origin:'manual',created_at:'2026-10-22T14:00:00Z',children:[]}));
+ await page.goto(`${origin}/?adminView=schedules&adminSchedule=schedule&adminRun=${longId}&adminRunSection=overview`);
  await page.getByRole('heading',{name:new RegExp('Run '+longId)}).waitFor();await page.setViewportSize({width:320,height:1000});await page.getByRole('heading',{name:new RegExp('Run '+longId)}).scrollIntoViewIfNeeded();await capture('long-run-320');
  await page.setViewportSize({width:1440,height:1000});await page.evaluate(()=>{document.documentElement.style.zoom='2';});await page.getByRole('heading',{name:new RegExp('Run '+longId)}).scrollIntoViewIfNeeded();await capture('run-zoom-200');await page.evaluate(()=>{document.documentElement.style.zoom='';});
  assert.deepEqual(errors,[]);assert.equal(bodies.length,0,'Browsing must not mutate workflows');
