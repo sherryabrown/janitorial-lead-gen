@@ -706,6 +706,7 @@
 .schedule-breadcrumb .text-button,.run-attributes .text-button{white-space:normal;overflow-wrap:anywhere;text-align:left;max-width:100%;min-width:0}
 .run-attributes dd{min-width:0}
 .run-detail-heading h2,.run-detail-heading h4{overflow-wrap:anywhere;min-width:0;margin:0;font-size:1.25rem}
+.run-detail-heading .run-heading-identity{display:block;margin-top:6px;color:var(--muted);font-size:.8rem;font-weight:500;overflow-wrap:anywhere}
 .run-detail-heading{align-items:start}
 .run-attributes,.schedule-settings{border:1px solid var(--border);border-radius:6px;padding:12px 16px;margin:16px 0 24px;min-width:0}
 .run-attributes>summary,.schedule-settings>summary{cursor:pointer;font-weight:600;font-size:.85rem}
@@ -726,6 +727,11 @@
 .source-results-table .text-button{white-space:normal;text-align:left;overflow-wrap:anywhere;max-width:100%}
 .source-results-table .admin-inline{display:flex;flex-wrap:wrap}
 .history-table .text-button{white-space:normal;overflow-wrap:anywhere;text-align:left;max-width:100%}
+@media(max-width:760px){
+ .schedule-detail .history-table td[data-label="Validated leads"]>span,
+ .schedule-detail .history-table td>details{grid-column:2}
+ .schedule-detail .history-table td>details[open]{grid-column:1/-1}
+}
 .schedule-history-panel dl{margin:6px 0}
 .schedule-history-panel dd{margin:0 0 10px;overflow-wrap:anywhere}
 @media(max-width:760px){.source-results-table{table-layout:auto}.schedule-table tbody th[scope=row]{display:block;width:100%;padding:8px 0;overflow-wrap:anywhere}.schedule-detail .compact-result-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.source-results-table td>span,.source-results-table td>.admin-inline,.source-results-table td>[role=group]{grid-column:2}.run-detail-heading{flex-wrap:wrap}.run-detail-heading h2,.run-detail-heading h4{font-size:1.05rem}}

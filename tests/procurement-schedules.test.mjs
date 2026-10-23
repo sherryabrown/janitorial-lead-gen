@@ -202,3 +202,36 @@ test('a real run wins over deletion and its evidence/audit links survive',async(
   assert.equal((await f.sql.query('select count(*)::int n from procurement_triggers where schedule_id=$1',[f.saved.id])).rows[0].n,1);
  }finally{await f.sql.close();}
 });
+
+
+test('unified activity pages one run per dispatch and includes no-run attempts with CT filters',async()=>{
+ const f=await fixture();try{
+  const first=await f.schedules.runNow(f.saved.id,{expected_version:1},actor,'activity-first-key');
+  await f.sql.query("update procurement_triggers set state='completed',created_at='2026-10-13T14:00:00Z',finished_at='2026-10-13T14:05:00Z' where id=$1",[first.trigger_id]);
+  await f.sql.query("update procurement_schedule_occurrences set created_at='2026-10-13T14:00:00Z' where id=$1",[first.id]);
+  f.setTime('2026-10-13T21:00:00Z');await f.schedules.tick();
+  f.setTime('2026-10-14T14:00:00Z');await f.schedules.tick();
+  await f.sql.query("update procurement_schedule_occurrences set created_at=effective_at");
+  await f.sql.query("update procurement_triggers set created_at='2026-10-13T21:00:00Z' where id<>$1",[first.trigger_id]);
+  const all=await f.schedules.activity(f.saved.id);
+  assert.equal(all.items.length,3);assert.equal(new Set(all.items.map(r=>r.id)).size,3);
+  const linked=all.items.find(r=>r.run?.id===first.trigger_id);assert.equal(linked.run.state,'completed');assert.equal(linked.occurrence.state,'queued');
+  assert.equal(all.items.filter(r=>r.kind==='attempt').length,1);
+  const firstPage=await f.schedules.activity(f.saved.id,{limit:1});
+  const second=await f.schedules.activity(f.saved.id,{limit:1,offset:1,as_of:firstPage.as_of});
+  assert.equal(firstPage.total,3);assert.notEqual(firstPage.items[0].id,second.items[0].id);
+  assert.equal((await f.schedules.activity(f.saved.id,{kind:'attempt'})).total,1);
+  assert.equal((await f.schedules.activity(f.saved.id,{outcome:'completed'})).total,1);
+  assert.equal((await f.schedules.activity(f.saved.id,{attempt_state:'skipped'})).total,1);
+  assert.equal((await f.schedules.activity(f.saved.id,{from:'2026-10-13',through:'2026-10-13'})).total,2);
+  await assert.rejects(f.schedules.activity(f.saved.id,{kind:'invalid'}),/Invalid activity/);
+  await f.sql.query('update procurement_triggers set occurrence_id=null where id=$1',[first.trigger_id]);
+  await f.sql.query('update procurement_schedule_occurrences set trigger_id=null where id=$1',[first.id]);
+  const standalone=(await f.schedules.activity(f.saved.id)).items.find(r=>r.run?.id===first.trigger_id);assert.equal(standalone.occurrence,null,'Schedule-linked manual runs without occurrences remain reachable');
+  await f.sql.query('update procurement_schedule_occurrences set trigger_id=$1 where id=$2',[first.trigger_id,first.id]);
+  await f.sql.query('update procurement_triggers set schedule_id=null where id=$1',[first.trigger_id]);
+  const orphan=(await f.schedules.activity(f.saved.id)).items.find(r=>r.occurrence?.id===first.id);assert.equal(orphan.kind,'unavailable_run');assert.equal(orphan.run,null,'Cross-schedule or standalone trigger is never joined');
+  await assert.rejects(f.schedules.activity(f.saved.id,{as_of:'2050-01-01T00:00:00Z'}),/Invalid activity/);
+  const acl=(await f.sql.query("select has_table_privilege('anon','procurement_schedule_activity','select') a,has_table_privilege('authenticated','procurement_schedule_activity','select') b,has_table_privilege('service_role','procurement_schedule_activity','select') c")).rows[0];assert.deepEqual(acl,{a:false,b:false,c:true});
+ }finally{await f.sql.close();}
+});

@@ -5,7 +5,7 @@ export const adminMigrations=[
   '20261002000300_public_source_checks.sql','20261002000400_reconcile_known_gaps.sql',
   '20261004000100_source_gap_accountability.sql','20261004000200_ardot_known_adapter.sql',
   '20261004000300_known_source_interpretations.sql','20261005000100_known_source_workflow_repair.sql',
-  '20261007000100_hosted_procurement_workflow.sql','20261013000100_admin_county_triggers.sql','20261013000200_procurement_schedules.sql','20261013000300_procurement_scheduler_dispatch.sql','20261019000100_admin_sam_triggers.sql','20261019000200_verified_shared_source_routes.sql','20261019000300_county_public_read_reconciliation.sql','20261020000200_schedule_overview.sql','20261020000300_schedule_management_revision.sql','20261020000400_schedule_work_and_state_groups.sql','20261022000100_schedule_change_audit.sql'];
+  '20261007000100_hosted_procurement_workflow.sql','20261013000100_admin_county_triggers.sql','20261013000200_procurement_schedules.sql','20261013000300_procurement_scheduler_dispatch.sql','20261019000100_admin_sam_triggers.sql','20261019000200_verified_shared_source_routes.sql','20261019000300_county_public_read_reconciliation.sql','20261020000200_schedule_overview.sql','20261020000300_schedule_management_revision.sql','20261020000400_schedule_work_and_state_groups.sql','20261022000100_schedule_change_audit.sql','20261023000200_schedule_activity_read.sql'];
 export async function adminDatabase() {
   const sql=new PGlite();
   await sql.exec(`create role anon;create role authenticated;create role service_role bypassrls;
@@ -26,6 +26,8 @@ export function sqlApi(sql) {
   return {rpc:async(fn,args)=>{try {const keys=Object.keys(args);const r=await sql.query(`select ${name(fn)}(${keys.map((k,i)=>`${name(k)} => $${i+1}`).join(',')}) as data`,Object.values(args));return {data:r.rows[0].data};}catch(error){return {error};}},
     from(table){let columns='*',conditions=[],params=[],orders=[],start=0,end=null,update=null,single=false,count=false;
       const q={select(c='*',options={}){columns=c;count=options.count==='exact';return q;},eq(k,v){params.push(v);conditions.push(`${name(k)}=$${params.length}`);return q;},
+        neq(k,v){params.push(v);conditions.push(`${name(k)}<>$${params.length}`);return q;},
+        or(expression){const parts=expression.split(',').map(part=>{const [key,op,...rest]=part.split('.');if(op==='is'&&rest.join('.')==='null')return `${name(key)} is null`;if(op!=='lte')throw Error('Unsupported test OR');params.push(rest.join('.'));return `${name(key)} <= $${params.length}`;});conditions.push('('+parts.join(' or ')+')');return q;},
         is(k,v){if(v!==null)throw Error('Unsupported test query');conditions.push(`${name(k)} is null`);return q;},
         ilike(k,v){params.push(v);conditions.push(`${name(k)} ilike $${params.length}`);return q;},
         contains(k,v){params.push(JSON.stringify(v));conditions.push(`${name(k)} @> $${params.length}::jsonb`);return q;},

@@ -11,7 +11,7 @@ beforeEach(()=>{sessionStorage.clear();mocked.request.mockReset();mocked.request
 afterEach(cleanup);
 it('shows honest partial totals, separate reservations and owner-scoped last-seven-day filters',async()=>{
  render(<Analytics owner="a" counties={[]}/>);await screen.findByRole('heading',{name:'Validated results'});
- expect(screen.getAllByText('Unknown · 1 known').length).toBeGreaterThan(1);expect(screen.getByText('Unknown / not comparable')).toBeTruthy();expect(screen.getByText('$0.02')).toBeTruthy();expect(screen.getByText('$0.10')).toBeTruthy();
+ expect(screen.queryByText(/Unknown \u00b7 \d+ known/)).toBeNull();expect(screen.getByText('Verified new leads')).toBeTruthy();expect(screen.getByText('Unknown / not comparable')).toBeTruthy();expect(screen.getByText('$0.02')).toBeTruthy();expect(screen.getByText('$0.10')).toBeTruthy();
  fireEvent.change(screen.getByRole('combobox',{name:/^Type/}),{target:{value:'sam'}});await waitFor(()=>expect(mocked.request.mock.calls.some(([p])=>p.includes('target=sam'))).toBe(true));expect(sessionStorage.getItem('spin-admin-stats-filter:a')).toContain('sam');
  clearAdminSession('a');expect(sessionStorage.getItem('spin-admin-stats-filter:a')).toBeNull();expect(mocked.request.mock.calls.every(([,o])=>!o?.body)).toBe(true);
 });

@@ -1,3 +1,4 @@
+import {verifyExecutionMetrics} from './execution-metrics-browser.mjs';
 import {verifyCanonicalRedirect} from './canonical-redirect-browser.mjs';
 import {verifySubmittedHistoryBrowser} from './submitted-history-browser.mjs';
 import {verifyDetailClarityBrowser} from './detail-clarity-browser.mjs';
@@ -14,6 +15,7 @@ import { chromium } from 'playwright';
 import { spawn } from 'node:child_process';
 import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import assert from 'node:assert/strict';
+const executionMetrics=process.argv.includes('--execution-metrics');
 const port=process.env.ADMIN_UI_TEST_PORT||'5181';
 const origin = `http://127.0.0.1:${port}`,
   out = 'outputs/deployment/admin-ui';
@@ -110,8 +112,8 @@ schedule.reporting={as_of:'2026-10-20T14:00:00Z',last_run:{...run,leads:{added:2
 const bodies = [];
 const submittedHistory=process.argv.includes('--submitted-history');
 const detailClarity=process.argv.includes('--detail-clarity');
-let savedSchedule = submittedHistory||detailClarity||process.argv.includes('--catalog')||process.argv.includes('--schedule-revision')||process.argv.includes('--analytics')||process.argv.includes('--settings-reads')||process.argv.includes('--schedule-activity');
-let failRunRead = !submittedHistory&&!detailClarity&&!process.argv.includes('--catalog')&&!process.argv.includes('--schedule-revision')&&!process.argv.includes('--analytics')&&!process.argv.includes('--settings-reads')&&!process.argv.includes('--schedule-activity');
+let savedSchedule = executionMetrics||submittedHistory||detailClarity||process.argv.includes('--catalog')||process.argv.includes('--schedule-revision')||process.argv.includes('--analytics')||process.argv.includes('--settings-reads')||process.argv.includes('--schedule-activity');
+let failRunRead = !executionMetrics&&!submittedHistory&&!detailClarity&&!process.argv.includes('--catalog')&&!process.argv.includes('--schedule-revision')&&!process.argv.includes('--analytics')&&!process.argv.includes('--settings-reads')&&!process.argv.includes('--schedule-activity');
 let queueReads = 0;
 let samSchedule = null;
 const samRun={...run,id:'sam-run',state:'completed',next_action:'View automatically saved leads',target_kind:'sam',county_count:0,config:{target_kind:'sam',requested_categories:['opportunity'],publication_window:{from:'2026-09-20',to:'2026-10-19'}},children:[{request_id:'sam-request',county_id:null,role:'sam'}]};
@@ -243,6 +245,7 @@ try {
         else {savedSchedule = true;Object.assign(schedule, input);body = schedule;}
       } else if (p.endsWith('/update')) {Object.assign(schedule,input);body=schedule;} else if (p.endsWith('/occurrences') && url.searchParams.has('offset')) body={items:[{id:'linked',due_at:'2026-10-19T12:00:00Z',state:'queued',trigger_id:'run'}],next_offset:null};
       else if (p.endsWith('/occurrences')) body={items:[{id:'blocked',due_at:'2026-10-19T12:00:00Z',effective_at:'2026-10-19T13:00:00Z',origin:'scheduled',version:1,config:{target_kind:'county_scope',county_ids:['05119'],counties:[{id:'05119',name:'Original Pulaski snapshot',cities:[]}]},state:'blocked',reason:'scope_changed',missed_from:'2026-10-18T12:00:00Z',missed_through:'2026-10-19T12:00:00Z'}],next_offset:1};
+      else if(p.endsWith('/activity')){const historyRun={...run,schedule_id:'schedule',created_at:'2026-10-22T14:00:00Z',origin:'scheduled',leads:{added:2,updated:1,unchanged:3,completeness:'known'}};body={items:[{id:'run:run',kind:'run',activity_at:historyRun.created_at,run:historyRun,occurrence:{id:'linked',state:'queued',version:1,due_at:historyRun.created_at,effective_at:historyRun.created_at}},{id:'attempt:blocked',kind:'attempt',activity_at:'2026-10-19T13:00:00Z',run:null,occurrence:{id:'blocked',state:'blocked',version:1,reason:'scope_changed'}}],next_offset:null,total:2,as_of:'2026-10-23T12:00:00Z'};}
       else if (p.endsWith('/events')) body={items:[{id:'event',action:'archive',version:2,at:'2026-10-19T12:00:00Z'}],next_offset:null};
       else if (p === '/v1/schedules/schedule') body=schedule;
       else if(p==='/v1/schedules/archived')body={...schedule,id:'archived',name:'Archived checks',archived_at:'2026-10-19T12:00:00Z'};
@@ -337,7 +340,7 @@ try {
   const page = await context.newPage(),
     errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  if(process.argv.includes('--canonical-redirect')){await verifyCanonicalRedirect({page,origin,out,errors,bodies});}else if(submittedHistory){await verifySubmittedHistoryBrowser({page,origin,out,errors,bodies});}else if(detailClarity){await verifyDetailClarityBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--metric-drilldowns')){await verifyMetricBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--catalog')){await verifyCatalogBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--schedule-activity')){await verifyScheduleActivityBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--settings-reads')){await verifySettingsReadsBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--analytics')){await verifyAnalyticsBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--schedule-revision')){await verifyScheduleRevision({page,origin,out,errors,bodies});}else{
+  if(executionMetrics){await verifyExecutionMetrics({page,origin,out,errors,bodies});}else if(process.argv.includes('--canonical-redirect')){await verifyCanonicalRedirect({page,origin,out,errors,bodies});}else if(submittedHistory){await verifySubmittedHistoryBrowser({page,origin,out,errors,bodies});}else if(detailClarity){await verifyDetailClarityBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--metric-drilldowns')){await verifyMetricBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--catalog')){await verifyCatalogBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--schedule-activity')){await verifyScheduleActivityBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--settings-reads')){await verifySettingsReadsBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--analytics')){await verifyAnalyticsBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--schedule-revision')){await verifyScheduleRevision({page,origin,out,errors,bodies});}else{
   await page.goto(origin);
   await page.getByRole('button',{name:'Settings',exact:true}).waitFor();
   assert.equal(await page.getByRole('button',{name:'Admin',exact:true}).count(),0);
@@ -521,7 +524,7 @@ try {
   await page.getByRole('menuitem', { name: 'History for Archived checks'}).click();
   await page.getByRole('button',{name:'Actions for Morning checks'}).click();
   await page.getByRole('menuitem', { name: 'Go to Stats',exact:true}).click();
-  await page.getByRole('region',{name:'Schedule details: Morning checks'}).getByText('New leads',{exact:true}).waitFor();
+  await page.getByRole('region',{name:'Schedule details: Morning checks'}).getByText('Verified new leads',{exact:true}).waitFor();
   await page.getByRole('button',{name:'Close schedule details'}).click();
   await page.setViewportSize({width:1440,height:900});
   const sam=page.getByRole('region',{name:'SAM statewide checks'});

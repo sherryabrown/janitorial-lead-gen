@@ -1,3 +1,4 @@
+import {scheduleActivity,publicOccurrence} from './schedule-activity.mjs';
 import {scheduleEvent} from './schedule-change-audit.mjs';
 import { timingSafeEqual } from 'node:crypto';
 import { checked,one } from './hosted-store.mjs';
@@ -82,7 +83,7 @@ export function procurementSchedules({db,triggers,now=()=>new Date()}) {
     const page=data.slice(0,limit),ids=page.map(o=>o.trigger_id).filter(Boolean);
     const runs=ids.length?await checked(await db.from('procurement_triggers').select('id,target_kind,state,config,created_at,finished_at,origin,schedule_id').in('id',ids)):[];
     const reports=await reportRunHistory(db,runs);
-    return {items:page.map(o=>({...o,reason:publicReason(o.reason),baseline:(Array.isArray(o.baseline)?o.baseline:[]).map(b=>({source_id:publicId(b.source_id),capability_id:publicId(b.capability_id),run_id:publicId(b.run_id),category:['forecast','opportunity','award'].includes(b.category)?b.category:null,finished_at:typeof b.finished_at==='string'&&Number.isFinite(Date.parse(b.finished_at))?b.finished_at:null,content_sha256:/^[a-f0-9]{64}$/.test(b.content_sha256??'')?b.content_sha256:null})),run:reports.find(r=>r.id===o.trigger_id)??null})),next_offset:data.length>limit?offset+limit:null};
+    return {items:page.map(o=>({...publicOccurrence(o),run:reports.find(r=>r.id===o.trigger_id)??null})),next_offset:data.length>limit?offset+limit:null};
   }
   async function control(id,action,input,actor) {
     if(!Number.isInteger(input?.expected_version)||input.expected_version<1)throw Error('Expected schedule version required');
@@ -134,7 +135,7 @@ export function procurementSchedules({db,triggers,now=()=>new Date()}) {
     if(!await one(db,'procurement_schedules',id))throw Error('Schedule not found');const data=checked(await db.from('procurement_schedule_events').select('id,actor_id,action,version,at,summary').eq('schedule_id',id).order('at',{ascending:false}).order('id').range(offset,offset+limit));
     return {items:data.slice(0,limit).map(e=>({...scheduleEvent(e),action:['created','edited','pause','resume','archive','delete','owner_inactive','queued','skipped','blocked'].includes(e.action)?e.action:'saved_event',summary:{occurrence_id:publicId(e.summary?.occurrence_id),reason:publicReason(e.summary?.reason)}})),next_offset:data.length>limit?offset+limit:null};
   }
-  return {preview,save,get,list,occurrences,events,control,runNow,tick,status,history:adminRunHistory(db),analytics:adminAnalytics(db,{now})};
+  return {activity:scheduleActivity(db,{now}),preview,save,get,list,occurrences,events,control,runNow,tick,status,history:adminRunHistory(db),analytics:adminAnalytics(db,{now})};
 }
 
 export function schedulerAuthorization(expected,provided) {

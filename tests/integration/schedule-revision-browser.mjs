@@ -44,7 +44,7 @@ export async function verifyScheduleRevision({page,origin,out,errors,bodies}){
   }
  }
  await page.setViewportSize({width:1440,height:1000});await tabs.getByRole('tab',{name:'Overview',exact:true}).click();
- await detail.getByRole('button',{name:'Run run',exact:true}).click();
+ await detail.getByRole('button',{name:/Run run$/}).click();
  const runDetail=page.getByRole('region',{name:'Run details'});await runDetail.waitFor();
  await runDetail.getByRole('navigation',{name:'Run sections'}).getByRole('button',{name:'Logs',exact:true}).click();
  await runDetail.getByRole('region',{name:'Run step logs'}).waitFor();

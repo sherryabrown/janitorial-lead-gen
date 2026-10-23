@@ -1,12 +1,12 @@
 # 05C2 — One schedule execution table and clear metric completeness
 
-Status: planned. Parent: [Admin workspace](admin-workspace-redesign.md). Presentation amendment to accepted [05B](../done/05B-schedule-and-run-detail-clarity.md) and [05C](../done/05C-history-submit-and-analytics-overview.md). Can build independently of [05C1](../done/05C1-county-addendum-identity-and-duplicate-repair.md); recheck exact metric links after both land.
+Status: complete (2026-10-23); verified locally and against read-only saved data. Shared read migration applied with explicit approval; hosted release pending. Parent: [Admin workspace](../todo/admin-workspace-redesign.md). Presentation amendment to accepted [05B](../done/05B-schedule-and-run-detail-clarity.md) and [05C](../done/05C-history-submit-and-analytics-overview.md). Can build independently of [05C1](../done/05C1-county-addendum-identity-and-duplicate-repair.md); recheck exact metric links after both land.
 
 ## Initiating request
 
 User invoked plan-code on 2026-10-23: fix duplicate Clearwater imports (05C1), switch run date/time and Run ID ordering, combine the two shown execution tables, and clarify analytics `Unknown · # known`. Preserve unrelated behavior. Planning only; Netlify production unchanged.
 
-Interpretation grounded in the attachment: the two tables are **Schedule Details → Overview → Runs** and **Execution attempts and skipped runs**, not two sections inside an individual Run Details page. Combine these schedule tables; retain Run Details Issues/Logs/Sources layout unchanged. Date/time becomes the primary run-opening link; the full Run ID remains secondary and available without losing breadcrumbs/context.
+Interpretation grounded in the attachment: the two tables are **Schedule Details → Overview → Runs** and **Execution attempts and skipped runs**, not two sections inside an individual Run Details page. Combine these schedule tables; retain Run Details Issues/Logs/Sources layout unchanged. Confirmed follow-up: global History rows show schedule name before Run ID, and Run Details headings show date/time before Run ID. Date/time becomes the primary run-opening link; the full Run ID remains secondary and available without losing breadcrumbs/context.
 
 ## Current evidence and reused components
 
@@ -73,3 +73,8 @@ Where cost uses an incomplete ledger subtotal, use **Recorded AI spend** plus it
 ## Success criteria and decisions
 
 One accurate schedule execution table retains every real run and no-run attempt, with date first and full ID secondary; no redundant dispatch/run outcome confusion. Metrics use proper labels and numbers; accessible contextual help explains incomplete coverage without cluttering values or misrepresenting totals. All exact links, return context and global History Submit behavior remain intact. No unresolved product decision; implementation must not silently broaden identity or scheduling semantics.
+
+
+## Completion
+
+Implemented all three phases. See [acceptance report](../../docs/reviews/2026-10-23-schedule-execution-and-metric-clarity.md) for changes, cleanup, tests, read-only screenshot-run verification, migration and release order. No business-data changes or hosted deployments performed. The user subsequently approved the private read migration and local backend restart; both passed. Netlify production unchanged. Proposed commit: `feat: unify schedule activity and clarify metrics`.

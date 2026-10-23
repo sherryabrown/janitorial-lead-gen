@@ -54,5 +54,6 @@ it('preserves the search token through run navigation/breadcrumbs and clears it 
  const context={view:'history' as const,historySearchId:'visit',returnTo:'contracts' as const};pushAdminLocation('owner',context);pushAdminLocation('owner',{...context,runId:'run'});expect(readAdminLocation('owner').historySearchId).toBe('visit');const navigate=vi.fn();runBreadcrumbs({...context,runId:'run'},null,navigate)[1].onClick?.();expect(navigate).toHaveBeenCalledWith(context);expect(parseAdminContext({...context,historySearchId:'<script>'}).historySearchId).toBeUndefined();clearAdminSession('owner');expect(window.location.search).not.toContain('adminHistorySearch');
 });
 it('still loads schedule runs automatically with their saved filters and no Submit',async()=>{
- render(<RunHistory owner="owner" scheduleId="schedule" onView={()=>{}}/>);await screen.findByRole('button',{name:'Run saved-run'});expect(reads()[0][0]).toBe('/v1/admin/history?schedule=schedule');expect(screen.queryByRole('button',{name:'Submit history'})).toBeNull();
+ request.mockResolvedValue({items:[{id:'run:'+run.id,kind:'run',activity_at:run.created_at,run}],next_offset:null,total:1});
+ render(<RunHistory owner="owner" scheduleId="schedule" onView={()=>{}}/>);await screen.findByRole('button',{name:/Run saved-run$/});expect(request.mock.calls[0][0]).toBe('/v1/schedules/schedule/activity?');expect(screen.queryByRole('button',{name:'Submit history'})).toBeNull();
 });

@@ -72,6 +72,7 @@ export function workflowServer({authenticate,workflow,imports,discovery,sam,samP
         else if(uuid.test(segments[2]??'')) {
           const id=segments[2];
           if(segments.length===3&&request.method==='GET')result=await schedules.get(id);
+          else if(segments.length===4&&segments[3]==='activity'&&request.method==='GET'){try{result=await schedules.activity(id,{offset,limit,...Object.fromEntries(['run','target','geography','origin','outcome','from','through','kind','attempt_state','as_of'].filter(k=>url.searchParams.has(k)).map(k=>[k,url.searchParams.get(k)]))});}catch(error){if(/^Invalid/.test(error.message))throw new HttpError(400,'Invalid activity filters');throw error;}}
           else if(segments.length===4&&['occurrences','events'].includes(segments[3])&&request.method==='GET')result=await schedules[segments[3]](id,{offset,limit});
           else if(segments.length===4&&segments[3]==='update'&&request.method==='POST')result=await schedules.save(id,input,actor,null);
           else if(segments.length===4&&['pause','resume','archive','delete'].includes(segments[3])&&request.method==='POST')result=await schedules.control(id,segments[3],input,actor);

@@ -23,6 +23,7 @@ function tab(name:string){fireEvent.click(within(screen.getByRole('tablist',{nam
 beforeEach(()=>{sessionStorage.clear();mock.request.mockReset();mock.request.mockImplementation(async(path:string)=>{
  if(path==='/v1/schedules/schedule')return base;
  if(path.startsWith('/v1/admin/analytics'))return report;
+ if(path.includes('/activity'))return {items:[{id:'run:'+run.id,kind:'run',activity_at:run.created_at,run}],next_offset:null,total:1};
  if(path.startsWith('/v1/admin/history'))return {items:[run],next_offset:null,total:1};
  if(path.includes('/steps'))return {items:[step],next_cursor:null};
  if(path.startsWith('/v1/triggers/'))return {...run,id:path.split('/').at(-1)};
@@ -58,7 +59,7 @@ it('keeps configuration history separate from execution attempts and retries onl
  mock.request.mockImplementation((p,o)=>p.includes('/events')?fail?Promise.reject(Error('private error')):Promise.resolve({items:[{id:'e',action:'pause',version:3,at:run.created_at}],next_offset:null}):original(p,o));
  fixture('history');await screen.findByRole('button',{name:'Retry schedule'});expect(mock.request.mock.calls.some(([p])=>p.includes('/occurrences'))).toBe(false);
  fail=false;fireEvent.click(screen.getByRole('button',{name:'Retry schedule'}));await screen.findByText('Pause');expect(screen.queryByText('private error')).toBeNull();
- tab('Overview');fireEvent.click(screen.getByText('Execution attempts and skipped runs'));await screen.findByText('No saved occurrences.');
+ tab('Overview');await screen.findByRole('table',{name:'Saved execution history'});expect(screen.queryByText('Execution attempts and skipped runs')).toBeNull();
 });
 it('selects older paged runs and restores the owner-scoped selected identity after remount',async()=>{
  const original=mock.request.getMockImplementation()!;
@@ -90,13 +91,6 @@ it('keeps saved evidence on a result refresh failure and retries results without
 it('does not display a status response that belongs to a different schedule',async()=>{
  const original=mock.request.getMockImplementation()!;mock.request.mockImplementation((p,o)=>p==='/v1/triggers/newest'?Promise.resolve({...run,schedule_id:'foreign'}):original(p,o));fixture('sources');await screen.findByText(/Selected run does not belong/);expect(screen.queryByRole('region',{name:'Saved results'})).toBeNull();expect(screen.queryByRole('table',{name:/Run step logs/})).toBeNull();expect(mock.request.mock.calls.some(([p])=>p.startsWith('/v1/requests/'))).toBe(false);
 });
-it('retries only a failed occurrence page and preserves both history datasets',async()=>{
- const original=mock.request.getMockImplementation()!;let fail=true;const occurrence={id:'one',state:'skipped',due_at:run.created_at,version:1,config:base.config};
- mock.request.mockImplementation((p,o)=>p.includes('/occurrences')?p.includes('offset=50')?fail?Promise.reject(Error('Page unavailable')):Promise.resolve({items:[occurrence,{...occurrence,id:'two',state:'queued'}],next_offset:null}):Promise.resolve({items:[occurrence],next_offset:50}):p.includes('/events')?Promise.resolve({items:[{id:'event',action:'update',version:2,at:run.created_at}],next_offset:null}):original(p,o));
- fixture('overview');fireEvent.click(screen.getByText('Execution attempts and skipped runs'));fireEvent.click(await screen.findByRole('button',{name:'More occurrences'}));await screen.findByRole('button',{name:'Retry schedule'});const events=mock.request.mock.calls.filter(([p])=>p.includes('/events')).length;
- fail=false;fireEvent.click(screen.getByRole('button',{name:'Retry schedule'}));await screen.findByText('Queued');expect(within(screen.getByRole('table',{name:'Schedule occurrences'})).getAllByRole('row')).toHaveLength(3);expect(mock.request.mock.calls.filter(([p])=>p.includes('/events'))).toHaveLength(events);tab('History');await screen.findByRole('table',{name:'Schedule changes'});
-});
-
 it('loads source evidence only when Sources is opened and retains it when returning from Logs',async()=>{
  fixture('logs');await screen.findByText('Collect');expect(mock.request.mock.calls.some(([p])=>p.startsWith('/v1/requests/'))).toBe(false);tab('Sources');await screen.findByText('Cleaning opportunity');tab('Logs');tab('Sources');expect(screen.getByText('Cleaning opportunity')).toBeTruthy();
 });

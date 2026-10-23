@@ -163,7 +163,7 @@ export function RunDetail({
     >
       <Breadcrumb items={[...(origin?runBreadcrumbs(origin,run,onNavigate):(embedded?[]:[{label:'Settings'},{label:'Runs'}])),{label:`Run ${id}`},{label:section==='overview'?'Issues':title(section)}]}/>
       <div className="admin-section-heading run-detail-heading">
-        {embedded?<h4>Run {id} · {run?formatLocal(run.created_at):'Created time unavailable'}</h4>:<h2 ref={heading} tabIndex={-1}>Run {id} · {run?formatLocal(run.created_at):'Created time unavailable'}</h2>}
+        {embedded?<h4>{run?formatLocal(run.created_at):'Created time unavailable'}<small className="run-heading-identity">Run {id}</small></h4>:<h2 ref={heading} tabIndex={-1}>{run?formatLocal(run.created_at):'Created time unavailable'}<small className="run-heading-identity">Run {id}</small></h2>}
         {!embedded&&<button type="button" className="text-button" onClick={onClose}>Back to previous view</button>}
       </div>
       <small className="run-history-caption">Created time · America/Chicago</small>

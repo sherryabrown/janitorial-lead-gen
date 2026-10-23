@@ -4,7 +4,7 @@ export async function verifyAnalyticsBrowser({page,origin,out,errors,bodies}){
  await mkdir(out,{recursive:true});await page.goto(origin);await page.getByRole('button',{name:'Settings',exact:true}).click();
  const nav=page.getByRole('navigation',{name:'Admin views'});await nav.getByRole('button',{name:'Stats / analytics',exact:true}).focus();await page.keyboard.press('Enter');
  const stats=page.getByRole('region',{name:'Stats and analytics'});await stats.getByRole('heading',{name:'Validated results'}).waitFor();
- assert.equal(await stats.getByLabel('Reporting period').inputValue(),'7');assert.match(await stats.innerText(),/Unknown · 1 known/);
+ assert.equal(await stats.getByLabel('Reporting period').inputValue(),'7');assert.doesNotMatch(await stats.innerText(),/Unknown · \d+ known/);assert.match(await stats.innerText(),/Verified new leads/);
  assert.equal(await stats.getByRole('table').count(),0);assert.equal(await stats.getByLabel('Sort runs').count(),0);assert.equal(await stats.getByRole('button',{name:'Next runs',exact:true}).count(),0);
  await stats.getByRole('combobox',{name:/^Type/}).selectOption('sam');await stats.getByText(/Run creation dates · 0 runs/).waitFor();
  await stats.getByRole('combobox',{name:/^Type/}).selectOption('');await stats.getByText(/Run creation dates · 26 runs/).waitFor();

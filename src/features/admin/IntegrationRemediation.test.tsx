@@ -143,25 +143,11 @@ it('polls automatic status without refetching unchanged SAM evidence', async () 
   expect(mocked.request.mock.calls.filter(([p]) => p.endsWith('/status'))).toHaveLength(3);
 });
 
-it('loads archived schedule history, paginates and opens only occurrences with a run', async () => {
-  const onView = vi.fn();
-  mocked.request.mockImplementation(async (path: string) => path.endsWith('/events') ? {
-    items: [{ id: 'event', action: 'archive', at: '2026-10-19T12:00:00Z', version: 2 }], next_offset: null,
-  } : path.includes('offset=1') ? {
-    items: [{ id: 'second', state: 'queued', trigger_id: 'run', due_at: '2026-10-19T12:00:00Z' }], next_offset: null,
-  } : { items: [{ id: 'first', state: 'blocked', reason: 'scope_changed', due_at: '2026-10-19T12:00:00Z' }], next_offset: 1 });
-  render(<ScheduleList items={[{ ...initialDraft(), id: 'schedule', name: 'Archived morning', archived: true, version: 2, next_due_at: null }]} more={false} onMore={() => {}} onEdit={() => {}} onAction={() => {}} onView={onView} busy={false} />);
-  expect(mocked.request).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole('button', { name: 'Actions for Archived morning' }));
-  fireEvent.click(screen.getByRole('menuitem', { name: 'Details' }));
-  fireEvent.click(screen.getByText('Execution attempts and skipped runs'));
-  await screen.findByText(/No run was created/);
-  expect(screen.queryByRole('button', { name: 'View run' })).toBeNull();
-  fireEvent.click(screen.getByRole('button', { name: 'More occurrences' }));
-  fireEvent.click(await screen.findByRole('button', { name: 'Run run' }));
-  expect(onView).toHaveBeenCalledWith('run');
-  fireEvent.click(screen.getByRole('button',{name:'Back to schedules'}));
-  const actions=screen.getByRole('button', { name: 'Actions for Archived morning' });
-  if(actions.getAttribute('aria-expanded')!=='true')fireEvent.click(actions);
-  expect(screen.getByRole('menuitem', { name: 'Edit' }).getAttribute('aria-disabled')).toBe('true');
+it('loads archived schedule activity and keeps archived management disabled',async()=>{
+ const onView=vi.fn();
+ mocked.request.mockImplementation(async(path:string)=>path.includes('/activity')?{items:[{id:'attempt:first',kind:'attempt',activity_at:'2026-10-19T12:00:00Z',run:null,occurrence:{id:'first',state:'blocked',reason:'scope_changed'}}],total:1,next_offset:null}:path==='/v1/schedules/schedule'?{...initialDraft(),id:'schedule',name:'Archived morning',archived:true,version:2}: {items:[],next_offset:null});
+ render(<ScheduleList items={[{...initialDraft(),id:'schedule',name:'Archived morning',archived:true,version:2,next_due_at:null}]} more={false} onMore={()=>{}} onEdit={()=>{}} onAction={()=>{}} onView={onView} busy={false}/>);
+ fireEvent.click(screen.getByRole('button',{name:'Actions for Archived morning'}));fireEvent.click(screen.getByRole('menuitem',{name:'Details'}));
+ await screen.findByText('No run created');expect(screen.queryByText('Execution attempts and skipped runs')).toBeNull();
+ fireEvent.click(screen.getByRole('button',{name:'Back to schedules'}));const actions=screen.getByRole('button',{name:'Actions for Archived morning'});if(actions.getAttribute('aria-expanded')!=='true')fireEvent.click(actions);expect(screen.getByRole('menuitem',{name:'Edit'}).getAttribute('aria-disabled')).toBe('true');
 });

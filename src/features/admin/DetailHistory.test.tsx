@@ -4,7 +4,6 @@ import {afterEach,beforeEach,expect,it,vi} from 'vitest';
 import {act,cleanup,fireEvent,render,screen,waitFor,within} from '@testing-library/react';
 import {RunHistory} from './RunHistory';
 import {ScheduleDetail,type ScheduleSection} from './ScheduleDetail';
-import {ScheduleHistory} from './ScheduleHistory';
 import {RunDetail} from './RunDetail';
 import {initialDraft} from './model';
 import {readAdminLocation,pushAdminLocation,replaceAdminLocation} from './navigation';
@@ -19,23 +18,16 @@ it('filters full server history, paginates and ignores late pages after a filter
  mocked.request.mockImplementation(async(path:string)=>{
   if(path.includes('offset=50'))return new Promise(resolve=>{resolvePage=resolve;});
   if(path.includes('target=sam'))return {items:[],next_offset:null,total:0};
-  return {items:Array.from({length:50},(_,n)=>({...run,id:`r${n}`})),next_offset:50,total:150};
+  return {items:Array.from({length:50},(_,n)=>({id:`run:r${n}`,kind:'run',activity_at:run.created_at,run:{...run,id:`r${n}`}})),next_offset:50,total:150,as_of:run.created_at};
  });
  render(<RunHistory scheduleId="schedule" onView={()=>{}}/>);
- await screen.findByText(/150 matching runs/);fireEvent.click(screen.getByRole('button',{name:'More runs'}));
+ await screen.findByText(/150 matching activity rows/);fireEvent.click(screen.getByRole('button',{name:'More runs'}));
  fireEvent.click(screen.getByText('More filters'));fireEvent.change(screen.getByLabelText('Run type'),{target:{value:'sam'}});await screen.findByText('No matching runs.');
  await act(async()=>resolvePage({items:[{...run,id:'stale',schedule_name:'Stale page'}],next_offset:null,total:150}));
- expect(screen.queryByText('Stale page')).toBeNull();expect(mocked.request.mock.calls.some(([p])=>p.includes('schedule=schedule')&&p.includes('target=sam'))).toBe(true);
-});
-it('preserves independent history panels and immutable occurrence scope when an endpoint fails',async()=>{
- mocked.request.mockImplementation(async(path:string)=>{if(path.endsWith('/events'))throw Error('private exception');return {items:[{id:'occ',state:'skipped',reason:'previous_run_active',due_at:run.created_at,version:1,config:{target_kind:'county_scope',county_ids:['05125'],counties:[{name:'Original saved scope'}]}}],next_offset:null};});
- render(<ScheduleHistory mode="occurrences" id="schedule" onView={()=>{}}/>);
- await screen.findByText('Skipped');expect(screen.queryByText(/Loaded records remain available/)).toBeNull();expect(mocked.request.mock.calls.some(([p])=>p.endsWith('/events'))).toBe(false);
- fireEvent.click(screen.getByText('Occurrence snapshot · version 1'));expect(screen.getByText('Original saved scope')).toBeTruthy();
- expect(screen.queryByRole('button',{name:'View run'})).toBeNull();expect(screen.queryByText('private exception')).toBeNull();
+ expect(screen.queryByText('Stale page')).toBeNull();expect(mocked.request.mock.calls.some(([p])=>p.includes('/schedules/schedule/activity')&&p.includes('target=sam'))).toBe(true);
 });
 it('provides all detail sections, saved geography, honest metrics and archived controls',async()=>{
- const view=vi.fn();mocked.request.mockImplementation(async(path:string)=>path==='/v1/schedules/schedule'?schedule:{items:[run],next_offset:null,total:1});
+ const view=vi.fn();mocked.request.mockImplementation(async(path:string)=>path==='/v1/schedules/schedule'?schedule:path.includes('/activity')?{items:[{id:'run:run',kind:'run',activity_at:run.created_at,run}],next_offset:null,total:1}:{items:[],next_offset:null,total:0});
  function Fixture(){const [section,setSection]=useState<ScheduleSection>('overview');return <ScheduleDetail id="schedule" initial={schedule} section={section} onSection={setSection} onClose={()=>{}} onView={view} onEdit={()=>{}} onAction={()=>{}} busy={false}/>;}
  render(<Fixture/>);await screen.findByRole('heading',{name:'Renamed county checks'});
  expect(screen.getByRole('button',{name:'Run now'})).toHaveProperty('disabled',true);
@@ -43,7 +35,7 @@ it('provides all detail sections, saved geography, honest metrics and archived c
  fireEvent.click(within(nav).getByRole('tab',{name:'Related geography'}));expect(screen.getByText('Benton')).toBeTruthy();
  fireEvent.click(within(nav).getByRole('tab',{name:'Sources'}));expect(screen.getByRole('heading',{name:'Saved run evidence'})).toBeTruthy();
  fireEvent.click(within(nav).getByRole('tab',{name:'Logs'}));expect(screen.getByRole('heading',{name:'Run logs'})).toBeTruthy();
- fireEvent.click(within(nav).getByRole('tab',{name:'Overview'}));const runs=screen.getByRole('region',{name:'Schedule runs'});await within(runs).findByRole('button',{name:'Run run'});fireEvent.click(within(runs).getByRole('button',{name:'Run run'}));expect(view).toHaveBeenCalledWith('run','overview');
+ fireEvent.click(within(nav).getByRole('tab',{name:'Overview'}));const runs=screen.getByRole('region',{name:'Schedule runs'});await within(runs).findByRole('button',{name:/Run run$/});fireEvent.click(within(runs).getByRole('button',{name:/Run run$/}));expect(view).toHaveBeenCalledWith('run','overview');
  fireEvent.click(within(nav).getByRole('tab',{name:'Overview'}));expect(screen.getByText('Schedule setup').closest('details')?.open).toBe(false);expect(screen.queryByText('Latest run · validated outcomes')).toBeNull();
 });
 it('keeps run progress visible when logs fail, retries reads and renders diagnostic references safely',async()=>{
@@ -85,12 +77,6 @@ it('retries failed metadata independently of loaded step logs',async()=>{
  failed=false;fireEvent.click(screen.getByRole('button',{name:'Retry run'}));await screen.findByRole('button',{name:'Refresh run'});expect(mocked.request.mock.calls.filter(([p])=>p.endsWith('/steps'))).toHaveLength(count);
  expect(screen.getAllByRole('columnheader')).toHaveLength(6);expect(screen.getByText('Finish unknown')).toBeTruthy();expect(mocked.request.mock.calls.every(([,o])=>!o?.body)).toBe(true);
 });
-it('retains loaded history and retries a failed next page once without duplicate rows',async()=>{
- let fail=true;mocked.request.mockImplementation(async(path:string)=>{if(path.includes('offset=50')){if(fail)throw Error('Next page failed');return {items:[run,{...run,id:'other',created_at:'2026-10-21T12:00:00Z'}],next_offset:null,total:2};}return {items:[run],next_offset:50,total:2};});
- render(<RunHistory scheduleId="schedule" onView={()=>{}}/>);await screen.findByRole('button',{name:'Run run'});fireEvent.click(screen.getByRole('button',{name:'More runs'}));await screen.findByRole('button',{name:'Retry history'});
- expect(screen.getAllByRole('row')).toHaveLength(2);fail=false;fireEvent.click(screen.getByRole('button',{name:'Retry history'}));await screen.findByRole('button',{name:'Run other'});expect(screen.getAllByRole('row')).toHaveLength(3);
-});
-
 it('replaces run tabs without losing the originating history entry',async()=>{
  pushAdminLocation('owner',{view:'history',returnTo:'contracts'});
  pushAdminLocation('owner',{view:'history',runId:'run',runSection:'overview',returnTo:'contracts'});

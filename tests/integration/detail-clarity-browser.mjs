@@ -15,7 +15,7 @@ export async function verifyDetailClarityBrowser({page,origin,out,errors,bodies}
   assert.equal(await setup.getAttribute('open'),null);await detail.getByText('Schedule setup',{exact:true}).focus();await page.keyboard.press('Enter');assert.notEqual(await setup.getAttribute('open'),null);
   await detail.getByRole('button',{name:'Refresh schedule',exact:true}).click();await detail.getByRole('button',{name:'Refresh schedule',exact:true}).waitFor();assert.notEqual(await setup.getAttribute('open'),null,'Refresh keeps disclosure open');await detail.getByText('Schedule setup',{exact:true}).click();
   await capture(`schedule-overview-${width}`);
-  const runs=detail.getByRole('table',{name:'Saved execution history'}),runLink=runs.getByRole('button',{name:'Run run',exact:true});await runLink.focus();await page.keyboard.press('Enter');
+  const runs=detail.getByRole('table',{name:'Saved execution history'}),runLink=runs.getByRole('button',{name:/Run run$/});await runLink.focus();await page.keyboard.press('Enter');
   const run=page.getByRole('region',{name:'Run details'});await run.getByRole('heading',{name:/Run run/}).waitFor();await run.getByRole('table',{name:'Source issues and next actions'}).waitFor();
   assert.equal(await run.locator('.run-attributes').getAttribute('open'),null);assert.match(await run.getByRole('navigation',{name:'Breadcrumb'}).innerText(),/Settings.*Schedules.*schedule.*Runs.*Run run.*Issues/s);
   await capture(`issues-${width}`);await run.getByRole('button',{name:'Sources',exact:true}).focus();await page.keyboard.press('Enter');await run.getByRole('table',{name:'Saved source checks and next actions'}).waitFor();await capture(`sources-${width}`);
@@ -23,7 +23,7 @@ export async function verifyDetailClarityBrowser({page,origin,out,errors,bodies}
   await run.getByRole('button',{name:'Logs',exact:true}).click();await run.getByRole('table',{name:/Run step logs/}).waitFor();assert.equal(await run.locator('.run-step-table thead th').count(),6);await capture(`logs-${width}`);
   await run.getByRole('button',{name:'Back to previous view',exact:true}).click();await detail.waitFor();assert.equal(await runLink.evaluate(e=>e===document.activeElement),true,'Run return restores row focus');
   await detail.getByRole('tab',{name:'History',exact:true}).click();await detail.getByRole('table',{name:'Schedule changes'}).waitFor();assert.equal(await detail.getByRole('table',{name:'Schedule occurrences'}).count(),0);await detail.getByText('Earlier name → Morning checks',{exact:true}).waitFor();await capture(`changes-${width}`);
-  await detail.getByRole('tab',{name:'Overview',exact:true}).click();await detail.getByText('Execution attempts and skipped runs',{exact:true}).click();await detail.getByRole('table',{name:'Schedule occurrences'}).waitFor();await detail.getByText(/No run was created/).waitFor();await capture(`attempts-${width}`);
+  await detail.getByRole('tab',{name:'Overview',exact:true}).click();await detail.getByText('No run created',{exact:true}).waitFor();await capture(`attempts-${width}`);
   await detail.getByRole('button',{name:'Back to schedules',exact:true}).click();await row.waitFor();assert.equal(await row.evaluate(e=>e===document.activeElement),true,'Schedule breadcrumb restores row focus');
  }
  await page.setViewportSize({width:1440,height:1000});await page.getByRole('button',{name:'Morning checks',exact:true}).click();await detail.getByRole('button',{name:'Refresh schedule',exact:true}).waitFor();
@@ -34,6 +34,6 @@ export async function verifyDetailClarityBrowser({page,origin,out,errors,bodies}
  await page.getByRole('heading',{name:new RegExp('Run '+longId)}).waitFor();await page.setViewportSize({width:320,height:1000});await page.getByRole('heading',{name:new RegExp('Run '+longId)}).scrollIntoViewIfNeeded();await capture('long-run-320');
  await page.setViewportSize({width:1440,height:1000});await page.evaluate(()=>{document.documentElement.style.zoom='2';});await page.getByRole('heading',{name:new RegExp('Run '+longId)}).scrollIntoViewIfNeeded();await capture('run-zoom-200');await page.evaluate(()=>{document.documentElement.style.zoom='';});
  assert.deepEqual(errors,[]);assert.equal(bodies.length,0,'Browsing must not mutate workflows');
- await writeFile(`${out}/verification.json`,JSON.stringify({widths:[1440,390,320],zoom:200,keyboard:true,identityFirstRunLinks:true,completeBreadcrumbs:true,configurationHistory:true,separateAttempts:true,sourceTable:true,logsUnchanged:true,disclosurePersistence:true,returnFocus:true,mutations:0,errors},null,2));
+ await writeFile(`${out}/verification.json`,JSON.stringify({widths:[1440,390,320],zoom:200,keyboard:true,identityFirstRunLinks:true,completeBreadcrumbs:true,configurationHistory:true,unifiedAttempts:true,sourceTable:true,logsUnchanged:true,disclosurePersistence:true,returnFocus:true,mutations:0,errors},null,2));
  console.log('05B detail clarity browser acceptance passed.');
 }

@@ -160,3 +160,7 @@ export function readFailure(error:unknown,resource:string){
  if(error instanceof Error&&'code' in error&&error.code==='SESSION')return error.message;
  return `${resource} could not load. Use Retry above.`;
 }
+
+export function attemptNextAction(reason?:string){
+ return ({previous_run_active:'Wait for the previous run to finish, then use Run now if needed.',scope_changed:'Edit the schedule to review its changed scope before running again.',scope_unavailable:'Review the saved geography and source availability, then edit the schedule.',owner_inactive:'An active account must recreate this schedule.',trigger_enqueue_failed:'Refresh saved activity before retrying Run now.'} as Record<string,string>)[reason??'']??'Review the saved dispatch reason before running again.';
+}
