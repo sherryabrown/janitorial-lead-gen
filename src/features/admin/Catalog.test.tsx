@@ -13,7 +13,7 @@ beforeEach(()=>{sessionStorage.clear();mocks.request.mockReset();mocks.request.m
 afterEach(cleanup);
 function Sources(){const [id,setId]=useState<string|undefined>();return <Catalog mode="sources" owner="user" sourceId={id} onSource={setId}/>;}
 it('keeps registered methods, dated blockers and missing collection history distinct; restores row focus',async()=>{
- render(<Sources/>);const row=await screen.findByRole('button',{name:source.name});row.focus();fireEvent.click(row);
+ render(<Sources/>);expect(screen.getByRole('combobox',{name:'County'})).toBeTruthy();const row=await screen.findByRole('button',{name:source.name});row.focus();fireEvent.click(row);
  await screen.findByRole('table',{name:'Source category methods'});expect(screen.getByText('Verification expired')).toBeTruthy();expect(screen.getAllByText('Unknown').length).toBeGreaterThan(0);expect(screen.getByText(/Historical access\/research notes/)).toBeTruthy();
  expect(screen.getByRole('button',{name:'Refresh sources'})).toBeTruthy();fireEvent.click(screen.getByRole('button',{name:'Back to registered sources'}));await waitFor(()=>expect(document.activeElement).toBe(row));expect(mocks.request.mock.calls.every(c=>!c[1]?.body)).toBe(true);
 });

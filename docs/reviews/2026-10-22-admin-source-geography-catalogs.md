@@ -31,3 +31,9 @@ Ignored evidence: `outputs/deployment/admin-ui/05-acceptance-check.log`, `05-bro
 The catalog exposes existing access/coverage gaps; it does not resolve provider access, establish complete historical capture coverage or start research. No remaining product decision blocks Phase 5. No application files were deleted. Phase 6 integrated acceptance/release remains separate.
 
 Review the local Settings catalogs with real data. A hosted release requires the matching Render backend first, then an authorized Netlify preview build using the hosted API URL; no migration is needed. Preserve Netlify production. Proposed commit: `feat: add source and geography catalogs`.
+
+## Release verification correction
+
+Feature commit `7ea953b` was pushed and deployed to Render and the Netlify preview under the user's release authorization. Live catalog verification identified page-wide mobile overflow from long state-source relationship buttons. The scoped correction lets catalog text buttons wrap within their container; it also supplies concise explicit accessible names for catalog selects, whose implicit labels included option text.
+
+Added a long shared-state-source relationship to the browser fixture and an exact County accessible-name assertion. All 147 frontend tests, seven focused catalog tests, lint/build and fixture desktop/390/320 keyboard checks passed. A separate read-only browser session against the local app with real saved data passed all three widths, source paging/detail/Back focus, nine Saline municipalities, reload context, schedule history/logs/evidence/geography and one read owner (50 API reads, zero workflow mutation requests, zero script errors). No backend, schema, scheduling, collection or import behavior changed in this correction. Matching Render-first/preview release readbacks are retained separately in ignored deployment receipts; Netlify production remains protected.
