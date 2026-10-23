@@ -26,10 +26,10 @@ export async function verifyScheduleRevision({page,origin,out,errors,bodies}){
  const tools=page.getByText('More filters',{exact:true});await tools.focus();await page.keyboard.press('Enter');await page.getByLabel('Sort schedules').waitFor();await tools.press('Enter');
  await table.getByRole('button',{name:'Morning checks',exact:true}).click();
  const detail=page.getByRole('region',{name:'Schedule details: Morning checks'}),tabs=detail.getByRole('tablist');
- await detail.getByRole('heading',{name:'Schedule settings'}).waitFor();assert.equal(await table.isVisible(),false);
+ await detail.getByText('Schedule setup',{exact:true}).waitFor();assert.equal(await table.isVisible(),false);
  assert.equal(await detail.getByText('Latest run · validated outcomes').count(),0);
  const runRows=detail.locator('table tbody tr');await runRows.first().waitFor();assert.equal(await runRows.count(),1);
- const runFilters=detail.getByText('Filter runs',{exact:true});await runFilters.focus();await page.keyboard.press('Enter');await detail.getByLabel('Run ID',{exact:true}).waitFor();await runFilters.press('Enter');
+ const runFilters=detail.getByText('More filters',{exact:true});await runFilters.focus();await page.keyboard.press('Enter');await detail.getByLabel('Run ID',{exact:true}).waitFor();await runFilters.press('Enter');
  assert.equal(await detail.getByLabel('Run ID',{exact:true}).isVisible(),false);
 
  for(const label of ['Overview','History','Logs','Related geography','Sources']){
@@ -44,11 +44,11 @@ export async function verifyScheduleRevision({page,origin,out,errors,bodies}){
   }
  }
  await page.setViewportSize({width:1440,height:1000});await tabs.getByRole('tab',{name:'Overview',exact:true}).click();
- await detail.getByRole('button',{name:'View run',exact:true}).click();
+ await detail.getByRole('button',{name:'Run run',exact:true}).click();
  const runDetail=page.getByRole('region',{name:'Run details'});await runDetail.waitFor();
  await runDetail.getByRole('navigation',{name:'Run sections'}).getByRole('button',{name:'Logs',exact:true}).click();
  await runDetail.getByRole('region',{name:'Run step logs'}).waitFor();
- await runDetail.getByRole('button',{name:'Close details',exact:true}).click();await detail.waitFor();
+ await runDetail.getByRole('button',{name:'Back to previous view',exact:true}).click();await detail.waitFor();
 
  await detail.getByRole('button',{name:'Edit',exact:true}).click();
  const editor=page.getByRole('region',{name:'Schedule editor'});await editor.waitFor();

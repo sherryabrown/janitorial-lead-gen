@@ -2,7 +2,7 @@ import {adminViewLabels,type AdminContext} from './navigation';
 import type {Crumb} from './breadcrumb-context';
 import type {Run} from './types';
 export function runBreadcrumbs(origin:AdminContext,run:Run|null,navigate?: (context:AdminContext)=>void):Crumb[]{
- const root=(view:AdminContext['view'])=>()=>navigate?.({view,returnTo:'contracts'});
+ const root=(view:AdminContext['view'])=>()=>navigate?.({view,returnTo:'contracts',...(view==='history'&&origin.view==='history'?{historySearchId:origin.historySearchId}:{})});
  const path:Crumb[]=[{label:'Settings',onClick:root('schedules')},{label:adminViewLabels[origin.view],onClick:root(origin.view)}];
  // URL/session scope alone cannot establish membership in a saved schedule.
  if(origin.view==='schedules'&&origin.scheduleId&&run?.schedule_id===origin.scheduleId){

@@ -1,6 +1,6 @@
 # 05C — Submitted History searches and compact analytics
 
-Status: planned. Initiating prompt and shared requirements: [amendment](05-schedule-results-and-history-amendment.md), incorporated in full. Depends on accepted [05A](../done/05A-schedule-audit-and-lead-drilldowns.md) and [05B](../done/05B-schedule-and-run-detail-clarity.md). This is the final amendment before integrated Phase 6.
+Status: completed and accepted locally, 2026-10-23. [Verification](../../docs/reviews/2026-10-23-history-submit-and-analytics-overview.md). No migration or deployment performed. Initiating prompt and shared requirements: [amendment](../todo/05-schedule-results-and-history-amendment.md), incorporated in full. Depends on accepted [05A](../done/05A-schedule-audit-and-lead-drilldowns.md) and [05B](../done/05B-schedule-and-run-detail-clarity.md). This is the final amendment before integrated Phase 6.
 
 ## Implementation
 
@@ -20,3 +20,7 @@ Status: planned. Initiating prompt and shared requirements: [amendment](05-sched
 - Desktop 1440/mobile 390/320/200% zoom/keyboard: screenshot comparison with attached structure, metric links readable, no horizontal page overflow, full breadcrumbs, disclosures, History Submit flow, no initial rows, failure/retry, run Logs unchanged, sources table with actionable instructions. Verify existing list/editor, manual county/state/SAM paths, catalog context and Leads notes/stages stay intact.
 - Record safe real-data read-only checks plus native synthetic positives; do not invent live matching leads. Update parent and Phase 6 regression matrix with accepted children and remaining limitations. Move this child only after acceptance; parent stays todo until Phase 6 passes.
 - Report changes/deletions/tests/remaining decisions and proposed commit message. Commit/push/migrations/release require applicable user authorization; no production Netlify deployment.
+
+## Completion
+
+History Submit/return scope and compact analytics implemented using existing services and CSS. All required automated, native database, desktop/mobile/keyboard/200% zoom and read-only real-data checks passed. See the verification receipt above. Global Runs table/pager frontend code removed; no data or API deletion. Phase 6 remains pending; no unresolved child product decisions.

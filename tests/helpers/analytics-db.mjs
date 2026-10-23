@@ -19,6 +19,7 @@ export async function verifyAnalyticsDatabase({sql,db}){
  const service=adminAnalytics(db,{now:()=>new Date('2026-10-21T12:00:00Z')}),filter={schedule:sid,from:'2026-10-20',through:'2026-10-20',limit:10};
  const first=await service(filter);assert.equal(first.total,31);assert.equal(first.summary.runs,31);assert.equal(first.items.length,10);assert.equal(first.summary.unique_leads.value,null);assert.equal(first.summary.unique_leads.known_subtotal,1);assert.equal(first.summary.categories.opportunity.known_subtotal,1);assert.equal(first.summary.timing.samples,31);assert.equal(first.next_offset,10);
  assert.equal(JSON.stringify(first).includes('NEVER PUBLIC'),false);assert.equal(JSON.stringify(first).includes(lead),false,'Public totals do not download lead identities');
+ const summaryPage=await service({...filter,limit:1});assert.equal(summaryPage.items.length,1);assert.equal(summaryPage.total,31);assert.deepEqual(summaryPage.summary,first.summary,'One-row payload still aggregates every selected run');assert.deepEqual(summaryPage.coverage,first.coverage);assert.equal(summaryPage.snapshot,first.snapshot,'Metric memberships use the same full-selection snapshot');
  const members=await service({...filter,member_metric:'added',expected:1,as_of:first.as_of,snapshot:first.snapshot});
  assert.equal(members.kind,'leads');assert.equal(members.total,1);assert.deepEqual(members.items,[{id:lead}]);assert.equal(members.descriptor.known_subtotal,1);
  const runReport=await service({run:runIds[0],period:'all'});

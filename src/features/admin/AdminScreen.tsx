@@ -87,6 +87,7 @@ function readEditor(owner: string): Editor | null {
 const merge = <T extends { id: string }>(old: T[], next: T[]) => [
   ...new Map([...old, ...next].map((i) => [i.id, i])).values(),
 ];
+function historyEntry(context:AdminContext):AdminContext{return context.view==='history'&&!context.runId&&!context.historySearchId?{...context,historySearchId:crypto.randomUUID()}:context;}
 export default function AdminScreen({
   owner,
   onViewLeads,
@@ -106,7 +107,7 @@ export default function AdminScreen({
   const stateSourcesRef=useRef<HTMLDivElement>(null),samRef=useRef<HTMLDivElement>(null);
   const [navigation, setNavigation] = useState<AdminContext>(() => {
     const saved = readAdminLocation(owner);
-    return saved;
+    return historyEntry(saved);
   });
   const headingRef = useRef<HTMLHeadingElement>(null);
   const returnFocus=useRef<HTMLElement|null>(null),previousRun=useRef<string|null>(null),restoreFocus=useRef(false);
@@ -117,15 +118,15 @@ export default function AdminScreen({
     const target=navigation.runId?detailRef.current?.querySelector<HTMLElement>('h2'):navigation.view==='stats'?statsRef.current:navigation.scheduleId?schedulesRef.current?.querySelector<HTMLElement>('.schedule-detail h2'):navigation.view==='history'?historyRef.current:manualView?manualRef.current:headingRef.current;
     target?.focus();if(navigation.runId||navigation.scheduleId||navigation.view==='history'||manualView)target?.scrollIntoView?.({block:'nearest'});
   }, [active,navigation.view,navigation.scheduleId,navigation.runId,manualView]);
-  useEffect(() => { saveAdminContext(owner, navigation); }, [owner, navigation]);
-  useEffect(()=>{const back=()=>{const context=readAdminLocation(owner);if(previousRun.current&&!context.runId)restoreFocus.current=true;setNavigation(context);};window.addEventListener('popstate',back);return()=>window.removeEventListener('popstate',back);},[owner]);
-  const commitNavigation=(context:AdminContext)=>{pushAdminLocation(owner,context);setNavigation(context);};
+  useEffect(() => { saveAdminContext(owner, navigation);if(navigation.historySearchId&&!new URLSearchParams(window.location.search).has('adminHistorySearch'))replaceAdminLocation(owner,navigation); }, [owner, navigation]);
+  useEffect(()=>{const back=()=>{const context=historyEntry(readAdminLocation(owner));if(previousRun.current&&!context.runId)restoreFocus.current=true;setNavigation(context);};window.addEventListener('popstate',back);return()=>window.removeEventListener('popstate',back);},[owner]);
+  const commitNavigation=(value:AdminContext)=>{const context=historyEntry(value);pushAdminLocation(owner,context);setNavigation(context);};
   const selected=navigation.runId??null;
   const setSelected=(value:string|null|((old:string|null)=>string|null))=>{const id=typeof value==='function'?value(selected):value;commitNavigation({...navigation,runId:id??undefined,runSection:'overview'});};
   const viewRun=(id:string,section:'overview'|'logs'|'sources'='overview')=>{returnFocus.current=document.activeElement as HTMLElement;commitNavigation({...navigation,runId:id,runSection:section});};
   useEffect(()=>{if(previousRun.current&&!selected&&restoreFocus.current&&returnFocus.current?.isConnected){returnFocus.current.focus({preventScroll:true});returnFocus.current.scrollIntoView?.({block:'nearest'});}restoreFocus.current=false;previousRun.current=selected;},[selected]);
   const navigate = (view: AdminContext['view'], manual = false) => {
-    commitNavigation({ view, returnTo: 'contracts', ...(manual ? { section: 'manual' } : {}) });
+    commitNavigation({ view, returnTo: 'contracts', ...(view==='history'?{historySearchId:crypto.randomUUID()}:{}), ...(manual ? { section: 'manual' } : {}) });
     const target = manual ? manualRef.current : view === 'history' ? historyRef.current : view==='stats'?statsRef.current:schedulesRef.current;
     target?.focus(); target?.scrollIntoView?.({ block: 'start' });
   };
@@ -576,10 +577,10 @@ export default function AdminScreen({
       />
       </div>
       </div>
-      {navigation.view==='stats'&&<div hidden={!!selected||!!scheduleEditor} ref={statsRef} tabIndex={-1} className="admin-navigation-section"><Analytics owner={owner} counties={counties} onView={viewRun}/></div>}
+      {navigation.view==='stats'&&<div hidden={!!selected||!!scheduleEditor} ref={statsRef} tabIndex={-1} className="admin-navigation-section"><Analytics owner={owner} counties={counties}/></div>}
       {(navigation.view==='sources'||navigation.view==='geography')&&<div hidden={!!selected||!!scheduleEditor} className="admin-navigation-section"><Catalog key={navigation.view} mode={navigation.view} owner={owner} counties={counties} sourceId={navigation.sourceId} geographyId={navigation.geographyId} onSource={id=>commitNavigation({view:'sources',sourceId:id,returnTo:'contracts'})} onGeography={id=>commitNavigation({view:'geography',geographyId:id,returnTo:'contracts'})} onState={()=>{navigate('schedules',true);requestAnimationFrame(()=>stateSourcesRef.current?.scrollIntoView?.({block:'start'}));}}/></div>}
       <div hidden={!!scheduleEditor||navigation.view!=='history'&&!selected} ref={historyRef} tabIndex={-1} className="admin-navigation-section" aria-label="History and logs">
-      <div hidden={!!selected}>{navigation.view==='history'&&<RunHistory owner={owner} counties={counties} refreshSignal={revision} onView={viewRun} onSchedule={id=>commitNavigation({view:'schedules',scheduleId:id,section:'history',returnTo:'contracts'})}/>}</div>
+      <div hidden={!!selected}>{navigation.view==='history'&&<RunHistory entryId={navigation.historySearchId} active={active&&!selected&&!scheduleEditor} owner={owner} counties={counties} refreshSignal={revision} onView={viewRun} onSchedule={id=>commitNavigation({view:'schedules',scheduleId:id,section:'history',returnTo:'contracts'})}/>}</div>
       {selected && (
         <div ref={detailRef}>
           <RunDetail

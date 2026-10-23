@@ -693,6 +693,12 @@
 .admin-workspace-bar>.admin-workspace-nav{grid-column:1/-1;grid-row:1}
 .analytics-block{border-top:1px solid var(--border);margin-top:24px;padding-top:20px;min-width:0}
 .analytics-summary{min-width:0;margin:20px 0}
+.analytics .compact-result-metrics{background:transparent;padding:12px 0;grid-template-columns:repeat(4,minmax(0,1fr))}
+.analytics .compact-result-metrics dd{font-size:1.6rem;font-weight:700;margin-top:8px}
+.analytics .metric-link{display:inline;white-space:normal;overflow-wrap:anywhere;max-width:100%;min-width:0;min-height:0;padding:0}
+@media(max-width:480px){.analytics .compact-result-metrics dd{font-size:1.1rem}}
+.history-search-actions{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin:16px 0}
+@media(max-width:760px){.analytics .compact-result-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .schedule-breadcrumb ol{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;list-style:none;padding:0;margin:0;min-width:0}
 .schedule-breadcrumb li{display:flex;align-items:center;gap:10px;min-width:0;overflow-wrap:anywhere}
 .schedule-breadcrumb li+li:before{content:'/';color:var(--muted)}

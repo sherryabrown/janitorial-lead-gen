@@ -1,6 +1,6 @@
 # Schedule results, history and navigation amendment
 
-Status: planned; no application changes authorized by this document. Parent: [Admin workspace](admin-workspace-redesign.md). Build 05A → 05B → 05C, then Phase 6. These requirements supersede conflicting presentation/read-control requirements in earlier phases; retain all other requirements.
+Status: 05A–05C implemented and accepted; 05A/05B released, 05C verified locally. Phase 6 remains pending. This document alone does not authorize release. Parent: [Admin workspace](admin-workspace-redesign.md). Build 05A → 05B → 05C, then Phase 6. These requirements supersede conflicting presentation/read-control requirements in earlier phases; retain all other requirements.
 
 ## Initiating prompt
 
@@ -67,6 +67,6 @@ Processing & attention / AI usage / Timing [concise existing accurate measures]
 
 1. [05A — Audit and exact lead drilldowns](../done/05A-schedule-audit-and-lead-drilldowns.md): additive backend/native verification plus real Leads destination.
 2. [05B — Schedule and run details](../done/05B-schedule-and-run-detail-clarity.md): breadcrumbs, compact totals, collapsed attributes/setup, changes history and sources/Issues tables.
-3. [05C — History Submit and analytics overview](05C-history-submit-and-analytics-overview.md): global query ownership, screenshot-style Stats and integrated acceptance.
+3. [05C — History Submit and analytics overview](../done/05C-history-submit-and-analytics-overview.md): global query ownership, screenshot-style Stats and integrated acceptance.
 
 Each child is buildable after its declared dependencies and must leave working screens without stubs. Phase 6 must include these accepted amendments before final parent completion. Use read-only real-data checks and disposable native fixtures; release authority is separate. No deployment to Netlify production.

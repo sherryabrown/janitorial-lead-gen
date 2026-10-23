@@ -73,8 +73,8 @@ it('retains loaded logs when run metadata is unavailable without issuing mutatio
  await screen.findByText('Compare');expect(screen.getByRole('button',{name:'Retry run'})).toBeTruthy();expect(screen.queryByText('private metadata failure')).toBeNull();
 });
 it('links a filtered global run history directly to saved occurrences/changes',async()=>{
- sessionStorage.setItem('spin-admin-history-filter:owner:all',JSON.stringify({schedule:'schedule'}));const onSchedule=vi.fn();
- render(<RunHistory owner="owner" onView={()=>{}} onSchedule={onSchedule}/>);
+ sessionStorage.setItem('spin-admin-history-filter:owner:all',JSON.stringify({schedule:'schedule'}));mocked.request.mockImplementation(async(p:string)=>p.startsWith('/v1/schedules?')?{items:[schedule],next_offset:null}:{items:[],next_offset:null,total:0});const onSchedule=vi.fn();
+ render(<RunHistory owner="owner" onView={()=>{}} onSchedule={onSchedule}/>);expect(screen.queryByRole('button',{name:'View schedule occurrences and changes'})).toBeNull();await screen.findByRole('option',{name:'Renamed county checks · Archived'});fireEvent.change(screen.getByLabelText('Schedule'),{target:{value:'schedule'}});fireEvent.click(screen.getByRole('button',{name:'Submit history'}));
  fireEvent.click(await screen.findByRole('button',{name:'View schedule occurrences and changes'}));expect(onSchedule).toHaveBeenCalledWith('schedule');expect(mocked.request.mock.calls.every(([,o])=>!o?.body)).toBe(true);
 });
 

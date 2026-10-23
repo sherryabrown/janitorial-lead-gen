@@ -10,39 +10,39 @@ const report={as_of:'2026-10-20T19:00:00Z',snapshot:'a'.repeat(64),total:26,next
 beforeEach(()=>{sessionStorage.clear();mocked.request.mockReset();mocked.request.mockImplementation(async(path:string)=>path.startsWith('/v1/schedules')?{items:[],next_offset:null}:report);});
 afterEach(cleanup);
 it('shows honest partial totals, separate reservations and owner-scoped last-seven-day filters',async()=>{
- render(<Analytics owner="a" counties={[]} onView={()=>{}}/>);await screen.findByRole('heading',{name:'Validated results'});
+ render(<Analytics owner="a" counties={[]}/>);await screen.findByRole('heading',{name:'Validated results'});
  expect(screen.getAllByText('Unknown · 1 known').length).toBeGreaterThan(1);expect(screen.getByText('Unknown / not comparable')).toBeTruthy();expect(screen.getByText('$0.02')).toBeTruthy();expect(screen.getByText('$0.10')).toBeTruthy();
  fireEvent.change(screen.getByRole('combobox',{name:/^Type/}),{target:{value:'sam'}});await waitFor(()=>expect(mocked.request.mock.calls.some(([p])=>p.includes('target=sam'))).toBe(true));expect(sessionStorage.getItem('spin-admin-stats-filter:a')).toContain('sam');
  clearAdminSession('a');expect(sessionStorage.getItem('spin-admin-stats-filter:a')).toBeNull();expect(mocked.request.mock.calls.every(([,o])=>!o?.body)).toBe(true);
 });
-it('anchors subsequent pages and refreshes safely when a report changes',async()=>{
- let changed=false;mocked.request.mockImplementation(async(path:string)=>path.startsWith('/v1/schedules')?{items:[],next_offset:null}:changed?{unavailable:'Results changed while paging. Refresh stats to load a consistent report.'}:report);
- render(<Analytics owner="a" counties={[]} onView={()=>{}}/>);await screen.findByRole('heading',{name:'Validated results'});changed=true;fireEvent.click(screen.getByRole('button',{name:'Next runs'}));await screen.findByRole('alert');
- expect(mocked.request.mock.calls.some(([p])=>p.includes('offset=25')&&p.includes('snapshot=')&&p.includes('as_of='))).toBe(true);expect(screen.queryByRole('heading',{name:'Validated results'})).toBeNull();changed=false;fireEvent.click(screen.getByRole('button',{name:'Retry stats'}));await screen.findByRole('heading',{name:'Validated results'});
- expect(mocked.request.mock.calls.at(-1)?.[0]).not.toContain('snapshot=');
+it('requests the smallest existing report page while retaining full summary and coverage without a Runs list',async()=>{
+ sessionStorage.setItem('spin-admin-stats-filter:a',JSON.stringify({sort:'added',direction:'asc'}));
+ render(<Analytics owner="a" counties={[]}/>);await screen.findByRole('heading',{name:'Validated results'});
+ const path=mocked.request.mock.calls.find(([p])=>p.startsWith('/v1/admin/analytics'))?.[0];expect(path).toContain('limit=1');expect(path).not.toContain('sort=');expect(path).not.toContain('direction=');expect(path).not.toContain('offset=');expect(screen.getByText(/Run creation dates · 26 runs/)).toBeTruthy();
+ expect(screen.queryByRole('table',{name:'Analytics runs'})).toBeNull();expect(screen.queryByLabelText('Sort runs')).toBeNull();expect(screen.queryByRole('button',{name:'Next runs'})).toBeNull();expect(screen.queryByRole('button',{name:'Previous runs'})).toBeNull();
 });
 it('aborts stale filters and never replaces the new report with an earlier response',async()=>{
  let resolveOld!:(r:AnalyticsReport)=>void;mocked.request.mockImplementation(async(path:string)=>path.startsWith('/v1/schedules')?{items:[],next_offset:null}:path.includes('target=sam')?{...report,total:0}:new Promise(resolve=>{resolveOld=resolve;}));
- render(<Analytics owner="a" counties={[]} onView={()=>{}}/>);fireEvent.change(screen.getByRole('combobox',{name:/^Type/}),{target:{value:'sam'}});await screen.findByText('Page 1 · 0 runs');await act(async()=>resolveOld(report));expect(screen.queryByText('Page 1 · 26 runs')).toBeNull();
+ render(<Analytics owner="a" counties={[]}/>);fireEvent.change(screen.getByRole('combobox',{name:/^Type/}),{target:{value:'sam'}});await screen.findByText(/Run creation dates · 0 runs/);await act(async()=>resolveOld(report));expect(screen.queryByText(/Run creation dates · 26 runs/)).toBeNull();
 });
 it('schedule totals use the existing schedule identity and all-time reporting scope',async()=>{
  render(<ScheduleAnalyticsSummary id="schedule"/>);await screen.findByRole('heading',{name:'All-time available results'});expect(mocked.request.mock.calls[0][0]).toContain('schedule=schedule&period=all');
 });
 it('keeps metrics and trustworthy completion samples visible when detailed step history is too large',async()=>{
  mocked.request.mockImplementation(async(path:string)=>path.startsWith('/v1/schedules')?{items:[],next_offset:null}:{...report,summary:{...report.summary,timing:{average_ms:60000,median_ms:60000,samples:2,excluded:24,recorded_activity_unavailable:true}}});
- render(<Analytics owner="a" counties={[]} onView={()=>{}}/>);await screen.findByText('Recorded activity unavailable for this selection; view run logs.');expect(screen.getByRole('heading',{name:'Validated results'})).toBeTruthy();expect(screen.getByText('2 / 24')).toBeTruthy();expect(screen.queryByRole('alert')).toBeNull();
+ render(<Analytics owner="a" counties={[]}/>);await screen.findByText('Recorded activity unavailable for this selection; view run logs.');expect(screen.getByRole('heading',{name:'Validated results'})).toBeTruthy();expect(screen.getByText('2 / 24')).toBeTruthy();expect(screen.queryByRole('alert')).toBeNull();
 });
 
 it('retains same-scope stats on a failed refresh with one retry and clears them on filter change',async()=>{
  let fail=false;mocked.request.mockImplementation(async(path:string)=>{if(path.startsWith('/v1/schedules'))return {items:[],next_offset:null};if(fail)throw Error('Saved report unavailable');return report;});
- render(<Analytics owner="a" counties={[]} onView={()=>{}}/>);await screen.findByRole('heading',{name:'Validated results'});
+ render(<Analytics owner="a" counties={[]}/>);await screen.findByRole('heading',{name:'Validated results'});
  fail=true;fireEvent.click(await screen.findByRole('button',{name:'Refresh stats'}));await screen.findByRole('button',{name:'Retry stats'});
  expect(screen.getByRole('heading',{name:'Validated results'})).toBeTruthy();expect(screen.getByText('Saved view · update failed')).toBeTruthy();expect(screen.queryByRole('button',{name:'Refresh stats'})).toBeNull();
  fireEvent.change(screen.getByRole('combobox',{name:/^Type/}),{target:{value:'sam'}});expect(screen.queryByRole('heading',{name:'Validated results'})).toBeNull();
 });
 it('retries only failed schedule choices without discarding a healthy report',async()=>{
  let fail=true;mocked.request.mockImplementation(async(path:string)=>{if(path.startsWith('/v1/schedules')){if(fail)throw Error('Choices unavailable');return {items:[],next_offset:null};}return report;});
- render(<Analytics owner="a" counties={[]} onView={()=>{}}/>);await screen.findByRole('button',{name:'Retry stats'});await screen.findByRole('heading',{name:'Validated results'});
+ render(<Analytics owner="a" counties={[]}/>);await screen.findByRole('button',{name:'Retry stats'});await screen.findByRole('heading',{name:'Validated results'});
  const count=mocked.request.mock.calls.filter(([p])=>p.startsWith('/v1/admin/analytics')).length;fail=false;fireEvent.click(screen.getByRole('button',{name:'Retry stats'}));await screen.findByRole('button',{name:'Refresh stats'});
  expect(mocked.request.mock.calls.filter(([p])=>p.startsWith('/v1/admin/analytics'))).toHaveLength(count);expect(mocked.request.mock.calls.every(([,o])=>!o?.body)).toBe(true);
 });

@@ -693,7 +693,7 @@ it('returns from cancelled schedule editing to the same detail tab instead of ma
 it('focuses one run workspace and restores the hidden history row without parent polling reads',async()=>{
  const original=mocks.request.getMockImplementation()!;
  mocks.request.mockImplementation((p,o)=>p.startsWith('/v1/schedules?')?Promise.resolve({items:[],next_offset:null,total:0}):p.startsWith('/v1/admin/history')?Promise.resolve({items:[{id:'run-1',state:'completed',created_at:'2026-10-20T12:00:00Z',children:[]}],next_offset:null,total:1}):original(p,o));
- await start();fireEvent.click(screen.getByRole('button',{name:'History / logs'}));const row=await screen.findByRole('button',{name:'Run run-1'});row.focus();fireEvent.click(row);
+ await start();fireEvent.click(screen.getByRole('button',{name:'History / logs'}));expect(calls.some(c=>c.path.startsWith('/v1/admin/history'))).toBe(false);fireEvent.click(screen.getByRole('button',{name:'Submit history'}));const row=await screen.findByRole('button',{name:'Run run-1'});row.focus();fireEvent.click(row);
  await screen.findByRole('region',{name:'Run details'});expect(screen.queryByRole('region',{name:'Run history'})).toBeNull();expect(screen.queryByRole('button',{name:'Refresh history'})).toBeNull();
  const before=calls.filter(c=>c.path==='/v1/schedules?lifecycle=current').length;fireEvent.click(await screen.findByRole('button',{name:'Refresh run'}));await screen.findByRole('button',{name:'Refresh run'});expect(calls.filter(c=>c.path==='/v1/schedules?lifecycle=current')).toHaveLength(before);
  fireEvent.click(screen.getByRole('button',{name:'Back to previous view'}));await waitFor(()=>expect(screen.getByRole('region',{name:'Run history'})).toBeTruthy());expect(document.activeElement).toBe(row);
