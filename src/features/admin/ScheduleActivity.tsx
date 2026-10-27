@@ -17,7 +17,7 @@ export function ScheduleActivity({id,owner,active,section,selectedRunId,onSelect
   try{const n=Number(sessionStorage.getItem(`spin-admin-schedule-runs-page:${owner}:${id}`));if(Number.isInteger(n)&&n>=50&&n<=5000)loaded.current=n;}catch{/* Mounted page count remains. */}
   void (async()=>{
    const failed=failedPage.current,result:Page<Run>={items:[],next_offset:failed??0};
-   do{const q=new URLSearchParams({schedule:id});if(result.next_offset)q.set('offset',String(result.next_offset));const p=await workflowRequest<Page<Run>>(`/v1/admin/history?${q}`,{signal:a.signal});result.items.push(...p.items.filter(r=>r.schedule_id===id&&!result.items.some(o=>o.id===r.id)));result.next_offset=p.next_offset;}while(failed===null&&result.next_offset!==null&&result.next_offset<loaded.current);
+   do{const q=new URLSearchParams({schedule:id,projection:'choices'});if(result.next_offset)q.set('offset',String(result.next_offset));const p=await workflowRequest<Page<Run>>(`/v1/admin/history?${q}`,{signal:a.signal});result.items.push(...p.items.filter(r=>r.schedule_id===id&&!result.items.some(o=>o.id===r.id)));result.next_offset=p.next_offset;}while(failed===null&&result.next_offset!==null&&result.next_offset<loaded.current);
    if(a.signal.aborted)return;if(failed!==null){loaded.current=failed+50;try{sessionStorage.setItem(`spin-admin-schedule-runs-page:${owner}:${id}`,String(loaded.current));}catch{/* Mounted pages remain. */}}setPage(old=>({...result,items:failed===null?result.items:[...old.items,...result.items.filter(r=>!old.items.some(o=>o.id===r.id))]}));failedPage.current=null;
   })().catch(e=>{if(!a.signal.aborted)setError(readFailure(e,'Saved run choices'));}).finally(()=>{if(!a.signal.aborted){setBusy(false);pending.current=false;}});
   return()=>{a.abort();generation.current=epoch+1;pending.current=false;};
@@ -28,14 +28,14 @@ export function ScheduleActivity({id,owner,active,section,selectedRunId,onSelect
   if(!selection){if(page.items[0])choose(page.items[0].id);return;}
   if(found){setVerified(found);setInvalid(false);return;}
   const a=new AbortController();setVerified(null);setBusy(true);
-  void workflowRequest<Page<Run>>(`/v1/admin/history?${new URLSearchParams({schedule:id,run:selection})}`,{signal:a.signal}).then(p=>{if(!a.signal.aborted){const value=p.items.find(r=>r.id===selection&&r.schedule_id===id);setVerified(value??null);setInvalid(!value);}}).catch(e=>{if(!a.signal.aborted)setError(readFailure(e,'Selected run'));}).finally(()=>{if(!a.signal.aborted)setBusy(false);});
+  void workflowRequest<Page<Run>>(`/v1/admin/history?${new URLSearchParams({schedule:id,run:selection,projection:'choices'})}`,{signal:a.signal}).then(p=>{if(!a.signal.aborted){const value=p.items.find(r=>r.id===selection&&r.schedule_id===id);setVerified(value??null);setInvalid(!value);}}).catch(e=>{if(!a.signal.aborted)setError(readFailure(e,'Selected run'));}).finally(()=>{if(!a.signal.aborted)setBusy(false);});
   return()=>a.abort();
   // Membership is validated only when the selected identity/available choices change.
   // eslint-disable-next-line react-hooks/exhaustive-deps
  },[active,selection,found,page.items,revision]);
  const more=async()=>{
   if(pending.current||page.next_offset===null)return;const epoch=generation.current,offset=page.next_offset;pending.current=true;setBusy(true);setError('');
-  try{const p=await workflowRequest<Page<Run>>(`/v1/admin/history?${new URLSearchParams({schedule:id,offset:String(offset)})}`);if(epoch!==generation.current)return;setPage(old=>({...p,items:[...old.items,...p.items.filter(r=>r.schedule_id===id&&!old.items.some(o=>o.id===r.id))]}));loaded.current=offset+50;try{sessionStorage.setItem(`spin-admin-schedule-runs-page:${owner}:${id}`,String(loaded.current));}catch{/* Mounted pages remain. */}failedPage.current=null;}
+  try{const p=await workflowRequest<Page<Run>>(`/v1/admin/history?${new URLSearchParams({schedule:id,offset:String(offset),projection:'choices'})}`);if(epoch!==generation.current)return;setPage(old=>({...p,items:[...old.items,...p.items.filter(r=>r.schedule_id===id&&!old.items.some(o=>o.id===r.id))]}));loaded.current=offset+50;try{sessionStorage.setItem(`spin-admin-schedule-runs-page:${owner}:${id}`,String(loaded.current));}catch{/* Mounted pages remain. */}failedPage.current=null;}
   catch(e){if(epoch===generation.current){failedPage.current=offset;setError(readFailure(e,'More saved run choices'));}}
   finally{if(epoch===generation.current){pending.current=false;setBusy(false);}}
  };

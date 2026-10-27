@@ -45,5 +45,13 @@ test('history filters cover the full dataset, standalone runs, CT boundaries, sn
   await sql.query(`insert into procurement_workflow_steps(trigger_id,phase,attempt_key,state,actor_id,origin,started_at,finished_at) select $1,'compare','large-history-'||n,'completed',$2,'manual','2026-10-20T12:00:00Z'::timestamptz,'2026-10-20T12:00:01Z'::timestamptz from generate_series(1,10000) n`,[rid(2),actor]);
   const large=await history();assert.equal(large.total,56);assert.equal(large.items.length,50);assert.ok(large.items.every(r=>r.timing.recorded_activity_ms===null&&r.timing.completeness==='unknown'&&r.timing.reason.includes('Timing unavailable')));
   const logPage=await service.steps(rid(2),{limit:50});assert.equal(logPage.items.length,50);assert.ok(logPage.next_cursor,'Detailed logs remain paginated and readable');
+  const sequence=String(logPage.items[0].sequence);
+  const refreshed=await service.steps(rid(2),{sequences:sequence});assert.equal(refreshed.items.length,1);assert.equal(refreshed.items[0].id,logPage.items[0].id);assert.equal(refreshed.next_cursor,null);
+  assert.equal((await service.steps(rid(1),{sequences:sequence})).items.length,0,'Mutable refresh cannot cross trigger scope');
+  for(const sequences of ['', '1 OR TRUE', Array(51).fill('1').join(',')])await assert.rejects(()=>service.steps(rid(2),{sequences}),/Invalid step selection/);
+  await assert.rejects(()=>service.steps(rid(2),{sequences:sequence,cursor:'1'}),/Invalid step selection/);
+  const index=await sql.query("select indexdef from pg_indexes where indexname='procurement_steps_trigger_sequence'");assert.match(index.rows[0].indexdef,/trigger_id, sequence/);
+  const plan=await sql.query('explain (analyze,buffers) select id,sequence from procurement_workflow_steps where trigger_id=$1 and sequence>$2 order by sequence limit 51',[rid(2),sequence]);
+  assert.match(plan.rows.map(r=>r['QUERY PLAN']).join('\n'),/procurement_steps_trigger_sequence/,'Later log pages use the run/sequence index');
  }finally{await sql.close();}
 });

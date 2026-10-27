@@ -712,3 +712,14 @@ it('retains keyboard focus on schedule tabs instead of refocusing the schedule h
  await start();fireEvent.click(screen.getByRole('button',{name:'Schedules'}));fireEvent.click(await screen.findByRole('button',{name:'Morning check'}));await screen.findByText('Schedule setup');
  const tabs=screen.getByRole('tablist',{name:'Schedule sections'}),overview=within(tabs).getByRole('tab',{name:'Overview'});overview.focus();fireEvent.keyDown(tabs,{key:'ArrowRight'});await screen.findByRole('heading',{name:'Schedule changes'});expect(document.activeElement).toBe(within(tabs).getByRole('tab',{name:'History'}));fireEvent.keyDown(tabs,{key:'ArrowLeft'});expect(document.activeElement).toBe(overview);
 });
+it('does not reload state-source registry while filtering schedules or withhold schedules behind that registry',async()=>{
+ const original=mocks.request.getMockImplementation()!;
+ let resolve!:(r:unknown)=>void;
+ mocks.request.mockImplementation((p,o)=>p==='/v1/state-triggers'?new Promise(r=>{resolve=r;}):p.startsWith('/v1/schedules?')?Promise.resolve({items:[schedule],next_offset:null,total:1}):original(p,o));
+ render(<AdminScreen owner="owner" onViewLeads={()=>{}}/>);
+ await screen.findByRole('button',{name:'Morning check'});
+ const count=mocks.request.mock.calls.filter(([p])=>p==='/v1/state-triggers').length;
+ fireEvent.change(screen.getByLabelText('Search schedules'),{target:{value:'Morning'}});await screen.findByRole('button',{name:'Morning check'});
+ expect(mocks.request.mock.calls.filter(([p])=>p==='/v1/state-triggers')).toHaveLength(count);
+ resolve({items:[]});
+});

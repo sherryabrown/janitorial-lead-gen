@@ -1,4 +1,5 @@
 import {resultTasks,sourceResult} from './source-results';
+import {useActiveRead} from './use-active-read';
 import { useEffect, useRef, useState } from 'react';
 import {
   workflowRequest,
@@ -20,6 +21,7 @@ export function RequestReview({
   owner,
   onViewLeads,
   sam = false,
+  active: workspaceActive = true,
   refreshSignal,
   embedded = false, onReadState, leadNavigationOwned=false,presentation,
 }: {
@@ -27,10 +29,12 @@ export function RequestReview({
   owner: string;
   onViewLeads: () => void;
   sam?: boolean;
+  active?: boolean;
   refreshSignal?: string;
   presentation?:'issues'|'sources';
   leadNavigationOwned?:boolean;embedded?: boolean; onReadState?:(state:{busy:boolean;error:string})=>void;
 }) {
+  const active=useActiveRead(workspaceActive);
   const diagnostics=useRef<HTMLDetailsElement>(null);
   const showDiagnostics=()=>{if(diagnostics.current){diagnostics.current.open=true;diagnostics.current.querySelectorAll('details').forEach(d=>d.open=true);diagnostics.current.querySelector('summary')?.focus();diagnostics.current.scrollIntoView?.({block:'nearest'});}};
   const [readBusy,setReadBusy]=useState(false),[readError,setReadError]=useState('');
@@ -58,6 +62,7 @@ export function RequestReview({
   selectedRef.current = selected;
 
   useEffect(() => {
+    if(!active){setReadBusy(false);return;}
     const a = new AbortController();
     const epoch = ++generation.current;
     candidatePaging.current = false;
@@ -83,9 +88,9 @@ export function RequestReview({
       if(!a.signal.aborted){setReadBusy(false);const failed=results.find(r=>r.status==='rejected'&&r.reason?.code==='SESSION')??results.find(r=>r.status==='rejected');if(failed?.status==='rejected')setReadError(readFailure(failed.reason,'Saved results'));}
     });
     return () => { a.abort(); generation.current = epoch + 1; };
-  }, [id, version, sam, refreshSignal]);
+  }, [id, version, sam, refreshSignal,active]);
   useEffect(() => {
-    if (!job || !['pending', 'running'].includes(job.state)) return;
+    if (!active || !job || !['pending', 'running'].includes(job.state)) return;
     const a = new AbortController(),
       timer = setTimeout(() => {
         void workflowRequest<ImportStatus>(`/v1/imports/${job.job_id}`, {
@@ -100,9 +105,9 @@ export function RequestReview({
       a.abort();
       clearTimeout(timer);
     };
-  }, [job]);
+  }, [job,active]);
   useEffect(() => {
-    if (!sam || !samPacket || !['pending', 'running'].includes(samPacket.automatic?.state ?? '')) return;
+    if (!active || !sam || !samPacket || !['pending', 'running'].includes(samPacket.automatic?.state ?? '')) return;
     const abort = new AbortController();
     const timer = setTimeout(() => {
       if (document.hidden) { setSamPacket(p => p ? { ...p } : p); return; }
@@ -116,7 +121,7 @@ export function RequestReview({
         }).catch(e => { if (!abort.signal.aborted) setError(e.message); });
     }, 3000);
     return () => { clearTimeout(timer); abort.abort(); };
-  }, [id, sam, samPacket]);
+  }, [id, sam, samPacket,active]);
   const perform = async (action: () => Promise<unknown>, reload = true) => {
     setBusy(true);
     setError('');

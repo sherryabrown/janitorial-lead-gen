@@ -259,7 +259,7 @@ it('paginates steps and stops polling on terminal state or unmount', async () =>
     usage,
   };
   mocked.request.mockImplementation(async (p) =>
-    p === '/v1/triggers/run'
+    p.startsWith('/v1/triggers/run')&&!p.includes('/steps')
       ? {
           id: 'run',
           state: ++statuses === 1 ? 'running' : 'completed',
@@ -282,6 +282,7 @@ it('paginates steps and stops polling on terminal state or unmount', async () =>
   );
   await act(async () => {});
   fireEvent.click(screen.getByRole('button', { name: 'Logs' }));
+  await act(async () => {});
   fireEvent.click(screen.getByRole('button', { name: 'More steps' }));
   await act(async () => {});
   expect(screen.getByText('Steps · 2')).toBeTruthy();

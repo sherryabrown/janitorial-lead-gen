@@ -87,16 +87,20 @@ export function countyTriggers({db,discovery,workflow,audit,automaticCounty}) {
     const id=await rpc('submit_procurement_trigger',{p_actor:actor,p_key:key,p_hash:submissionHash,p_config:config});
     return {trigger_id:id,next_action:'Read saved progress'};
   }
-  async function status(id) {
+  async function status(id,{projection}={}) {
+    if(projection!==undefined&&projection!=='progress')throw Error('Invalid trigger projection');
     const t=await one(db,'procurement_triggers',id);if(!t)throw Error('Trigger not found');
     const [children,usage]=await Promise.all([rows(db,'procurement_trigger_requests',q=>q.eq('trigger_id',id),'trigger_id,request_id,county_id,role,scope'),
-      rows(db,'procurement_usage_ledger',q=>q.eq('trigger_id',id),'id,state,input_tokens,output_tokens,actual_usd,reserved_usd,usage')]);
-    const presentation=(await countyPresentations(db,[t],{children})).get(t.id);
+      rows(db,'procurement_usage_ledger',q=>q.eq('trigger_id',id),'id,trigger_id,state,input_tokens,output_tokens,actual_usd,reserved_usd,usage')]);
+    const publicChildren=children.map(c=>({request_id:c.request_id,county_id:c.county_id,role:c.role,...(c.role==='state_source'?{source_id:c.scope.source_id??t.config.state_sources?.find(s=>s.id===(c.scope.id??t.config.state_trigger_id))?.source_id,source_name:t.config.state_sources?.find(s=>s.id===(c.scope.id??t.config.state_trigger_id))?.name,category:c.scope.category}: {})}));
+    if(projection==='progress'&&['pending','running'].includes(t.state))return {progress_only:true,id:t.id,target_kind:t.target_kind,config:t.config,state:t.state,created_at:t.created_at,finished_at:t.finished_at,origin:t.origin,schedule_id:t.schedule_id,occurrence_id:t.occurrence_id,
+      children:publicChildren,usage:usageSummary(usage),next_action:next(t.state)};
     const relatedState=t.target_kind==='sam'?[]:(await stateSources()).items.filter(s=>s.county_ids.some(c=>t.config.county_ids.includes(c)));
-    const [reporting]=await reportRunHistory(db,[t]);
+    const [reporting]=await reportRunHistory(db,[t],{children,usage});
+    const presentation=reporting.presentation;
     const schedule=t.schedule_id?checked(await db.from('procurement_schedules').select('name').eq('id',t.schedule_id).maybeSingle()):null;
     return {id:t.id,target_kind:t.target_kind,config:t.config,state:t.state,created_at:t.created_at,finished_at:t.finished_at,origin:t.origin,schedule_id:t.schedule_id,schedule_name:schedule?.name??null,occurrence_id:t.occurrence_id,reporting,...(presentation?{presentation}:{}),
-      children:children.map(c=>({request_id:c.request_id,county_id:c.county_id,role:c.role,...(c.role==='state_source'?{source_id:c.scope.source_id??t.config.state_sources?.find(s=>s.id===(c.scope.id??t.config.state_trigger_id))?.source_id,source_name:t.config.state_sources?.find(s=>s.id===(c.scope.id??t.config.state_trigger_id))?.name,category:c.scope.category}: {})})),
+      children:publicChildren,
       related_state_sources:relatedState.map(s=>({...s,evidence_policy:'Review saved source run; verify county work location and dates before import'})),
       usage:usageSummary(usage),next_action:presentation?'View saved results and the affected sources below.':next(t.state)};
   }
@@ -135,11 +139,13 @@ export function countyTriggers({db,discovery,workflow,audit,automaticCounty}) {
       candidate_count:summary.candidates.size,evidence_count:summary.evidence.size,usage:usageSummary(summary.usage)
     };}),next_offset:values.length>limit?offset+limit:null};
   }
-  async function steps(id,{cursor=null,limit=50}={}) {
+  async function steps(id,{cursor=null,limit=50,sequences=null}={}) {
+    if(sequences!==null&&(typeof sequences!=='string'||!/^\d{1,18}(,\d{1,18}){0,49}$/.test(sequences)||cursor))throw Error('Invalid step selection');
     if(!await one(db,'procurement_triggers',id))throw Error('Trigger not found');
     // Monotonic step sequence provides a durable cursor without loading history totals.
     let query=db.from('procurement_workflow_steps').select('id,sequence,request_id,job_id,task_id,source_id,county_id,phase,state,execution,origin,actor_id,reason,summary,started_at,finished_at,diagnostic_id').eq('trigger_id',id);
     if(cursor){if(!/^[0-9]{1,18}$/.test(cursor))throw Error('Invalid step cursor');query=query.gt('sequence',cursor);}
+    if(sequences!==null)query=query.in('sequence',sequences.split(','));
     const values=checked(await query.order('sequence').range(0,limit)),page=values.slice(0,limit);
     const usage=page.length?await rows(db,'procurement_usage_ledger',q=>q.in('step_id',page.map(s=>s.id)),'step_id,state,actual_usd,reserved_usd,usage'):[];
     const sourceIds=[...new Set(page.map(s=>s.source_id).filter(Boolean))];
@@ -148,7 +154,7 @@ export function countyTriggers({db,discovery,workflow,audit,automaticCounty}) {
       reason:['manual','deterministic','registered_source'].includes(s.reason)?s.reason:'saved_step',
       diagnostic_id:uuid.test(s.diagnostic_id??'')?s.diagnostic_id:null,
       summary:Object.fromEntries(Object.entries(s.summary??{}).filter(([key,value])=>['pages','records','inserted','existing_preserved','results_count'].includes(key)&&Number.isInteger(value)&&value>=0||key==='outcome'&&['captured','blocked','partial','outcome_unknown','unchanged','changed','new'].includes(value))),
-      usage:usageSummary(usage.filter(u=>u.step_id===s.id))})),next_cursor:values.length>limit?String(page.at(-1).sequence):null};
+      usage:usageSummary(usage.filter(u=>u.step_id===s.id))})),next_cursor:sequences===null&&values.length>limit?String(page.at(-1).sequence):null};
   }
   async function control(id,action,actor) {
     if(action==='resume')await rpc('reconcile_procurement_county_reads',{p_trigger:id});

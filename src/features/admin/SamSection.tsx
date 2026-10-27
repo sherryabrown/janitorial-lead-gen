@@ -89,6 +89,7 @@ function savedDraft(owner: string): {
   }
 }
 export function SamSection({
+  active = true,
   owner,
   editing,
   onEdited,
@@ -101,6 +102,7 @@ export function SamSection({
   onBusyChange,
   onSchedule,
 }: {
+  active?: boolean;
   owner: string;
   editing: SamSchedule | null;
   onEdited: () => void;
@@ -493,6 +495,7 @@ export function SamSection({
                 Close SAM results
               </button>
               <RequestReview
+                active={active}
                 key={legacy}
                 id={legacy}
                 owner={owner}

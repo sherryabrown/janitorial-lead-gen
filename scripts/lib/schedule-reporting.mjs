@@ -2,7 +2,7 @@ import {canonicalReportingJobs} from './canonical-reporting.mjs';
 import {verifiedRunOutcomes,identitySnapshot} from './reporting-identities.mjs';
 import {rows} from './hosted-store.mjs';
 import {usageSummary} from './workflow-audit.mjs';
-import {countyPresentations} from './county-source-attention.mjs';
+import {countyPresentations,countyJobColumns,normalizeCountyJob} from './county-source-attention.mjs';
 
 export function scheduleFilters(input={}) {
  const f={q:input.q??'',target:input.target??'all',geography:input.geography??'',lifecycle:input.lifecycle??'all',blocker:input.blocker??'all',sort:input.sort??'name',direction:input.direction??'asc'};
@@ -43,7 +43,7 @@ export function verifiedCategoryCounts(run,jobs){
  }
  return {...Object.fromEntries(Object.entries(sets).map(([k,v])=>[k,complete?v.size:null])),historical_opportunity:complete?historical.size:null,completeness:leads.completeness==='not_applicable'?'not_applicable':complete?'known':'unknown',reason:complete?'As-imported classifications; category transitions can overlap':'Verified historical category attribution is unavailable'};
 }
-export async function reportSchedules(db,items) {
+export async function reportSchedules(db,items,seed={}) {
  const runs=items.flatMap(s=>s.last_run?[s.last_run]:[]),ids=runs.map(r=>r.id);
  const batch=async(table,column,keys,columns)=>{
   const result=[];const unique=[...new Set(keys)];
@@ -51,11 +51,12 @@ export async function reportSchedules(db,items) {
   return result;
  };
  const [children,usage]=await Promise.all([
-  batch('procurement_trigger_requests','trigger_id',ids,'trigger_id,request_id,role'),
-  batch('procurement_usage_ledger','trigger_id',ids,'id,trigger_id,state,input_tokens,output_tokens,actual_usd,reserved_usd,usage')]);
- const jobs=await batch('procurement_jobs','search_request_id',children.map(c=>c.request_id),'id,search_request_id,state,checkpoint:checkpoint->automatic,receipt:checkpoint->receipt,records:checkpoint->county_records,reporting_records:checkpoint->reporting_records,stage:checkpoint->>stage');
- const normalized=await canonicalReportingJobs(db,jobs.map(j=>({...j,checkpoint:{automatic:j.checkpoint,receipt:j.receipt,reporting_records:j.reporting_records,...(j.records?{county_records:j.records}:{}),stage:j.stage}})));
- const presentations=await countyPresentations(db,runs,{children,usage});
+  seed.children??batch('procurement_trigger_requests','trigger_id',ids,'trigger_id,request_id,role'),
+  seed.usage??batch('procurement_usage_ledger','trigger_id',ids,'id,trigger_id,state,input_tokens,output_tokens,actual_usd,reserved_usd,usage')]);
+ const jobs=(await batch('procurement_jobs','search_request_id',children.map(c=>c.request_id),countyJobColumns)).map(normalizeCountyJob);
+ const [normalized,presentations]=await Promise.all([
+  canonicalReportingJobs(db,jobs),
+  countyPresentations(db,runs,{children,usage,jobs})]);
  return items.map(s=>{
   if(!s.last_run)return {...s,reporting:{as_of:new Date().toISOString(),last_run:null,latest_occurrence:s.latest_occurrence}};
   const r=s.last_run,requests=new Set(children.filter(c=>c.trigger_id===r.id).map(c=>c.request_id));

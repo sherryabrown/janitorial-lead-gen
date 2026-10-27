@@ -1,4 +1,5 @@
 import { procurementSchedules } from './lib/procurement-schedules.mjs';
+import {profileCapabilities} from './lib/procurement-capabilities.mjs';
 import {adminCatalog} from './lib/admin-catalog.mjs';
 import { countyTriggers } from './lib/county-triggers.mjs';
 import { workflowAudit } from './lib/workflow-audit.mjs';
@@ -69,6 +70,7 @@ const browser=browserService({db,artifacts,sessionKey:env.PROCUREMENT_SESSION_EN
 const triggers=countyTriggers({db,discovery,workflow,audit,automaticCounty:id=>imports.prepareCounty(id)});
 const schedules=procurementSchedules({db,triggers});
 const server=workflowServer({workflow,imports,discovery,kick,triggers,schedules,catalog:adminCatalog({db}),schedulerKey:env.PROCUREMENT_SCHEDULER_KEY,aiPolicy:aiConfig,audit,db,
+  capabilities:actor=>profileCapabilities(db,actor),
   attention:attentionService(db),
   browser,
   authenticate:async token=>{const {data,error}=await db.auth.getUser(token);return error?null:data.user;},

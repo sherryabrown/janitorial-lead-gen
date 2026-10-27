@@ -82,3 +82,12 @@ it('rejects credential-bearing and malformed API origins', () => {
     expect(() => workflowOrigin(value)).toThrow();
   expect(workflowOrigin('http://127.0.0.1:4100')).toBe('http://127.0.0.1:4100');
 });
+it('deduplicates concurrent GETs for the same session without sharing another session or retaining responses',async()=>{
+ let resolve!:(r:Response)=>void;
+ const fetch=vi.fn(()=>new Promise<Response>(r=>{resolve=r;}));vi.stubGlobal('fetch',fetch);
+ const one=workflowRequest<{items:number[]}>('/v1/counties'),two=workflowRequest<{items:number[]}>('/v1/counties');
+ await Promise.resolve();await Promise.resolve();expect(fetch).toHaveBeenCalledOnce();resolve(new Response('{"items":[1]}'));
+ const [first,second]=await Promise.all([one,two]);first.items.push(2);expect(second.items).toEqual([1]);
+ auth.getSession.mockResolvedValue({data:{session:{access_token:'other'}}});
+ const third=workflowRequest('/v1/counties');await Promise.resolve();await Promise.resolve();expect(fetch).toHaveBeenCalledTimes(2);resolve(new Response('{}'));await third;
+});

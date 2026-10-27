@@ -2,6 +2,7 @@ import {Breadcrumb} from './Breadcrumb';
 import {SettingsNavigation} from './breadcrumb-context';
 import {adminViewLabels} from './navigation';
 import {MetricNavigation} from './MetricLink';
+import {useActiveRead} from './use-active-read';
 import type {MetricScope} from './metric-scope';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -91,12 +92,13 @@ function historyEntry(context:AdminContext):AdminContext{return context.view==='
 export default function AdminScreen({
   owner,
   onViewLeads,
-  active = true,
+  active: workspaceActive = true,
 }: {
   owner: string;
   onViewLeads: (scope?:MetricScope) => void;
   active?: boolean;
 }) {
+  const active=useActiveRead(workspaceActive);
   const [scheduleEditor,setScheduleEditor]=useState<{saved?:AnySchedule;target:string}|null>(null);
   const [scheduleQuery,setScheduleQuery]=useState(()=>{try{return sessionStorage.getItem(`spin-admin-schedule-filter:${owner}`)??'lifecycle=current';}catch{return 'lifecycle=current';}});
   const [scheduleTotal,setScheduleTotal]=useState<number|undefined>();
@@ -211,18 +213,21 @@ export default function AdminScreen({
   }, [editor, owner]);
   useEffect(() => {
     const a = new AbortController();
-    void Promise.allSettled([
-      workflowRequest<{ counties: County[] }>('/v1/counties', { signal: a.signal }),
-      workflowRequest<SchedulerStatus>('/v1/scheduler/status', { signal: a.signal }),
-    ]).then(([c, st]) => {
-      if (a.signal.aborted) return;
-      if (c.status === 'fulfilled') { setCounties(c.value.counties); setRegistryState('ready'); }
-      else { setRegistryState('error'); setConnectionError(c.reason.message); }
-      if (st.status === 'fulfilled') setStatus(st.value);
-      else setConnectionError(st.reason.message);
-    });
+    void workflowRequest<{counties:County[]}>('/v1/counties',{signal:a.signal}).then(value=>{
+      if(!a.signal.aborted){setCounties(value.counties);setRegistryState('ready');}
+    }).catch(e=>{if(!a.signal.aborted){setRegistryState('error');setConnectionError(e.message);}});
+    void workflowRequest<SchedulerStatus>('/v1/scheduler/status',{signal:a.signal}).then(value=>{
+      if(!a.signal.aborted)setStatus(value);
+    }).catch(e=>{if(!a.signal.aborted)setConnectionError(e.message);});
     return () => a.abort();
   }, [connectionRevision]);
+  useEffect(()=>{
+    const a=new AbortController();
+    void workflowRequest<{items:StateSource[]}>('/v1/state-triggers',{signal:a.signal}).then(value=>{
+      if(!a.signal.aborted)setSources(value.items);
+    }).catch(e=>{if(!a.signal.aborted)setConnectionError(e.message);});
+    return()=>a.abort();
+  },[revision,connectionRevision]);
   useEffect(() => {
     const a = new AbortController();
     const epoch = ++collectionGeneration.current;
@@ -238,17 +243,11 @@ export default function AdminScreen({
       } while (offset !== null && offset < loaded.current[kind]);
       return { items, next_offset: offset };
     };
-    void Promise.allSettled([
-      workflowRequest<{ items: StateSource[] }>('/v1/state-triggers', { signal: a.signal }),
-      range<AnySchedule>('schedules'),
-    ]).then(([s, sch]) => {
-      if (a.signal.aborted) return;
-      if (s.status === 'fulfilled') setSources(s.value.items);
-      if (sch.status === 'fulfilled') { failedSchedulePage.current=false;setSchedules(sch.value.items); setScheduleOffset(sch.value.next_offset); setScheduleReadError(''); }
-      else setScheduleReadError(readFailure(sch.reason,'Schedules'));
-      const failed = [s].find(x => x.status === 'rejected');
-      if (failed?.status === 'rejected') setConnectionError(failed.reason instanceof Error ? failed.reason.message : 'Some Admin data could not load. Retry the connection.');
-    }).finally(() => { if (!a.signal.aborted) { setLoading(false); setPaging(false); pagingRef.current = false; } });
+    void range<AnySchedule>('schedules').then(page=>{
+      if(a.signal.aborted)return;
+      failedSchedulePage.current=false;setSchedules(page.items);setScheduleOffset(page.next_offset);setScheduleReadError('');
+    }).catch(e=>{if(!a.signal.aborted)setScheduleReadError(readFailure(e,'Schedules'));})
+      .finally(()=>{if(!a.signal.aborted){setLoading(false);setPaging(false);pagingRef.current=false;}});
     return () => { a.abort(); collectionGeneration.current = epoch + 1; };
   }, [revision, connectionRevision, scheduleQuery]);
   useEffect(() => {
@@ -556,6 +555,7 @@ export default function AdminScreen({
       </div>
       <div ref={samRef} tabIndex={-1}>
       <SamSection
+        active={active&&manualView&&!selected&&!scheduleEditor}
         owner={owner}
         editing={samEditor}
         newScheduleToken={0}
@@ -584,6 +584,7 @@ export default function AdminScreen({
       {selected && (
         <div ref={detailRef}>
           <RunDetail
+            active={active&&!scheduleEditor}
             key={selected}
             id={selected}
             origin={navigation}

@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import {sharedRead} from './shared-read';
 export class WorkflowError extends Error {
   constructor(
     message: string,
@@ -45,12 +46,23 @@ export async function workflowRequest<T>(
 ): Promise<T> {
   if (!supabase) throw new WorkflowError('Sign in to use Admin.', 'SESSION');
   const session = await supabase.auth.getSession();
-  let token = session.data.session?.access_token;
+  const token = session.data.session?.access_token;
   if (!token)
     throw new WorkflowError(
       'Your session expired. Sign in again; your draft is kept.',
       'SESSION',
     );
+  if(body===undefined)return sharedRead<T>(`${workflowOrigin()}\n${token}\n${path}`,signal,async sharedSignal=>{
+    const controller=new AbortController();
+    const abort=()=>controller.abort();sharedSignal.addEventListener('abort',abort,{once:true});
+    if(sharedSignal.aborted)abort();
+    const timeout=setTimeout(()=>controller.abort(),30000);
+    try{return await executeRequest<T>(path,{key,signal:controller.signal},token);}
+    finally{clearTimeout(timeout);sharedSignal.removeEventListener('abort',abort);}
+  });
+  return executeRequest<T>(path,{body,key,signal},token);
+}
+async function executeRequest<T>(path:string,{body,key,signal}:{body?:unknown;key?:string;signal?:AbortSignal},token:string):Promise<T>{
   const send = (access: string) =>
     fetch(workflowOrigin() + path, {
       method: body === undefined ? 'GET' : 'POST',
@@ -66,13 +78,14 @@ export async function workflowRequest<T>(
   try {
     response = await send(token);
     if (response.status === 401) {
-      const refreshed = await supabase.auth.refreshSession();
-      token = refreshed.data.session?.access_token;
-      if (!token)
+      const refreshed = await supabase!.auth.refreshSession();
+      const refreshedToken = refreshed.data.session?.access_token;
+      if (!refreshedToken)
         throw new WorkflowError(
           'Your session expired. Sign in again; your draft is kept.',
           'SESSION',
         );
+      token=refreshedToken;
       response = await send(token);
     }
   } catch (e) {

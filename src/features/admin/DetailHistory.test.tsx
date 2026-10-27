@@ -44,7 +44,7 @@ it('keeps run progress visible when logs fail, retries reads and renders diagnos
   if(path.endsWith('/steps')){if(failed)throw Error('server trace');return {items:[{id:'step',sequence:1,phase:'compare',state:'failed',started_at:null,finished_at:null,source_name:'<script>unsafe()</script>',diagnostic_id:'reference-id',usage:{ai:'unknown',actual_usd:null,input_tokens:null,output_tokens:null}}],next_cursor:null};}
   return run;
  });
- render(<RunDetail id="run" owner="owner" onClose={()=>{}} onViewLeads={()=>{}} onSource={()=>{}} changed={()=>{}}/>);
+ render(<RunDetail id="run" owner="owner" section="logs" onClose={()=>{}} onViewLeads={()=>{}} onSource={()=>{}} changed={()=>{}}/>);
  await screen.findByRole('heading',{name:/Run run/});expect(screen.getByText(/Step logs could not load/)).toBeTruthy();
  failed=false;fireEvent.click(screen.getByRole('button',{name:'Retry run'}));fireEvent.click(screen.getByRole('button',{name:'Logs'}));
  await screen.findByText('reference-id');expect(screen.getByText(/<script>unsafe/)).toBeTruthy();expect(document.querySelector('script')).toBeNull();

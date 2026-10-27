@@ -61,9 +61,10 @@ export function procurementSchedules({db,triggers,now=()=>new Date()}) {
     const flags=checked(await db.from('procurement_schedule_deletion').select('id,can_delete').eq('id',id).single());
     return {...result,can_delete:flags.can_delete};
   }
-  async function list({offset=0,limit=50,...input}={}) {
+  async function list({offset=0,limit=50,projection,...input}={}) {
+    if(projection!==undefined&&projection!=='choices')throw Error('Invalid schedule projection');
     const f=scheduleFilters(input);
-    let q=db.from('procurement_schedule_overview').select('id,name,enabled,archived_at,version,config,recurrence,window_policy,next_due_at,blocker,updated_at,last_run,latest_occurrence',{count:'exact'});
+    let q=db.from('procurement_schedule_overview').select(projection==='choices'?'id,name,archived_at':'id,name,enabled,archived_at,version,config,recurrence,window_policy,next_due_at,blocker,updated_at,last_run,latest_occurrence',{count:'exact'});
     if(f.q)q=q.ilike('name','%'+f.q.replace(/[\\%_]/g,'\\$&')+'%');
     if(f.target!=='all')q=q.eq('target_kind',f.target);
     if(f.lifecycle==='current')q=q.is('archived_at',null);else if(f.lifecycle!=='all')q=q.eq('lifecycle',f.lifecycle);
@@ -73,6 +74,7 @@ export function procurementSchedules({db,triggers,now=()=>new Date()}) {
     const response=await q.order(f.sort,{ascending:f.direction==='asc',nullsFirst:false}).order('id').range(offset,offset+limit);
     const data=checked(response);
     const page=data.slice(0,limit);
+    if(projection==='choices')return {items:page,next_offset:data.length>limit?offset+limit:null,total:response.count};
     const flags=page.length?checked(await db.from('procurement_schedule_deletion').select('id,can_delete').in('id',page.map(s=>s.id))):[];
     return {items:(await reportSchedules(db,page)).map(s=>({...s,can_delete:flags.find(f=>f.id===s.id)?.can_delete??false})),next_offset:data.length>limit?offset+limit:null,total:response.count};
   }

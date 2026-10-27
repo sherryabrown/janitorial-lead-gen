@@ -118,7 +118,7 @@ export function createProcurementSourceCache() {
     invalidate() { pending = undefined; },
     load(client: SupabaseClient) {
       if (!pending) {
-        const request = loadAllRows<ProcurementSource>(client, 'procurement_sources',
+          const request = loadAllRows<ProcurementSource>(client, 'procurement_source_labels',
           'id,code,name,contracting_entity_geo_level,business_category,url,source_coverage_areas,config');
         pending = request;
         void request.catch(() => { if (pending === request) pending = undefined; });

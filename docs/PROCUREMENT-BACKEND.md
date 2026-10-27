@@ -115,3 +115,15 @@ For local release validation use `npm run check`; applicable disposable access c
 ## Saved SAM status reads (local implementation, October 19)
 
 `GET /v1/sam/requests/:id/status` is authenticated and read-only. It returns collection readiness, an evidence identity, and current automatic-import state/counts from existing jobs. It reads no capture artifacts or intake payloads and never kicks collection/import. `/packet` remains the verified full-evidence reader; during collection it returns an explicit pending projection, not a successful empty result. The UI polls status and reloads evidence only when its identity changes. Deploy the matching backend before releasing this frontend; this cleanup build itself does not deploy.
+
+## Settings read efficiency (local implementation, October 23)
+
+Run reporting shares children, usage and projected jobs within each request. `GET /v1/triggers/:id?projection=progress` returns `progress_only: true` for pending/running runs; terminal states return the full report. The UI merges only explicitly marked partial progress and replaces full reports, so old presentation flags cannot survive a settled refresh. Existing worker wake behavior, authentication and mutation contracts are unchanged.
+
+`GET /v1/schedules?projection=choices` returns paged schedule IDs/names/archive state without reporting or deletion checks. `GET /v1/admin/history?projection=choices` keeps run identity, dates, origin, target type and outcome labels without reconstructing lead metrics or step timing. Default responses remain unchanged.
+
+`GET /v1/triggers/:id/steps?sequences=1,2` refreshes at most 50 explicit numeric sequences within that trigger. It cannot be combined with a cursor and always returns a null next cursor. Normal pagination still uses the existing sequence cursor. The additive `20261023000400_workflow_step_sequence_index.sql` migration matches this access path; it removes no historical index or data.
+
+Visible log readers retain loaded pages, refresh unfinished/unknown-usage steps, and fetch subsequent records without replaying earlier pages. Explicit refresh can reread the saved depth. Inactive workspaces and browser documents suspend reads without cancelling server work or discarding drafts. Concurrent identical GETs are shared only for the same API origin/session/path; each subscriber has independent cancellation and receives its own result copy. No response cache changes freshness, authentication checks or uncertain-write retry rules. Reads have a 30-second transport deadline; writes do not gain automatic retries.
+
+Deploy the matching backend before this frontend so selective step refresh is supported, and apply the additive index through the normal migration process. This local build does not deploy or contact production. Reporting storage redesign, catalog caching, bundle/dependency changes and evidence retention remain separate follow-up work.

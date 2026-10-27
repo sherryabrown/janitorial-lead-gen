@@ -1,5 +1,7 @@
 import { schedulerAuthorization } from './procurement-schedules.mjs';
 import { createServer } from 'node:http';
+import {requireCapability,businessResponse} from './procurement-capabilities.mjs';
+import {sourceReviewService} from './source-decisions.mjs';
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 export class HttpError extends Error {constructor(status,message){super(message);this.status=status;}}
 async function body(request) {
@@ -10,12 +12,12 @@ async function body(request) {
   }
   try {return JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{throw new HttpError(400,'Invalid JSON');}
 }
-export function workflowServer({authenticate,workflow,imports,discovery,sam,samPacket,samStatus,samReconcile,samHistory,samProcess,browser,attention,triggers,schedules,catalog,schedulerKey,aiPolicy,audit,db,kick=()=>{},allowedOrigins=[]}) {
+export function workflowServer({authenticate,capabilities:readCapabilities,workflow,imports,discovery,sam,samPacket,samStatus,samReconcile,samHistory,samProcess,browser,attention,triggers,schedules,catalog,schedulerKey,aiPolicy,audit,db,kick=()=>{},allowedOrigins=[]}) {
   return createServer(async(request,response)=>{
     response.setHeader('Content-Type','application/json');response.setHeader('Cache-Control','no-store');
     response.setHeader('X-Content-Type-Options','nosniff');
-    let bufferResponse=false,pendingResponse;
-    const send=(status,data)=>{if(bufferResponse){pendingResponse={status,data};return;}response.writeHead(status);response.end(JSON.stringify(data));};
+    let bufferResponse=false,pendingResponse,capabilities;
+    const send=(status,data)=>{if(bufferResponse){pendingResponse={status,data};return;}response.writeHead(status);response.end(JSON.stringify(capabilities?.role==='user'?businessResponse(data):data));};
     try {
       const origin=request.headers.origin;
       if(origin&&!allowedOrigins.includes(origin))throw new HttpError(403,'Origin not allowed');
@@ -39,6 +41,12 @@ export function workflowServer({authenticate,workflow,imports,discovery,sam,samP
       const user=await authenticate(bearer[1]);
       if(!user?.id || !uuid.test(user.id))throw new HttpError(401,'Invalid or expired session');
       const actor=user.id;
+      capabilities=readCapabilities?await readCapabilities(actor):null;
+      if(capabilities)requireCapability(capabilities,request.method,url.pathname);
+      if(url.pathname==='/v1/capabilities'&&request.method==='GET'){
+        if(!capabilities)throw new HttpError(503,'Account permissions are not configured.');
+        send(200,capabilities);return;
+      }
       const segments=url.pathname.split('/').filter(Boolean);
       if(segments[0]!=='v1')throw new HttpError(404,'Endpoint not found');
       const input=request.method==='POST'?await body(request):null;
@@ -46,7 +54,9 @@ export function workflowServer({authenticate,workflow,imports,discovery,sam,samP
       const wakeRelated=async()=>{if(triggers&&segments[1]==='requests'&&uuid.test(segments[2]??''))await triggers.wake(segments[2]);};
       let result;
       const execute=async()=>{
-      if(schedules&&url.pathname==='/v1/scheduler/status'&&request.method==='GET')result={...await schedules.status(),backend_key_configured:typeof schedulerKey==='string'&&schedulerKey.length>=32,...(aiPolicy?{ai_policy:{enabled:aiPolicy.enabled,monthly_usd:aiPolicy.monthlyUsd}}:{})};
+      if(db&&segments[1]==='requests'&&uuid.test(segments[2]??'')&&segments[3]==='source-status'&&segments.length===4&&request.method==='GET')result=await sourceReviewService(db).list(segments[2]);
+      else if(db&&segments[1]==='requests'&&uuid.test(segments[2]??'')&&segments[3]==='source-reviews'&&uuid.test(segments[4]??'')&&segments.length===5&&request.method==='POST')result=await sourceReviewService(db).decide(segments[2],segments[4],input,actor,request.headers['idempotency-key']);
+      else if(schedules&&url.pathname==='/v1/scheduler/status'&&request.method==='GET')result={...await schedules.status(),backend_key_configured:typeof schedulerKey==='string'&&schedulerKey.length>=32,...(aiPolicy?{ai_policy:{enabled:aiPolicy.enabled,monthly_usd:aiPolicy.monthlyUsd}}:{})};
       else if(catalog&&['/v1/admin/sources','/v1/admin/geographies'].includes(url.pathname)&&request.method==='GET') {
         try{result=await catalog[url.pathname.endsWith('sources')?'sources':'geographies'](Object.fromEntries(url.searchParams));}
         catch(error){if(error.message.startsWith('Invalid catalog'))throw new HttpError(400,'Invalid catalog filters');if(['Schedule not found','Geography not in scope'].includes(error.message))throw new HttpError(404,'Saved scope is unavailable');if(error.message==='Scoped read exceeded bound; narrow the query before proceeding')result={unavailable:'Registry exceeds the safe read bound. No truncated catalog is shown.'};else throw error;}
@@ -61,13 +71,13 @@ export function workflowServer({authenticate,workflow,imports,discovery,sam,samP
       else if(schedules&&url.pathname==='/v1/admin/history'&&request.method==='GET') {
         const limit=Number(url.searchParams.get('limit')??50),offset=Number(url.searchParams.get('offset')??0);
         if(!Number.isInteger(limit)||limit<1||limit>100||!Number.isInteger(offset)||offset<0)throw new HttpError(400,'Invalid pagination');
-        result=await schedules.history({limit,offset,...Object.fromEntries(['schedule','run','target','geography','origin','outcome','from','through'].filter(k=>url.searchParams.has(k)).map(k=>[k,url.searchParams.get(k)]))});
+        result=await schedules.history({limit,offset,...Object.fromEntries(['schedule','run','target','geography','origin','outcome','from','through','projection'].filter(k=>url.searchParams.has(k)).map(k=>[k,url.searchParams.get(k)]))});
       }
       else if(schedules&&segments[1]==='schedules') {
         const limit=Number(url.searchParams.get('limit')??50),offset=Number(url.searchParams.get('offset')??0);
         if(!Number.isInteger(limit)||limit<1||limit>100||!Number.isInteger(offset)||offset<0)throw new HttpError(400,'Invalid pagination');
         if(segments.length===3&&segments[2]==='preview'&&request.method==='POST')result=await schedules.preview(input);
-        else if(segments.length===2&&request.method==='GET')result=await schedules.list({offset,limit,...Object.fromEntries(['q','target','geography','lifecycle','blocker','sort','direction'].filter(k=>url.searchParams.has(k)).map(k=>[k,url.searchParams.get(k)]))});
+        else if(segments.length===2&&request.method==='GET')result=await schedules.list({offset,limit,...Object.fromEntries(['q','target','geography','lifecycle','blocker','sort','direction','projection'].filter(k=>url.searchParams.has(k)).map(k=>[k,url.searchParams.get(k)]))});
         else if(segments.length===2&&request.method==='POST')result=await schedules.save(null,input,actor,request.headers['idempotency-key']);
         else if(uuid.test(segments[2]??'')) {
           const id=segments[2];
@@ -88,8 +98,8 @@ export function workflowServer({authenticate,workflow,imports,discovery,sam,samP
         else if(segments.length===2&&request.method==='POST'){result=await triggers.submit(input,actor,request.headers['idempotency-key']);await wakeRelated();kick();send(202,result);return;}
         else if(segments.length===2&&request.method==='GET')result=await triggers.list({offset,limit});
         else if(uuid.test(segments[2]??'')) {
-          if(segments.length===3&&request.method==='GET'){result=await triggers.status(segments[2]);kick();}
-          else if(segments.length===4&&segments[3]==='steps'&&request.method==='GET')result=await triggers.steps(segments[2],{cursor:url.searchParams.get('cursor'),limit});
+          if(segments.length===3&&request.method==='GET'){result=await triggers.status(segments[2],url.searchParams.has('projection')?{projection:url.searchParams.get('projection')}:{});kick();}
+          else if(segments.length===4&&segments[3]==='steps'&&request.method==='GET')result=await triggers.steps(segments[2],{cursor:url.searchParams.get('cursor'),limit,...(url.searchParams.has('sequences')?{sequences:url.searchParams.get('sequences')}:{})});
           else if(segments.length===4&&['cancel','resume'].includes(segments[3])&&request.method==='POST'){result=await triggers.control(segments[2],segments[3],actor);kick();}
         }
       }

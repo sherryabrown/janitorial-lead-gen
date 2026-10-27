@@ -1,5 +1,6 @@
 import {verifyScheduleActivity} from '../helpers/schedule-activity-db.mjs';
 import {verifyScheduleAudit} from '../helpers/schedule-audit-db.mjs';
+import {verifyReleaseRoles} from '../helpers/release-roles-db.mjs';
 // Real PostgreSQL + PostgREST/JWT integration. No production connection is used.
 import assert from 'node:assert/strict';
 import { adminMigrations } from '../helpers/admin-trigger-db.mjs';
@@ -328,6 +329,7 @@ try {
     console.log('Schedule audit native acceptance:',await verifyScheduleAudit(livePool));
     console.log('Analytics native acceptance:',await verifyAnalyticsDatabase({sql:livePool,db}));
     console.log('Schedule activity native acceptance:',await verifyScheduleActivity({sql:livePool,db,triggers}));
+    console.log('Release roles native acceptance:',await verifyReleaseRoles({pool:livePool,db,api,first,second,userToken:nonMember,adminToken:member}));
   }finally {await livePool.end();await rehearsalPool.end();}
   console.log(JSON.stringify({status:'passed',engine:'PostgreSQL 15 + PostgREST',checks:['anonymous reads/RPC denial','member and non-member reads/stages','signed expired and invalid JWT HTTP rejection','note ownership','atomic actor history','1005-row paged queue','service workflow access','Admin private table/RPC denial','Admin atomic replay','concurrent parent AI reservations and four-call cap','scheduling private tables/RPC denial and atomic replay','concurrent active/paused county-work ownership and archive release','grouped state native dispatch/replay/membership/source identities','browser-independent private HTTP wake/shared worker/audit/replay/pause','nonempty automatic SAM manual/scheduled native validation/write/readback/deduplication','private detail hold containment and checkpoint CAS/stale-write rejection'],isolated_wake_and_stage_ms:isolatedWakeAndStageMs,production_contacted:false},null,2));
 } finally {

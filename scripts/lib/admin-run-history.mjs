@@ -1,6 +1,7 @@
 import {checked,rows} from './hosted-store.mjs';
 import {reportSchedules} from './schedule-reporting.mjs';
 import {latestOccurrence,nextOccurrence} from './schedule-recurrence.mjs';
+import {countyPresentations} from './county-source-attention.mjs';
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 const recurrence={frequency:'daily',timezone:'America/Chicago',local_times:['00:00']};
 export function historyFilters(input={}){
@@ -23,9 +24,9 @@ export function activityTiming(run,steps){
    completeness:intervals.length&&intervals.length===steps.length?'known':intervals.length?'partial':'unknown',
    basis:'Union of completed recorded step intervals; not end-to-end execution time'};
 }
-export async function reportRunHistory(db,runs){
+export async function reportRunHistory(db,runs,seed={}){
  runs=runs.map(r=>({id:r.id,target_kind:r.target_kind,state:r.state,config:r.config,created_at:r.created_at,finished_at:r.finished_at??null,origin:r.origin,schedule_id:r.schedule_id??null,occurrence_id:r.occurrence_id??null}));
- const projected=await reportSchedules(db,runs.map(r=>({id:r.id,last_run:r})));
+ const projected=await reportSchedules(db,runs.map(r=>({id:r.id,last_run:r})),seed);
  const steps=[],bounded=new Set();
  for(let i=0;i<runs.length;i+=100){
   const ids=runs.slice(i,i+100).map(r=>r.id);
@@ -37,7 +38,8 @@ export async function reportRunHistory(db,runs){
   candidates_attention:{value:null,completeness:run.config?.check_updates===false?'not_applicable':'unknown',reason:run.config?.check_updates===false?'Source maintenance only':'Review saved candidate validation; intake count is not a blocker count'}}));
 }
 export function adminRunHistory(db){
- return async({offset=0,limit=50,...input}={})=>{
+ return async({offset=0,limit=50,projection,...input}={})=>{
+  if(projection!==undefined&&projection!=='choices')throw Error('Invalid history projection');
   const f=historyFilters(input);
   let q=db.from('procurement_triggers').select('id,target_kind,state,created_at,finished_at,origin,schedule_id,occurrence_id,config',{count:'exact'});
   if(f.schedule==='none')q=q.is('schedule_id',null);else if(f.schedule)q=q.eq('schedule_id',f.schedule);
@@ -46,6 +48,11 @@ export function adminRunHistory(db){
   if(f.from)q=q.gte('created_at',latestOccurrence(recurrence,f.from+'T18:00:00Z'));
   if(f.through)q=q.lt('created_at',nextOccurrence(recurrence,latestOccurrence(recurrence,f.through+'T18:00:00Z')));
   const response=await q.order('created_at',{ascending:false}).order('id').range(offset,offset+limit),values=checked(response),page=values.slice(0,limit);
+  if(projection==='choices'){
+   // Keep the same outcome labels without reconstructing lead identities/timing.
+   const presentations=await countyPresentations(db,page);
+   return {items:page.map(r=>({id:r.id,target_kind:r.target_kind,schedule_id:r.schedule_id,state:r.state,origin:r.origin,created_at:r.created_at,...(presentations.get(r.id)?{presentation:presentations.get(r.id)}:{})})),total:response.count,next_offset:values.length>limit?offset+limit:null};
+  }
   const scheduleIds=[...new Set(page.map(r=>r.schedule_id).filter(Boolean))];
   const schedules=scheduleIds.length?await rows(db,'procurement_schedules',q=>q.in('id',scheduleIds),'id,name'):[];
   return {items:(await reportRunHistory(db,page)).map(r=>({...r,schedule_name:schedules.find(s=>s.id===r.schedule_id)?.name??null})),total:response.count,next_offset:values.length>limit?offset+limit:null,as_of:new Date().toISOString(),basis:'Run creation date · America/Chicago'};

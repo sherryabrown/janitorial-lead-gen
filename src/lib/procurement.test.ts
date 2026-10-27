@@ -43,10 +43,10 @@ function database(tables: Record<string, Row[]>) {
 }
 
 it('shares concurrent source loads across queue pages and invalidates explicitly without sharing workspaces', async () => {
-  const {client,reads}=database({procurement_sources:[{id:'source',name:'Original'}]});
+  const {client,reads}=database({procurement_source_labels:[{id:'source',name:'Original'}]});
   const cache=createProcurementSourceCache();
   await Promise.all([loadProcurementContracts(client,{},0,cache),loadProcurementContracts(client,{},1,cache)]);
-  expect(reads.filter(r=>r.table==='procurement_sources')).toHaveLength(1);
+  expect(reads.filter(r=>r.table==='procurement_source_labels')).toHaveLength(1);
   await loadProcurementContracts(client,{query:'new search'},2,cache);
   expect(reads).toHaveLength(1);
   cache.invalidate();

@@ -4,7 +4,8 @@ import {usageSummary} from './workflow-audit.mjs';
 
 const gaps=new Set(['source_missing','method_missing','partial','blocked']);
 // Avoid loading cached interpretation/project bodies for each Activity row.
-const jobColumns='id,search_request_id,task_id,kind,state,dedupe_key,updated_at,c_stage:checkpoint->>stage,c_error:checkpoint->>error_code,c_task:checkpoint->>task_id,c_automatic:checkpoint->automatic,c_receipt:checkpoint->receipt,c_records:checkpoint->county_records,c_blocker:checkpoint->>blocker,c_hosted:checkpoint->hosted_browser_attempt,c_holds:checkpoint->bonfire_access_holds,c_failures:checkpoint->verification_failures,c_details:checkpoint->bonfire_details';
+export const countyJobColumns='id,search_request_id,task_id,kind,state,dedupe_key,updated_at,c_stage:checkpoint->>stage,c_error:checkpoint->>error_code,c_task:checkpoint->>task_id,c_automatic:checkpoint->automatic,c_receipt:checkpoint->receipt,c_records:checkpoint->county_records,c_reporting:checkpoint->reporting_records,c_blocker:checkpoint->>blocker,c_hosted:checkpoint->hosted_browser_attempt,c_holds:checkpoint->bonfire_access_holds,c_failures:checkpoint->verification_failures,c_details:checkpoint->bonfire_details';
+export const normalizeCountyJob=j=>j.checkpoint?j:{...j,checkpoint:{stage:j.c_stage,error_code:j.c_error,task_id:j.c_task,automatic:j.c_automatic,receipt:j.c_receipt,county_records:j.c_records,reporting_records:j.c_reporting,blocker:j.c_blocker,hosted_browser_attempt:j.c_hosted,bonfire_access_holds:j.c_holds,verification_failures:j.c_failures,bonfire_details:j.c_details}};
 const latest=jobs=>[...jobs].sort((a,b)=>(b.updated_at??'').localeCompare(a.updated_at??'')||b.id.localeCompare(a.id))[0];
 export function taskJobs(task,jobs){return jobs.filter(j=>j.task_id===task.id||j.checkpoint?.task_id===task.id);}
 export function discoveryJob(task,jobs){return latest(taskJobs(task,jobs).filter(j=>j.kind==='discover'));}
@@ -92,7 +93,7 @@ export async function countyPresentations(db,triggers,seed={}){
  const [requests,tasks,jobs,interpretations,usage]=await Promise.all([
   read('procurement_search_requests','id',requestIds,'id,workflow_control'),
   seed.tasks??read('procurement_coverage_tasks','target_id',targets.map(t=>t.id),'id,target_id,source_id,kind,state,reason,evidence'),
-  seed.jobs??read('procurement_jobs','search_request_id',requestIds,jobColumns),
+  seed.jobs??read('procurement_jobs','search_request_id',requestIds,countyJobColumns),
   seed.interpretations??read('procurement_interpretations','request_id',requestIds,'request_id,is_current,staging_receipt'),
   seed.usage??read('procurement_usage_ledger','trigger_id',eligible.map(t=>t.id),'trigger_id,state,actual_usd,reserved_usd,usage')]);
  const requestSet=new Set(requestIds);
@@ -101,7 +102,7 @@ export async function countyPresentations(db,triggers,seed={}){
  const result=new Map();
  for(const trigger of eligible){
   const cc=children.filter(c=>c.trigger_id===trigger.id),rs=new Set(cc.map(c=>c.request_id)),ts=new Set(targets.filter(t=>rs.has(t.search_request_id)).map(t=>t.id));
-  const scopedJobs=jobs.filter(j=>rs.has(j.search_request_id)).map(j=>j.checkpoint?j:{...j,checkpoint:{stage:j.c_stage,error_code:j.c_error,task_id:j.c_task,automatic:j.c_automatic,receipt:j.c_receipt,county_records:j.c_records,blocker:j.c_blocker,hosted_browser_attempt:j.c_hosted,bonfire_access_holds:j.c_holds,verification_failures:j.c_failures,bonfire_details:j.c_details}});
+  const scopedJobs=jobs.filter(j=>rs.has(j.search_request_id)).map(normalizeCountyJob);
   result.set(trigger.id,countyPresentation(trigger,{children:cc,requests:requests.filter(r=>rs.has(r.id)),tasks:tasks.filter(t=>ts.has(t.target_id)),jobs:scopedJobs,interpretations:interpretations.filter(i=>rs.has(i.request_id)),usage:usage.filter(u=>u.trigger_id===trigger.id),intakes,intakeLinks,requestLinks}));
  }
  return result;
