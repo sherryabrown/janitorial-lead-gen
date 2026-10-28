@@ -47,6 +47,7 @@ function SourceResolutionContent({requestId,taskId,owner,canManage,active:worksp
    try{
     const value=await workflowRequest<RepairStatus>(`${path}/status?job=${jobId}`,{signal:abort.signal});
     if(abort.signal.aborted)return;
+    if(!['pending','running'].includes(value.state))setLoading(true);
     setDetail(previous=>previous?.verification?.job_id===jobId?{...previous,verification:value}:previous);
     if(['pending','running'].includes(value.state))timer=setTimeout(()=>void load(),2500);else{setRevision(n=>n+1);done.current?.();}
    }catch(e){if(!abort.signal.aborted)setError(readFailure(e,'Website verification'));}
@@ -79,7 +80,7 @@ function SourceResolutionContent({requestId,taskId,owner,canManage,active:worksp
  return <section className="source-resolution" aria-label="Source review">
   <button className="text-button" type="button" onClick={onBack}>Back to source status</button>
   <h2 ref={heading} tabIndex={-1}>{item?.name??'Review source'}</h2>
-  {loading&&!detail&&<p role="status">Loading source review…</p>}
+  {loading&&!detail&&<p role="status">Loading source review…</p>}{loading&&detail&&<p role="status">Refreshing source scope…</p>}
   {error&&<p role="alert">{error} <button type="button" className="text-button" onClick={()=>{setError('');setRevision(n=>n+1);}}>Reload review</button></p>}
   {notice&&<p role="status">{notice} {onNext&&<button type="button" className="text-button" onClick={onNext}>Next source</button>}</p>}
   {detail&&item&&<>
@@ -89,17 +90,17 @@ function SourceResolutionContent({requestId,taskId,owner,canManage,active:worksp
    <p><strong>{sourceDecisionLabels[item.decision]}</strong>{item.reviewed_at?` · Last admin decision: ${formatLocal(item.reviewed_at)}`:''}</p>
    {item.reviewed_at&&<small>Reviewed by {item.reviewed_by_label??'Admin · name unavailable'}</small>}
    {item.checks_excluded&&<p role="status">Checks disabled by admin decision. Other source checks continue. {detail.can_reenable?
-    <button type="button" className="text-button" onClick={()=>{setChoice('reenable');setConfirmed(false);if(!note)setNote('Resume this verified source check');}}>Re-enable checks</button>:
+    <button type="button" className="text-button" disabled={busy||loading} onClick={()=>{setChoice('reenable');setConfirmed(false);if(!note)setNote('Resume this verified source check');}}>Re-enable checks</button>:
     <span>Verify a usable website and method before re-enabling.</span>}</p>}
    {item.check.last_success_at&&<p>Last successful check: {formatLocal(item.check.last_success_at)}</p>}
    {verification&&<section className="source-verification" aria-label="Website verification"><h3>{verification.title}</h3><p>{verification.explanation}</p>
     {(verification.can_apply_website||verification.can_apply_method||verification.needs_reconciliation)&&<>
-     <Impact detail={detail}/><label className="source-confirmation"><input type="checkbox" checked={confirmed} onChange={e=>setConfirmed(e.target.checked)}/>I reviewed the affected scope and schedules.</label>
+     <Impact detail={detail}/><label className="source-confirmation"><input type="checkbox" disabled={busy||loading} checked={confirmed} onChange={e=>setConfirmed(e.target.checked)}/>I reviewed the affected scope and schedules.</label>
      <button type="button" className="primary-button compact" disabled={!confirmed||busy||loading} onClick={()=>apply(verification.needs_reconciliation?'reconcile':'apply')}>
       {verification.needs_reconciliation?'Reconcile saved repair':verification.can_apply_website?'Use this website':'Apply verified method'}</button>
     </>}
    </section>}
-   <fieldset className="source-decision-choices" disabled={busy}><legend>Repair or record a decision</legend>
+   <fieldset className="source-decision-choices" disabled={busy||loading}><legend>Repair or record a decision</legend>
     {choices.map(c=><label key={c.value}><input type="radio" name={`source-decision-${taskId}`} value={c.value} checked={choice===c.value} onChange={()=>{setChoice(c.value);setConfirmed(false);setNotice('');}}/>{c.label}</label>)}
    </fieldset>
    {choice==='provide_website'?<div className="source-website-form"><label className="input-field"><span>Official website</span><input type="url" value={website} onChange={e=>setWebsite(e.target.value)} placeholder="https://"/></label>
@@ -113,7 +114,7 @@ function SourceResolutionContent({requestId,taskId,owner,canManage,active:worksp
     {choice==='reenable'&&<p>Restore this source check for future runs. This does not change earlier results or rerun the schedule.</p>}
     {choice==='unreviewed'&&<p>Reopen this review. Any existing check exclusion stays in place until an admin explicitly re-enables it.</p>}
     <label className="input-field"><span>Short reason</span><textarea rows={2} maxLength={1000} value={note} onChange={e=>setNote(e.target.value)}/></label>
-    {exclusion&&<><Impact detail={detail}/><label className="source-confirmation"><input type="checkbox" checked={confirmed} onChange={e=>setConfirmed(e.target.checked)}/>{choice==='reenable'?'Restore only the affected check.':'Skip this check until an admin re-enables it.'}</label></>}
+    {exclusion&&<><Impact detail={detail}/><label className="source-confirmation"><input type="checkbox" disabled={busy||loading} checked={confirmed} onChange={e=>setConfirmed(e.target.checked)}/>{choice==='reenable'?'Restore only the affected check.':'Skip this check until an admin re-enables it.'}</label></>}
     <button type="button" className="primary-button compact" disabled={!note.trim()||busy||loading||exclusion&&!confirmed} onClick={decision}>{choice==='reenable'?'Re-enable checks':'Save decision'}</button>
    </div>}
    <details><summary>Review details</summary><p>{detail.reason||'No earlier review reason recorded.'}</p><p>What was checked in the selected run: {item.title}. {item.impact}</p><p>Saved check updated: {item.check.observed_at?formatLocal(item.check.observed_at):'Time unavailable'}</p>

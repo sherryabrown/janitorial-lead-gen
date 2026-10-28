@@ -75,3 +75,19 @@ it('suspends verification polling while its workspace is hidden',async()=>{
  vi.useFakeTimers();view.rerender(<SourceResolution {...props} active={false}/>);
  const calls=request.mock.calls.length;await act(async()=>{await vi.advanceTimersByTimeAsync(10000);});expect(request.mock.calls.length).toBe(calls);
 });
+
+it('waits for the authoritative refreshed scope before accepting verification confirmation',async()=>{
+ const ready={job_id:'job',state:'blocked' as const,kind:'website' as const,checked_at:null,can_apply_website:true,can_apply_method:false,needs_reconciliation:false,fixed:false,title:'Official website entry verified',explanation:'Verified entry.',diagnostic_reference:'reference'};
+ detail.verification={...ready,state:'pending',can_apply_website:false,title:'Checking this source'};
+ const original=request.getMockImplementation()!;let resolveScope!:(value:SourceResolutionDetail)=>void;
+ request.mockImplementation((path,options)=>path.includes('/status?')?Promise.resolve(ready):original(path,options));
+ vi.useFakeTimers();render(<SourceResolution {...props}/>);await act(async()=>{});
+ request.mockImplementation((path,options)=>path.includes('/status?')?Promise.resolve(ready):options?.body?original(path,options):new Promise(resolve=>{resolveScope=resolve;}));
+ await act(async()=>{await vi.advanceTimersByTimeAsync(2500);});
+ const confirmation=screen.getByLabelText('I reviewed the affected scope and schedules.');
+ expect(confirmation).toHaveProperty('disabled',true);expect(screen.getByRole('button',{name:'Use this website'})).toHaveProperty('disabled',true);
+ await act(async()=>resolveScope({...detail,verification:ready,preview_token:'fresh-preview'}));
+ expect(confirmation).toHaveProperty('disabled',false);fireEvent.click(confirmation);fireEvent.click(screen.getByRole('button',{name:'Use this website'}));
+ await act(async()=>{});
+ expect(request.mock.calls.find(([path,options])=>path.endsWith('/apply')&&options?.body)?.[1].body).toMatchObject({confirmed_scope:true,preview_token:'fresh-preview'});
+});

@@ -1,0 +1,80 @@
+// Real Admin UI against the running disposable preview; no intercepted API fixtures.
+import assert from 'node:assert/strict';
+import {readFile,writeFile} from 'node:fs/promises';
+import {chromium} from 'playwright';
+const ready=JSON.parse(await readFile('outputs/deployment/scheduling-preview/ready.json','utf8'));
+assert.equal(ready.url,'http://127.0.0.1:5174');
+const out='outputs/deployment/scheduling-preview',api='http://127.0.0.1:8091';
+const session=async role=>(await (await fetch(ready.url+'/preview/session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({role})})).json()).access_token;
+const admin=await session('admin'),user=await session('user');
+async function get(path,token=admin,rest=false){const r=await fetch((rest?ready.url+'/rest/v1':api)+path,{headers:{Authorization:'Bearer '+token,apikey:'local-preview-public'}});assert.equal(r.status,200,'Local read failed: '+path);return r.json();}
+const originalChecks=async()=>(await get(`/v1/requests/${ready.request_id}/source-status`)).items.map(i=>({task:i.task_id,check:i.check}));
+const protectedLeads=()=>get('/procurement_leads?select=id,payload,stage,stage_reason,notes&order=id',user,true);
+const before={checks:await originalChecks(),leads:await protectedLeads(),schedule:await get('/v1/schedules/'+ready.schedule_id)};
+const browser=await chromium.launch({channel:'msedge',headless:true});
+const context=await browser.newContext({viewport:{width:1440,height:1100}}),page=await context.newPage(),errors=[],external=[];
+let path;
+page.on('pageerror',e=>errors.push(e.message));
+page.on('request',r=>{const url=new URL(r.url());if(r.method()==='GET'&&/^\/v1\/requests\/[^/]+\/source-resolution\/[^/]+$/.test(url.pathname))path=url.pathname;});
+await context.route('**/*',route=>{const url=new URL(route.request().url());if(!['127.0.0.1','localhost'].includes(url.hostname)){external.push(url.origin);return route.abort();}return route.continue();});
+const screenshot=name=>page.screenshot({path:`${out}/${name}.png`,fullPage:true});
+try{
+ await page.goto(ready.url);await page.getByRole('button',{name:'Settings',exact:true}).waitFor();
+ await page.getByLabel('Preview role').selectOption('admin');
+ await page.getByRole('button',{name:'Settings',exact:true}).click();
+ await page.getByRole('button',{name:'Source issues & repairs',exact:true}).click();
+ await page.getByRole('button',{name:'Review decisions and disabled checks',exact:true}).waitFor();
+ if(!await page.getByRole('button',{name:/Review \/ repair/}).count())await page.getByRole('button',{name:'Review decisions and disabled checks',exact:true}).click();
+ await page.getByRole('button',{name:/Review \/ repair/}).first().click();
+ await page.getByRole('group',{name:'Repair or record a decision'}).waitFor();
+ assert.ok(path,'Repair must be bound to an actual saved source observation');
+ let detail=await get(path);
+ if(!detail.item.checks_excluded){
+  await page.getByLabel('Won’t address',{exact:true}).check();await page.getByLabel('Short reason').fill('End-to-end test: hold this affected check until the verified repair is applied.');
+  await page.getByLabel('Skip this check until an admin re-enables it.').check();await page.getByRole('button',{name:'Save decision',exact:true}).click();
+  await page.getByText('Decision saved.',{exact:false}).waitFor();
+ }
+ await page.getByLabel('Provide website',{exact:true}).check();
+ await page.getByLabel('Official website').fill('https://repair.example/bids');
+ await page.getByRole('button',{name:'Verify website',exact:true}).click();
+ await page.getByRole('heading',{name:'Official website entry verified',exact:true}).waitFor({timeout:60000});
+ await screenshot('repair-e2e-website-verified');
+ assert.equal(await page.getByRole('button',{name:'Use this website',exact:true}).isDisabled(),true);
+ await page.getByLabel('I reviewed the affected scope and schedules.').check();
+ await page.getByRole('button',{name:'Use this website',exact:true}).click();
+ await page.getByRole('heading',{name:'Bid listing method verified',exact:true}).waitFor({timeout:60000});
+ await screenshot('repair-e2e-listing-verified');
+ assert.equal(await page.getByRole('button',{name:'Apply verified method',exact:true}).isDisabled(),true);
+ await page.getByLabel('I reviewed the affected scope and schedules.').check();
+ await page.getByRole('button',{name:'Apply verified method',exact:true}).click();
+ await page.getByRole('heading',{name:'Source setup verified',exact:true}).waitFor({timeout:60000});
+ detail=await get(path);assert.equal(detail.verification.fixed,true);assert.equal(detail.item.decision,'fixed_verified');assert.equal(detail.item.checks_excluded,true,'Applying a fix must not silently remove the exclusion');assert.equal(detail.can_reenable,true);
+ await screenshot('repair-e2e-applied');
+ await page.getByRole('button',{name:'Re-enable checks',exact:true}).click();
+ const decision=page.locator('.source-decision-form');
+ await decision.getByLabel('Short reason').fill('End-to-end test: verified website and listing method saved; resume this affected check.');
+ assert.equal(await decision.getByRole('button',{name:'Re-enable checks',exact:true}).isDisabled(),true);
+ await decision.getByLabel('Restore only the affected check.').check();await decision.getByRole('button',{name:'Re-enable checks',exact:true}).click();
+ await page.getByText('Decision saved.',{exact:false}).waitFor();
+ detail=await get(path);assert.equal(detail.item.checks_excluded,false,'Explicit Admin confirmation must re-enable the check');
+ assert.deepEqual(await originalChecks(),before.checks,'Historical selected-run check facts must remain unchanged');
+ assert.deepEqual(await protectedLeads(),before.leads,'Source repair must not modify lead payloads, stages or notes');
+ const afterSchedule=await get('/v1/schedules/'+ready.schedule_id);assert.deepEqual(afterSchedule.config,before.schedule.config);assert.equal(afterSchedule.version,before.schedule.version);
+ await screenshot('repair-e2e-reenabled');
+ await page.reload();await page.getByRole('button',{name:'Settings',exact:true}).waitFor();await page.getByLabel('Preview role').selectOption('admin');await page.getByRole('group',{name:'Repair or record a decision'}).waitFor();
+ assert.equal((await get(path)).item.checks_excluded,false,'Re-enabled state survives a fresh read');
+ await page.getByRole('button',{name:'Back to source status',exact:true}).click();
+ await page.getByRole('button',{name:'Schedules',exact:true}).click();await page.getByRole('button',{name:'Weekly Arkansas County leads',exact:true}).click();await page.getByRole('tab',{name:'Sources',exact:true}).click();
+ const setup=page.getByRole('region',{name:'Current source setup',exact:true});
+ await setup.getByText('Arkansas County · opportunity · Verified check method',{exact:true}).waitFor();
+ assert.equal(await setup.getByText(/Checks disabled by admin decision/).count(),0);
+ await screenshot('repair-e2e-current-setup');
+ await page.getByLabel('Preview role').selectOption('user');await page.getByRole('button',{name:'Schedules',exact:true}).waitFor();
+ await page.getByRole('button',{name:'Schedules',exact:true}).click();await page.getByRole('button',{name:'Weekly Arkansas County leads',exact:true}).click();await page.getByRole('tab',{name:'Sources',exact:true}).click();
+ await page.getByRole('region',{name:'Current source setup',exact:true}).getByText('Arkansas County · opportunity · Verified check method',{exact:true}).waitFor();
+ assert.equal(await page.getByRole('button',{name:/Review \/ repair|Re-enable checks/}).count(),0);
+ assert.deepEqual(errors,[]);assert.deepEqual(external,[]);
+ const receipt={status:'passed',real_local_api:true,website_verified:true,website_applied:true,method_verified_and_applied:true,exclusion_preserved_until_explicit_confirmation:true,reenabled_and_reloaded:true,current_setup_readback:true,user_visibility:true,old_run_and_leads_unchanged:true,production_contacted:false};
+ await writeFile(`${out}/repair-e2e-receipt.json`,JSON.stringify(receipt));console.log(JSON.stringify(receipt));
+}catch(error){await screenshot('repair-e2e-failure');console.error((await page.locator('body').innerText()).slice(-6000));throw error;}
+finally{await browser.close();}
