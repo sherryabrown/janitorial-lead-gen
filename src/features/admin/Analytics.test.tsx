@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import {afterEach,beforeEach,expect,it,vi} from 'vitest';
-import {act,cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
+import {act,cleanup,fireEvent,screen,waitFor} from '@testing-library/react';
+import {renderAdmin as render,userCapabilities} from '../../../tests/helpers/render-admin';
+import {SchedulingRoleContext} from './scheduling-role';
 import {Analytics,ScheduleAnalyticsSummary,type AnalyticsReport} from './Analytics';
 import {clearAdminSession} from './navigation';
 const mocked=vi.hoisted(()=>({request:vi.fn()}));
@@ -45,4 +47,22 @@ it('retries only failed schedule choices without discarding a healthy report',as
  render(<Analytics owner="a" counties={[]}/>);await screen.findByRole('button',{name:'Retry stats'});await screen.findByRole('heading',{name:'Validated results'});
  const count=mocked.request.mock.calls.filter(([p])=>p.startsWith('/v1/admin/analytics')).length;fail=false;fireEvent.click(screen.getByRole('button',{name:'Retry stats'}));await screen.findByRole('button',{name:'Refresh stats'});
  expect(mocked.request.mock.calls.filter(([p])=>p.startsWith('/v1/admin/analytics'))).toHaveLength(count);expect(mocked.request.mock.calls.every(([,o])=>!o?.body)).toBe(true);
+});
+
+it('renders User statistics from the safe report without Admin usage fields and keeps filters working',async()=>{
+ const {usage,...summary}=report.summary;void usage;
+ mocked.request.mockImplementation(async(path:string)=>path.startsWith('/v1/schedules')?{items:[],next_offset:null}:{...report,summary});
+ render(<SchedulingRoleContext.Provider value={userCapabilities}><Analytics owner="user" counties={[]}/></SchedulingRoleContext.Provider>);
+ await screen.findByRole('heading',{name:'Validated results'});
+ expect(screen.getByText('Verified updated leads')).toBeTruthy();
+ expect(screen.queryByRole('heading',{name:/AI usage/})).toBeNull();
+ fireEvent.change(screen.getByRole('combobox',{name:/^Type/}),{target:{value:'sam'}});
+ await waitFor(()=>expect(mocked.request.mock.calls.some(([p])=>p.includes('target=sam'))).toBe(true));
+ await screen.findByRole('heading',{name:'Validated results'});
+ expect(screen.queryByRole('alert')).toBeNull();
+});
+it('does not display Admin usage even if an older response includes it for a User',async()=>{
+ render(<SchedulingRoleContext.Provider value={userCapabilities}><Analytics owner="user" counties={[]}/></SchedulingRoleContext.Provider>);
+ await screen.findByRole('heading',{name:'Validated results'});
+ expect(screen.queryByRole('heading',{name:/AI usage/})).toBeNull();expect(screen.queryByText('$0.02')).toBeNull();
 });

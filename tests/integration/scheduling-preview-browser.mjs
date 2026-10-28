@@ -24,6 +24,15 @@ try{
  assert.match(await website.innerText(),/Arkansas County bid website/);assert.match(await website.innerText(),/https:\/\/repair\.example\//);
  await settings();assert.deepEqual(await page.getByRole('tab').allTextContents(),['Results','Sources','Schedule changes']);
  assert.equal(await page.getByText('Technical details for the selected run',{exact:true}).count(),0);
+ await page.getByRole('button',{name:'Results analytics',exact:true}).click();
+ await page.getByRole('heading',{name:/^Validated results/}).waitFor();
+ assert.equal(await page.getByRole('heading',{name:/AI usage/}).count(),0,'User statistics must not render Admin-only usage');
+ await page.getByRole('combobox',{name:/^Type/}).selectOption('sam');
+ await page.getByRole('button',{name:'Refresh stats',exact:true}).waitFor();
+ await page.getByRole('heading',{name:/^Validated results/}).waitFor();
+ await screenshot('user-statistics');
+ await page.getByRole('button',{name:'Schedules',exact:true}).click();
+ await page.getByRole('button',{name:'Weekly Arkansas County leads',exact:true}).click();
  const jwt=await page.evaluate(()=>{const key=Object.keys(localStorage).find(k=>k.startsWith('sb-')&&k.endsWith('-auth-token'));return JSON.parse(localStorage.getItem(key)).access_token;});
  for(const path of ['/v1/source-reviews',`/v1/triggers/${ready.run_id}/steps`]){
   const r=await fetch('http://127.0.0.1:8091'+path,{headers:{Authorization:`Bearer ${jwt}`}});assert.equal(r.status,403);
