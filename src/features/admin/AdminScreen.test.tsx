@@ -726,3 +726,17 @@ it('does not reload state-source registry while filtering schedules or withhold 
  expect(mocks.request.mock.calls.filter(([p])=>p==='/v1/state-triggers')).toHaveLength(count);
  resolve({items:[]});
 });
+
+it('opens source repairs directly from schedule Sources and returns to the same schedule context',async()=>{
+ const original=mocks.request.getMockImplementation()!;
+ mocks.request.mockImplementation((path,options)=>path.startsWith('/v1/source-reviews')?Promise.resolve({items:[],next_offset:null}):path==='/v1/schedules?lifecycle=current'?Promise.resolve({items:[schedule],next_offset:null}):original(path,options));
+ await start();fireEvent.click(screen.getByRole('button',{name:'Schedules'}));
+ fireEvent.click(await screen.findByRole('button',{name:'Morning check'}));
+ fireEvent.click(screen.getByRole('tab',{name:'Sources'}));
+ fireEvent.click(screen.getByRole('button',{name:'Open source issues & repairs'}));
+ await screen.findByText(/No unresolved source issues/);
+ expect(screen.getByRole('button',{name:'Review decisions and disabled checks'})).toBeTruthy();
+ fireEvent.click(screen.getByRole('button',{name:'Back to schedule sources'}));
+ expect(screen.getByRole('heading',{name:'Morning check'})).toBeTruthy();
+ expect(screen.getByRole('tab',{name:'Sources'}).getAttribute('aria-selected')).toBe('true');
+});

@@ -25,7 +25,7 @@ afterEach(()=>{cleanup();vi.useRealTimers();Object.defineProperty(document,'hidd
 it('shows an accepted gap to Users without a repair control or private evidence read',async()=>{
  render(<SchedulingRoleContext.Provider value={userCapabilities}><SourceStatus owner="owner" requestId="request"/></SchedulingRoleContext.Provider>);
  await screen.findByText('No website recorded');expect(screen.getByText(/Checks disabled by admin decision/)).toBeTruthy();
- expect(screen.queryByRole('button',{name:/Review source/})).toBeNull();expect(request.mock.calls.every(([p])=>p.endsWith('/source-status'))).toBe(true);
+ expect(screen.queryByRole('button',{name:/Review \/ repair/})).toBeNull();expect(request.mock.calls.every(([p])=>p.endsWith('/source-status'))).toBe(true);
  expect(screen.queryByText('Fixed and verified')).toBeNull();
 });
 it('does no Admin queue read for a User direct link',()=>{
@@ -50,12 +50,12 @@ it('refreshes a failed source read in place without reloading other run reports'
 it('does not reinterpret a completed empty check as needing Admin review',async()=>{
  request.mockResolvedValue({items:[{...item,id:null,decision:'unreviewed',checks_excluded:false,allowed_actions:[],check:{...item.check,state:'reviewed_no_results'},title:'Checked · no matching records'}]});
  render(<SchedulingRoleContext.Provider value={adminCapabilities}><SourceStatus owner="owner" requestId="request"/></SchedulingRoleContext.Provider>);
- await screen.findByText('No review decision recorded for this check.');expect(screen.queryByRole('button',{name:/Review source/})).toBeNull();expect(screen.queryByText(/Responsibility/)).toBeNull();
+ await screen.findByText('No review decision recorded for this check.');expect(screen.queryByRole('button',{name:/Review \/ repair/})).toBeNull();expect(screen.queryByText(/Responsibility/)).toBeNull();
 });
 it('keeps an ordinary pending check out of Admin review instead of fabricating an issue',async()=>{
  request.mockResolvedValue({items:[{...item,id:null,decision:'unreviewed',checks_excluded:false,check:{...item.check,state:'unchecked'},title:'Waiting to check'}]});
  render(<SchedulingRoleContext.Provider value={adminCapabilities}><SourceStatus owner="owner" requestId="request"/></SchedulingRoleContext.Provider>);
- await screen.findByText('Waiting to check');expect(screen.queryByText('Needs review')).toBeNull();expect(screen.queryByText(/Responsibility/)).toBeNull();expect(screen.queryByRole('button',{name:/Review source/})).toBeNull();
+ await screen.findByText('Waiting to check');expect(screen.queryByText('Needs review')).toBeNull();expect(screen.queryByText(/Responsibility/)).toBeNull();expect(screen.queryByRole('button',{name:/Review \/ repair/})).toBeNull();
 });
 it('clears privileged panels and saved review drafts when the trusted role changes',async()=>{
  let cap=adminCapabilities as typeof adminCapabilities|typeof userCapabilities;request.mockImplementation(async()=>cap);
@@ -85,4 +85,15 @@ it('explains uncertain saved results to a User without exposing a resend or priv
  render(<SchedulingRoleContext.Provider value={userCapabilities}><RunDetail id="run" owner="owner" onClose={()=>{}} onViewLeads={()=>{}} onSource={()=>{}} changed={()=>{}}/></SchedulingRoleContext.Provider>);
  await screen.findByRole('heading',{name:'Results need confirmation'});expect(screen.getByText(/An Admin manages reconciliation/)).toBeTruthy();
  expect(screen.queryByRole('button',{name:/resume|retry import|reconcile/i})).toBeNull();expect(request.mock.calls.every(([p])=>p==='/v1/triggers/run')).toBe(true);
+});
+
+it('makes reviewed and disabled sources discoverable from an empty Admin issue view without background duplicate reads',async()=>{
+ request.mockImplementation(async(path:string)=>({items:path.includes('reviewed=true')?[item]:[],next_offset:null}));
+ render(<SchedulingRoleContext.Provider value={adminCapabilities}><SourceStatus attention owner="owner"/></SchedulingRoleContext.Provider>);
+ await screen.findByText(/No unresolved source issues/);
+ expect(request).toHaveBeenCalledTimes(1);
+ fireEvent.click(screen.getByRole('button',{name:'Review decisions and disabled checks'}));
+ await screen.findByRole('button',{name:/Review \/ repair/});
+ expect(screen.getByText(/Checks disabled by admin decision/)).toBeTruthy();
+ expect(request.mock.calls.map(([path])=>path)).toEqual(['/v1/source-reviews?reviewed=false&offset=0','/v1/source-reviews?reviewed=true&offset=0']);
 });

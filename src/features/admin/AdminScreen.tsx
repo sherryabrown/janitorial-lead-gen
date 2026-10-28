@@ -117,11 +117,11 @@ function SchedulingWorkspace({
   });
   const headingRef = useRef<HTMLHeadingElement>(null);
   const returnFocus=useRef<HTMLElement|null>(null),previousRun=useRef<string|null>(null),restoreFocus=useRef(false);
-  const schedulesRef = useRef<HTMLDivElement>(null), manualRef = useRef<HTMLDivElement>(null), historyRef = useRef<HTMLDivElement>(null),statsRef=useRef<HTMLDivElement>(null);
+  const schedulesRef = useRef<HTMLDivElement>(null), manualRef = useRef<HTMLDivElement>(null), historyRef = useRef<HTMLDivElement>(null),statsRef=useRef<HTMLDivElement>(null),attentionRef=useRef<HTMLDivElement>(null);
   const manualView=navigation.section==='manual'&&role.manage_sources;
   useEffect(() => {
     if(!active)return;
-    const target=navigation.runId?detailRef.current?.querySelector<HTMLElement>('h2'):navigation.view==='stats'?statsRef.current:navigation.scheduleId?schedulesRef.current?.querySelector<HTMLElement>('.schedule-detail h2'):navigation.view==='history'?historyRef.current:manualView?manualRef.current:headingRef.current;
+    const target=navigation.runId?detailRef.current?.querySelector<HTMLElement>('h2'):navigation.view==='attention'?attentionRef.current:navigation.view==='stats'?statsRef.current:navigation.scheduleId?schedulesRef.current?.querySelector<HTMLElement>('.schedule-detail h2'):navigation.view==='history'?historyRef.current:manualView?manualRef.current:headingRef.current;
     target?.focus();if(navigation.runId||navigation.scheduleId||navigation.view==='history'||manualView)target?.scrollIntoView?.({block:'nearest'});
   }, [active,navigation.view,navigation.scheduleId,navigation.runId,manualView]);
   useEffect(() => { saveAdminContext(owner, navigation);if(navigation.historySearchId&&!new URLSearchParams(window.location.search).has('adminHistorySearch'))replaceAdminLocation(owner,navigation); }, [owner, navigation]);
@@ -133,7 +133,7 @@ function SchedulingWorkspace({
   useEffect(()=>{if(previousRun.current&&!selected&&restoreFocus.current&&returnFocus.current?.isConnected){returnFocus.current.focus({preventScroll:true});returnFocus.current.scrollIntoView?.({block:'nearest'});}restoreFocus.current=false;previousRun.current=selected;},[selected]);
   const navigate = (view: AdminContext['view'], manual = false) => {
     commitNavigation({ view, returnTo: 'contracts', ...(view==='history'?{historySearchId:crypto.randomUUID()}:{}), ...(manual ? { section: 'manual' } : {}) });
-    const target = manual ? manualRef.current : view === 'history' ? historyRef.current : view==='stats'?statsRef.current:schedulesRef.current;
+    const target = manual ? manualRef.current : view === 'history' ? historyRef.current : view==='attention'?attentionRef.current:view==='stats'?statsRef.current:schedulesRef.current;
     target?.focus(); target?.scrollIntoView?.({ block: 'start' });
   };
   const [manual, setManual] = useState(() => readDraft(owner)),
@@ -449,7 +449,7 @@ function SchedulingWorkspace({
         <button type="button" className="secondary-button compact" aria-current={navigation.view === 'schedules' && navigation.section !== 'manual' ? 'page' : undefined} onClick={() => navigate('schedules')}>Schedules</button>
         <button type="button" className="text-button" aria-current={navigation.view === 'history' ? 'page' : undefined} onClick={() => navigate('history')}>Run history</button>
         <button type="button" className="text-button" aria-current={navigation.view === 'stats' ? 'page' : undefined} onClick={() => navigate('stats')}>Results analytics</button>
-        {role.manage_sources&&<button type="button" className="text-button" aria-current={navigation.view === 'attention' ? 'page' : undefined} onClick={() => navigate('attention')}>Needs attention</button>}
+        {role.manage_sources&&<button type="button" className="text-button" aria-current={navigation.view === 'attention' ? 'page' : undefined} onClick={() => navigate('attention')}>Source issues &amp; repairs</button>}
         {role.technical_details&&<details className="admin-technical-nav"><summary>Technical tools</summary><button type="button" className="text-button" onClick={() => navigate('sources')}>Source registry</button><button type="button" className="text-button" onClick={() => navigate('geography')}>Geography registry</button><button type="button" className="text-button" onClick={() => navigate('schedules',true)}>Manual runs</button></details>}
       </nav></div>
       {!selected&&!scheduleEditor&&!navigation.scheduleId&&!navigation.sourceId&&!navigation.geographyId&&<Breadcrumb items={[{label:'Settings'},{label:adminViewLabels[navigation.view]},...(manualView?[{label:'Manual runs'}]:[])]}/>}
@@ -484,7 +484,7 @@ function SchedulingWorkspace({
         )}
       {scheduleEditor&&<ScheduleEditor key={scheduleEditor.saved?.id??'new'} owner={owner} initial={manual} saved={scheduleEditor.saved} target={scheduleEditor.target} counties={counties} sources={sources} registryState={registryState} onClose={()=>setScheduleEditor(null)} onSchedules={()=>{setScheduleEditor(null);navigate('schedules');}} onSaved={s=>{setScheduleEditor(null);setSavedScheduleFocus(s);setRevision(n=>n+1);commitNavigation({view:'schedules',scheduleId:s.id,section:'overview',returnTo:'contracts'});}}/>}
       <div hidden={!!scheduleEditor||navigation.view!=='schedules'||navigation.section==='manual'||!!selected} ref={schedulesRef} tabIndex={-1} className="admin-navigation-section" aria-label="Schedules">
-        <ScheduleList active={active&&!selected&&!scheduleEditor&&navigation.view==='schedules'&&navigation.section!=='manual'} owner={owner} context={navigation.scheduleId?{id:navigation.scheduleId,section:navigation.section==='manual'? 'overview':navigation.section??'overview',scheduleRunId:navigation.scheduleRunId,sourceId:navigation.sourceId,geographyId:navigation.geographyId}:null} onContext={value=>commitNavigation({...navigation,view:'schedules',scheduleId:value?.id,section:value?.section,scheduleRunId:value?.scheduleRunId,sourceId:value?.sourceId,geographyId:value?.geographyId,runId:undefined})} onView={viewRun} onViewLeads={onViewLeads} items={schedules} paging={paging} more={scheduleOffset !== null}
+        <ScheduleList onReviewSources={()=>commitNavigation({...navigation,view:'attention',section:'sources'})} active={active&&!selected&&!scheduleEditor&&navigation.view==='schedules'&&navigation.section!=='manual'} owner={owner} context={navigation.scheduleId?{id:navigation.scheduleId,section:navigation.section==='manual'? 'overview':navigation.section??'overview',scheduleRunId:navigation.scheduleRunId,sourceId:navigation.sourceId,geographyId:navigation.geographyId}:null} onContext={value=>commitNavigation({...navigation,view:'schedules',scheduleId:value?.id,section:value?.section,scheduleRunId:value?.scheduleRunId,sourceId:value?.sourceId,geographyId:value?.geographyId,runId:undefined})} onView={viewRun} onViewLeads={onViewLeads} items={schedules} paging={paging} more={scheduleOffset !== null}
           query={scheduleQuery} onFilters={filterSchedules} counties={counties} total={scheduleTotal} loading={loading||paging}
           error={scheduleReadError} onRetry={()=>{if(failedSchedulePage.current)void loadMore();else setRevision(n=>n+1);}}
           focusSchedule={savedScheduleFocus}
@@ -583,7 +583,7 @@ function SchedulingWorkspace({
       </div>
       }
       {navigation.view==='stats'&&<div hidden={!!selected||!!scheduleEditor} ref={statsRef} tabIndex={-1} className="admin-navigation-section"><Analytics owner={owner} counties={counties}/></div>}
-      {navigation.view==='attention'&&<div hidden={!!selected}><SourceStatus attention owner={owner} active={active&&!selected&&!scheduleEditor} onTechnicalDetails={(runId,requestId)=>{if(runId){returnFocus.current=document.activeElement as HTMLElement;commitNavigation({...navigation,runId,runSection:'logs',issueRequestId:requestId});}}}/></div>}
+      {navigation.view==='attention'&&<div hidden={!!selected} ref={attentionRef} tabIndex={-1} className="admin-navigation-section">{role.manage_sources&&navigation.scheduleId&&<button type="button" className="text-button" onClick={()=>commitNavigation({...navigation,view:'schedules',section:'sources'})}>Back to schedule sources</button>}<SourceStatus attention owner={owner} active={active&&!selected&&!scheduleEditor} onTechnicalDetails={(runId,requestId)=>{if(runId){returnFocus.current=document.activeElement as HTMLElement;commitNavigation({...navigation,runId,runSection:'logs',issueRequestId:requestId});}}}/></div>}
       {(navigation.view==='sources'||navigation.view==='geography')&&(role.technical_details?<div hidden={!!selected||!!scheduleEditor} className="admin-navigation-section"><Catalog active={active&&!selected&&!scheduleEditor} key={navigation.view} mode={navigation.view} owner={owner} counties={counties} sourceId={navigation.sourceId} geographyId={navigation.geographyId} onSource={id=>commitNavigation({view:'sources',sourceId:id,returnTo:'contracts'})} onGeography={id=>commitNavigation({view:'geography',geographyId:id,returnTo:'contracts'})} onState={()=>{navigate('schedules',true);requestAnimationFrame(()=>stateSourcesRef.current?.scrollIntoView?.({block:'start'}));}}/></div>:<section><h2>Admin review required</h2><p>Technical source and geography details are managed by an Admin.</p><button className="text-button" onClick={()=>navigate('schedules')}>Back to schedules</button></section>)}
       <div hidden={!!scheduleEditor||navigation.view!=='history'&&!selected} ref={historyRef} tabIndex={-1} className="admin-navigation-section" aria-label="History and logs">
       <div hidden={!!selected}>{navigation.view==='history'&&<RunHistory entryId={navigation.historySearchId} active={active&&!selected&&!scheduleEditor} owner={owner} counties={counties} refreshSignal={revision} onView={viewRun} onSchedule={id=>commitNavigation({view:'schedules',scheduleId:id,section:'history',returnTo:'contracts'})}/>}</div>

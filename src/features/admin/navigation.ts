@@ -1,5 +1,5 @@
 export type AdminView = 'schedules' | 'stats' | 'history' | 'sources' | 'geography' | 'attention';
-export const adminViewLabels:Record<AdminView,string>={schedules:'Schedules',stats:'Results analytics',history:'Run history',sources:'Technical source registry',geography:'Technical geography',attention:'Needs attention'};
+export const adminViewLabels:Record<AdminView,string>={schedules:'Schedules',stats:'Results analytics',history:'Run history',sources:'Technical source registry',geography:'Technical geography',attention:'Source issues & repairs'};
 export type AdminContext = {
   view: AdminView;
   section?: 'manual' | 'overview' | 'history' | 'logs' | 'sources' | 'geography';

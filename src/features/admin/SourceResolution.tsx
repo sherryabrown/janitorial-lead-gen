@@ -99,7 +99,7 @@ function SourceResolutionContent({requestId,taskId,owner,canManage,active:worksp
       {verification.needs_reconciliation?'Reconcile saved repair':verification.can_apply_website?'Use this website':'Apply verified method'}</button>
     </>}
    </section>}
-   <fieldset className="source-decision-choices" disabled={busy}><legend>Choose the next action</legend>
+   <fieldset className="source-decision-choices" disabled={busy}><legend>Repair or record a decision</legend>
     {choices.map(c=><label key={c.value}><input type="radio" name={`source-decision-${taskId}`} value={c.value} checked={choice===c.value} onChange={()=>{setChoice(c.value);setConfirmed(false);setNotice('');}}/>{c.label}</label>)}
    </fieldset>
    {choice==='provide_website'?<div className="source-website-form"><label className="input-field"><span>Official website</span><input type="url" value={website} onChange={e=>setWebsite(e.target.value)} placeholder="https://"/></label>

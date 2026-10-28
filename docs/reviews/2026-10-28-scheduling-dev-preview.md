@@ -15,13 +15,13 @@ The preview runs at **http://127.0.0.1:5174** on this computer. Start it with `n
 1. Start as **User**. Confirm the lead's Bid website shows the website name, agency type/location and URL.
 2. Open Settings → Schedules → Weekly Arkansas County leads. Find Results, Sources and Schedule changes. Explain the selected run's result and what needs attention without opening a log.
 3. Inspect Sources: distinguish current setup from what was checked in the selected run. Edit/pause/run schedules using the existing rules. Admin exclusions stay excluded when a User runs a schedule.
-4. Switch to **Admin**. Open Needs attention or Review source from the same schedule. Try each decision with a short reason. No website/Won’t address requires confirming the affected scope and disables only that check; No issue leaves checking enabled. Needs developer records a handoff and sends nothing.
+4. Switch to **Admin**. Open Source issues & repairs or Review / repair from the same schedule. Try each decision with a short reason. No website/Won’t address requires confirming the affected scope and disables only that check; No issue leaves checking enabled. Needs developer records a handoff and sends nothing.
 5. Provide `https://repair.example/bids`. Verify the website, review affected schedules, explicitly use it, then review/apply the verified listing method. A homepage alone is not a fixed listing. A successful repair leaves an existing exclusion in place until explicit Re-enable checks.
 6. Return to the same source/run, try Next source, switch roles, use Back, keyboard tabs and a narrow window. Written review notes and selection should retain context. Users must not gain technical details or repair controls.
 
 Please record actual nontechnical User/Admin interpretation and any confusing state. Automated checks do not substitute for this acceptance. Production remains on hold.
 
-The running handoff sample has already completed an automated guided repair and an explicit **Won’t address** decision. To find it from Needs attention, select **Show → Reviewed decisions**, or open the schedule’s Sources section. An Admin can explicitly re-enable that affected check. Website verification has a four-per-hour limit; avoid repeating the entire repair just to inspect the layout. Restarting the disposable preview resets its sample data.
+The sample includes prior repair and review history; its current decision can change during testing. If no unresolved issues appear in Source issues & repairs, choose **Review decisions and disabled checks**, or open the schedule’s Sources section and choose **Open source issues & repairs**. Use **Back to schedule sources** to return to the same schedule. An Admin can explicitly re-enable that affected check. Website verification has a four-per-hour limit; avoid repeating the entire repair just to inspect the layout. Restarting the disposable preview resets its sample data.
 
 ## Automated verification record — October 28, 2026
 
@@ -49,3 +49,9 @@ Before cutover:
 6. Reconcile the expected **41 procurement base tables**, no duplicate issue tables, five replaced legacy read policies and lossless membership archive. Record exact deployed frontend/backend commits and migration/readback receipts.
 
 Rollback must retain audit/capture evidence and safe permission enforcement. Do not restore unrestricted source mutation access or revert role protection to make an old UI appear functional. Keep the matching frontend/API pair or disable the new repair entry while preserving business reads. No bulk historical resumes or unapproved live imports belong in the cutover.
+
+## Admin repair discovery follow-up
+
+Admins have an explicit **Source issues & repairs** navigation entry and a primary entry point above current source setup in each schedule's Sources section. Opening it preserves the schedule/run context and provides **Back to schedule sources**. **Review decisions and disabled checks** makes reviewed gaps discoverable even when the unresolved queue is empty; it performs the existing reviewed read only when selected. Rows expose **Review / repair**, opening the same guarded website verification, decision and re-enable workflow. No new repair path, role authority, schema or polling was introduced. Users retain read-only source status and do not see these Admin actions.
+
+Verification: all 207 UI tests pass, including empty-queue discovery, lazy reviewed reads, preserved schedule context and unchanged User restrictions. Lint/type-check/build pass. The real preview browser gate verifies the Admin entry and return path at desktop/390px/320px, plus User statistics, role denials, keyboard and 200% zoom. Scoped screen-reader label styling prevents repair-button overflow. The read-only smoke check preserves current sample decisions instead of resetting them. Receipts: `repair-discovery-final.log` (all UI tests) and `repair-discovery-preview-final.log` (final build/browser), under ignored `outputs/deployment/scheduling-preview/`. No backend/database or Production deployment changes.

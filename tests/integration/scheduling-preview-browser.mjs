@@ -39,18 +39,33 @@ try{
  }
  await page.getByRole('tab',{name:'Sources',exact:true}).click();await page.getByRole('heading',{name:'Current source setup'}).waitFor();
  await page.getByRole('heading',{name:'What was checked in this run'}).waitFor();
+ assert.equal(await page.getByRole('button',{name:'Open source issues & repairs',exact:true}).count(),0);
+ assert.equal(await page.getByRole('button',{name:'Source issues & repairs',exact:true}).count(),0);
  const waiting=page.getByText('Waiting to check',{exact:true});if(await waiting.count())assert.ok(!/Needs review|Responsibility/.test(await waiting.first().locator('xpath=ancestor::article').innerText()),'Pending checks must not fabricate an Admin issue');
- assert.equal(await page.getByRole('button',{name:/Review source/}).count(),0);
+ assert.equal(await page.getByRole('button',{name:/Review \/ repair/}).count(),0);
  for(const width of [1440,390,320]){await withinWidth(width);await screenshot(`user-sources-${width}`);}
  await page.setViewportSize({width:720,height:600});await page.locator('html').evaluate(el=>el.style.zoom='2');await withinWidth(720);await screenshot('user-sources-200-percent');await page.locator('html').evaluate(el=>el.style.zoom='');
  await page.setViewportSize({width:1440,height:1000});
  await page.getByRole('tab',{name:'Results',exact:true}).focus();await page.keyboard.press('ArrowRight');assert.equal(await page.getByRole('tab',{name:'Sources',exact:true}).getAttribute('aria-selected'),'true');
  await page.goto(origin+'/?adminView=sources');await page.getByRole('heading',{name:'Admin review required'}).waitFor();
  const countBefore=requests.filter(r=>r.url.includes('/v1/admin/sources')).length;assert.equal(countBefore,0,'User direct link cannot start a private catalog read');
- await page.getByLabel('Preview role').selectOption('admin');await page.getByRole('button',{name:'Needs attention',exact:true}).waitFor();
- await page.getByRole('button',{name:'Needs attention',exact:true}).click();
- if(layoutOnly)await page.getByRole('combobox',{name:/^Show/}).selectOption('reviewed');
- await page.getByRole('button',{name:/Review source/}).first().click();
+ await page.getByLabel('Preview role').selectOption('admin');await page.getByRole('button',{name:'Source issues & repairs',exact:true}).waitFor();
+ await page.getByRole('button',{name:'Schedules',exact:true}).click();
+ await page.getByRole('button',{name:'Weekly Arkansas County leads',exact:true}).click();
+ await page.getByRole('tab',{name:'Sources',exact:true}).click();
+ await page.getByRole('button',{name:'Open source issues & repairs',exact:true}).click();
+ await page.getByRole('button',{name:'Back to schedule sources',exact:true}).click();
+ assert.equal(await page.getByRole('tab',{name:'Sources',exact:true}).getAttribute('aria-selected'),'true');
+ await page.getByRole('button',{name:'Open source issues & repairs',exact:true}).click();
+ await screenshot('admin-source-repair-entry');
+ for(const width of [390,320]){await withinWidth(width);await screenshot(`admin-source-repair-entry-${width}`);}
+ await page.setViewportSize({width:1440,height:1000});
+ if(layoutOnly){
+  await page.getByRole('button',{name:'Review decisions and disabled checks',exact:true}).waitFor();
+  if(!await page.getByRole('button',{name:/Review \/ repair/}).count())await page.getByRole('button',{name:'Review decisions and disabled checks',exact:true}).click();
+ }
+ await page.getByRole('button',{name:/Review \/ repair/}).first().click();
+ await page.getByRole('group',{name:'Repair or record a decision'}).waitFor();
  if(!layoutOnly){
  await page.getByLabel('Official website').fill('https://repair.example/bids');await page.getByRole('button',{name:'Verify website',exact:true}).click();
  await page.getByRole('heading',{name:'Official website entry verified',exact:true}).waitFor({timeout:60000});
@@ -69,8 +84,9 @@ try{
  // Role change clears privileged panels. User sees truthful current decision.
  await page.getByLabel('Preview role').selectOption('user');await page.getByRole('button',{name:'Schedules',exact:true}).waitFor();
  await page.getByRole('button',{name:'Schedules',exact:true}).click();await page.getByRole('button',{name:'Weekly Arkansas County leads',exact:true}).click();await page.getByRole('tab',{name:'Sources',exact:true}).click();
- await page.getByText('Accepted gap',{exact:true}).waitFor();assert.equal(await page.getByRole('button',{name:/Review source/}).count(),0);await screenshot('user-reviewed-gap');
+ if(!layoutOnly)await page.getByText('Accepted gap',{exact:true}).waitFor();
+ await page.getByRole('heading',{name:'What was checked in this run',exact:true}).waitFor();assert.equal(await page.getByRole('button',{name:/Review \/ repair/}).count(),0);await screenshot('user-reviewed-gap');
  assert.deepEqual(errors,[]);assert.deepEqual(external,[]);
- console.log(JSON.stringify({scheduling_preview_browser:'passed',real_local_api:true,user_website_summary:true,server_role_denial:true,legacy_direct_link:true,guided_verify_apply_readback:layoutOnly?'previous full acceptance retained':true,reviewed_exclusion:true,decision_control_spacing:true,pending_check_not_an_issue:true,widths:[1440,390,320],zoom:'200%',keyboard:true,role_change:true,production_contacted:false}));
+ console.log(JSON.stringify({scheduling_preview_browser:'passed',real_local_api:true,user_website_summary:true,server_role_denial:true,legacy_direct_link:true,guided_verify_apply_readback:layoutOnly?'previous full acceptance retained':true,reviewed_exclusion:layoutOnly?'existing sample decision preserved':true,source_repair_discovery:true,decision_control_spacing:true,pending_check_not_an_issue:true,widths:[1440,390,320],zoom:'200%',keyboard:true,role_change:true,production_contacted:false}));
 }catch(error){await screenshot('acceptance-failure');console.error((await page.locator('body').innerText()).slice(0,4500));throw error;}
 finally{await browser.close();}

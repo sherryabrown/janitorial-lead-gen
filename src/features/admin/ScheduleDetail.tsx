@@ -15,8 +15,8 @@ import {formatLocal,recurrenceLabel,title,readFailure} from './model';
 import type {AnySchedule,County} from './types';
 export type ScheduleSection='overview'|'history'|'logs'|'geography'|'sources';
 const sections={overview:'Results',sources:'Sources',history:'Schedule changes'};
-function ScheduleDetailContent({id,initial,owner='',section,onSection,onClose,onView,onEdit,onAction,busy,counties=[],selectedRunId,onSelectedRun,onViewLeads,catalogSourceId,catalogGeographyId,onCatalogSource,onCatalogGeography,active=true}:{
- catalogSourceId?:string;catalogGeographyId?:string;onCatalogSource?:(id?:string)=>void;onCatalogGeography?:(id?:string)=>void;
+function ScheduleDetailContent({id,initial,owner='',section,onSection,onClose,onView,onEdit,onAction,busy,counties=[],selectedRunId,onSelectedRun,onViewLeads,catalogSourceId,catalogGeographyId,onCatalogSource,onCatalogGeography,onReviewSources,active=true}:{
+ onReviewSources?:()=>void;catalogSourceId?:string;catalogGeographyId?:string;onCatalogSource?:(id?:string)=>void;onCatalogGeography?:(id?:string)=>void;
  active?:boolean;selectedRunId?:string;onSelectedRun?:(id:string)=>void;onViewLeads?:()=>void;
  id:string;initial?:AnySchedule;owner?:string;section:ScheduleSection;onSection:(s:ScheduleSection)=>void;onClose:()=>void;
  onView:(id:string,section?:'overview'|'logs'|'sources')=>void;onEdit:(s:AnySchedule)=>void;onAction:(s:AnySchedule,a:string)=>void;busy:boolean;counties?:County[];
@@ -56,7 +56,7 @@ function ScheduleDetailContent({id,initial,owner='',section,onSection,onClose,on
     {Object.entries(sections).map(([value,label])=><button key={value} type="button" role="tab" id={'schedule-tab-'+value} aria-controls="schedule-tabpanel" aria-selected={primary===value} tabIndex={primary===value?0:-1} className="text-button" onClick={()=>onSection(value as ScheduleSection)}>{label}</button>)}
    </nav>
    <div role="tabpanel" id="schedule-tabpanel" aria-labelledby={'schedule-tab-'+primary}>
-    {primary==='sources'&&<CurrentSourceSetup id={id} active={active} refreshSignal={sourceRevision}/>}
+    {primary==='sources'&&<>{role.manage_sources&&onReviewSources&&<section className="source-repair-actions" aria-label="Source repair actions"><h3>Source issues &amp; repairs</h3><p>Review websites, repair listing checks, or re-enable checks across schedules.</p><button type="button" className="primary-button compact" onClick={onReviewSources}>Open source issues &amp; repairs</button></section>}<CurrentSourceSetup id={id} active={active} refreshSignal={sourceRevision}/></>}
     <div hidden={primary==='history'}>
      <BreadcrumbParents.Provider value={parents}><ScheduleActivity id={id} owner={owner} onSourceChanged={()=>setSourceRevision(n=>n+1)} active={active&&primary!=='history'} section={technical&&role.technical_details?'logs':primary==='sources'?'sources':'overview'} onSection={value=>{setTechnical(value==='logs');if(value!=='logs')onSection(value);}} selectedRunId={runSelection} onSelectedRun={chooseRun} onView={onView} onViewLeads={onViewLeads}/></BreadcrumbParents.Provider>
      {role.technical_details&&<details className="schedule-technical" open={technical} onToggle={e=>setTechnical(e.currentTarget.open)}><summary>Technical details for the selected run</summary><p>Detailed step logs are shown above while this disclosure is open.</p></details>}

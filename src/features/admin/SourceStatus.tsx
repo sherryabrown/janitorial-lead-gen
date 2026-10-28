@@ -27,13 +27,14 @@ export function SourceStatus({requestId,owner,active=true,attention=false,onTech
  const items=[...new Map(data.items.map(i=>[JSON.stringify(i.scope),i])).values()];
  function back(){setSelected(null);requestAnimationFrame(()=>returnButton.current?.isConnected&&returnButton.current.focus());}
  if(attention&&!role.manage_sources)return <section><h2>Admin review required</h2><p>Users can view source status from their schedules.</p></section>;
- return <section className="source-status" aria-label={attention?'Needs attention':'Source status'}>
+ return <section className="source-status" aria-label={attention?'Source issues & repairs':'Source status'}>
   <div hidden={!!selected&&role.manage_sources}>
-   <div className="admin-section-heading"><h3>{attention?'Needs attention':'What was checked in this run'}</h3><button className="text-button" disabled={busy} onClick={()=>setRevision(n=>n+1)}>Refresh source status</button></div>
-   <p>{attention?'Review current source problems. Decisions apply to the same source across schedules.':'Check outcomes belong to the selected run. Admin decisions below describe the current source review.'}</p>
+   <div className="admin-section-heading"><h3>{attention?'Source issues & repairs':'What was checked in this run'}</h3><button className="text-button" disabled={busy} onClick={()=>setRevision(n=>n+1)}>Refresh source status</button></div>
+   <p>{attention?'Repair websites and listing checks, record a decision, or re-enable disabled checks. Decisions apply across schedules.':'Check outcomes belong to the selected run. Admin decisions below describe the current source review.'}</p>
    {attention&&<label>Show<select value={reviewed?'reviewed':'unresolved'} onChange={e=>{setReviewed(e.target.value==='reviewed');setOffset(0);}}><option value="unresolved">Unresolved</option><option value="reviewed">Reviewed decisions</option></select></label>}
    {busy&&<p role="status">Loading source status…</p>}{error&&<p role="alert">{error} <button className="text-button" onClick={()=>setRevision(n=>n+1)}>Retry source status</button></p>}
-   {!busy&&!error&&!items.length&&<p>{attention?'No sources in this view.':'No saved source checks are available for this run. This does not confirm complete coverage.'}</p>}
+   {!busy&&!error&&!items.length&&<p>{attention?(reviewed?'No reviewed source decisions yet.':'No unresolved source issues. Previously reviewed or disabled checks are still available below.'):'No saved source checks are available for this run. This does not confirm complete coverage.'}</p>}
+   {attention&&!reviewed&&!busy&&!error&&<button type="button" className="secondary-button compact" onClick={()=>{setReviewed(true);setOffset(0);}}>Review decisions and disabled checks</button>}
    {items.map(item=><article className="source-status-row" key={JSON.stringify(item.scope)}>
     <div><h4>{item.name}</h4><small>{item.location} · {item.category==='source_entry'?'Website entry':item.category}</small>
      <p><strong>{item.title}</strong> · {item.impact}</p>
@@ -43,7 +44,7 @@ export function SourceStatus({requestId,owner,active=true,attention=false,onTech
      {item.checks_excluded&&<p className="source-exclusion">Checks disabled by admin decision. Other source checks continue.</p>}
      {(item.id||needsReview(item))&&(item.decision==='unreviewed'||item.decision==='repair_in_progress'||item.decision==='needs_developer')&&<small>Responsibility: {item.responsibility}</small>}
     </div>
-    {role.manage_sources&&(item.id||needsReview(item))&&<button type="button" className="secondary-button compact" onClick={e=>{returnButton.current=e.currentTarget;setSelected({task:item.task_id,request:item.request_id??requestId!,run:item.run_id??undefined});}}>Review source<span className="sr-only"> · {item.name} · {item.location} · {item.category}</span></button>}
+    {role.manage_sources&&(item.id||needsReview(item))&&<button type="button" className="secondary-button compact" onClick={e=>{returnButton.current=e.currentTarget;setSelected({task:item.task_id,request:item.request_id??requestId!,run:item.run_id??undefined});}}>Review / repair<span className="sr-only"> · {item.name} · {item.location} · {item.category}</span></button>}
    </article>)}
    {attention&&<div className="admin-inline">{offset>0&&<button className="text-button" disabled={busy} onClick={()=>setOffset(Math.max(0,offset-25))}>Previous sources</button>}{data.next_offset!=null&&<button className="text-button" disabled={busy} onClick={()=>setOffset(data.next_offset!)}>More sources</button>}</div>}
   </div>

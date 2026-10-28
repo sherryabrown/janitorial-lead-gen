@@ -9,8 +9,8 @@ import { formatLocal, runLabel, title, recurrenceLabel } from './model';
 import type { AnySchedule, County } from './types';
 const defaults={q:'',target:'all',geography:'',lifecycle:'all',blocker:'all',sort:'name',direction:'asc'};
 type Section='details'|'stats'|'overview'|'history'|'logs'|'geography'|'sources';
-export function ScheduleList({items,more,paging,onMore,onEdit,onAction,busy,onView,onAdd,onFilters,counties=[],query='',total,loading=false,error='',onRetry,focusSchedule,owner='',context,onContext,onViewLeads,active=true}: {
-  active?:boolean;items: AnySchedule[]; more: boolean; paging?: boolean; onMore:()=>void; onEdit:(s:AnySchedule)=>void;
+export function ScheduleList({items,more,paging,onMore,onEdit,onAction,busy,onView,onAdd,onFilters,counties=[],query='',total,loading=false,error='',onRetry,focusSchedule,owner='',context,onContext,onViewLeads,onReviewSources,active=true}: {
+  onReviewSources?:()=>void;active?:boolean;items: AnySchedule[]; more: boolean; paging?: boolean; onMore:()=>void; onEdit:(s:AnySchedule)=>void;
   onAction:(s:AnySchedule,a:string)=>void; busy:boolean; onView:(id:string,section?:'overview'|'logs'|'sources')=>void; onAdd?:(target:string)=>void;
   onFilters?:(query:string)=>void; counties?:County[]; query?:string; total?:number; loading?:boolean; error?:string; onRetry?:()=>void;
   focusSchedule?: AnySchedule|null; owner?:string; context?:{id:string;section:ScheduleSection;scheduleRunId?:string;sourceId?:string;geographyId?:string}|null; onContext?:(value:{id:string;section:ScheduleSection;scheduleRunId?:string;sourceId?:string;geographyId?:string}|null)=>void;onViewLeads?:()=>void;
@@ -65,7 +65,7 @@ export function ScheduleList({items,more,paging,onMore,onEdit,onAction,busy,onVi
         </tr>;})}</tbody></table></div>
     {more&&<button type="button" className="text-button" disabled={paging} onClick={onMore}>More schedules</button>}
     </div>
-    {detail&&<ScheduleDetail active={active} key={detail.id} id={detail.id} initial={current??undefined} owner={owner} section={detail.section} selectedRunId={"scheduleRunId" in detail?detail.scheduleRunId:undefined} onSelectedRun={runId=>onContext?.({...detail,scheduleRunId:runId})} catalogSourceId={"sourceId" in detail?detail.sourceId:undefined} catalogGeographyId={"geographyId" in detail?detail.geographyId:undefined} onCatalogSource={id=>onContext?.({...detail,sourceId:id,section:"sources"})} onCatalogGeography={id=>onContext?.({...detail,geographyId:id,section:"geography"})} onViewLeads={onViewLeads}
+    {detail&&<ScheduleDetail onReviewSources={onReviewSources} active={active} key={detail.id} id={detail.id} initial={current??undefined} owner={owner} section={detail.section} selectedRunId={"scheduleRunId" in detail?detail.scheduleRunId:undefined} onSelectedRun={runId=>onContext?.({...detail,scheduleRunId:runId})} catalogSourceId={"sourceId" in detail?detail.sourceId:undefined} catalogGeographyId={"geographyId" in detail?detail.geographyId:undefined} onCatalogSource={id=>onContext?.({...detail,sourceId:id,section:"sources"})} onCatalogGeography={id=>onContext?.({...detail,geographyId:id,section:"geography"})} onViewLeads={onViewLeads}
       onSection={section=>{setSelected({id:detail.id,section});onContext?.({...detail,section});}}
       onClose={()=>{setReturnedId(detail.id);setSelected(null);onContext?.(null);const row=document.getElementById(`schedule-row-${detail.id}`);row?.querySelector<HTMLButtonElement>('button')?.focus({preventScroll:true});requestAnimationFrame(()=>{row?.querySelector<HTMLButtonElement>('button')?.focus({preventScroll:true});row?.scrollIntoView?.({block:'nearest'});});}}
       onView={onView} onEdit={onEdit} onAction={onAction} busy={busy} counties={counties}/>}
