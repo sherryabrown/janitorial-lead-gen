@@ -115,8 +115,12 @@ async function start() {
     expect(screen.queryByText(/Loading county registry/)).toBeNull(),
   );
 }
+// Keep role/visibility checks inside the form that owns the control. Global
+// button queries otherwise compute names/visibility for all 75 SVG map buttons.
+const manualForm = () => within(screen.getByRole('region', { name: 'Trigger settings' }));
+const frequencyFields = () => within(screen.getByRole('group', { name: 'Frequency · Central (CT)' }));
 function selectPulaski() {
-  fireEvent.click(screen.getByRole('checkbox', { name: 'Pulaski County' }));
+  fireEvent.click(screen.getByLabelText('Pulaski County', { selector: 'input' }));
 }
 it('ships exactly the official 75 unique county IDs with geometry and provenance', () => {
   expect(map.counties.map((c) => c.id).sort()).toEqual(
@@ -177,12 +181,12 @@ it('makes unmatched IDs unavailable without guessing; selected obsolete IDs are 
 });
 it('requires scope, shows city names and confirms before any manual submission', async () => {
   await start();
-  expect(screen.getByRole('button', { name: 'Run now' })).toHaveProperty(
+  expect(manualForm().getByRole('button', { name: 'Run now' })).toHaveProperty(
     'disabled',
     true,
   );
   selectPulaski();
-  fireEvent.click(screen.getByRole('button', { name: 'Run now' }));
+  fireEvent.click(manualForm().getByRole('button', { name: 'Run now' }));
   await screen.findByText('Pulaski County · 2 cities');
   fireEvent.click(screen.getByText('Pulaski County · 2 cities'));
   expect(screen.getByText('Little Rock, Maumelle')).toBeTruthy();
@@ -211,8 +215,8 @@ it.each([
       fireEvent.click(
         screen.getByRole('checkbox', { name: /Check for lead updates/ }),
       );
-    fireEvent.click(screen.getByRole('button', { name: 'Run now' }));
-    await screen.findByRole('button', { name: 'Confirm and run now' });
+    fireEvent.click(manualForm().getByRole('button', { name: 'Run now' }));
+    await manualForm().findByRole('button', { name: 'Confirm and run now' });
     expect(
       calls.find((c) => c.path === '/v1/triggers/preview')!.body,
     ).toMatchObject({ maintain_sources: maintain, check_updates: updates });
@@ -222,8 +226,8 @@ it.each([
 it('retains the same mutation key after uncertain submit and preserves selection after acknowledgment', async () => {
   await start();
   selectPulaski();
-  fireEvent.click(screen.getByRole('button', { name: 'Run now' }));
-  await screen.findByRole('button', { name: 'Confirm and run now' });
+  fireEvent.click(manualForm().getByRole('button', { name: 'Run now' }));
+  await manualForm().findByRole('button', { name: 'Confirm and run now' });
   const old = mocks.request.getMockImplementation()!;
   let submits = 0;
   mocks.request.mockImplementation(async (p, o) => {
@@ -234,9 +238,9 @@ it('retains the same mutation key after uncertain submit and preserves selection
     }
     return old(p, o);
   });
-  fireEvent.click(screen.getByRole('button', { name: 'Confirm and run now' }));
+  fireEvent.click(manualForm().getByRole('button', { name: 'Confirm and run now' }));
   await screen.findByText('Connection interrupted');
-  fireEvent.click(screen.getByRole('button', { name: 'Confirm and run now' }));
+  fireEvent.click(manualForm().getByRole('button', { name: 'Confirm and run now' }));
   await screen.findByText(/Run queued. Selection kept/);
   const sent = calls.filter((c) => c.path === '/v1/triggers' && c.body);
   expect(sent[0].key).toBe(sent[1].key);
@@ -257,7 +261,7 @@ it('preserves the manual draft on expired sessions and ignores a stale preview',
         })
       : old(p, o),
   );
-  fireEvent.click(screen.getByRole('button', { name: 'Run now' }));
+  fireEvent.click(manualForm().getByRole('button', { name: 'Run now' }));
   await waitFor(() => expect(resolve).toBeTruthy());
   expect(screen.queryByRole('button', { name: 'Back to contracts' })).toBeNull();
   cleanup();
@@ -276,10 +280,10 @@ it('preserves the manual draft on expired sessions and ignores a stale preview',
   expect(
     screen.getByRole('checkbox', { name: 'Pulaski County' }),
   ).toHaveProperty('checked', true);
-  fireEvent.click(screen.getByRole('button', { name: 'Run now' }));
+  fireEvent.click(manualForm().getByRole('button', { name: 'Run now' }));
   await screen.findByText(/Your session expired. Your draft is kept/);
   expect(
-    screen.queryByRole('button', { name: 'Confirm and run now' }),
+    manualForm().queryByRole('button', { name: 'Confirm and run now' }),
   ).toBeNull();
 });
 it('isolates schedule editing from manual selection and sends the saved version', async () => {
@@ -313,27 +317,26 @@ it('isolates schedule editing from manual selection and sends the saved version'
 it('supports multiple daily times, weekly and monthly controls while new schedules start enabled', async () => {
   await start();
   selectPulaski();
-  fireEvent.click(screen.getByRole('button', { name: 'Save schedule' }));
+  fireEvent.click(manualForm().getByRole('button', { name: 'Save schedule' }));
   expect(screen.getByRole('checkbox', { name: 'Enabled' })).toHaveProperty(
     'checked',
     true,
   );
-  fireEvent.change(screen.getByRole('textbox', { name: 'Schedule name' }), {
+  fireEvent.change(screen.getByLabelText('Schedule name'), {
     target: { value: 'Morning checks' },
   });
-  fireEvent.click(screen.getByRole('button', { name: '+ Another time' }));
-  expect(
-    screen.getByRole('button', { name: 'Save schedule' }),
-  ).toHaveProperty('disabled', true);
+  fireEvent.click(frequencyFields().getByRole('button', { name: '+ Another time' }));
+  const save=screen.getByRole('button', { name: 'Save schedule' });
+  expect(save).toHaveProperty('disabled', true);
   fireEvent.change(screen.getByLabelText('Run at 2'), {
     target: { value: '14:00' },
   });
-  await waitFor(()=>expect(screen.getByRole('button',{name:'Save schedule'})).toHaveProperty('disabled',false));
-  fireEvent.click(screen.getByRole('button', { name: 'Remove time 2' }));
+  await waitFor(()=>expect(save).toHaveProperty('disabled',false));
+  fireEvent.click(frequencyFields().getByRole('button', { name: 'Remove time 2' }));
   fireEvent.change(screen.getByLabelText('Frequency'), {
     target: { value: 'weekly' },
   });
-  expect(screen.getByRole('checkbox', { name: 'Mon' })).toHaveProperty(
+  expect(frequencyFields().getByRole('checkbox', { name: 'Mon' })).toHaveProperty(
     'checked',
     true,
   );
@@ -370,8 +373,8 @@ it('shows independent state sources without enabling a recurrence and scopes the
     screen.getByRole('button', { name: 'Run State procurement now' }),
   );
   await screen.findByText('Independent state-source draft');
-  fireEvent.click(screen.getByRole('button', { name: 'Run now' }));
-  await screen.findByRole('button', { name: 'Confirm and run now' });
+  fireEvent.click(manualForm().getByRole('button', { name: 'Run now' }));
+  await manualForm().findByRole('button', { name: 'Confirm and run now' });
   expect(
     calls.find((c) => c.path === '/v1/triggers/preview')?.body,
   ).toMatchObject({
@@ -483,7 +486,7 @@ it.each([
   async (maintain, updates) => {
     await start();
     selectPulaski();
-    fireEvent.click(screen.getByRole('button', { name: 'Save schedule' }));
+    fireEvent.click(manualForm().getByRole('button', { name: 'Save schedule' }));
     fireEvent.click(screen.getByText('Work · Check for lead updates'));
     if(maintain)fireEvent.click(screen.getByRole('checkbox',{name:/Maintain sources/}));
     if(!updates)fireEvent.click(screen.getByRole('checkbox',{name:/Check for lead updates/}));
@@ -501,7 +504,7 @@ it.each([
 it('restores an unsaved schedule editor after leaving Admin without overwriting its manual draft', async () => {
   await start();
   selectPulaski();
-  fireEvent.click(screen.getByRole('button', { name: 'Save schedule' }));
+  fireEvent.click(manualForm().getByRole('button', { name: 'Save schedule' }));
   fireEvent.change(screen.getByLabelText('Schedule name'), {
     target: { value: 'Unsaved county checks' },
   });
@@ -532,7 +535,7 @@ it('keeps a successful county registry usable when another Admin list fails', as
   expect(screen.queryAllByText('Unavailable')).toHaveLength(0);
   expect(screen.getByText(/Schedules could not load/)).toBeTruthy();
   selectPulaski();
-  expect(screen.getByRole('button', { name: 'Run now' })).toHaveProperty(
+  expect(manualForm().getByRole('button', { name: 'Run now' })).toHaveProperty(
     'disabled',
     false,
   );

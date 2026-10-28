@@ -38,21 +38,23 @@ it('keeps its draft and mutation identity when save acknowledgement is lost',asy
 
 it('shows cities before a name, keeps schedule defaults separate, and restores per-type scope without confirmation',async()=>{
  const confirm=vi.spyOn(window,'confirm');render(<ScheduleEditor owner="owner" target="county_scope" counties={[scope]} sources={[]} registryState="ready" onClose={()=>{}} onSaved={()=>{}}/>);
- fireEvent.click(screen.getByRole('checkbox',{name:'Saline County'}));await screen.findByText('Saline County (1 cities)');
+ fireEvent.click(screen.getByLabelText('Saline County',{selector:'input'}));await screen.findByText('Saline County (1 cities)');
  expect(screen.getByLabelText('Schedule name')).toHaveProperty('value','');expect(screen.getByRole('checkbox',{name:'Enabled'})).toHaveProperty('checked',true);
  expect(screen.getByText('Work · Check for lead updates').parentElement).toHaveProperty('open',false);
  expect(screen.getByText('Date window · Next 120 days · CT')).toBeTruthy();
  fireEvent.change(screen.getByLabelText('Schedule name'),{target:{value:'Retained name'}});
  fireEvent.click(screen.getByRole('radio',{name:'SAM.gov'}));expect(screen.getByLabelText('Posted within the last (days)')).toHaveProperty('value','120');
- fireEvent.click(screen.getByRole('radio',{name:'Counties'}));expect(screen.getByRole('checkbox',{name:'Saline County'})).toHaveProperty('checked',true);
+ fireEvent.click(screen.getByRole('radio',{name:'Counties'}));expect(screen.getByLabelText('Saline County',{selector:'input'})).toHaveProperty('checked',true);
  expect(screen.getByLabelText('Schedule name')).toHaveProperty('value','Retained name');expect(confirm).not.toHaveBeenCalled();confirm.mockRestore();
 });
 it('blocks duplicate and blank times instead of silently dropping the extra entry',async()=>{
  render(<ScheduleEditor owner="owner" target="county_scope" initial={draft} counties={[scope]} sources={[]} registryState="ready" onClose={()=>{}} onSaved={()=>{}}/>);
- await waitFor(()=>expect(screen.getByRole('button',{name:'Save schedule'})).toHaveProperty('disabled',false));
- fireEvent.click(screen.getByRole('button',{name:'+ Another time'}));expect(screen.getByRole('button',{name:'Save schedule'})).toHaveProperty('disabled',true);
- fireEvent.change(screen.getByLabelText('Run at 2'),{target:{value:'09:00'}});expect(screen.getByRole('button',{name:'Save schedule'})).toHaveProperty('disabled',true);
- fireEvent.change(screen.getByLabelText('Run at 2'),{target:{value:'14:00'}});await waitFor(()=>expect(screen.getByRole('button',{name:'Save schedule'})).toHaveProperty('disabled',false));
+ // Poll the mounted button's state without rescanning all 75 map buttons.
+ const save=screen.getByRole('button',{name:'Save schedule'});
+ await waitFor(()=>expect(save).toHaveProperty('disabled',false));
+ fireEvent.click(screen.getByRole('button',{name:'+ Another time'}));expect(save).toHaveProperty('disabled',true);
+ fireEvent.change(screen.getByLabelText('Run at 2'),{target:{value:'09:00'}});expect(save).toHaveProperty('disabled',true);
+ fireEvent.change(screen.getByLabelText('Run at 2'),{target:{value:'14:00'}});await waitFor(()=>expect(save).toHaveProperty('disabled',false));
 });
 it('saves multiple physical state sources together and deduplicates their affected counties',async()=>{
  const common={schedule_id:null,schedule_enabled:null,next_due_at:null,latest_run:null,last_finished_at:null};
