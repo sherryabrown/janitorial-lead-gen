@@ -23,7 +23,7 @@ const union=(a,b)=>[...new Map([...a,...b].map(x=>[hash(x),x])).values()];
 const textKey=value=>String(value??'').trim().replace(/\s+/g,' ').toLowerCase();
 export function canonicalUrl(value){const u=new URL(publicUrl(value));u.hash='';u.pathname=u.pathname.replace(/\/+$/,'')||'/';u.searchParams.sort();return u.href;}
 const scopeKey=s=>({...s,requested_search_areas:s.requested_search_areas.map(a=>Object.fromEntries(Object.entries(a).map(([k,v])=>[k,typeof v==='string'?textKey(v):v]))).sort((a,b)=>hash(a).localeCompare(hash(b)))});
-export function planRegistry(spec,before){
+export function planRegistry(spec,before,{verifiedUrlChange}={}){
  base(spec,before);need(Array.isArray(spec.requests)&&spec.requests.length&&Array.isArray(spec.sources),'Explicit sources/requests required');
  const rows=[],requests={},sources={},requestSourcePairs=new Map();
  for(const r of spec.requests){
@@ -53,6 +53,11 @@ export function planRegistry(spec,before){
   const history=union(prior.coverage_history??[],associations.filter(a=>prior.coverage_by_scope?.[a.search_request_id]&&!same(prior.coverage_by_scope[a.search_request_id],s.metadata??{})).map(a=>({search_request_id:a.search_request_id,previous:prior.coverage_by_scope[a.search_request_id],replacement_checked_at:s.metadata?.checked_at??null})));
   const research={...prior,schema_version:1,local_keys:union(prior.local_keys??[],[s.local_key]),request_associations:union(prior.request_associations??[],associations),coverage_by_scope:{...(prior.coverage_by_scope??{}),...Object.fromEntries(associations.map(a=>[a.search_request_id,s.metadata??{}]))},coverage_history:history,identity_evidence:s.identity_evidence};
   const row={...(old??{id,code:s.code,name:s.name,url:s.url,identity_key:identity,contracting_entity_geo_level:s.geo_level,business_category:s.business_category??'other_public'}),source_coverage_areas:union(old?.source_coverage_areas??[],areas),config:{...(old?.config??{}),research_persistence:research}};
+  if(old&&verifiedUrlChange?.source_id===old.id){
+    need(verifiedUrlChange.previous_url===old.url&&verifiedUrlChange.next_url===s.url&&
+      /^[a-f0-9]{64}$/.test(verifiedUrlChange.capture_sha256??''),'Exact verified URL revision required');
+    row.url=s.url;row.identity_key=identity;
+  }
   if(old)delete row.updated_at;
   safeMetadata(row.config);if(!old||!Object.entries(row).every(([k,v])=>same(old[k],v)))rows.push(delta('procurement_sources',old,row));
   (sources[s.local_key]??=[]).push({id,code:s.code,request_ids:associations.map(a=>a.search_request_id)});
@@ -91,7 +96,9 @@ export function planRegistry(spec,before){
     official_entry_url:c.official_entry_url,route_geography_id:c.route_geography_id,
     agency_geography_id:c.agency_geography_id??old?.agency_geography_id??null,
     availability:'active',verified_at:c.verified_at,verified_until:c.verified_until,
-    verification_evidence:c.verification_evidence,parser_version:c.parser_version,
+    verification_evidence:{...c.verification_evidence,
+      ...(Object.keys(old?.verification_evidence?.source_review_roots??{}).length?{source_review_roots:{...old.verification_evidence.source_review_roots,...c.verification_evidence?.source_review_roots}}:{}),
+      ...(old?.verification_evidence?.source_review_entity_routes?.length?{source_review_entity_routes:[...new Set([...old.verification_evidence.source_review_entity_routes,...(c.verification_evidence?.source_review_entity_routes??[])])]}:{})},parser_version:c.parser_version,
     method_spec:c.method_spec,next_action:c.next_action??null};
   if(old) delete row.updated_at;
   if(!old||!Object.entries(row).every(([k,v])=>same(old[k],v))) rows.push(delta('procurement_source_capabilities',old,row));

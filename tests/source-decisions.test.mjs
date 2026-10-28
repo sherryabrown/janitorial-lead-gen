@@ -57,5 +57,28 @@ test('source decisions reuse storage, preserve check facts, replay safely and sc
   const history=(await sql.query("select detail from procurement_events where event_type like 'source_review_%' order by created_at")).rows;
   assert.equal(history.length,4,'Replay and rejected writes add no duplicate history');
   assert.equal((await sql.query("select count(*)::int as n from information_schema.tables where table_name in ('procurement_source_issues','procurement_source_issue_events')")).rows[0].n,0);
+  await sql.exec(readFileSync('supabase/migrations/20261027000100_procurement_guided_source_repairs.sql','utf8'));
+  assert.deepEqual(await save(admin,award.id,0,'no_issue','no-issue-review-key'),noIssue,'Phase 1 acknowledgements still replay after the guided-repair migration');
+  const revision=(await sql.query('select procurement_source_review_revisions(array[$1::uuid])->>$1::text as revision',[laterTask.id])).rows[0].revision;
+  const queue=async()=>sql.query('select queue_procurement_source_repair($1,$2,$3,$4,$5,$6) as result',[admin,laterTask.id,3,revision,'guided-website-key','https://county.example/bids']);
+  const queued=(await queue()).rows[0].result;
+  assert.equal((await queue()).rows[0].result.job_id,queued.job_id);
+  const verification=(await sql.query('select * from procurement_jobs where id=$1',[queued.job_id])).rows[0];
+  assert.notEqual(verification.search_request_id,parent.search_request_id,'Repair evidence never attaches to the old schedule request');
+  assert.notEqual(verification.checkpoint.task_id,laterTask.id);assert.equal(verification.checkpoint.review_task_id,laterTask.id);
+  const currentReview=(await sql.query('select review_version,review_decision,checks_excluded from procurement_action_requests where id=$1',[saved.id])).rows[0];
+  assert.equal(currentReview.review_decision,'repair_in_progress');assert.equal(currentReview.review_version,4);
+  await assert.rejects(sql.query('select finish_procurement_guided_repair($1,$2)',[admin,queued.job_id]),/verified repair|lease required/i);
+  const newest=await attempt('source-review-new-observation'),newAward=newest.find(t=>t.kind==='award');
+  await sql.query("update procurement_coverage_tasks set state='blocked',evidence='{"+'"reason":"HTTP 403"'+"}' where id=$1",[newAward.id]);
+  const {rows:[reopenedAward]}=await sql.query('select review_version,review_decision,latest_review_task_id from procurement_action_requests where id=$1',[noIssue.id]);
+  assert.equal(reopenedAward.review_decision,'unreviewed');assert.equal(reopenedAward.latest_review_task_id,newAward.id);
+  const allContexts=(await sql.query('select procurement_source_review_context($1::uuid[]) as c',[[award.id,newAward.id]])).rows[0].c;
+  assert.equal(allContexts.current_tasks[award.id].id,newAward.id);assert.equal(allContexts.current_tasks[newAward.id].id,newAward.id);
+  assert.equal(allContexts.current_revisions[award.id],allContexts.current_revisions[newAward.id],'All entry points review the same current observation');
+  await sql.query("update procurement_coverage_tasks set state='blocked',evidence='{"+'"reason":"HTTP 403"'+"}' where id=$1",[newAward.id]);
+  assert.equal((await sql.query('select review_version from procurement_action_requests where id=$1',[noIssue.id])).rows[0].review_version,reopenedAward.review_version);
+  await save(admin,award.id,0,'no_issue','no-issue-review-key');
+  assert.equal((await sql.query('select review_decision from procurement_action_requests where id=$1',[noIssue.id])).rows[0].review_decision,'unreviewed','Replaying an old acknowledgement never overwrites a newer observation');
  }finally{await sql.close();}
 });

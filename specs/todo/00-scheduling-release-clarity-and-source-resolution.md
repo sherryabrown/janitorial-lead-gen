@@ -206,7 +206,7 @@ The proposed layout is an application-specific synthesis of these references, no
 The scope spans authorization, persisted source decisions and guided UX; split the work into three ordered build specs with one coordinated release gate:
 
 1. [Table-purpose audit, roles, source decisions and presentation contracts](../done/01-scheduling-roles-and-source-decisions.md). Complete the storage reuse/duplication assessment before finalizing new source-decision persistence.
-2. [Guided source resolution and verification](02-scheduling-guided-source-resolution.md).
+2. [Guided source resolution and verification](../done/02-scheduling-guided-source-resolution.md).
 3. [User/Admin workspaces and release acceptance](03-scheduling-workspaces-and-release-acceptance.md).
 
 Apply the confirmed policy consistently across all three phases. Do not ship a cosmetic role switch ahead of enforcement, or decision buttons ahead of persistence/verification. After acceptance, move each completed build spec and this parent to `specs/done/`; do not mark the release complete after a partial UI build.

@@ -103,7 +103,7 @@ export function validateDiscoveryReview(packet,input,task,registeredSource=null)
   return {sourceSpec,capability:saved,handoffs:input.handoffs};
 }
 // One page per durable worker stage. No paid search, browser, signup or lead coverage.
-export function publicDiscovery({db,artifacts,persist,reconcileHandoffs,resolveSeed,collect,continueCollection,fetcher=fetch,resolveHost}) {
+export function publicDiscovery({db,artifacts,persist,reconcileHandoffs,resolveSeed,collect,continueCollection,guardGuidedRepair,prepareGuidedCapture,finalizeGuidedRepair,fetcher=fetch,resolveHost}) {
   async function scope(requestId,taskId) {
     const request=await one(db,'procurement_search_requests',requestId),task=await one(db,'procurement_coverage_tasks',taskId);
     const target=task&&await one(db,'procurement_request_targets',task.target_id);
@@ -165,9 +165,15 @@ export function publicDiscovery({db,artifacts,persist,reconcileHandoffs,resolveS
     await save(c.stage==='discovery_verify'?'pending':'blocked');
   }
   async function step(job,c,save) {
+    if(c.guided_method){
+      if(!guardGuidedRepair||!finalizeGuidedRepair)throw Error('Guided repair enforcement is unavailable');
+      await guardGuidedRepair(job,c);
+      if(c.stage==='discovery_capture'&&prepareGuidedCapture)await prepareGuidedCapture(job,c,save);
+      if(c.stage==='discovery_repair_finalize'){await finalizeGuidedRepair(job,c,save);return;}
+    }
     if(c.automation_policy===automaticCountyPolicy&&['discovery_resolve','discovery_capture','discovery_verify'].includes(c.stage)) {
       const {task}=await scope(job.search_request_id,c.task_id);
-      if(['superseded','reviewed_no_results','reviewed_with_results'].includes(task.state)) {
+      if(!c.guided_method&&['superseded','reviewed_no_results','reviewed_with_results'].includes(task.state)) {
         c.stage='discovery_satisfied';c.next_action='Source coverage was resolved by the existing verified method';await save('succeeded');return;
       }
     }
@@ -247,6 +253,7 @@ export function publicDiscovery({db,artifacts,persist,reconcileHandoffs,resolveS
           verified.capability.verification_evidence.automation_policy=automaticCountyPolicy;
         } catch(error){failures.push(error.message);}
         if(verified) {
+          if(c.guided_method)c.method_verified_at=new Date().toISOString();
           c.review_artifact=await artifacts.put(verified);c.source_code=source.code;c.stage='discovery_save';
           c.next_action='Save the verified source method and continue requested work';await save('pending');return;
         }
@@ -262,6 +269,7 @@ export function publicDiscovery({db,artifacts,persist,reconcileHandoffs,resolveS
       c.stage='discovery_collected';c.next_action='Review captured category packet and persist candidates through the existing interpretation/import workflow';await save('succeeded');return;
     }
     if(c.stage==='discovery_save') {
+      if(c.guided_method&&!c.admin_apply_confirmed){c.next_action='Review shared impact and apply the verified listing method';await save('blocked');return;}
       const review=JSON.parse(await artifacts.get(c.review_artifact));
       if(c.persistence_intent) {
         const saved=JSON.parse(await artifacts.get(c.persistence_intent)),after={...saved.before};
@@ -271,8 +279,9 @@ export function publicDiscovery({db,artifacts,persist,reconcileHandoffs,resolveS
         if(!reconcileHandoffs)throw new Error('Private handoff reconciliation required before collection');
         await reconcileHandoffs({manifest:saved.manifest,...review});
         c.persistence={artifact:c.persistence_intent,receipt};
-      }else c.persistence=await persist({requestId:job.search_request_id,taskId:c.task_id,...review,actor:c.actor_id,
-        beforeSend:async artifact=>{c.persistence_intent=artifact;await save('running');}});
+      }else c.persistence=await persist({requestId:job.search_request_id,taskId:c.task_id,...review,actor:c.actor_id,guidedRepair:c.guided_method===true,
+        beforeSend:async artifact=>{if(c.guided_method)await guardGuidedRepair(job,c);c.persistence_intent=artifact;await save('running');}});
+      if(c.guided_method){c.stage='discovery_repair_finalize';await save('pending');return;}
       await collect({requestId:job.search_request_id,sourceCode:c.source_code,planOnly:true});c.stage='discovery_collect';await save('pending');return;
     }
     if(c.stage!=='discovery_capture')throw new Error('Discovery needs saved review, not repeat research');

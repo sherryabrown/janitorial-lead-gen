@@ -1,6 +1,6 @@
 # Phase 3: Clear User/Admin scheduling workspaces and final release acceptance
 
-Parent and initiating prompt: [Scheduling release clarity plan](00-scheduling-release-clarity-and-source-resolution.md). Depends on [phase 1 authorization/contracts](../done/01-scheduling-roles-and-source-decisions.md) and [phase 2 source resolution](02-scheduling-guided-source-resolution.md). Confirmed: shared team schedules/leads; Users create/edit/pause/run schedules; Admins repair sources and manage technical work; No website/Won't address skips affected checks until an Admin explicitly re-enables them.
+Parent and initiating prompt: [Scheduling release clarity plan](00-scheduling-release-clarity-and-source-resolution.md). Depends on [phase 1 authorization/contracts](../done/01-scheduling-roles-and-source-decisions.md) and [phase 2 source resolution](../done/02-scheduling-guided-source-resolution.md). Confirmed: shared team schedules/leads; Users create/edit/pause/run schedules; Admins repair sources and manage technical work; No website/Won't address skips affected checks until an Admin explicitly re-enables them.
 
 ## Objective and navigation
 

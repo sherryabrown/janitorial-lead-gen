@@ -62,7 +62,7 @@ export function automaticRouteAssociation(capability,source,existingCaps) {
 }
 // Durable, versioned persistence entry point for a bounded researcher. It reuses the
 // existing registry planner, SQL validation and baseline guards; it does not trust a model's URL claim.
-export async function saveDiscoveredMethod({db,project,artifacts,transport,rehearse,requestId,taskId,sourceSpec,capability,actor,handoffs:researchedHandoffs=[],beforeSend=async()=>{}}) {
+export async function saveDiscoveredMethod({db,project,artifacts,transport,rehearse,requestId,taskId,sourceSpec,capability,actor,guidedRepair=false,handoffs:researchedHandoffs=[],beforeSend=async()=>{}}) {
   if(!transport||!rehearse)throw new Error('Reviewed method transport and native rehearsal required');
   const task=await one(db,'procurement_coverage_tasks',taskId);
   const target=task&&await one(db,'procurement_request_targets',task.target_id);
@@ -83,9 +83,46 @@ export async function saveDiscoveredMethod({db,project,artifacts,transport,rehea
     capability.method_spec.urls.some(url=>!captures.some(c=>c.final_url===url)))throw new Error('Matching saved discovery evidence required');
   const before={project_ref:project,procurement_sources:sources,procurement_search_requests:requests,
     procurement_geographies:await rows(db,'procurement_geographies'),procurement_source_capabilities:existingCaps,procurement_request_sources:associations,procurement_intake_items:[]};
+  const proposed=automaticRouteAssociation(capability,source,existingCaps);
+  if(guidedRepair&&!task.source_id){
+    const existing=existingCaps.find(c=>c.source_id===source?.id&&c.kind===task.kind&&c.endpoint_url===capability.endpoint_url&&c.method===capability.method);
+    if(existing&&capabilityCoversRoute(existing,task.route_geography_id)&&!existing.verification_evidence?.source_review_entity_routes?.includes(task.route_geography_id))
+      throw Error('A separately reviewed method already serves this location; developer reconciliation required');
+    proposed.verification_evidence={...proposed.verification_evidence,
+      source_review_entity_routes:[...new Set([...(proposed.verification_evidence?.source_review_entity_routes??[]),task.route_geography_id])]};
+  }
+  if(guidedRepair&&task.capability_id){
+    const prior=existingCaps.find(c=>c.id===task.capability_id&&c.source_id===source?.id&&c.kind===task.kind);
+    if(!prior)throw Error('The original method must remain available for repair history');
+    if(prior.verification_evidence?.source_review_entity_routes?.includes(task.route_geography_id))
+      proposed.verification_evidence={...proposed.verification_evidence,source_review_entity_routes:[...new Set([...(proposed.verification_evidence.source_review_entity_routes??[]),task.route_geography_id])]};
+    const rootId=prior.verification_evidence?.source_review_roots?.[task.route_geography_id]??prior.id;
+    if(!existingCaps.some(c=>c.id===rootId&&c.source_id===source.id&&c.kind===task.kind))throw Error('Saved method review lineage needs reconciliation');
+    const replacement=existingCaps.find(c=>c.source_id===source.id&&c.kind===task.kind&&c.endpoint_url===capability.endpoint_url&&c.method===capability.method);
+    if(replacement&&replacement.id!==prior.id){
+      const competingRoot=replacement.verification_evidence?.source_review_roots?.[task.route_geography_id]??replacement.id;
+      const competing=await rows(db,'procurement_action_requests',q=>q.contains('review_scope',{source_id:source.id,geography_id:task.route_geography_id,category:task.kind,capability_id:competingRoot}));
+      if(competing.length||capabilityCoversRoute(replacement,task.route_geography_id))throw Error('A separate existing method/review already covers this route; developer reconciliation required');
+    }
+    proposed.verification_evidence={...proposed.verification_evidence,source_review_roots:{...replacement?.verification_evidence?.source_review_roots,
+      ...proposed.verification_evidence?.source_review_roots,[task.route_geography_id]:rootId}};
+  }
   const spec={version:1,project_ref:project,authorization:`Official method review by ${actor}; request ${requestId}`,requests:[{...requests[0],key:'request'}],
-    sources:[{...sourceSpec,existing_id:source?.id,request_keys:['request']}],capabilities:[{...automaticRouteAssociation(capability,source,existingCaps),source_code:sourceSpec.code}]};
+    sources:[{...sourceSpec,existing_id:source?.id,request_keys:['request']}],capabilities:[{...proposed,source_code:sourceSpec.code}]};
   const manifest=planRegistry(spec,before);
+  if(guidedRepair&&task.capability_id){
+    const prior=existingCaps.find(c=>c.id===task.capability_id&&c.source_id===source?.id&&c.kind===task.kind);
+    const replacement=manifest.rows.find(d=>d.table==='procurement_source_capabilities')?.row??existingCaps.find(c=>c.source_id===source?.id&&c.kind===task.kind&&c.endpoint_url===capability.endpoint_url&&c.method===capability.method);
+    if(prior&&replacement&&prior.id!==replacement.id&&capabilityCoversRoute(prior,task.route_geography_id)){
+      const remaining=[...new Set([prior.route_geography_id,...(prior.verification_evidence?.automation_policy==='county-public-v1'?prior.verification_evidence.route_geography_ids??[]:[])])].filter(id=>id!==task.route_geography_id);
+      const revised={...prior,availability:remaining.length?prior.availability:'unavailable',
+        route_geography_id:remaining[0]??prior.route_geography_id,
+        verification_evidence:{...prior.verification_evidence,route_geography_ids:remaining},
+        next_action:remaining.length?'Replaced only for the repaired route':'Replaced by the verified source repair'};
+      delete revised.updated_at;
+      manifest.rows.push({table:'procurement_source_capabilities',before:prior,row:revised});
+    }
+  }
   // A request association is not proof that every city in that request is
   // served by this agency. Automatic verification preserves registered scope.
   if(capability.verification_evidence?.automation_policy==='county-public-v1'&&source) {
@@ -95,7 +132,7 @@ export async function saveDiscoveredMethod({db,project,artifacts,transport,rehea
   return persistRegistry({db,artifacts,transport,rehearse,requestId,before,manifest,sourceSpec,researchedHandoffs,beforeSend});
 }
 
-async function persistRegistry({db,artifacts,transport,rehearse,requestId,before,manifest,sourceSpec,researchedHandoffs=[],beforeSend}) {
+export async function persistRegistry({db,artifacts,transport,rehearse,requestId,before,manifest,sourceSpec,researchedHandoffs=[],beforeSend}) {
   const sql=persistenceSql(manifest),schema=await transport.schema();
   const test=await rehearse({before,schema,manifest,sql});
   if(test.status!=='native_tests_passed'||test.policy!==rehearsalPolicy||!['rollback','readback','replay','cleanup'].every(k=>test[k]===true)||

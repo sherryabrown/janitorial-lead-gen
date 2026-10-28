@@ -772,3 +772,20 @@
 
 .metric-issues .text-button { white-space: normal; overflow-wrap: anywhere; max-width: 100%; min-width: 0; text-align: left; }
 .metric-issues h2 { overflow-wrap: anywhere; }
+.source-resolution { max-width: 52rem; }
+.source-resolution h2 { margin-bottom: .4rem; }
+.source-resolution-location { color: #625c55; }
+.source-decision-choices { border: 0; padding: 0; margin: 1.5rem 0 1rem; display: flex; flex-wrap: wrap; gap: .75rem 1.25rem; }
+.source-decision-choices legend { font-weight: 650; margin-bottom: .65rem; }
+.source-decision-choices label, .source-confirmation { display: flex; gap: .5rem; align-items: flex-start; }
+.source-decision-choices input, .source-confirmation input { flex: 0 0 auto; margin-top: .2rem; accent-color: #a64b14; }
+.source-website-form, .source-decision-form { display: grid; gap: .75rem; max-width: 44rem; }
+.source-website-form p, .source-decision-form p { margin: 0; }
+.source-resolution input[type=url], .source-resolution textarea { width: 100%; min-width: 0; box-sizing: border-box; }
+.source-resolution textarea { resize: vertical; font: inherit; }
+.source-resolution .primary-button, .source-resolution .secondary-button { justify-self: start; }
+.source-shared-impact, .source-verification { border-left: 3px solid #ddd4ca; padding: .8rem 1rem; margin: 1rem 0; }
+.source-shared-impact p { margin: .5rem 0; }
+.source-confirmation { margin: .8rem 0; }
+.source-resolution details { margin: .8rem 0; overflow-wrap: anywhere; }
+@media(max-width: 480px) { .source-decision-choices { flex-direction: column; } .source-shared-impact, .source-verification { padding-left: .7rem; } }

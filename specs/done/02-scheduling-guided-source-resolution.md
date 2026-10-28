@@ -1,6 +1,6 @@
 # Phase 2: Guided source repair and meaningful admin decisions
 
-Parent and initiating prompt: [Scheduling release clarity plan](00-scheduling-release-clarity-and-source-resolution.md). Depends on [phase 1 roles/contracts](../done/01-scheduling-roles-and-source-decisions.md). The user wants Admin to provide a verifiable website, record no website, record no issue, or choose not to address the problem, and support both product-assisted fixes and developer intervention.
+Parent and initiating prompt: [Scheduling release clarity plan](../todo/00-scheduling-release-clarity-and-source-resolution.md). Depends on [phase 1 roles/contracts](01-scheduling-roles-and-source-decisions.md). The user wants Admin to provide a verifiable website, record no website, record no issue, or choose not to address the problem, and support both product-assisted fixes and developer intervention.
 
 ## Objective
 
@@ -83,3 +83,11 @@ Test all four requested outcomes plus Needs developer with a nontechnical scenar
 Native tests prove role denial, scope binding, transaction/audit/readback and unchanged protected lead fields. UI tests prove no raw technical input is required, the note survives errors and returning from logs, and the action advances the same item. Verification is not allowed to become unbounded background polling or to repeat a completed collection on each UI refresh.
 
 Acceptance: an Admin can choose and complete the correct supported path from one source item, tell whether it was fixed or accepted, and continue to the next item. Unavailable in-product repairs clearly become developer work. No claim of verification is made before authoritative persistence and the appropriate check succeed.
+
+## Implementation and verification — October 28, 2026
+
+Completed locally. Guided website verification and explicit website/method application reuse the leased worker, native rehearsal, immutable capture proofs and guarded registry persistence. Existing source identity is retained; method renewal supersedes only the repaired route. Current reviews, historical checks and explicit exclusions remain separate. No issue tables or duplicate repair engine were added. Dedicated repair requests/tasks reuse existing storage and do not resume or reimport the historical run.
+
+Fresh verification: 9 component tests, 7 offline contract/SQL tests, native PostgreSQL/PostgREST acceptance including guided repair/readback/exclusions/role denial, and browser acceptance at 1280/390/320px passed. Browser reference uses sample data; it is not a live repair receipt. The app compile is recorded separately in the phase-two build receipt. Earlier broad regression checks passed; the final phase-three gate repeats the full suite.
+
+No live schema, source or Production deployment was changed. Final workspace integration, isolated dev preview, nontechnical User/Admin acceptance and Production cutover remain in phase 3.

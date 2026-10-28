@@ -3,8 +3,9 @@ import {readFileSync} from 'node:fs';
 import {Readable} from 'node:stream';
 import {workflowServer} from '../../scripts/lib/workflow-http.mjs';
 import {profileCapabilities} from '../../scripts/lib/procurement-capabilities.mjs';
+import {verifyGuidedRepair} from './guided-repair-db.mjs';
 
-export async function verifyReleaseRoles({pool,db,api,first,second,userToken,adminToken}){
+export async function verifyReleaseRoles({pool,rehearsalPool,db,api,first,second,userToken,adminToken}){
  await pool.query(`create type public.app_role as enum ('user','admin');
  create table public.profiles(id uuid primary key default gen_random_uuid(),user_id uuid unique not null references auth.users(id),
  email text not null,created_at timestamptz not null default now(),updated_at timestamptz not null default now(),
@@ -57,6 +58,7 @@ export async function verifyReleaseRoles({pool,db,api,first,second,userToken,adm
  // cannot change trusted profile capabilities. No production data is contacted.
  const legacy=(await pool.query('delete from procurement_members where user_id=$1 returning id,user_id',[second])).rows;
  assert.equal((await profileCapabilities(db,second)).manage_sources,true);
+ if(rehearsalPool)console.log('Guided source repair native acceptance:',await verifyGuidedRepair({pool,rehearsalPool,db,actor:second}));
  for(const row of legacy)await pool.query('insert into procurement_members(id,user_id) values($1,$2)',[row.id,row.user_id]);
  const originalMemberships=(await pool.query('select * from procurement_members order by id')).rows;
  await pool.query(readFileSync('supabase/migrations/20261026000500_retire_procurement_members.sql','utf8'));

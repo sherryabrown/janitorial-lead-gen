@@ -1,5 +1,6 @@
 import { procurementSchedules } from './lib/procurement-schedules.mjs';
 import {profileCapabilities} from './lib/procurement-capabilities.mjs';
+import {guidedSourceResolution} from './lib/guided-source-resolution.mjs';
 import {adminCatalog} from './lib/admin-catalog.mjs';
 import { countyTriggers } from './lib/county-triggers.mjs';
 import { workflowAudit } from './lib/workflow-audit.mjs';
@@ -26,6 +27,7 @@ if(env.SUPABASE_URL!==`https://${project}.supabase.co` || !env.SUPABASE_SERVICE_
 const db=createClient(env.SUPABASE_URL,env.SUPABASE_SERVICE_ROLE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
 const artifacts=artifactStore(db);
 const audit=workflowAudit(db);
+let sourceResolution;
 const poolOptions=restrictedImportPoolOptions(env,project);
 const pool=poolOptions?new pg.Pool(poolOptions):null;
 const rehearsalOptions=restrictedImportPoolOptions(env,project,{rehearsal:true});
@@ -40,7 +42,7 @@ const imports=importJobs({db,project,transport,artifacts,samSavedRuns:sam.savedR
   countyEvidence:(id,candidates)=>workflow.countyEvidence(id,candidates),
   rehearse:rehearsalPool?nativeRehearsal(rehearsalPool):null});
 const workflow=hostedWorkflow({db,project,serverKey:()=>env.SUPABASE_SERVICE_ROLE_KEY,artifacts,aiConfig,audit,processJob:(job,c,save)=>
-  c.stage.startsWith('discovery_')?discovery.step(job,c,save):c.stage.startsWith('sam_')?sam.step(job,c,save):imports.step(job,c,save),
+  c.guided_entry?sourceResolution.step(job,c,save):c.stage.startsWith('discovery_')?discovery.step(job,c,save):c.stage.startsWith('sam_')?sam.step(job,c,save):imports.step(job,c,save),
   automaticCounty:id=>imports.prepareCounty(id),captureBrowser:(id,actor)=>browser.captureWorker(id,actor),canCaptureBrowser:id=>browser.canCaptureWorker(id)});
 let running=false;
 let benchmarking=Boolean(env.PROCUREMENT_BROWSER_BENCHMARK_ID);
@@ -55,12 +57,14 @@ function kick() {
   });
 }
 const discovery=discoveryService({db,project,artifacts,transport,rehearse:rehearsalPool?nativeRehearsal(rehearsalPool):null,
+  guardGuidedRepair:(job,c)=>sourceResolution.guardMethod(job,c),prepareGuidedCapture:(job,c,save)=>sourceResolution.prepareMethodCapture(job,c,save),finalizeGuidedRepair:(job,c,save)=>sourceResolution.finalizeMethod(job,c,save),
   continueCollection:workflow.continueVerifiedCollection,
   collect:async({requestId,sourceCode,planOnly})=>{
     const request=await one(db,'procurement_search_requests',requestId);
     return executeKnownSources({db,project,serverKey:()=>env.SUPABASE_SERVICE_ROLE_KEY,
       command:planOnly||request.workflow_control?.check_updates===false?'plan':'run',requestId,selectedSourceCode:sourceCode,maxJobs:4,retryPartial:false});
   }});
+sourceResolution=guidedSourceResolution({db,project,artifacts,transport,rehearse:rehearsalPool?nativeRehearsal(rehearsalPool):null});
 const browser=browserService({db,artifacts,sessionKey:env.PROCUREMENT_SESSION_ENCRYPTION_KEY,
   environmentId:env.RENDER_SERVICE_ID&&env.RENDER_GIT_COMMIT?`${env.RENDER_SERVICE_ID}:${env.RENDER_GIT_COMMIT}`:null,
   profile:env.PROCUREMENT_BUSINESS_PROFILE?JSON.parse(env.PROCUREMENT_BUSINESS_PROFILE):{},exclusive:async operation=>{
@@ -69,7 +73,7 @@ const browser=browserService({db,artifacts,sessionKey:env.PROCUREMENT_SESSION_EN
 }});
 const triggers=countyTriggers({db,discovery,workflow,audit,automaticCounty:id=>imports.prepareCounty(id)});
 const schedules=procurementSchedules({db,triggers});
-const server=workflowServer({workflow,imports,discovery,kick,triggers,schedules,catalog:adminCatalog({db}),schedulerKey:env.PROCUREMENT_SCHEDULER_KEY,aiPolicy:aiConfig,audit,db,
+const server=workflowServer({workflow,imports,discovery,sourceResolution,kick,triggers,schedules,catalog:adminCatalog({db}),schedulerKey:env.PROCUREMENT_SCHEDULER_KEY,aiPolicy:aiConfig,audit,db,
   capabilities:actor=>profileCapabilities(db,actor),
   attention:attentionService(db),
   browser,

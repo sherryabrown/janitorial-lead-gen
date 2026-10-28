@@ -12,7 +12,7 @@ async function body(request) {
   }
   try {return JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{throw new HttpError(400,'Invalid JSON');}
 }
-export function workflowServer({authenticate,capabilities:readCapabilities,workflow,imports,discovery,sam,samPacket,samStatus,samReconcile,samHistory,samProcess,browser,attention,triggers,schedules,catalog,schedulerKey,aiPolicy,audit,db,kick=()=>{},allowedOrigins=[]}) {
+export function workflowServer({authenticate,capabilities:readCapabilities,workflow,imports,discovery,sourceResolution,sam,samPacket,samStatus,samReconcile,samHistory,samProcess,browser,attention,triggers,schedules,catalog,schedulerKey,aiPolicy,audit,db,kick=()=>{},allowedOrigins=[]}) {
   return createServer(async(request,response)=>{
     response.setHeader('Content-Type','application/json');response.setHeader('Cache-Control','no-store');
     response.setHeader('X-Content-Type-Options','nosniff');
@@ -50,12 +50,28 @@ export function workflowServer({authenticate,capabilities:readCapabilities,workf
       const segments=url.pathname.split('/').filter(Boolean);
       if(segments[0]!=='v1')throw new HttpError(404,'Endpoint not found');
       const input=request.method==='POST'?await body(request):null;
-      bufferResponse=Boolean(audit&&request.method==='POST'&&['requests','imports'].includes(segments[1])&&uuid.test(segments[2]??''));
-      const wakeRelated=async()=>{if(triggers&&segments[1]==='requests'&&uuid.test(segments[2]??''))await triggers.wake(segments[2]);};
+      const sourceReviewOnly=segments[1]==='requests'&&['source-reviews','source-resolution'].includes(segments[3]);
+      bufferResponse=Boolean(audit&&!sourceReviewOnly&&request.method==='POST'&&['requests','imports'].includes(segments[1])&&uuid.test(segments[2]??''));
+      const wakeRelated=async()=>{if(!sourceReviewOnly&&triggers&&segments[1]==='requests'&&uuid.test(segments[2]??''))await triggers.wake(segments[2]);};
       let result;
       const execute=async()=>{
-      if(db&&segments[1]==='requests'&&uuid.test(segments[2]??'')&&segments[3]==='source-status'&&segments.length===4&&request.method==='GET')result=await sourceReviewService(db).list(segments[2]);
-      else if(db&&segments[1]==='requests'&&uuid.test(segments[2]??'')&&segments[3]==='source-reviews'&&uuid.test(segments[4]??'')&&segments.length===5&&request.method==='POST')result=await sourceReviewService(db).decide(segments[2],segments[4],input,actor,request.headers['idempotency-key']);
+      if(db&&segments[1]==='requests'&&uuid.test(segments[2]??'')&&segments[3]==='source-status'&&segments.length===4&&request.method==='GET'){
+        result=await sourceReviewService(db).list(segments[2]);
+        if(capabilities?.role==='user')result={...result,items:result.items.map(item=>({...item,allowed_actions:['view_status']}))};
+      }
+      else if(db&&segments[1]==='requests'&&uuid.test(segments[2]??'')&&segments[3]==='source-reviews'&&uuid.test(segments[4]??'')&&segments.length===5&&request.method==='POST')result=await (sourceResolution??sourceReviewService(db)).decide(segments[2],segments[4],input,actor,request.headers['idempotency-key']);
+      else if(sourceResolution&&segments[1]==='requests'&&uuid.test(segments[2]??'')&&segments[3]==='source-resolution'&&uuid.test(segments[4]??'')){
+        const requestId=segments[2],taskId=segments[4];
+        if(segments.length===5&&request.method==='GET')result=await sourceResolution.detail(requestId,taskId);
+        else if(segments.length===6&&segments[5]==='status'&&request.method==='GET'){
+          const job=url.searchParams.get('job');if(!uuid.test(job??''))throw new HttpError(400,'Saved verification required');
+          result=await sourceResolution.status(requestId,taskId,job);
+        }else if(segments.length===6&&request.method==='POST'&&['verify','apply','reconcile'].includes(segments[5])){
+          result=segments[5]==='verify'?await sourceResolution.verify(requestId,taskId,input,actor,request.headers['idempotency-key']):
+            await sourceResolution.apply(requestId,taskId,{...input,reconcile:segments[5]==='reconcile'},actor,request.headers['idempotency-key']);
+          kick();
+        }
+      }
       else if(schedules&&url.pathname==='/v1/scheduler/status'&&request.method==='GET')result={...await schedules.status(),backend_key_configured:typeof schedulerKey==='string'&&schedulerKey.length>=32,...(aiPolicy?{ai_policy:{enabled:aiPolicy.enabled,monthly_usd:aiPolicy.monthlyUsd}}:{})};
       else if(catalog&&['/v1/admin/sources','/v1/admin/geographies'].includes(url.pathname)&&request.method==='GET') {
         try{result=await catalog[url.pathname.endsWith('sources')?'sources':'geographies'](Object.fromEntries(url.searchParams));}
@@ -198,7 +214,7 @@ export function workflowServer({authenticate,capabilities:readCapabilities,workf
       send(200,result);
       };
       // Audit mutations for linked child requests; reads and legacy standalone requests keep their contract.
-      if(audit&&request.method==='POST'&&segments[1]==='requests'&&uuid.test(segments[2]??''))
+      if(audit&&!sourceReviewOnly&&request.method==='POST'&&segments[1]==='requests'&&uuid.test(segments[2]??''))
         await audit.run(segments[2],segments[3]==='tasks'?segments.at(-1):segments[3]??'request_action',execute,{reason:'manual',actor_id:actor});
       else if(audit&&db&&request.method==='POST'&&segments[1]==='imports'&&uuid.test(segments[2]??'')) {
         const {data:job}=await db.from('procurement_jobs').select('search_request_id').eq('id',segments[2]).maybeSingle();

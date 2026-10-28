@@ -7,6 +7,7 @@ import {verifyMetricBrowser} from './metric-drilldown-browser.mjs';
 import {verifyCatalogBrowser} from './catalog-browser.mjs';
 import {verifyScheduleActivityBrowser} from './schedule-activity-browser.mjs';
 import {verifySettingsReadsBrowser} from './settings-reads-browser.mjs';
+import {verifySourceResolutionBrowser} from './source-resolution-browser.mjs';
 /* global localStorage */
 // Local browser acceptance: real app/auth client, intercepted fixture HTTP, no production mutations.
 import {verifyScheduleRevision} from './schedule-revision-browser.mjs';
@@ -120,7 +121,7 @@ const server = spawn(
   process.execPath,
   [
     'node_modules/vite/bin/vite.js',
-    ...(process.argv.includes('--built')?['preview']:[]),
+    ...(process.argv.includes('--built')||process.argv.includes('--source-resolution')?['preview']:[]),
     '--host',
     '127.0.0.1',
     '--port',
@@ -339,6 +340,7 @@ try {
   const page = await context.newPage(),
     errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
+  if(process.argv.includes('--source-resolution'))await verifySourceResolutionBrowser({page,origin,out,errors});else
   if(executionMetrics){await verifyExecutionMetrics({page,origin,out,errors,bodies});}else if(process.argv.includes('--canonical-redirect')){await verifyCanonicalRedirect({page,origin,out,errors,bodies});}else if(submittedHistory){await verifySubmittedHistoryBrowser({page,origin,out,errors,bodies});}else if(detailClarity){await verifyDetailClarityBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--metric-drilldowns')){await verifyMetricBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--catalog')){await verifyCatalogBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--schedule-activity')){await verifyScheduleActivityBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--settings-reads')){await verifySettingsReadsBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--analytics')){await verifyAnalyticsBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--schedule-revision')){await verifyScheduleRevision({page,origin,out,errors,bodies});}else{await verifyIntegratedAdmin({page,origin,out,errors,bodies});}
 
 } catch(error) {
