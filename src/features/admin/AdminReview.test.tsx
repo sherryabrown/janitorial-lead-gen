@@ -1,9 +1,9 @@
+import {renderAdmin as render} from '../../../tests/helpers/render-admin';
 // @vitest-environment jsdom
 import {
   act,
   cleanup,
   fireEvent,
-  render,
   screen,
 } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
@@ -281,7 +281,7 @@ it('paginates steps and stops polling on terminal state or unmount', async () =>
     />,
   );
   await act(async () => {});
-  fireEvent.click(screen.getByRole('button', { name: 'Logs' }));
+  {const d=screen.getByText('Technical details for this run').closest('details')!;d.open=true;fireEvent(d,new Event('toggle'));}
   await act(async () => {});
   fireEvent.click(screen.getByRole('button', { name: 'More steps' }));
   await act(async () => {});

@@ -1,5 +1,5 @@
-export type AdminView = 'schedules' | 'stats' | 'history' | 'sources' | 'geography';
-export const adminViewLabels:Record<AdminView,string>={schedules:'Schedules',stats:'Stats / analytics',history:'History / logs',sources:'Sources by geography',geography:'Related geography'};
+export type AdminView = 'schedules' | 'stats' | 'history' | 'sources' | 'geography' | 'attention';
+export const adminViewLabels:Record<AdminView,string>={schedules:'Schedules',stats:'Results analytics',history:'Run history',sources:'Technical source registry',geography:'Technical geography',attention:'Needs attention'};
 export type AdminContext = {
   view: AdminView;
   section?: 'manual' | 'overview' | 'history' | 'logs' | 'sources' | 'geography';
@@ -13,7 +13,7 @@ export type AdminContext = {
   geographyId?: string;
   returnTo: 'contracts';
 };
-const views: AdminView[] = ['schedules', 'stats', 'history', 'sources', 'geography'];
+const views: AdminView[] = ['schedules', 'stats', 'history', 'sources', 'geography', 'attention'];
 const key = (owner: string) => `spin-admin-navigation:${owner}`;
 export function parseAdminContext(value: unknown): AdminContext {
   const fallback: AdminContext = { view: 'schedules', returnTo: 'contracts' };
@@ -38,7 +38,7 @@ export function saveAdminContext(owner: string, value: AdminContext) {
 }
 export function clearAdminSession(owner: string) {
   try {
-    const prefixes = ['draft', 'editor', 'sam-editor', 'mutation', 'navigation', 'schedule-filter','history-filter','history-search','stats-filter','catalog-filter','schedule-page','history-page','log-page','schedule-run','schedule-runs-page'].map(part => `spin-admin-${part}:${owner}`);prefixes.push(`spin-schedule-form:${owner}`);
+    const prefixes = ['draft', 'editor', 'sam-editor', 'mutation', 'navigation', 'schedule-filter','history-filter','history-search','stats-filter','catalog-filter','schedule-page','history-page','log-page','schedule-run','schedule-runs-page','source-note','source-selection'].map(part => `spin-admin-${part}:${owner}`);prefixes.push(`spin-schedule-form:${owner}`);
     for (const name of Object.keys(sessionStorage)) {
       if (prefixes.some(prefix => name === prefix || name.startsWith(prefix + ':'))) sessionStorage.removeItem(name);
     }

@@ -18,16 +18,16 @@ it('puts the schedule name before the Run ID in global history and opens that ex
 it('shows one authoritative run with date first, full ID secondary, dispatch snapshot and no dead attempt link',async()=>{
  request.mockResolvedValue({items:[activity,{id:'attempt:x',kind:'attempt',activity_at:run.created_at,run:null,occurrence:{...occurrence,state:'skipped',reason:'previous_run_active'}}],total:2,next_offset:null,as_of:run.created_at});
  const view=vi.fn();render(<RunHistory scheduleId="schedule" onView={view}/>);
- const table=await screen.findByRole('table',{name:'Saved execution history'});await screen.findByRole('cell',{name:'Completed'});
+ const table=await screen.findByRole('table',{name:'Saved execution history'});await screen.findByRole('cell',{name:'Run finished'});
  const rows=within(table).getAllByRole('row');expect(rows).toHaveLength(3);
- const date=within(rows[1]).getByRole('button',{name:new RegExp('Run '+run.id)});expect(date.textContent).not.toContain('Run');expect(rows[1].textContent!.indexOf(date.textContent!)).toBeLessThan(rows[1].textContent!.indexOf(run.id));
+ const date=within(rows[1]).getByRole('button',{name:new RegExp('Run '+run.id)});expect(date.textContent).not.toContain('Run');expect(rows[1].textContent).not.toContain(run.id);
  fireEvent.click(date);expect(view).toHaveBeenCalledWith(run.id,'overview');expect(within(rows[2]).queryByRole('button')).toBeNull();
  fireEvent.click(within(rows[1]).getByText('Dispatch snapshot · version 2'));expect(within(rows[1]).getByText('Queued')).toBeTruthy();expect(within(rows[1]).getByText('source / —')).toBeTruthy();
  expect(request.mock.calls[0][0]).toContain('/schedules/schedule/activity');expect(request.mock.calls.every(([,o])=>!o?.body)).toBe(true);
 });
 it('retries the same failed page with its boundary and retains loaded activity',async()=>{
  let fail=true;request.mockImplementation(async(path:string)=>{if(path.includes('offset=50')){if(fail)throw Error('Temporary activity error');return {items:[{...activity,id:'attempt:x',kind:'attempt',run:null}],total:2,next_offset:null,as_of:run.created_at};}return {items:[activity],total:2,next_offset:50,as_of:run.created_at};});
- render(<RunHistory scheduleId="schedule" onView={()=>{}}/>);await screen.findByRole('cell',{name:'Completed'});fireEvent.click(screen.getByRole('button',{name:'More runs'}));await screen.findByRole('button',{name:'Retry history'});expect(screen.getByRole('cell',{name:'Completed'})).toBeTruthy();
+ render(<RunHistory scheduleId="schedule" onView={()=>{}}/>);await screen.findByRole('cell',{name:'Run finished'});fireEvent.click(screen.getByRole('button',{name:'More runs'}));await screen.findByRole('button',{name:'Retry history'});expect(screen.getByRole('cell',{name:'Run finished'})).toBeTruthy();
  fail=false;fireEvent.click(screen.getByRole('button',{name:'Retry history'}));await screen.findByText('No run created');const calls=request.mock.calls.filter(([p])=>p.includes('offset=50'));expect(calls).toHaveLength(2);expect(calls[0][0]).toBe(calls[1][0]);expect(calls[1][0]).toContain('as_of=');
 });
 const known={value:2,known_subtotal:2,completeness:'known'},partial={value:null,known_subtotal:2,completeness:'partial'},absent={value:null,completeness:'unknown'};

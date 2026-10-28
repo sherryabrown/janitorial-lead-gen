@@ -98,7 +98,8 @@ export function planRegistry(spec,before,{verifiedUrlChange}={}){
     availability:'active',verified_at:c.verified_at,verified_until:c.verified_until,
     verification_evidence:{...c.verification_evidence,
       ...(Object.keys(old?.verification_evidence?.source_review_roots??{}).length?{source_review_roots:{...old.verification_evidence.source_review_roots,...c.verification_evidence?.source_review_roots}}:{}),
-      ...(old?.verification_evidence?.source_review_entity_routes?.length?{source_review_entity_routes:[...new Set([...old.verification_evidence.source_review_entity_routes,...(c.verification_evidence?.source_review_entity_routes??[])])]}:{})},parser_version:c.parser_version,
+      ...(old?.verification_evidence?.source_review_entity_routes?.length?{source_review_entity_routes:[...new Set([...old.verification_evidence.source_review_entity_routes,...(c.verification_evidence?.source_review_entity_routes??[])])]}:{}),
+      ...(old?.verification_evidence?.source_review_source_routes?.length?{source_review_source_routes:[...new Set([...old.verification_evidence.source_review_source_routes,...(c.verification_evidence?.source_review_source_routes??[])])]}:{})},parser_version:c.parser_version,
     method_spec:c.method_spec,next_action:c.next_action??null};
   if(old) delete row.updated_at;
   if(!old||!Object.entries(row).every(([k,v])=>same(old[k],v))) rows.push(delta('procurement_source_capabilities',old,row));

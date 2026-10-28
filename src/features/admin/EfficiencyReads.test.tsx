@@ -1,6 +1,7 @@
+import {renderAdmin as render} from '../../../tests/helpers/render-admin';
 // @vitest-environment jsdom
 import {afterEach,beforeEach,expect,it,vi} from 'vitest';
-import {act,cleanup,fireEvent,render,renderHook,screen} from '@testing-library/react';
+import {act,cleanup,fireEvent,renderHook,screen} from '@testing-library/react';
 import {RunDetail} from './RunDetail';
 import {RequestReview} from './RequestReview';
 import {useRunLogs} from './use-run-logs';

@@ -1,5 +1,6 @@
+import {renderAdmin as render} from '../../../tests/helpers/render-admin';
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { RequestReview } from './RequestReview';
 import { RunDetail } from './RunDetail';
@@ -14,10 +15,10 @@ const review = (signal: string) => <RequestReview id="request" owner="owner" onV
 
 it('labels settled county source gaps consistently in Activity and details without altering other states',async()=>{
  const run={id:'run',state:'needs_review',target_kind:'county_scope',created_at:'2026-10-19T01:00:00Z',presentation:{outcome:'source_attention' as const,attention_count:1},children:[]};
- expect(runLabel({...run,state:'running'})).toBe('Running');expect(runLabel({...run,target_kind:'sam'})).toBe('Needs review');
+ expect(runLabel({...run,state:'running'})).toBe('Checking sources');expect(runLabel({...run,target_kind:'sam'})).toBe('Results need review');
  mocked.request.mockImplementation(async(path:string)=>path.endsWith('/steps')?{items:[],next_cursor:null}:run);
  render(<><ActivityList items={[run]} onView={()=>{}} selected={null} more={false} onMore={()=>{}}/><RunDetail id="run" owner="owner" onClose={()=>{}} onViewLeads={()=>{}} onSource={()=>{}} changed={()=>{}}/></>);
- await screen.findByRole('heading',{name:/Run run/});expect(screen.getAllByText(/Finished — some sources need attention/)).toHaveLength(3);
+ await screen.findByRole('heading',{name:/Oct 19|Created time unavailable/});expect(within(screen.getByRole('region',{name:'Run results'})).getByRole('heading',{name:'Finished with source gaps'})).toBeTruthy();expect(within(screen.getByRole('region',{name:'Run activity'})).getByText(/Finished with source gaps/)).toBeTruthy();
  expect(screen.getByRole('button',{name:'View results'})).toBeTruthy();
 });
 
@@ -100,6 +101,9 @@ it('keeps the review mounted through a real run transition and isolates another 
   } : results);
   render(<RunDetail id="run" owner="owner" onClose={() => {}} onViewLeads={() => {}} onSource={() => {}} changed={() => {}} />);
   await act(async () => {});
+  {const d=screen.getByText('Technical validation and import review').closest('details')!;d.open=true;fireEvent(d,new Event('toggle'));}
+  await act(async()=>{});
+  {const d=screen.getByText('Validation and execution details').closest('details')!;d.open=true;fireEvent(d,new Event('toggle'));}
   fireEvent.click(screen.getByRole('checkbox', { name: /Cleaning/ }));
   fireEvent.change(screen.getByLabelText('Reason for processing reviewed candidates'), { target: { value: 'Keep my review' } });
   state = 'needs_review';
@@ -148,6 +152,6 @@ it('loads archived schedule activity and keeps archived management disabled',asy
  mocked.request.mockImplementation(async(path:string)=>path.includes('/activity')?{items:[{id:'attempt:first',kind:'attempt',activity_at:'2026-10-19T12:00:00Z',run:null,occurrence:{id:'first',state:'blocked',reason:'scope_changed'}}],total:1,next_offset:null}:path==='/v1/schedules/schedule'?{...initialDraft(),id:'schedule',name:'Archived morning',archived:true,version:2}: {items:[],next_offset:null});
  render(<ScheduleList items={[{...initialDraft(),id:'schedule',name:'Archived morning',archived:true,version:2,next_due_at:null}]} more={false} onMore={()=>{}} onEdit={()=>{}} onAction={()=>{}} onView={onView} busy={false}/>);
  fireEvent.click(screen.getByRole('button',{name:'Actions for Archived morning'}));fireEvent.click(screen.getByRole('menuitem',{name:'Details'}));
- await screen.findByText('No run created');expect(screen.queryByText('Execution attempts and skipped runs')).toBeNull();
+ fireEvent.click(await screen.findByText('Recent run attempts'));await screen.findByText('No run created');expect(screen.queryByText('Execution attempts and skipped runs')).toBeNull();
  fireEvent.click(screen.getByRole('button',{name:'Back to schedules'}));const actions=screen.getByRole('button',{name:'Actions for Archived morning'});if(actions.getAttribute('aria-expanded')!=='true')fireEvent.click(actions);expect(screen.getByRole('menuitem',{name:'Edit'}).getAttribute('aria-disabled')).toBe('true');
 });

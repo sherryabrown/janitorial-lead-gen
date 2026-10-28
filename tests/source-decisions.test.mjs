@@ -1,3 +1,4 @@
+import {verifySourceEntryLineage} from './helpers/source-entry-lineage-db.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -80,5 +81,18 @@ test('source decisions reuse storage, preserve check facts, replay safely and sc
   assert.equal((await sql.query('select review_version from procurement_action_requests where id=$1',[noIssue.id])).rows[0].review_version,reopenedAward.review_version);
   await save(admin,award.id,0,'no_issue','no-issue-review-key');
   assert.equal((await sql.query('select review_decision from procurement_action_requests where id=$1',[noIssue.id])).rows[0].review_decision,'unreviewed','Replaying an old acknowledgement never overwrites a newer observation');
+  await sql.exec('alter table profiles add column first_name text, add column last_name text');
+  await sql.exec(readFileSync('supabase/migrations/20261028000100_procurement_source_attention.sql','utf8'));
+  const page=async(reviewed=false)=>(await sql.query('select procurement_source_attention_page($1,0,25) as p',[reviewed])).rows[0].p;
+  const unresolved=await page();assert.equal(unresolved.total,2,'Repeated observations and dedicated repairs do not duplicate queue work');
+  assert.ok(unresolved.items.every(i=>i.request_id!==verification.search_request_id),'Repair requests never create another review item');
+  const currentAward=await save(admin,newAward.id,reopenedAward.review_version,'no_issue','current-award-reviewed');
+  assert.equal((await page()).total,1);assert.equal((await page(true)).total,1,'Reviewed decisions remain accessible separately');
+  await sql.query("update procurement_coverage_tasks set state='reviewed_no_results' where id=$1",[newAward.id]);
+  assert.equal((await page(true)).total,1,'Reviewed decisions stay available after a later successful check');
+  await save(admin,newAward.id,currentAward.version,'needs_developer','current-award-handoff');
+  assert.equal((await page()).total,2,'An explicit developer handoff remains work until an Admin resolves it');
+  await verifySourceEntryLineage({sql,actor:admin,opportunityId:opportunity.id});
+  await assert.rejects(sql.query('select procurement_source_attention_page(false,-1,25)'),/Invalid pagination/);
  }finally{await sql.close();}
 });

@@ -18,6 +18,9 @@ import { ScheduleList, StateSourceList } from './ScheduleList';
 import {RunHistory} from './RunHistory';
 import {Analytics} from './Analytics';
 import {Catalog} from './Catalog';
+import {SchedulingAccess} from './SchedulingRole';
+import {useSchedulingRole} from './scheduling-role';
+import {SourceStatus} from './SourceStatus';
 import { RunDetail } from './RunDetail';
 import { initialDraft, invalidDraft, resolvedConfig, readFailure } from './model';
 import type {
@@ -89,7 +92,7 @@ const merge = <T extends { id: string }>(old: T[], next: T[]) => [
   ...new Map([...old, ...next].map((i) => [i.id, i])).values(),
 ];
 function historyEntry(context:AdminContext):AdminContext{return context.view==='history'&&!context.runId&&!context.historySearchId?{...context,historySearchId:crypto.randomUUID()}:context;}
-export default function AdminScreen({
+function SchedulingWorkspace({
   owner,
   onViewLeads,
   active: workspaceActive = true,
@@ -99,6 +102,7 @@ export default function AdminScreen({
   active?: boolean;
 }) {
   const active=useActiveRead(workspaceActive);
+  const role=useSchedulingRole();
   const [scheduleEditor,setScheduleEditor]=useState<{saved?:AnySchedule;target:string}|null>(null);
   const [scheduleQuery,setScheduleQuery]=useState(()=>{try{return sessionStorage.getItem(`spin-admin-schedule-filter:${owner}`)??'lifecycle=current';}catch{return 'lifecycle=current';}});
   const [scheduleTotal,setScheduleTotal]=useState<number|undefined>();
@@ -114,7 +118,7 @@ export default function AdminScreen({
   const headingRef = useRef<HTMLHeadingElement>(null);
   const returnFocus=useRef<HTMLElement|null>(null),previousRun=useRef<string|null>(null),restoreFocus=useRef(false);
   const schedulesRef = useRef<HTMLDivElement>(null), manualRef = useRef<HTMLDivElement>(null), historyRef = useRef<HTMLDivElement>(null),statsRef=useRef<HTMLDivElement>(null);
-  const manualView=navigation.section==='manual';
+  const manualView=navigation.section==='manual'&&role.manage_sources;
   useEffect(() => {
     if(!active)return;
     const target=navigation.runId?detailRef.current?.querySelector<HTMLElement>('h2'):navigation.view==='stats'?statsRef.current:navigation.scheduleId?schedulesRef.current?.querySelector<HTMLElement>('.schedule-detail h2'):navigation.view==='history'?historyRef.current:manualView?manualRef.current:headingRef.current;
@@ -216,11 +220,11 @@ export default function AdminScreen({
     void workflowRequest<{counties:County[]}>('/v1/counties',{signal:a.signal}).then(value=>{
       if(!a.signal.aborted){setCounties(value.counties);setRegistryState('ready');}
     }).catch(e=>{if(!a.signal.aborted){setRegistryState('error');setConnectionError(e.message);}});
-    void workflowRequest<SchedulerStatus>('/v1/scheduler/status',{signal:a.signal}).then(value=>{
+    if(role.technical_details)void workflowRequest<SchedulerStatus>('/v1/scheduler/status',{signal:a.signal}).then(value=>{
       if(!a.signal.aborted)setStatus(value);
     }).catch(e=>{if(!a.signal.aborted)setConnectionError(e.message);});
     return () => a.abort();
-  }, [connectionRevision]);
+  }, [connectionRevision,role.technical_details]);
   useEffect(()=>{
     const a=new AbortController();
     void workflowRequest<{items:StateSource[]}>('/v1/state-triggers',{signal:a.signal}).then(value=>{
@@ -438,15 +442,15 @@ export default function AdminScreen({
       ? sources.find((s) => s.id === draft.config.state_trigger_id)
       : undefined;
   return (
-    <SettingsNavigation.Provider value={()=>navigate('schedules')}><MetricNavigation active={active} onLeads={onViewLeads} onRun={(id,requestId)=>{returnFocus.current=document.activeElement as HTMLElement;commitNavigation({...navigation,runId:id,runSection:'overview',issueRequestId:requestId});}}><section className="admin-screen" aria-label="Admin county checks">
+    <SettingsNavigation.Provider value={()=>navigate('schedules')}><MetricNavigation active={active} onLeads={onViewLeads} onRun={(id,requestId)=>{returnFocus.current=document.activeElement as HTMLElement;commitNavigation({...navigation,runId:id,runSection:'overview',issueRequestId:requestId});}}><section className="admin-screen" aria-label="Scheduling">
       <h1 className="settings-context" ref={headingRef} tabIndex={-1}>Settings</h1>
       <div className="admin-workspace-bar">
-      <nav className="admin-workspace-nav" aria-label="Admin views">
+      <nav className="admin-workspace-nav" aria-label="Scheduling views">
         <button type="button" className="secondary-button compact" aria-current={navigation.view === 'schedules' && navigation.section !== 'manual' ? 'page' : undefined} onClick={() => navigate('schedules')}>Schedules</button>
-        <button type="button" className="text-button" aria-current={navigation.view === 'history' ? 'page' : undefined} onClick={() => navigate('history')}>History / logs</button>
-        <button type="button" className="text-button" aria-current={navigation.view === 'stats' ? 'page' : undefined} onClick={() => navigate('stats')}>Stats / analytics</button>
-        <button type="button" className="text-button" aria-current={navigation.view === 'sources' ? 'page' : undefined} onClick={() => navigate('sources')}>Sources by geography</button>
-        <button type="button" className="text-button" aria-current={navigation.view === 'geography' ? 'page' : undefined} onClick={() => navigate('geography')}>Related geography</button>
+        <button type="button" className="text-button" aria-current={navigation.view === 'history' ? 'page' : undefined} onClick={() => navigate('history')}>Run history</button>
+        <button type="button" className="text-button" aria-current={navigation.view === 'stats' ? 'page' : undefined} onClick={() => navigate('stats')}>Results analytics</button>
+        {role.manage_sources&&<button type="button" className="text-button" aria-current={navigation.view === 'attention' ? 'page' : undefined} onClick={() => navigate('attention')}>Needs attention</button>}
+        {role.technical_details&&<details className="admin-technical-nav"><summary>Technical tools</summary><button type="button" className="text-button" onClick={() => navigate('sources')}>Source registry</button><button type="button" className="text-button" onClick={() => navigate('geography')}>Geography registry</button><button type="button" className="text-button" onClick={() => navigate('schedules',true)}>Manual runs</button></details>}
       </nav></div>
       {!selected&&!scheduleEditor&&!navigation.scheduleId&&!navigation.sourceId&&!navigation.geographyId&&<Breadcrumb items={[{label:'Settings'},{label:adminViewLabels[navigation.view]},...(manualView?[{label:'Manual runs'}]:[])]}/>}
       {notice && (
@@ -488,7 +492,7 @@ export default function AdminScreen({
           onMore={() => void loadMore()} onEdit={(s) => { void edit(s); }}
           onAction={(s, a) => void scheduleAction(s, a)} busy={busy} />
       </div>
-      <div hidden={!!scheduleEditor||navigation.section!=='manual'||!!selected} ref={manualRef} tabIndex={-1} className="admin-navigation-section" aria-label="Manual runs">
+      {role.manage_sources&&<div hidden={!!scheduleEditor||!manualView||!!selected} ref={manualRef} tabIndex={-1} className="admin-navigation-section" aria-label="Manual runs">
       {editor && (
         <div className="admin-editor-banner">
           <strong>
@@ -577,8 +581,10 @@ export default function AdminScreen({
       />
       </div>
       </div>
+      }
       {navigation.view==='stats'&&<div hidden={!!selected||!!scheduleEditor} ref={statsRef} tabIndex={-1} className="admin-navigation-section"><Analytics owner={owner} counties={counties}/></div>}
-      {(navigation.view==='sources'||navigation.view==='geography')&&<div hidden={!!selected||!!scheduleEditor} className="admin-navigation-section"><Catalog key={navigation.view} mode={navigation.view} owner={owner} counties={counties} sourceId={navigation.sourceId} geographyId={navigation.geographyId} onSource={id=>commitNavigation({view:'sources',sourceId:id,returnTo:'contracts'})} onGeography={id=>commitNavigation({view:'geography',geographyId:id,returnTo:'contracts'})} onState={()=>{navigate('schedules',true);requestAnimationFrame(()=>stateSourcesRef.current?.scrollIntoView?.({block:'start'}));}}/></div>}
+      {navigation.view==='attention'&&<div hidden={!!selected}><SourceStatus attention owner={owner} active={active&&!selected&&!scheduleEditor} onTechnicalDetails={(runId,requestId)=>{if(runId){returnFocus.current=document.activeElement as HTMLElement;commitNavigation({...navigation,runId,runSection:'logs',issueRequestId:requestId});}}}/></div>}
+      {(navigation.view==='sources'||navigation.view==='geography')&&(role.technical_details?<div hidden={!!selected||!!scheduleEditor} className="admin-navigation-section"><Catalog active={active&&!selected&&!scheduleEditor} key={navigation.view} mode={navigation.view} owner={owner} counties={counties} sourceId={navigation.sourceId} geographyId={navigation.geographyId} onSource={id=>commitNavigation({view:'sources',sourceId:id,returnTo:'contracts'})} onGeography={id=>commitNavigation({view:'geography',geographyId:id,returnTo:'contracts'})} onState={()=>{navigate('schedules',true);requestAnimationFrame(()=>stateSourcesRef.current?.scrollIntoView?.({block:'start'}));}}/></div>:<section><h2>Admin review required</h2><p>Technical source and geography details are managed by an Admin.</p><button className="text-button" onClick={()=>navigate('schedules')}>Back to schedules</button></section>)}
       <div hidden={!!scheduleEditor||navigation.view!=='history'&&!selected} ref={historyRef} tabIndex={-1} className="admin-navigation-section" aria-label="History and logs">
       <div hidden={!!selected}>{navigation.view==='history'&&<RunHistory entryId={navigation.historySearchId} active={active&&!selected&&!scheduleEditor} owner={owner} counties={counties} refreshSignal={revision} onView={viewRun} onSchedule={id=>commitNavigation({view:'schedules',scheduleId:id,section:'history',returnTo:'contracts'})}/>}</div>
       {selected && (
@@ -603,4 +609,8 @@ export default function AdminScreen({
       </div>
     </section></MetricNavigation></SettingsNavigation.Provider>
   );
+}
+
+export default function AdminScreen(props:Parameters<typeof SchedulingWorkspace>[0]){
+ return <SchedulingAccess key={props.owner} owner={props.owner} active={props.active}><SchedulingWorkspace {...props}/></SchedulingAccess>;
 }

@@ -21,7 +21,7 @@ export function sourceReviewItem(task,{source,geography,capability,review,revisi
    current:{task_id:latest.id,target_id:latest.target_id,state:latest.state,title:currentTitle,impact:currentImpact,observed_at:latest.updated_at??null},
    revision:currentRevision??revision,decision:review?.review_decision??'unreviewed',
    previous_decision:review?.review_decision??null,checks_excluded:excluded||review?.checks_excluded||false,
-   reviewed_at:review?.reviewed_at??null,responsibility:review?.review_decision==='needs_developer'?'Developer':'Admin',
+   reviewed_at:review?.reviewed_at??null,reviewed_by_label:review?.reviewed_by_label??null,responsibility:review?.review_decision==='needs_developer'?'Developer':'Admin',
    allowed_actions:['reviewed_no_results','reviewed_with_results','superseded'].includes(task.state)?[]:['provide_website','no_website','no_issue','wont_address','needs_developer'],
  };
 }
@@ -36,6 +36,9 @@ export function sourceReviewService(db){
   const targets=await rows(db,'procurement_request_targets',q=>q.eq('search_request_id',requestId),'id');
   const tasks=targets.length?await rows(db,'procurement_coverage_tasks',q=>q.in('target_id',targets.map(t=>t.id)),
    'id,target_id,route_geography_id,kind,state,updated_at,source_id,capability_id'):[];
+  return project(tasks,{includeReviewDetails});
+ }
+ async function project(tasks,{includeReviewDetails=false}={}){
   const sourceIds=[...new Set(tasks.map(t=>t.source_id).filter(Boolean))],geoIds=[...new Set(tasks.map(t=>t.route_geography_id))];
   const capIds=[...new Set(tasks.map(t=>t.capability_id).filter(Boolean))];
   const [sources,geographies,capabilities]=await Promise.all([
@@ -59,5 +62,12 @@ export function sourceReviewService(db){
   if(response.error?.code==='42501')throw new HttpError(403,'An Admin is required to review sources.');
   return checked(response);
  }
- return {list,decide,taskFor};
+ async function attention({reviewed=false,offset=0,limit=25}={}){
+  const page=checked(await db.rpc('procurement_source_attention_page',{p_reviewed:reviewed,p_offset:offset,p_limit:limit}));
+  const ids=page.items.map(i=>i.task_id);
+  const tasks=ids.length?await rows(db,'procurement_coverage_tasks',q=>q.in('id',ids),'id,target_id,route_geography_id,kind,state,updated_at,source_id,capability_id'):[];
+  const result=await project(tasks);
+  return {...page,items:page.items.map(i=>({...result.items.find(t=>t.task_id===i.task_id),request_id:i.request_id,run_id:i.run_id??null}))};
+ }
+ return {list,decide,taskFor,attention};
 }

@@ -24,7 +24,7 @@ it('shows last-run metrics, nested controls and focused details',async()=>{
  expect(screen.getByRole('menuitem',{name:'Delete'}).getAttribute('aria-disabled')).toBe('true');
  fireEvent.keyDown(screen.getByRole('menuitem',{name:'Pause'}),{key:'ArrowLeft'});
  fireEvent.click(screen.getByRole('menuitem',{name:'Details'}));
- expect(screen.getByRole('tab',{name:'Overview'})).toBeTruthy();expect(screen.queryByRole('table',{name:/Schedules/})).toBeNull();
+ expect(screen.getByRole('tab',{name:'Results'})).toBeTruthy();expect(screen.queryByRole('table',{name:/Schedules/})).toBeNull();
  fireEvent.click(screen.getByRole('button',{name:'Back to schedules'}));
  expect(screen.getByRole('button',{name:'Saline morning'})).toBeTruthy();
 });

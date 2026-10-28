@@ -6,7 +6,7 @@ export type SourceReviewItem={
  check:{state:string;observed_at:string|null;last_success_at:string|null};
  current?:{task_id:string;target_id:string;state:string;title:string;impact:string;observed_at:string|null};
  decision:SourceDecision;previous_decision:SourceDecision|null;checks_excluded:boolean;
- reviewed_at:string|null;responsibility:string;allowed_actions:string[];
+ reviewed_at:string|null;reviewed_by_label?:string|null;responsibility:string;allowed_actions:string[];
 };
 export type RepairStatus={job_id:string;state:string;kind:'website'|'listing';checked_at:string|null;
  can_apply_website:boolean;can_apply_method:boolean;needs_reconciliation:boolean;fixed:boolean;

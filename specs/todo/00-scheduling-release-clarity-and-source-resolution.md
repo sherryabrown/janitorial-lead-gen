@@ -2,11 +2,11 @@
 
 Created October 26, 2026. Planning only; no application behavior, permissions, database records, source settings or deployments are changed by this plan.
 
-## Build status — October 27, 2026
+## Build status — October 28, 2026
 
 The user authorized all three implementation phases, GitHub commits after each phase, and necessary Render/other deployments, with **no Netlify Production deployment**. Database changes are limited to procurement_* tables, with the subsequently approved narrow exception protecting profiles.role. The user confirmed no external writer to procurement_members and approved retiring it after lossless history preservation.
 
-Phase 1 is complete locally: [implementation and test record](../done/01-scheduling-roles-and-source-decisions.md), [table audit](../../docs/reviews/2026-10-26-procurement-table-purpose-audit.md), [permission matrix](../../docs/reviews/2026-10-27-scheduling-permission-matrix.md). Phase 2, phase 3 and coordinated live release acceptance remain open. No live migration or deployment has been applied at this checkpoint. Historical planning statements below describe the original planning boundary; the execution authorization above governs this build.
+Phase 1 is complete locally and pushed as `ad4f5b3`: [implementation and test record](../done/01-scheduling-roles-and-source-decisions.md), [table audit](../../docs/reviews/2026-10-26-procurement-table-purpose-audit.md), [permission matrix](../../docs/reviews/2026-10-27-scheduling-permission-matrix.md). Phase 2 is complete locally and pushed as `eadb174`. Phase 3 implementation and automated acceptance are recorded in [phase 3](03-scheduling-workspaces-and-release-acceptance.md); the isolated [dev preview](../../docs/reviews/2026-10-28-scheduling-dev-preview.md) is prepared for actual User/Admin testing. No live migration or deployment has been applied. The user reaffirmed the prohibition on Netlify Production deployment. The parent and phase 3 remain in todo for the agreed human acceptance, a clean final full UI rerun following host deadline failures, and authorized coordinated live release gates; they move to done once those are satisfied. Historical planning statements below describe the original planning boundary; the execution authorization above governs this build.
 
 ## Initiating prompt and confirmed requirements
 

@@ -10,8 +10,9 @@
     "lint": "eslint .",
     "test": "npm run test:app && npm run test:workflow && npm run test:sql",
     "preview": "vite preview --host 127.0.0.1",
+    "preview:scheduling": "node tests/integration/local-access.mjs --preview",
     "test:app": "vitest run",
-    "test:workflow": "node --import ./tests/offline-only.mjs --test tests/*.test.mjs",
+    "test:workflow": "node --import ./tests/offline-only.mjs --test-concurrency=2 --test tests/*.test.mjs",
     "test:sql": "node --import ./tests/offline-only.mjs tests/intake-processing-sql.mjs && node --import ./tests/offline-only.mjs tests/sam-upsert-sql.mjs",
     "typecheck": "tsc -b",
     "check": "npm run lint && npm test && npm run build",
@@ -45,7 +46,8 @@
     "eslint-plugin-react-refresh": "^0.4.9",
     "globals": "^15.9.0",
     "supabase": "2.118.0",
-    "vitest": "^5.0.1"
+    "vitest": "^5.0.1",
+    "esbuild": "0.28.2"
   },
   "engines": {
     "node": ">=22.15.0"

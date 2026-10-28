@@ -1,6 +1,7 @@
 import { schedulerAuthorization } from './procurement-schedules.mjs';
 import { createServer } from 'node:http';
 import {requireCapability,businessResponse} from './procurement-capabilities.mjs';
+import {scheduleSourceSetup} from './scheduling-presentation.mjs';
 import {sourceReviewService} from './source-decisions.mjs';
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 export class HttpError extends Error {constructor(status,message){super(message);this.status=status;}}
@@ -55,7 +56,12 @@ export function workflowServer({authenticate,capabilities:readCapabilities,workf
       const wakeRelated=async()=>{if(!sourceReviewOnly&&triggers&&segments[1]==='requests'&&uuid.test(segments[2]??''))await triggers.wake(segments[2]);};
       let result;
       const execute=async()=>{
-      if(db&&segments[1]==='requests'&&uuid.test(segments[2]??'')&&segments[3]==='source-status'&&segments.length===4&&request.method==='GET'){
+      if(db&&url.pathname==='/v1/source-reviews'&&request.method==='GET'){
+        const offset=Number(url.searchParams.get('offset')??0),limit=Number(url.searchParams.get('limit')??25);
+        if(!Number.isInteger(offset)||offset<0||offset>10000||!Number.isInteger(limit)||limit<1||limit>100||!['false','true'].includes(url.searchParams.get('reviewed')??'false'))throw new HttpError(400,'Invalid source review filters');
+        result=await sourceReviewService(db).attention({offset,limit,reviewed:url.searchParams.get('reviewed')==='true'});
+      }
+      else if(db&&segments[1]==='requests'&&uuid.test(segments[2]??'')&&segments[3]==='source-status'&&segments.length===4&&request.method==='GET'){
         result=await sourceReviewService(db).list(segments[2]);
         if(capabilities?.role==='user')result={...result,items:result.items.map(item=>({...item,allowed_actions:['view_status']}))};
       }
@@ -98,6 +104,7 @@ export function workflowServer({authenticate,capabilities:readCapabilities,workf
         else if(uuid.test(segments[2]??'')) {
           const id=segments[2];
           if(segments.length===3&&request.method==='GET')result=await schedules.get(id);
+          else if(segments.length===4&&segments[3]==='sources'&&request.method==='GET'&&catalog&&db)result=await scheduleSourceSetup(db,catalog,id,{offset,limit});
           else if(segments.length===4&&segments[3]==='activity'&&request.method==='GET'){try{result=await schedules.activity(id,{offset,limit,...Object.fromEntries(['run','target','geography','origin','outcome','from','through','kind','attempt_state','as_of'].filter(k=>url.searchParams.has(k)).map(k=>[k,url.searchParams.get(k)]))});}catch(error){if(/^Invalid/.test(error.message))throw new HttpError(400,'Invalid activity filters');throw error;}}
           else if(segments.length===4&&['occurrences','events'].includes(segments[3])&&request.method==='GET')result=await schedules[segments[3]](id,{offset,limit});
           else if(segments.length===4&&segments[3]==='update'&&request.method==='POST')result=await schedules.save(id,input,actor,null);

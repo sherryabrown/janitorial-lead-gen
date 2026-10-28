@@ -100,7 +100,7 @@ export const activeRun = (state: string) =>
   ['pending', 'running'].includes(state);
 export const hasSourceAttention = (run: Run) => run.target_kind === 'county_scope' &&
   ['needs_review', 'partial', 'completed'].includes(run.state) && run.presentation?.outcome === 'source_attention';
-export const runLabel = (run: Run) => hasSourceAttention(run) ? 'Finished — some sources need attention' : title(run.state);
+export const runLabel = (run: Run) => hasSourceAttention(run) ? 'Finished with source gaps' : ({pending:'Queued',running:'Checking sources',completed:'Run finished',cancelled:'Run stopped',partial:'Run incomplete',needs_review:'Results need review',failed:'Run could not finish',blocked:'Run needs review',outcome_unknown:'Results need confirmation'}[run.state]??'Run status unavailable');
 export function invalidDraft(d: Draft, schedule = false) {
   if (!d.config.county_ids.length) return 'Select at least one county.';
   if (

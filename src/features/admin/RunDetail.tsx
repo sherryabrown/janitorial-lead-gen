@@ -1,3 +1,5 @@
+import {useSchedulingRole} from './scheduling-role';
+import {SourceStatus} from './SourceStatus';
 import type {AdminContext} from './navigation';
 import {runBreadcrumbs} from './run-breadcrumbs';
 import {Breadcrumb} from './Breadcrumb';
@@ -21,7 +23,7 @@ export function RunDetail({
   onClose,
   onViewLeads,
   onSource,
-  changed,
+  changed,onSourceChanged,
   section:requestedSection,onSection,embedded=false,active:workspaceActive=true,expectedScheduleId,
 }: {
   id: string;
@@ -31,11 +33,13 @@ export function RunDetail({
   onClose: () => void;
   onViewLeads: () => void;
   onSource: (id: string) => void;
-  changed: () => void;
+  changed: () => void;onSourceChanged?:()=>void;
   embedded?:boolean;active?:boolean;expectedScheduleId?:string;
   section?:'overview'|'logs'|'sources';onSection?:(section:'overview'|'logs'|'sources')=>void;
 }) {
+  const role=useSchedulingRole();
   const active=useActiveRead(workspaceActive);
+  const [validationOpen,setValidationOpen]=useState(false),[validationVisited,setValidationVisited]=useState(false);
   const [sessionBlocked,setSessionBlocked]=useState(false);
   const [run, setRun] = useState<Run | null>(null),
     [child, setChild] = useState(''),
@@ -46,12 +50,11 @@ export function RunDetail({
   const resultsState=useCallback((value:{busy:boolean;error:string})=>setResultsRead(value),[]);
   const runRef=useRef<Run|null>(null);
   const [localSection,setLocalSection]=useState<'overview'|'logs'|'sources'>('overview');
-  const section=requestedSection??localSection;
-  const logs=useRunLogs(id,owner,active&&!sessionBlocked&&section==='logs'&&(!expectedScheduleId||run?.schedule_id===expectedScheduleId),run?.state);
+  const desiredSection=requestedSection??localSection;
+  const section=desiredSection==='logs'&&!role.technical_details?'overview':desiredSection;
+  const logs=useRunLogs(id,owner,active&&role.technical_details&&!sessionBlocked&&section==='logs'&&(!expectedScheduleId||run?.schedule_id===expectedScheduleId),run?.state);
   const {steps,cursor}=logs;
   const logsError=section==='logs'?logs.error:'';
-  const [resultsVisited,setResultsVisited]=useState(!embedded||section!=='logs');
-  useEffect(()=>{if(!embedded||section!=='logs')setResultsVisited(true);},[embedded,section]);
   const attributes=useRef<HTMLDetailsElement>(null);
   useEffect(()=>{if(attributes.current)attributes.current.open=false;},[id]);
   const heading=useRef<HTMLHeadingElement>(null),lastId=useRef('');
@@ -86,7 +89,7 @@ export function RunDetail({
     return()=>{abort.abort();clearTimeout(timer);};
   },[id,refresh,owner,active,expectedScheduleId,issueRequestId]);
   const hasRun=!!run;
-  useEffect(()=>{if(!embedded)heading.current?.focus();},[id,section,hasRun,embedded]);
+  useEffect(()=>{if(!embedded&&section!=='logs')heading.current?.focus();},[id,section,hasRun,embedded]);
   const control = async (action: string) => {
     setBusy(true);
     try {
@@ -113,9 +116,9 @@ export function RunDetail({
       aria-label="Run details"
       tabIndex={-1}
     >
-      <Breadcrumb items={[...(origin?runBreadcrumbs(origin,run,onNavigate):(embedded?[]:[{label:'Settings'},{label:'Runs'}])),{label:`Run ${id}`},{label:section==='overview'?'Issues':title(section)}]}/>
+      <Breadcrumb items={[...(origin?runBreadcrumbs(origin,run,onNavigate):(embedded?[]:[{label:'Settings'},{label:'Runs'}])),{label:run?formatLocal(run.created_at):'Saved run'},{label:section==='overview'?'Results':section==='logs'?'Technical details':'Sources'}]}/>
       <div className="admin-section-heading run-detail-heading">
-        {embedded?<h4>{run?formatLocal(run.created_at):'Created time unavailable'}<small className="run-heading-identity">Run {id}</small></h4>:<h2 ref={heading} tabIndex={-1}>{run?formatLocal(run.created_at):'Created time unavailable'}<small className="run-heading-identity">Run {id}</small></h2>}
+        {embedded?<h4>{run?formatLocal(run.created_at):'Created time unavailable'}</h4>:<h2 ref={heading} tabIndex={-1}>{run?formatLocal(run.created_at):'Created time unavailable'}</h2>}
         {!embedded&&<button type="button" className="text-button" onClick={onClose}>Back to previous view</button>}
       </div>
       <small className="run-history-caption">Created time · America/Chicago</small>
@@ -126,7 +129,7 @@ export function RunDetail({
       )}
       {!owned&&<ReadAction scope="run" busy={readBusy||(section==='logs'?logs.busy:resultsRead.busy)} loaded={!!run||steps.length>0} error={!!statusError||!!logsError||(section!=='logs'&&!!resultsRead.error)} onRead={read}/>}
       {statusError&&<p role="alert">{statusError}</p>}{logsError&&<p role="alert">{logsError}</p>}
-      {run&&<>          <details ref={attributes} className="run-attributes"><summary>Run attributes</summary><dl className="admin-facts"><dt>Status</dt><dd>{runLabel(run)}</dd><dt>Next action</dt><dd>{run.next_action}</dd><dt>Origin</dt><dd>{title(run.origin)}</dd><dt>Created</dt><dd>{formatLocal(run.created_at)}</dd><dt>Finished</dt><dd>{run.finished_at?formatLocal(run.finished_at):'Unknown'}</dd><dt>Recorded activity</dt><dd>{duration(run.reporting?.timing?.recorded_activity_ms)}{run.reporting?.timing?.completeness==='partial'?' · partial intervals':''}{run.reporting?.timing?.reason&&<small>{run.reporting.timing.reason}</small>}</dd><dt>Created → finished</dt><dd>{duration(run.reporting?.timing?.created_to_finished_ms)}</dd><dt>AI usage</dt><dd>{usageText(run.usage)}</dd><dt>New / updated / unchanged</dt><dd>{run.reporting?.leads?.completeness==='known'?<>{(['added','updated','unchanged'] as const).map(k=><span key={k}><RunLeadCount id={run.id} snapshot={run.reporting?.identity_snapshot} metric={k} value={run.reporting?.leads?.[k]} identity={run.reporting?.leads?.identities!==false}>{run.reporting?.leads?.[k]} {k==='added'?'new':k}</RunLeadCount>{' '}</span>)}</>:run.reporting?.leads?.completeness==='not_applicable'?'Not applicable':'Unknown'}</dd><dt>Category breakdown</dt><dd>{run.reporting?.categories?.completeness==='known'?<>{(['forecast','opportunity','award'] as const).map(k=><span key={k}><RunLeadCount id={run.id} snapshot={run.reporting?.identity_snapshot} metric={k} value={run.reporting?.categories?.[k]}>{run.reporting?.categories?.[k]} {k}</RunLeadCount>{' '}</span>)}(<RunLeadCount id={run.id} snapshot={run.reporting?.identity_snapshot} metric="historical_opportunities" value={run.reporting.categories.historical_opportunity}>{run.reporting.categories.historical_opportunity??'Unknown'} historical</RunLeadCount>)</>:run.reporting?.categories?.reason??'Historical category attribution unavailable'}</dd><dt>Validation issues</dt><dd>{run.reporting?.candidates_attention?.value!=null?<RunLeadCount id={run.id} snapshot={run.reporting.identity_snapshot} metric="candidates_attention" value={run.reporting.candidates_attention.value}/>: 'Unknown · inspect saved validation issues'}</dd><dt>Source checks needing attention</dt><dd>{run.presentation?.outcome==='source_attention'?<button type="button" className="text-button" onClick={()=>{setLocalSection('sources');onSection?.('sources');}}>{run.presentation.attention_count} · View saved source checks</button>:'See saved source checks'}</dd></dl>          <details>
+      {run&&role.technical_details&&<>          <details ref={attributes} className="run-attributes"><summary>Run attributes</summary><dl className="admin-facts"><dt>Status</dt><dd>{runLabel(run)}</dd><dt>Next action</dt><dd>{run.next_action}</dd><dt>Origin</dt><dd>{title(run.origin)}</dd><dt>Created</dt><dd>{formatLocal(run.created_at)}</dd><dt>Finished</dt><dd>{run.finished_at?formatLocal(run.finished_at):'Unknown'}</dd><dt>Recorded activity</dt><dd>{duration(run.reporting?.timing?.recorded_activity_ms)}{run.reporting?.timing?.completeness==='partial'?' · partial intervals':''}{run.reporting?.timing?.reason&&<small>{run.reporting.timing.reason}</small>}</dd><dt>Created → finished</dt><dd>{duration(run.reporting?.timing?.created_to_finished_ms)}</dd><dt>AI usage</dt><dd>{usageText(run.usage)}</dd><dt>New / updated / unchanged</dt><dd>{run.reporting?.leads?.completeness==='known'?<>{(['added','updated','unchanged'] as const).map(k=><span key={k}><RunLeadCount id={run.id} snapshot={run.reporting?.identity_snapshot} metric={k} value={run.reporting?.leads?.[k]} identity={run.reporting?.leads?.identities!==false}>{run.reporting?.leads?.[k]} {k==='added'?'new':k}</RunLeadCount>{' '}</span>)}</>:run.reporting?.leads?.completeness==='not_applicable'?'Not applicable':'Unknown'}</dd><dt>Category breakdown</dt><dd>{run.reporting?.categories?.completeness==='known'?<>{(['forecast','opportunity','award'] as const).map(k=><span key={k}><RunLeadCount id={run.id} snapshot={run.reporting?.identity_snapshot} metric={k} value={run.reporting?.categories?.[k]}>{run.reporting?.categories?.[k]} {k}</RunLeadCount>{' '}</span>)}(<RunLeadCount id={run.id} snapshot={run.reporting?.identity_snapshot} metric="historical_opportunities" value={run.reporting.categories.historical_opportunity}>{run.reporting.categories.historical_opportunity??'Unknown'} historical</RunLeadCount>)</>:run.reporting?.categories?.reason??'Historical category attribution unavailable'}</dd><dt>Validation issues</dt><dd>{run.reporting?.candidates_attention?.value!=null?<RunLeadCount id={run.id} snapshot={run.reporting.identity_snapshot} metric="candidates_attention" value={run.reporting.candidates_attention.value}/>: 'Unknown · inspect saved validation issues'}</dd><dt>Source checks needing attention</dt><dd>{run.presentation?.outcome==='source_attention'?<button type="button" className="text-button" onClick={()=>{setLocalSection('sources');onSection?.('sources');}}>{run.presentation.attention_count} · View saved source checks</button>:'See saved source checks'}</dd></dl>          <details>
             <summary>
               Saved scope ·{' '}
               {run.config?.target_kind === 'sam'
@@ -165,14 +168,14 @@ export function RunDetail({
             </details>
           )}
           </details></>}
-          {!embedded&&<nav className="admin-workspace-nav detail-sections" aria-label="Run sections">{(['overview','logs','sources'] as const).map(value=><button key={value} type="button" className="text-button" aria-current={section===value?'page':undefined} onClick={()=>{setLocalSection(value);onSection?.(value);}}>{value==='overview'?'Issues':title(value)}</button>)}</nav>}
+          {!embedded&&<nav className="admin-workspace-nav detail-sections" aria-label="Run sections">{(['overview','sources'] as const).map(value=><button key={value} type="button" className="text-button" aria-current={section===value?'page':undefined} onClick={()=>{setLocalSection(value);onSection?.(value);}}>{value==='overview'?'Results':title(value)}</button>)}</nav>}
       {run && (
         <>
 
 
-          {section==='overview'&&<section className="run-issue-status" aria-label="Execution status"><h3>Execution</h3><strong>{runLabel(run)}</strong><span>{run.next_action??(activeRun(run.state)?'Work is still in progress.':'Inspect saved source and validation results below; absence of issues does not confirm complete coverage.')}</span></section>}
+          {section==='overview'&&<section className="run-issue-status" aria-label="Run results"><h3>{runLabel(run)}</h3><p>{activeRun(run.state)?'Checking sources. Results are still being collected; totals may change.':run.presentation?.outcome==='source_attention'?'Some websites were not fully checked. Saved leads are available. An Admin manages source repairs.':run.state==='outcome_unknown'?'A saved operation needs to be checked before final totals can be confirmed. An Admin manages reconciliation; existing leads remain available.':run.state==='cancelled'?'Run stopped. Saved results remain available; some checks may be incomplete.':'Review the saved results below. Missing totals do not mean zero leads or complete source coverage.'}</p><p>{run.reporting?.leads?.completeness==='known'?<>{(['added','updated','unchanged'] as const).map(k=><span key={k}><RunLeadCount id={run.id} snapshot={run.reporting?.identity_snapshot} metric={k} value={run.reporting?.leads?.[k]} identity={run.reporting?.leads?.identities!==false}>{run.reporting?.leads?.[k]} {k==='added'?'new':k}</RunLeadCount>{' '}</span>)}</>:'Final lead totals are not confirmed for this run.'}</p></section>}
           <div className="admin-inline">
-            {activeRun(run.state) && (
+            {role.technical_details&&activeRun(run.state) && (
               <button
                 type="button"
                 className="secondary-button compact"
@@ -182,7 +185,7 @@ export function RunDetail({
                 Stop run
               </button>
             )}
-            {['cancelled', 'partial'].includes(run.state) && (
+            {role.technical_details&&['cancelled', 'partial'].includes(run.state) && (
               <button
                 type="button"
                 className="secondary-button compact"
@@ -194,7 +197,7 @@ export function RunDetail({
             )}
             <button
               type="button"
-              className="text-button"
+              className="primary-button compact"
               onClick={onViewLeads}
             >
               View leads
@@ -218,25 +221,15 @@ export function RunDetail({
               ))}
             </select>
           </label>
-          {child && (!embedded||resultsVisited) && (
-            <RequestReview
-              key={child}
-              embedded
-              active={active&&section!=='logs'}
-              presentation={section==='sources'?'sources':'issues'}
-              leadNavigationOwned={embedded}
-              onReadState={resultsState}
-              refreshSignal={`${run.state}:${resultRevision}`}
-              id={child}
-              owner={owner}
-              sam={run.target_kind === 'sam'}
-              onViewLeads={onViewLeads}
-            />
-          )}
+          {child&&<div hidden={section!=='sources'}><SourceStatus key={child} requestId={child} owner={owner} onChanged={onSourceChanged} active={active&&section==='sources'} onTechnicalDetails={()=>{setLocalSection('logs');onSection?.('logs');}}/></div>}
+          {child&&section==='overview'&&<button className="text-button" onClick={()=>{setLocalSection('sources');onSection?.('sources');}}>View source status</button>}
+          {child&&role.technical_details&&<div hidden={section!=='overview'}><details open={validationOpen} onToggle={e=>{setValidationOpen(e.currentTarget.open);if(e.currentTarget.open)setValidationVisited(true);}}><summary>Technical validation and import review</summary>{validationVisited&&<RequestReview key={child} embedded active={active&&section==='overview'&&validationOpen} presentation="issues" leadNavigationOwned={embedded} onReadState={resultsState} refreshSignal={run.state+':'+resultRevision} id={child} owner={owner} sam={run.target_kind==='sam'} onViewLeads={onViewLeads}/>}</details></div>}
+          {role.technical_details&&!embedded&&<details open={section==='logs'} onToggle={e=>{if(e.currentTarget.open&&section!=='logs'){setLocalSection('logs');onSection?.('logs');}else if(!e.currentTarget.open&&section==='logs'){setLocalSection('overview');onSection?.('overview');}}}><summary>Technical details for this run</summary><p>Step evidence appears below. Historical facts remain unchanged by current source repairs.</p></details>}
+
           </div>
         </>
       )}
-      <div hidden={section!=='logs'}><RunStepLog steps={steps} run={run} cursor={cursor} onMore={()=>void more()}/></div>
+      <div hidden={section!=='logs'||!role.technical_details}><RunStepLog steps={steps} run={run} cursor={cursor} onMore={()=>void more()} active={active&&role.technical_details&&section==='logs'}/></div>
       {!run&&section==='sources'&&<p>Saved source scope is unavailable. Use the run read control above.</p>}
     </section>
   );

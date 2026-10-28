@@ -135,7 +135,10 @@ export function procurementSchedules({db,triggers,now=()=>new Date()}) {
   async function status() {return rpc('procurement_scheduler_status',{});}
   async function events(id,{offset=0,limit=50}={}) {
     if(!await one(db,'procurement_schedules',id))throw Error('Schedule not found');const data=checked(await db.from('procurement_schedule_events').select('id,actor_id,action,version,at,summary').eq('schedule_id',id).order('at',{ascending:false}).order('id').range(offset,offset+limit));
-    return {items:data.slice(0,limit).map(e=>({...scheduleEvent(e),action:['created','edited','pause','resume','archive','delete','owner_inactive','queued','skipped','blocked'].includes(e.action)?e.action:'saved_event',summary:{occurrence_id:publicId(e.summary?.occurrence_id),reason:publicReason(e.summary?.reason)}})),next_offset:data.length>limit?offset+limit:null};
+    const actors=[...new Set(data.slice(0,limit).map(e=>e.actor_id).filter(Boolean))];let profiles=[];
+    // Only display names, never profile emails or unrelated personal fields.
+    if(actors.length)try{profiles=checked(await db.from('profiles').select('user_id,first_name,last_name').in('user_id',actors));}catch{/* Historical actor labels can be unavailable. */}
+    return {items:data.slice(0,limit).map(e=>({...scheduleEvent(e),actor_label:profiles.find(p=>p.user_id===e.actor_id)?[profiles.find(p=>p.user_id===e.actor_id).first_name,profiles.find(p=>p.user_id===e.actor_id).last_name].filter(Boolean).join(' ').slice(0,120)||'Team member':null,action:['created','edited','pause','resume','archive','delete','owner_inactive','queued','skipped','blocked'].includes(e.action)?e.action:'saved_event',summary:{occurrence_id:publicId(e.summary?.occurrence_id),reason:publicReason(e.summary?.reason)}})),next_offset:data.length>limit?offset+limit:null};
   }
   return {activity:scheduleActivity(db,{now}),preview,save,get,list,occurrences,events,control,runNow,tick,status,history:adminRunHistory(db),analytics:adminAnalytics(db,{now})};
 }

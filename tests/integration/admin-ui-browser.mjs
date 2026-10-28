@@ -16,6 +16,10 @@ import {analyticsFixture} from '../helpers/analytics-fixture.mjs';
 import { chromium } from 'playwright';
 import { spawn } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
+if(process.argv.includes('--scheduling-release')){
+  await import('./scheduling-preview-browser.mjs');
+  process.exit(0);
+}
 const executionMetrics=process.argv.includes('--execution-metrics');
 const port=process.env.ADMIN_UI_TEST_PORT||'5181';
 const origin = `http://127.0.0.1:${port}`,
@@ -186,7 +190,8 @@ try {
         input = req.postDataJSON();
       if (req.method() === 'POST')
         bodies.push({ path: p, input, key: req.headers()['idempotency-key'] });
-      if (p === '/v1/counties')
+      if (p === '/v1/capabilities')body={role:'admin',manage_schedules:true,manage_sources:true,technical_details:true};
+      else if (p === '/v1/counties')
         body = {
           counties: asset.counties.map((c) => ({
             id: c.id,

@@ -4,6 +4,7 @@ import {Readable} from 'node:stream';
 import {workflowServer} from '../../scripts/lib/workflow-http.mjs';
 import {profileCapabilities} from '../../scripts/lib/procurement-capabilities.mjs';
 import {verifyGuidedRepair} from './guided-repair-db.mjs';
+import {verifySourceEntryLineage} from './source-entry-lineage-db.mjs';
 
 export async function verifyReleaseRoles({pool,rehearsalPool,db,api,first,second,userToken,adminToken}){
  await pool.query(`create type public.app_role as enum ('user','admin');
@@ -33,6 +34,7 @@ export async function verifyReleaseRoles({pool,rehearsalPool,db,api,first,second
  assert.equal((await api(`profiles?user_id=eq.${first}`,userToken,{role:'admin'},'PATCH')).status,403);
  assert.equal((await api('procurement_sources?select=*&limit=1',userToken)).body.length,0);
  const labels=await api('procurement_source_labels?select=*&limit=1',userToken);assert.equal(labels.status,200);assert.ok(labels.body.length);
+ assert.ok(['id','name','url','contracting_entity_geo_level','source_coverage_areas'].every(key=>Object.hasOwn(labels.body[0],key)),'Users retain the Bid website summary fields');
  assert.ok((await api('procurement_sources?select=id&limit=1',adminToken)).body.length);
  assert.equal((await api('rpc/record_procurement_source_decision',userToken,{p_actor:second,p_task:first,p_version:0,p_decision:'no_issue',p_reason:'spoof',p_key:'spoof-admin-key',p_revision:'spoof'})).status,403);
  const {rows:[task]}=await pool.query(`insert into procurement_coverage_tasks(target_id,task_key,agency_scope,route_geography_id,kind,
@@ -59,10 +61,24 @@ export async function verifyReleaseRoles({pool,rehearsalPool,db,api,first,second
  const legacy=(await pool.query('delete from procurement_members where user_id=$1 returning id,user_id',[second])).rows;
  assert.equal((await profileCapabilities(db,second)).manage_sources,true);
  if(rehearsalPool)console.log('Guided source repair native acceptance:',await verifyGuidedRepair({pool,rehearsalPool,db,actor:second}));
+ await pool.query(readFileSync('supabase/migrations/20261028000100_procurement_source_attention.sql','utf8'));
+ const entryTransaction=await pool.connect();
+ try{
+  await entryTransaction.query('begin');
+  const entryBasis=(await entryTransaction.query("select id from procurement_coverage_tasks where kind='opportunity' and route_geography_id='05001' limit 1")).rows[0];
+  assert.ok(entryBasis);await verifySourceEntryLineage({sql:entryTransaction,actor:second,opportunityId:entryBasis.id});
+ }finally{await entryTransaction.query('rollback');entryTransaction.release();}
+ await pool.query("notify pgrst, 'reload schema'");
+ for(let n=0;n<40;n++){const value=await db.rpc('procurement_source_attention_page',{});if(!value.error)break;await new Promise(r=>setTimeout(r,100));}
+ if(rehearsalPool)console.log('First source method native acceptance:',await verifyGuidedRepair({pool,rehearsalPool,db,actor:second,noMethod:true}));
+ const queue=(await pool.query('select procurement_source_attention_page(false,0,25) as p')).rows[0].p;
+ assert.ok(Array.isArray(queue.items));assert.ok(queue.items.every(i=>i.task_id&&i.request_id));
+ assert.ok([401,403].includes((await api('rpc/procurement_source_attention_page',userToken,{})).status),'Direct User queue read is denied');
  for(const row of legacy)await pool.query('insert into procurement_members(id,user_id) values($1,$2)',[row.id,row.user_id]);
  const originalMemberships=(await pool.query('select * from procurement_members order by id')).rows;
  await pool.query(readFileSync('supabase/migrations/20261026000500_retire_procurement_members.sql','utf8'));
  assert.equal((await pool.query("select to_regclass('public.procurement_members') as name")).rows[0].name,null);
+ assert.equal((await pool.query("select count(*)::int as n from pg_tables where schemaname='public' and tablename like 'procurement\\_%' escape '\\'")).rows[0].n,41,'Final purpose manifest has 41 procurement base tables and no duplicate issue storage');
  const archived=(await pool.query("select detail->'record' as record from procurement_events where event_type='legacy_procurement_membership_archived' order by detail->'record'->>'id'")).rows.map(r=>r.record);
  assert.deepEqual(archived,originalMemberships);
  assert.equal((await pool.query("select count(*)::int as n from pending_procurement_events('native-external-consumer',1000) where event_type like 'source_review_%' or event_type='legacy_procurement_membership_archived'")).rows[0].n,0);

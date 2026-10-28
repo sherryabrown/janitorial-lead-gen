@@ -1,6 +1,7 @@
+import {renderAdmin as render} from '../../../tests/helpers/render-admin';
 // @vitest-environment jsdom
 import {afterEach,expect,it,vi} from 'vitest';
-import {cleanup,fireEvent,render,screen,within} from '@testing-library/react';
+import {cleanup,fireEvent,screen,within} from '@testing-library/react';
 import {RequestReview} from './RequestReview';
 import {RunDetail} from './RunDetail';
 import {ScheduleHistory} from './ScheduleHistory';
@@ -31,7 +32,7 @@ it('uses origin breadcrumbs without inventing a schedule relationship and keeps 
  expect(runBreadcrumbs({view:'schedules',section:'manual',returnTo:'contracts'},null).map(c=>c.label)).toEqual(['Settings','Schedules','Manual runs']);
  request.mockImplementation(async(p:string)=>p.endsWith('/steps')?{items:[],next_cursor:null}:{id:'run',schedule_id:'different',schedule_name:'Other schedule',created_at:'2026-10-22T14:00:00Z',state:'pending',target_kind:'county_scope',children:[]});
  render(<RunDetail id="run" owner="owner" origin={{view:'history',scheduleId:'unverified',returnTo:'contracts'}} section="overview" onClose={()=>{}} onViewLeads={()=>{}} onSource={()=>{}} changed={()=>{}}/>);
- const heading=await screen.findByRole('heading',{name:/Run run/});expect(heading.textContent).toMatch(/^Oct 22.*Run run$/);expect(heading.querySelector('.run-heading-identity')?.textContent).toBe('Run run');const breadcrumb=screen.getByRole('navigation',{name:'Breadcrumb'});expect(breadcrumb.textContent).toContain('History / logs');expect(breadcrumb.textContent).toContain('Issues');expect(breadcrumb.textContent).not.toContain('Other schedule');expect(breadcrumb.textContent).not.toContain('unverified');expect(screen.getByText('Run attributes').closest('details')?.open).toBe(false);expect(screen.getByRole('button',{name:'Stop run'})).toBeTruthy();
+ const heading=await screen.findByRole('heading',{name:/Oct 20|Oct 22|Oct 19/});expect(heading.textContent).toMatch(/^Oct 22/);expect(heading.querySelector('.run-heading-identity')).toBeNull();const breadcrumb=screen.getByRole('navigation',{name:'Breadcrumb'});expect(breadcrumb.textContent).toContain('Run history');expect(breadcrumb.textContent).toContain('Results');expect(breadcrumb.textContent).not.toContain('Other schedule');expect(breadcrumb.textContent).not.toContain('unverified');expect(screen.getByText('Run attributes').closest('details')?.open).toBe(false);expect(screen.getByRole('button',{name:'Stop run'})).toBeTruthy();
 });
 it('does not offer a research retry for an explicitly manual-only legacy source barrier',async()=>{
  request.mockResolvedValue({tasks:[task],jobs:[],candidates:[],total_candidates:0,next_offset:null});

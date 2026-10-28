@@ -1,7 +1,8 @@
+import {renderAdmin as render} from '../../../tests/helpers/render-admin';
 // @vitest-environment jsdom
 import {useState} from 'react';
 import {afterEach,beforeEach,expect,it,vi} from 'vitest';
-import {act,cleanup,fireEvent,render,screen,waitFor,within} from '@testing-library/react';
+import {act,cleanup,fireEvent,screen,waitFor,within} from '@testing-library/react';
 import {RunHistory} from './RunHistory';
 import {ScheduleDetail,type ScheduleSection} from './ScheduleDetail';
 import {RunDetail} from './RunDetail';
@@ -32,11 +33,11 @@ it('provides all detail sections, saved geography, honest metrics and archived c
  render(<Fixture/>);await screen.findByRole('heading',{name:'Renamed county checks'});
  expect(screen.getByRole('button',{name:'Run now'})).toHaveProperty('disabled',true);
  const nav=screen.getByRole('tablist',{name:'Schedule sections'});
- fireEvent.click(within(nav).getByRole('tab',{name:'Related geography'}));expect(screen.getByText('Benton')).toBeTruthy();
- fireEvent.click(within(nav).getByRole('tab',{name:'Sources'}));expect(screen.getByRole('heading',{name:'Saved run evidence'})).toBeTruthy();
- fireEvent.click(within(nav).getByRole('tab',{name:'Logs'}));expect(screen.getByRole('heading',{name:'Run logs'})).toBeTruthy();
- fireEvent.click(within(nav).getByRole('tab',{name:'Overview'}));const runs=screen.getByRole('region',{name:'Schedule runs'});await within(runs).findByRole('button',{name:/Run run$/});fireEvent.click(within(runs).getByRole('button',{name:/Run run$/}));expect(view).toHaveBeenCalledWith('run','overview');
- fireEvent.click(within(nav).getByRole('tab',{name:'Overview'}));expect(screen.getByText('Schedule setup').closest('details')?.open).toBe(false);expect(screen.queryByText('Latest run · validated outcomes')).toBeNull();
+ expect(within(nav).getAllByRole('tab').map(t=>t.textContent)).toEqual(['Results','Sources','Schedule changes']);
+ fireEvent.click(screen.getByText('Schedule scope and setup'));expect(screen.getByText('Benton')).toBeTruthy();
+ fireEvent.click(within(nav).getByRole('tab',{name:'Sources'}));expect(screen.getByRole('heading',{name:'Current source setup'})).toBeTruthy();
+ fireEvent.click(within(nav).getByRole('tab',{name:'Results'}));expect(screen.getByRole('button',{name:'Run now'})).toHaveProperty('disabled',true);expect(view).not.toHaveBeenCalled();
+
 });
 it('keeps run progress visible when logs fail, retries reads and renders diagnostic references safely',async()=>{
  let failed=true;
@@ -45,8 +46,8 @@ it('keeps run progress visible when logs fail, retries reads and renders diagnos
   return run;
  });
  render(<RunDetail id="run" owner="owner" section="logs" onClose={()=>{}} onViewLeads={()=>{}} onSource={()=>{}} changed={()=>{}}/>);
- await screen.findByRole('heading',{name:/Run run/});expect(screen.getByText(/Step logs could not load/)).toBeTruthy();
- failed=false;fireEvent.click(screen.getByRole('button',{name:'Retry run'}));fireEvent.click(screen.getByRole('button',{name:'Logs'}));
+ await screen.findByRole('heading',{name:/Oct 20|Oct 22|Oct 19/});expect(screen.getByText(/Step logs could not load/)).toBeTruthy();
+ failed=false;fireEvent.click(screen.getByRole('button',{name:'Retry run'}));
  await screen.findByText('reference-id');expect(screen.getByText(/<script>unsafe/)).toBeTruthy();expect(document.querySelector('script')).toBeNull();
  expect(screen.getByText(/Finish unknown/)).toBeTruthy();expect(mocked.request.mock.calls.every(([,o])=>!o?.body)).toBe(true);
 });
@@ -96,6 +97,6 @@ it('keeps saved progress but stops active polling after session expiry',async()=
  vi.useFakeTimers();let reads=0;
  mocked.request.mockImplementation(async(path:string)=>{if(path.endsWith('/steps'))return {items:[],next_cursor:null};if(++reads>1)throw Object.assign(Error('Sign in again'),{code:'SESSION'});return {...run,state:'running'};});
  render(<RunDetail id="run" owner="owner" section="logs" onClose={()=>{}} onViewLeads={()=>{}} onSource={()=>{}} changed={()=>{}}/>);
- await act(async()=>{});await act(async()=>{await vi.advanceTimersByTimeAsync(3000);});expect(screen.getByText('Sign in again')).toBeTruthy();expect(screen.getByRole('heading',{name:/Run run/})).toBeTruthy();fireEvent.click(screen.getByText('Run attributes'));expect(screen.getByText('Running')).toBeTruthy();
+ await act(async()=>{});await act(async()=>{await vi.advanceTimersByTimeAsync(3000);});expect(screen.getByText('Sign in again')).toBeTruthy();expect(screen.getByRole('heading',{name:/Oct 20|Oct 22|Oct 19/})).toBeTruthy();fireEvent.click(screen.getByText('Run attributes'));expect(screen.getByText('Checking sources')).toBeTruthy();
  await act(async()=>{await vi.advanceTimersByTimeAsync(30000);});expect(reads).toBe(2);expect(mocked.request.mock.calls.every(([,o])=>!o?.body)).toBe(true);
 });

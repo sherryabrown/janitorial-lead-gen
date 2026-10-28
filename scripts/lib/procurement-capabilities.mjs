@@ -13,7 +13,7 @@ export async function profileCapabilities(db,userId) {
 export function scheduleBusinessRoute(method,path) {
   if(method==='GET'&&['/v1/capabilities','/v1/counties','/v1/state-triggers',
     '/v1/admin/analytics','/v1/admin/metric-members','/v1/admin/history'].includes(path))return true;
-  if(/^\/v1\/schedules(?:\/[a-f0-9-]{36}(?:\/(?:activity|occurrences|events|update|pause|resume|archive|delete|run-now))?|\/preview)?$/.test(path))return ['GET','POST'].includes(method);
+  if(/^\/v1\/schedules(?:\/[a-f0-9-]{36}(?:\/(?:activity|occurrences|events|sources|update|pause|resume|archive|delete|run-now))?|\/preview)?$/.test(path))return ['GET','POST'].includes(method);
   if(method==='GET'&&/^\/v1\/triggers(?:\/[a-f0-9-]{36})?$/.test(path))return true;
   if(method==='GET'&&/^\/v1\/requests\/[a-f0-9-]{36}\/source-status$/.test(path))return true;
   return false;

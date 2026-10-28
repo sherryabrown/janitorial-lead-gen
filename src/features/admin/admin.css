@@ -789,3 +789,20 @@
 .source-confirmation { margin: .8rem 0; }
 .source-resolution details { margin: .8rem 0; overflow-wrap: anywhere; }
 @media(max-width: 480px) { .source-decision-choices { flex-direction: column; } .source-shared-impact, .source-verification { padding-left: .7rem; } }
+
+/* One readable source list, with evidence disclosed in context. */
+.source-status-row { display:flex; align-items:flex-start; justify-content:space-between; gap:1.5rem; padding:1.25rem 0; border-bottom:1px solid #e7e3df; }
+.source-status-row h4 { margin:0 0 .3rem; font-size:1rem; }
+.source-status-row p { margin:.45rem 0; max-width:72ch; }
+.source-status-row a { overflow-wrap:anywhere; }
+.source-status-row small { display:block; color:#57534e; }
+.source-exclusion { border-left:3px solid #b45a23; padding-left:.75rem; }
+.schedule-technical,.schedule-attempts,.admin-technical-nav { margin:1rem 0; }
+.admin-technical-nav summary { cursor:pointer; padding:.45rem; }
+.source-status select { margin-left:.5rem; }
+@media(max-width:640px) { .source-status-row { flex-direction:column; gap:.7rem; } .admin-workspace-nav { flex-wrap:wrap; } .run-detail-heading,.schedule-detail-heading { align-items:flex-start; } }
+
+.run-step-table tr:focus { outline:2px solid #9b4615; outline-offset:-2px; }
+.admin-screen .source-decision-choices label { display:inline-flex; align-items:center; gap:.5rem; white-space:nowrap; }
+.admin-screen .source-decision-choices input[type=radio],.admin-screen .source-confirmation input[type=checkbox] { width:auto; min-width:0; flex:0 0 auto; margin:0; padding:0; }
+.admin-screen .source-confirmation { display:flex; align-items:flex-start; gap:.6rem; }

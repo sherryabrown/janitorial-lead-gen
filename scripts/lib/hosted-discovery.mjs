@@ -91,11 +91,19 @@ export async function saveDiscoveredMethod({db,project,artifacts,transport,rehea
     proposed.verification_evidence={...proposed.verification_evidence,
       source_review_entity_routes:[...new Set([...(proposed.verification_evidence?.source_review_entity_routes??[]),task.route_geography_id])]};
   }
+  if(guidedRepair&&task.source_id&&!task.capability_id){
+    const competing=existingCaps.find(c=>c.source_id===source.id&&c.kind===task.kind&&capabilityCoversRoute(c,task.route_geography_id));
+    if(competing&&!competing.verification_evidence?.source_review_source_routes?.includes(task.route_geography_id))
+      throw Error('An existing method already serves this source check; developer reconciliation required');
+    proposed.verification_evidence={...proposed.verification_evidence,source_review_source_routes:[...new Set([...(proposed.verification_evidence?.source_review_source_routes??[]),task.route_geography_id])]};
+  }
   if(guidedRepair&&task.capability_id){
     const prior=existingCaps.find(c=>c.id===task.capability_id&&c.source_id===source?.id&&c.kind===task.kind);
     if(!prior)throw Error('The original method must remain available for repair history');
     if(prior.verification_evidence?.source_review_entity_routes?.includes(task.route_geography_id))
       proposed.verification_evidence={...proposed.verification_evidence,source_review_entity_routes:[...new Set([...(proposed.verification_evidence.source_review_entity_routes??[]),task.route_geography_id])]};
+    if(prior.verification_evidence?.source_review_source_routes?.includes(task.route_geography_id))
+      proposed.verification_evidence={...proposed.verification_evidence,source_review_source_routes:[...new Set([...(proposed.verification_evidence.source_review_source_routes??[]),task.route_geography_id])]};
     const rootId=prior.verification_evidence?.source_review_roots?.[task.route_geography_id]??prior.id;
     if(!existingCaps.some(c=>c.id===rootId&&c.source_id===source.id&&c.kind===task.kind))throw Error('Saved method review lineage needs reconciliation');
     const replacement=existingCaps.find(c=>c.source_id===source.id&&c.kind===task.kind&&c.endpoint_url===capability.endpoint_url&&c.method===capability.method);

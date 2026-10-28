@@ -17,6 +17,7 @@ function SourceResolutionContent({requestId,taskId,owner,canManage,active:worksp
  const [choice,setChoice]=useState<Choice>('provide_website'),[note,setNote]=useState(()=>savedNote(noteKey)),[website,setWebsite]=useState(''),[confirmed,setConfirmed]=useState(false);
  const [error,setError]=useState(''),[notice,setNotice]=useState('');
  const heading=useRef<HTMLHeadingElement>(null),mutation=useRef<AbortController|null>(null);
+ const done=useRef(onDone);done.current=onDone;
  const path=`/v1/requests/${requestId}/source-resolution/${taskId}`;
  useEffect(()=>{heading.current?.focus();},[taskId]);
  useEffect(()=>{try{if(canManage)sessionStorage.setItem(noteKey,note);else sessionStorage.removeItem(noteKey);}catch{/* Mounted draft still works. */}},[canManage,note,noteKey]);
@@ -47,7 +48,7 @@ function SourceResolutionContent({requestId,taskId,owner,canManage,active:worksp
     const value=await workflowRequest<RepairStatus>(`${path}/status?job=${jobId}`,{signal:abort.signal});
     if(abort.signal.aborted)return;
     setDetail(previous=>previous?.verification?.job_id===jobId?{...previous,verification:value}:previous);
-    if(['pending','running'].includes(value.state))timer=setTimeout(()=>void load(),2500);else setRevision(n=>n+1);
+    if(['pending','running'].includes(value.state))timer=setTimeout(()=>void load(),2500);else{setRevision(n=>n+1);done.current?.();}
    }catch(e){if(!abort.signal.aborted)setError(readFailure(e,'Website verification'));}
   };
   timer=setTimeout(()=>void load(),2500);
@@ -86,6 +87,7 @@ function SourceResolutionContent({requestId,taskId,owner,canManage,active:worksp
    <h3>{item.decision==='fixed_verified'?'Source setup verified':item.current?.title??item.title}</h3>
    <p>{item.decision==='fixed_verified'?'The verified setup was saved. Earlier run results remain unchanged.':item.current?.impact??item.impact}</p>
    <p><strong>{sourceDecisionLabels[item.decision]}</strong>{item.reviewed_at?` · Last admin decision: ${formatLocal(item.reviewed_at)}`:''}</p>
+   {item.reviewed_at&&<small>Reviewed by {item.reviewed_by_label??'Admin · name unavailable'}</small>}
    {item.checks_excluded&&<p role="status">Checks disabled by admin decision. Other source checks continue. {detail.can_reenable?
     <button type="button" className="text-button" onClick={()=>{setChoice('reenable');setConfirmed(false);if(!note)setNote('Resume this verified source check');}}>Re-enable checks</button>:
     <span>Verify a usable website and method before re-enabling.</span>}</p>}

@@ -1,6 +1,7 @@
 import {verifyScheduleActivity} from '../helpers/schedule-activity-db.mjs';
 import {verifyScheduleAudit} from '../helpers/schedule-audit-db.mjs';
 import {verifyReleaseRoles} from '../helpers/release-roles-db.mjs';
+import {schedulingDevPreview} from '../helpers/scheduling-dev-preview.mjs';
 // Real PostgreSQL + PostgREST/JWT integration. No production connection is used.
 import assert from 'node:assert/strict';
 import { adminMigrations } from '../helpers/admin-trigger-db.mjs';
@@ -37,7 +38,7 @@ const sql=statement=>execFileSync(exe('psql'),['-X','-q','-h','127.0.0.1','-p',S
 const literal=value=>"'"+JSON.stringify(value).replaceAll("'","''")+"'::jsonb";
 const token=(role,sub,expired=false)=>{
   const encode=value=>Buffer.from(JSON.stringify(value)).toString('base64url');
-  const body=encode({alg:'HS256',typ:'JWT'})+'.'+encode({role,sub,exp:Math.floor(Date.now()/1000)+(expired?-3600:3600)});
+  const body=encode({alg:'HS256',typ:'JWT'})+'.'+encode({role,sub,exp:Math.floor(Date.now()/1000)+(expired?-3600:process.argv.includes('--preview')?28800:3600)});
   return body+'.'+createHmac('sha256',secret).update(body).digest('base64url');
 };
 const first=randomUUID(),second=randomUUID(),sourceId=randomUUID(),leadId=randomUUID();
@@ -330,6 +331,10 @@ try {
     console.log('Analytics native acceptance:',await verifyAnalyticsDatabase({sql:livePool,db}));
     console.log('Schedule activity native acceptance:',await verifyScheduleActivity({sql:livePool,db,triggers}));
     console.log('Release roles native acceptance:',await verifyReleaseRoles({pool:livePool,rehearsalPool,db,api,first,second,userToken:nonMember,adminToken:member}));
+    if(process.argv.includes('--preview')){
+      if(backend){await new Promise(r=>backend.close(r));backend=null;}
+      await schedulingDevPreview({pool:livePool,rehearsalPool,db,first,second,token,gatewayPort:httpPort});
+    }
   }finally {await livePool.end();await rehearsalPool.end();}
   console.log(JSON.stringify({status:'passed',engine:'PostgreSQL 15 + PostgREST',checks:['anonymous reads/RPC denial','member and non-member reads/stages','signed expired and invalid JWT HTTP rejection','note ownership','atomic actor history','1005-row paged queue','service workflow access','Admin private table/RPC denial','Admin atomic replay','concurrent parent AI reservations and four-call cap','scheduling private tables/RPC denial and atomic replay','concurrent active/paused county-work ownership and archive release','grouped state native dispatch/replay/membership/source identities','browser-independent private HTTP wake/shared worker/audit/replay/pause','nonempty automatic SAM manual/scheduled native validation/write/readback/deduplication','private detail hold containment and checkpoint CAS/stale-write rejection'],isolated_wake_and_stage_ms:isolatedWakeAndStageMs,production_contacted:false},null,2));
 } finally {

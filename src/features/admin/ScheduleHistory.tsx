@@ -5,7 +5,7 @@ import { workflowRequest } from '../../lib/procurement-workflow';
 import { formatLocal, title,readFailure } from './model';
 import type { Page } from './types';
 
-type Event = { id: string; action: string; at: string; version: number; actor_id?: string;changes?:{field:string;before:unknown;after:unknown}[]|null };
+type Event = { id: string; action: string; at: string; version: number; actor_id?: string;actor_label?:string;changes?:{field:string;before:unknown;after:unknown}[]|null };
 
 function auditValue(value:unknown):string{
  if(value==null)return 'Not set';
@@ -48,7 +48,7 @@ export function ScheduleHistory({id,owner='',active=true}:{id:string;owner?:stri
   {busy&&<p role="status">Loading history...</p>}{error&&<p role="alert">{error}</p>}
   <section className="schedule-history-panel"><h3>Schedule changes</h3>
   {!busy&&!error&&!changes.length&&<p>No saved configuration changes on this page.</p>}
-  {!!changes.length&&<div className="schedule-table-wrap"><table className="schedule-table"><caption className="sr-only">Schedule changes</caption><thead><tr>{['When','Actor','Change','Before → After','Version'].map(h=><th scope="col" key={h}>{h}</th>)}</tr></thead><tbody>{changes.map(e=><tr key={e.id}><td data-label="When">{formatLocal(e.at)}</td><td data-label="Actor">{e.action==='owner_inactive'?'System':e.actor_id??'Actor not recorded - system or historical'}</td><td data-label="Change">{title(e.action)}</td><td data-label="Before → After">{e.changes?.length?<details open={e.changes.length<=3}><summary>{e.changes.length} changed fields</summary><dl>{e.changes.map(c=><div key={c.field}><dt>{title(c.field)}</dt><dd>{auditValue(c.before)} → {auditValue(c.after)}</dd></div>)}</dl></details>:<span>Historical details not recorded</span>}</td><td data-label="Version">{e.version??'Unknown'}</td></tr>)}</tbody></table></div>}
+  {!!changes.length&&<div className="schedule-table-wrap"><table className="schedule-table"><caption className="sr-only">Schedule changes</caption><thead><tr>{['When','Actor','Change','Before → After','Version'].map(h=><th scope="col" key={h}>{h}</th>)}</tr></thead><tbody>{changes.map(e=><tr key={e.id}><td data-label="When">{formatLocal(e.at)}</td><td data-label="Actor">{e.action==='owner_inactive'?'System':e.actor_label??'Actor not recorded'}</td><td data-label="Change">{title(e.action)}</td><td data-label="Before → After">{e.changes?.length?<details open={e.changes.length<=3}><summary>{e.changes.length} changed fields</summary><dl>{e.changes.map(c=><div key={c.field}><dt>{title(c.field)}</dt><dd>{auditValue(c.before)} → {auditValue(c.after)}</dd></div>)}</dl></details>:<span>Historical details not recorded</span>}</td><td data-label="Version">{e.version??'Unknown'}</td></tr>)}</tbody></table></div>}
   {events.next_offset!==null&&<button type="button" className="text-button" disabled={busy} onClick={()=>void more()}>More changes</button>}
   </section></section>;
 }
