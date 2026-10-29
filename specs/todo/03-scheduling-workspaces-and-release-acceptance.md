@@ -93,6 +93,8 @@ Final regression qualification **resolved**: the complete standard `npm run chec
 
 ## Coordinated rollout and completion
 
+Use the prepared [production cutover runbook](../../docs/reviews/2026-10-28-scheduling-production-cutover.md). It does not authorize execution. Keep this phase open through real acceptance, restored-clone rehearsal, approved coordinated release and live readback; do not treat preparation as deployment.
+
 Prepare the exact schema/API/UI compatibility, existing profile-role verification, migration/backfill, live verification and rollback checklist before requesting any missing release authority. Reuse the existing trusted profile-role assignment process; do not create a procurement-specific role bootstrap. Follow the repository's established Render/backend then approved Netlify preview process; preserve existing production audience/lock and do not infer authority to publish production from this planning request.
 
 The backend must enforce the new permissions from `public.profiles.role` before the new UI is considered released. Preserve needed old projection compatibility during rollout, but never keep an old mutation route open to Users merely for cosmetic backward compatibility. Verify existing Admin profiles and authorized User access before exposing the new controls. Any retirement of `procurement_members` requires its own dependency/readback checklist; do not bundle an unchecked table drop into a UI rollout.
