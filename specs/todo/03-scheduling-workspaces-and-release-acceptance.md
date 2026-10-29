@@ -102,3 +102,8 @@ The backend must enforce the new permissions from `public.profiles.role` before 
 After authorized deployment, verify role-denied and allowed reads/actions with real scoped accounts, one bounded source-decision/repair scenario and authentic persistence readback. Any live collection, import, external handoff or test schedule must have its applicable authorization; no bulk historical resumes, surprise messages or extra provider spend. Rollback preserves additive audit/evidence and safe permissions; it does not reopen User access to Admin actions.
 
 Document exact deployed versions, migration IDs, test receipts, final table-purpose inventory/dispositions and known source limitations. Move all accepted child specs and parent to `specs/done/` only after the complete agreed release gate, including the procurement table audit and its agreed remediation. Unrelated efficiency and local output-file retention work remains in its existing follow-up file.
+
+
+### Backup and isolation follow-up (October 28, 2026)
+
+The narrow migration-history exception is approved, but production cutover is not. See [backup/restore evidence](../../docs/reviews/2026-10-28-scheduling-backup-rehearsal.md): synthetic native restore/atomic rollback/retry passed; six deployed Edge Function source exports passed encrypted restore verification. The actual production backup/restore, seventh Edge export, Storage bytes and independent secret/key recovery remain release gates. The direct read-only database credential probe was rejected. Keep this spec open until production recovery and release acceptance gates pass.

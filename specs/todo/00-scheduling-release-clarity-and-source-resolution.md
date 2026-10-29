@@ -233,3 +233,8 @@ Freeze the section model, shared status vocabulary, disposition semantics and pe
 - Shared-source changes show affected scope; historical run evidence and user-managed lead data remain intact.
 - Desktop/mobile/keyboard acceptance, actual role-denial tests, worker/idempotency regressions and previous read-efficiency checks pass.
 - Prepare and verify a matching backend/schema/frontend release using the repository's existing release process. This planning request does not publish a site or apply live schema changes.
+
+
+### Backup and isolation follow-up (October 28, 2026)
+
+The narrow migration-history exception is approved, but production cutover is not. See [backup/restore evidence](../../docs/reviews/2026-10-28-scheduling-backup-rehearsal.md): synthetic native restore/atomic rollback/retry passed; six deployed Edge Function source exports passed encrypted restore verification. The actual production backup/restore, seventh Edge export, Storage bytes and independent secret/key recovery remain release gates. The direct read-only database credential probe was rejected. Keep this spec open until production recovery and release acceptance gates pass.
