@@ -1,4 +1,4 @@
-param([switch]$IncludeStorage,[switch]$AuthenticationLogsOnly)
+param([switch]$IncludeStorage,[switch]$AuthenticationLogsOnly,[switch]$ManualBackupCoverage)
 # Read-only exports using the CLI's normal Windows credential provider.
 # Never print tokens, function bodies, database rows, or passwords.
 $ErrorActionPreference = 'Stop'
@@ -20,6 +20,30 @@ if ($token -notmatch '^sbp_') { throw 'Unexpected standard CLI credential format
 $headers = @{Authorization = "Bearer $token"}
 $base = 'https://api.supabase.com/v1/projects/zreplhkoxswtzxlchtjf'
 $backupRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../outputs/deployment/scheduling-backup-readiness'))
+if ($ManualBackupCoverage) {
+ $sql=@'
+begin isolation level repeatable read read only;
+select jsonb_build_object(
+ 'crm_login_attempts',(select count(*) from public.crm_login_attempts),
+ 'crm_mapping_feedback',(select count(*) from public.crm_mapping_feedback),
+ 'debts',(select count(*) from public.debts),
+ 'procurement_action_requests',(select count(*) from public.procurement_action_requests),
+ 'procurement_event_receipts',(select count(*) from public.procurement_event_receipts),
+ 'procurement_lead_links',(select count(*) from public.procurement_lead_links),
+ 'procurement_public_captures',(select count(*) from public.procurement_public_captures),
+ 'procurement_schedule_state_memberships',(select count(*) from public.procurement_schedule_state_memberships),
+ 'procurement_workflow_steps',(select count(*) from public.procurement_workflow_steps),
+ 'smb_logistics_survey_events',(select count(*) from public.smb_logistics_survey_events),
+ 'procurement_members',(select count(*) from public.procurement_members)
+) as current_counts,
+(select jsonb_agg(enumlabel order by enumsortorder) from pg_enum where enumtypid='public.app_role'::regtype) as current_app_role_values;
+commit;
+'@
+ $coverage=Invoke-RestMethod -Method Post -Uri ($base+'/database/query') -Headers $headers -ContentType 'application/json' -Body (@{query=$sql;read_only=$true}|ConvertTo-Json)
+ @{checked_at=[DateTime]::UtcNow.ToString('o');read_only=$true;coverage=$coverage;limitation='Current counts do not prove these tables were empty when the manual files were exported.'}|ConvertTo-Json -Depth 20|Set-Content (Join-Path $backupRoot 'manual-export-inspection/current-coverage.json') -Encoding UTF8
+ $coverage|ConvertTo-Json -Depth 10
+ exit
+}
 if ($AuthenticationLogsOnly) {
  $summary=@()
  foreach($source in @('postgres_logs','supavisor_logs')) {

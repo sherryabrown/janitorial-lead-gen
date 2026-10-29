@@ -2,6 +2,8 @@
 
 Readiness status: **NO GO for production**. Preparation and read-only backup access are approved. Production DDL, restores, scheduler changes, Render changes and Netlify Production deployment remain unauthorized. The migration-history exception is approved for the eight release versions only; no live history writes have been made.
 
+October 29 follow-up: the owner supplied a read-only manual schema/CSV collection. [Inspection and partial restore](2026-10-29-manual-backup-inspection.md) verified its original files were unchanged and all 102 source rows restore correctly, but found omitted Auth/type/security definitions, membership and populated procurement tables. It does not satisfy the complete database restore gate.
+
 ## Verified evidence
 
 - The explicit linked-admin read-only connection probe was attempted after the owner saved the password locally. Supabase returned PostgreSQL `28P01` (password authentication failed). The probe did not perform a backup or any writes. Do not reset the password as a workaround. Confirm the correct existing project/database credential through the local file or use an approved complete backup.

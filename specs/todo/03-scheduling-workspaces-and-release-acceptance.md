@@ -107,3 +107,6 @@ Document exact deployed versions, migration IDs, test receipts, final table-purp
 ### Backup and isolation follow-up (October 28, 2026)
 
 The narrow migration-history exception is approved, but production cutover is not. See [backup/restore evidence](../../docs/reviews/2026-10-28-scheduling-backup-rehearsal.md): synthetic native restore/atomic rollback/retry passed; all seven deployed Edge Function source exports passed encrypted file recovery verification; all 116 public database routine definitions were exported and all 2,013 private Storage objects passed independent encrypted-byte recovery. The actual production database backup/restore, isolated Edge runtime deployment, Storage recovery and independent secret/key recovery remain release gates. Current pooler settings match the owner-provided string; direct access is blocked by missing IPv6 routing. The direct read-only database credential probe was rejected. Keep this spec open until production recovery and release acceptance gates pass.
+
+
+October 29: [manual export inspection](../../docs/reviews/2026-10-29-manual-backup-inspection.md) confirms the owner-provided folder is unchanged. A partial native restore of 102 source rows passed; missing Auth/type/security exports, membership and populated procurement tables prevent complete snapshot recovery. Release acceptance remains open.
