@@ -131,4 +131,4 @@ Preparation verification: the two new offline tests pass (read-only preflight, w
 
 ## Backup verification follow-up
 
-See [backup and isolation evidence](2026-10-28-scheduling-backup-rehearsal.md) for the passing synthetic native dump/restore/cutover rehearsal, six verified Edge Function source exports, the remaining seventh export failure, rejected database credential, Storage/secret escrow gaps and the earlier CLI login-role initialization caveat. Production recovery readiness remains a blocking gate. Database Functions and deployed Edge Functions are explicitly separate backup items.
+See [backup and isolation evidence](2026-10-28-scheduling-backup-rehearsal.md) for the passing synthetic native dump/restore/cutover rehearsal, all seven verified Edge Function source exports and the 116-routine definition export, unresolved pooler authentication/direct IPv6 routing, Storage/secret escrow gaps and the earlier CLI login-role initialization caveat. Production recovery readiness remains a blocking gate. Database Functions and deployed Edge Functions are explicitly separate backup items.

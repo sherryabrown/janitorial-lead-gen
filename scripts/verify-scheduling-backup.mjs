@@ -2,6 +2,7 @@
 import {readFileSync,writeFileSync} from 'node:fs';
 import {resolve} from 'node:path';
 import pg from 'pg';
+import {resolve6} from 'node:dns/promises';
 
 const root=resolve('outputs/deployment/scheduling-backup-readiness');
 const vars=Object.fromEntries(readFileSync('.env','utf8').split(/\r?\n/).flatMap(line=>{const m=line.match(/^([A-Z0-9_]+)=(.*)$/);return m?[[m[1],m[2].replace(/^(['"])(.*)\1$/,'$2')]]:[];}));
@@ -13,7 +14,10 @@ if(!['postgres:','postgresql:'].includes(uri.protocol)||!uri.hostname.endsWith('
 // Explicit fields also prevent cached URL parameters from overriding verified TLS.
 const direct=process.argv.includes('--direct'),session=process.argv.includes('--session');
 const endpoint=direct?'direct':session?'session_pooler':'linked_pooler';
-const client=new pg.Client({host:direct?'db.zreplhkoxswtzxlchtjf.supabase.co':uri.hostname,port:direct||session?5432:Number(uri.port||5432),user:direct?'postgres':decodeURIComponent(uri.username),database:'postgres',password:input,ssl:{rejectUnauthorized:true,ca:Buffer.from(vars.PROCUREMENT_DATABASE_CA_BASE64,'base64').toString()},options:'-c default_transaction_read_only=on',connectionTimeoutMillis:15000});
+const directHost='db.zreplhkoxswtzxlchtjf.supabase.co';
+// The direct endpoint is IPv6-only; resolve AAAA explicitly when OS lookup omits it.
+const host=direct?(await resolve6(directHost))[0]:uri.hostname;
+const client=new pg.Client({host,port:direct||session?5432:Number(uri.port||5432),user:direct?'postgres':decodeURIComponent(uri.username),database:'postgres',password:input,ssl:{rejectUnauthorized:true,...(direct?{servername:directHost}:{}),ca:Buffer.from(vars.PROCUREMENT_DATABASE_CA_BASE64,'base64').toString()},...(direct?{options:'-c default_transaction_read_only=on'}:{}),connectionTimeoutMillis:15000});
 try{
  await client.connect();await client.query('begin isolation level repeatable read read only');
  const {rows}=await client.query(`select current_setting('transaction_read_only') as read_only,current_setting('server_version') as server_version,current_user,

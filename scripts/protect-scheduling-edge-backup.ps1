@@ -1,11 +1,12 @@
+param([ValidatePattern('^(-[a-z0-9]+)*$')][string]$Suffix = '')
 # Local encrypted archive/restore verification only. Does not invoke or deploy functions.
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Security
 $backupRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../outputs/deployment/scheduling-backup-readiness'))
 $sourceRoot = Join-Path $backupRoot 'edge-export'
-$archivePath = Join-Path $backupRoot 'edge-source.zip'
-$encryptedPath = Join-Path $backupRoot 'edge-source.zip.dpapi'
-$restoreRoot = Join-Path $backupRoot 'edge-restore-verification'
+$archivePath = Join-Path $backupRoot ('edge-source'+$Suffix+'.zip')
+$encryptedPath = Join-Path $backupRoot ('edge-source'+$Suffix+'.zip.dpapi')
+$restoreRoot = Join-Path $backupRoot ('edge-restore-verification'+$Suffix)
 if (Test-Path -LiteralPath $restoreRoot) { throw 'Restore target already exists; preserve previous evidence.' }
 $before = @{}
 Get-ChildItem -LiteralPath $sourceRoot -Recurse -File | ForEach-Object {
@@ -32,7 +33,7 @@ try {
         restore = 'all exported source bytes match; handlers not executed'
         limitation = 'Windows CurrentUser DPAPI requires this Windows identity; independent disaster-recovery key escrow remains required. This archive contains downloaded functions only; inventory must confirm completeness.'
     }
-    $receipt | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $backupRoot 'edge-restore-receipt.json') -Encoding UTF8
+    $receipt | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $backupRoot ('edge-restore-receipt'+$Suffix+'.json')) -Encoding UTF8
     Write-Output "Encrypted Edge source archive restored and verified: $afterCount files. Independent recovery escrow is still required."
 } finally {
     # Delete only this known temporary archive, never a directory or computed traversal.
