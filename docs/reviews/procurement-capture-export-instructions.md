@@ -1,5 +1,7 @@
 # Export captures without oversized text cells
 
+**October 30: manual paging is a fallback.** The release operator can now run `powershell -NoProfile -File scripts/export-scheduling-management-backup.ps1 -CaptureChunks`. This uses the existing authenticated read-only Management API to export automatically, encrypt results in a new workspace backup folder, compare every SHA-256, compare inventories and run a separate saved-key recovery check. It preserves every row's metadata and downloads byte-identical encoded bodies once, identified by SHA-256 of the exact base64 text. Both encoded-text and decoded-content hashes are verified. Bounded batches, client-side pacing and verified-cache resume reduce duplicate work. It does not call or change the owner-only export Function, change production data, use the database password or overwrite manually saved CSVs. The operator will supply the completion receipt; the owner does not need to continue downloading pages manually. These are encrypted body files and an encrypted row manifest rather than CSVs; independent key escrow remains required.
+
 This helper splits `content_base64` into ordered pieces of at most **8,000 characters**. It does not shorten, delete or update stored captures. Run the SQL as `postgres` in Supabase SQL Editor. Creating this helper is a persistent Function change; no production data or table changes are needed. The helper has no SECURITY DEFINER privileges and grants no application-role access. It is not part of the release migration bundle.
 
 ## 1. Install once

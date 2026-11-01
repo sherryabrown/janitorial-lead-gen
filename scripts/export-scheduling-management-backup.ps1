@@ -1,4 +1,4 @@
-param([switch]$IncludeStorage,[switch]$AuthenticationLogsOnly,[switch]$ManualBackupCoverage)
+param([switch]$IncludeStorage,[switch]$AuthenticationLogsOnly,[switch]$ManualBackupCoverage,[switch]$CaptureChunks,[switch]$CaptureInventory,[switch]$RecoveryMetadata,[string]$ResumeCaptureFolder,[string]$ResumeCaptureKeyFile)
 # Read-only exports using the CLI's normal Windows credential provider.
 # Never print tokens, function bodies, database rows, or passwords.
 $ErrorActionPreference = 'Stop'
@@ -20,6 +20,54 @@ if ($token -notmatch '^sbp_') { throw 'Unexpected standard CLI credential format
 $headers = @{Authorization = "Bearer $token"}
 $base = 'https://api.supabase.com/v1/projects/zreplhkoxswtzxlchtjf'
 $backupRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../outputs/deployment/scheduling-backup-readiness'))
+if ($RecoveryMetadata) {
+ $sql=[IO.File]::ReadAllText((Join-Path $PSScriptRoot 'sql/export-scheduling-recovery-metadata.sql'))
+ $rows=Invoke-RestMethod -Method Post -Uri ($base+'/database/query') -Headers $headers -ContentType 'application/json' -Body (@{query=$sql;read_only=$true}|ConvertTo-Json)
+ $metadata=@($rows)[0].recovery_metadata
+ if(!$metadata){throw 'Recovery catalog export missing'}
+ $bytes=[Text.Encoding]::UTF8.GetBytes(($metadata|ConvertTo-Json -Depth 100))
+ $path=Join-Path $backupRoot ('recovery-metadata-'+[DateTime]::UtcNow.ToString('yyyyMMddTHHmmssfff')+'.json.dpapi')
+ [IO.File]::WriteAllBytes($path,[Security.Cryptography.ProtectedData]::Protect($bytes,$null,[Security.Cryptography.DataProtectionScope]::CurrentUser))
+ $restored=[Security.Cryptography.ProtectedData]::Unprotect([IO.File]::ReadAllBytes($path),$null,[Security.Cryptography.DataProtectionScope]::CurrentUser)
+ if([Convert]::ToBase64String($bytes) -cne [Convert]::ToBase64String($restored)){throw 'Catalog recovery differs'}
+ $receipt=@{checked_at=[DateTime]::UtcNow.ToString('o');file=[IO.Path]::GetFileName($path);relations=@($metadata.relations).Count;enums=@($metadata.enums).Count;policies=@($metadata.policies).Count;triggers=@($metadata.triggers).Count;legacy_members=@($metadata.procurement_members).Count;encrypted_byte_recovery=$true;auth_user_data_included=$false;complete_database_restore=$false}
+ $receipt|ConvertTo-Json|Set-Content (Join-Path $backupRoot 'recovery-metadata-receipt.json') -Encoding UTF8
+ $receipt|ConvertTo-Json
+ exit
+}
+if ($CaptureInventory) {
+ $sql="begin read only;select count(*) as captures,coalesce(sum((octet_length(content_base64)+7999)/8000),0) as parts,coalesce(sum(octet_length(content_base64)),0) as base64_bytes,count(distinct content_sha256) as unique_hashes,(select sum(bytes) from (select min(octet_length(content_base64)) as bytes from public.procurement_public_captures group by content_sha256) unique_bodies) as unique_body_base64_bytes from public.procurement_public_captures;commit;"
+ $stats=Invoke-RestMethod -Method Post -Uri ($base+'/database/query') -Headers $headers -ContentType 'application/json' -Body (@{query=$sql;read_only=$true}|ConvertTo-Json)
+ $stats|ConvertTo-Json -Depth 6
+ exit
+}
+if ($CaptureChunks) {
+ if($ResumeCaptureFolder){
+  $resume=[IO.Path]::GetFullPath($ResumeCaptureFolder)
+  if([IO.Path]::GetDirectoryName($resume) -ne $backupRoot -or [IO.Path]::GetFileName($resume) -notmatch '^capture-bodies-\d+$' -or $ResumeCaptureKeyFile -notmatch '^capture-key-\d{8}T\d{9}\.dpapi$'){throw 'Unexpected private recovery path'}
+  $keyPath=Join-Path $backupRoot $ResumeCaptureKeyFile
+  $key=[Security.Cryptography.ProtectedData]::Unprotect([IO.File]::ReadAllBytes($keyPath),$null,[Security.Cryptography.DataProtectionScope]::CurrentUser)
+ }else{
+ $key=New-Object byte[] 32;$rng=[Security.Cryptography.RandomNumberGenerator]::Create()
+ try{$rng.GetBytes($key)}finally{$rng.Dispose()}
+ $keyPath=Join-Path $backupRoot ('capture-key-'+[DateTime]::UtcNow.ToString('yyyyMMddTHHmmssfff')+'.dpapi')
+ [IO.File]::WriteAllBytes($keyPath,[Security.Cryptography.ProtectedData]::Protect($key,$null,[Security.Cryptography.DataProtectionScope]::CurrentUser))
+ }
+ function Invoke-CaptureWorker($Payload,$Verify) {
+  $arguments='"'+(Join-Path $PSScriptRoot 'export-procurement-capture-bodies.mjs')+'"'
+  if($Verify){$arguments+=' --verify'}
+  $start=[Diagnostics.ProcessStartInfo]::new('node',$arguments)
+  $start.UseShellExecute=$false;$start.CreateNoWindow=$true;$start.RedirectStandardInput=$true
+  $child=[Diagnostics.Process]::Start($start);$child.StandardInput.WriteLine(($Payload|ConvertTo-Json -Compress));$child.StandardInput.Close();$child.WaitForExit()
+  if($child.ExitCode -ne 0){throw 'Capture export or recovery verification failed'}
+ }
+ Invoke-CaptureWorker @{token=$token;key=[Convert]::ToBase64String($key);keyFile=[IO.Path]::GetFileName($keyPath);folder=$ResumeCaptureFolder} $false
+ $receipt=Get-Content -LiteralPath (Join-Path $backupRoot 'latest-capture-export-receipt.json') -Raw|ConvertFrom-Json
+ if($receipt.keyFile -ne [IO.Path]::GetFileName($keyPath)){throw 'Unexpected export receipt'}
+ $savedKey=[Security.Cryptography.ProtectedData]::Unprotect([IO.File]::ReadAllBytes($keyPath),$null,[Security.Cryptography.DataProtectionScope]::CurrentUser)
+ Invoke-CaptureWorker @{folder=$receipt.folder;key=[Convert]::ToBase64String($savedKey)} $true
+ exit
+}
 if ($ManualBackupCoverage) {
  $sql=@'
 begin isolation level repeatable read read only;
@@ -94,6 +142,15 @@ $receipt = @{
  raw_edge_restore='encrypted artifact byte round trip passed; source extraction/deployability NOT verified'
  database_function_restore='encrypted definition export byte round trip passed; database restore NOT verified'
 }
+$liveFunctions=Invoke-RestMethod -Method Get -Uri ($base+'/functions') -Headers $headers
+ConvertTo-Json -InputObject $liveFunctions -Depth 20|Set-Content -LiteralPath (Join-Path $backupRoot 'edge-live-inventory-current.json') -Encoding UTF8
+$liveFunctions=Get-Content -LiteralPath (Join-Path $backupRoot 'edge-live-inventory-current.json') -Raw|ConvertFrom-Json
+$liveList=if($liveFunctions.functions){@($liveFunctions.functions)}elseif($liveFunctions.value){@($liveFunctions.value)}else{@($liveFunctions)}
+$archive=Get-Content -LiteralPath (Join-Path $backupRoot 'edge-export/supabase/deployed-functions.json') -Raw|ConvertFrom-Json
+$liveShape=@($liveList|Sort-Object slug|ForEach-Object {[pscustomobject]@{slug=$_.slug;version=$_.version;verify_jwt=$_.verify_jwt}})
+$archiveShape=@($archive.functions|Sort-Object slug|ForEach-Object {[pscustomobject]@{slug=$_.slug;version=$_.version;verify_jwt=$_.verify_jwt}})
+$receipt.edge_function_count=$liveShape.Count
+$receipt.edge_versions_and_jwt_match_archive=(($liveShape|ConvertTo-Json -Compress) -ceq ($archiveShape|ConvertTo-Json -Compress))
 $receipt|ConvertTo-Json -Depth 8|Set-Content (Join-Path $backupRoot 'management-export-receipt.json') -Encoding UTF8
 $receipt|ConvertTo-Json -Depth 8
 if ($IncludeStorage) {

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
+import {execFileSync} from 'node:child_process';
 import {adminDatabase} from './helpers/admin-trigger-db.mjs';
 import {schedulingCutoverHold} from '../scripts/scheduling-cutover-hold.mjs';
 import {schedulingCutoverPlan} from '../scripts/prepare-scheduling-cutover.mjs';
@@ -16,10 +17,20 @@ test('cutover package rolls back all phases on an unexpected dependency and pres
    insert into public.profiles(user_id,role) values('00000000-0000-4000-8000-000000000001','admin');
    insert into procurement_members(user_id) values('00000000-0000-4000-8000-000000000001');
    create schema supabase_migrations;create table supabase_migrations.schema_migrations(version text primary key);
+   insert into supabase_migrations.schema_migrations values('19990101000000');
    create view public.procurement_cutover_test_dependency as select id from public.procurement_members;`);
   await db.exec(await readFile('scripts/scheduling-cutover-preflight.sql','utf8'));
   const before=(await db.query('select to_jsonb(m) as record from procurement_members m')).rows;
   const plan=await schedulingCutoverPlan();assert.equal(plan.manifest.migration_history_writes,false);
+  execFileSync(process.execPath,['scripts/prepare-scheduling-cutover-api.mjs'],{stdio:'ignore',windowsHide:true});
+  const api=JSON.parse(await readFile('outputs/deployment/scheduling-cutover/api/atomic-cutover.json','utf8'));
+  assert.equal(api.query,plan.sql,'API transport must preserve the reviewed atomic bytes');assert.equal(api.read_only,false);
+  const operator=JSON.parse(await readFile('outputs/deployment/scheduling-cutover/api/operator-preflight.json','utf8'));
+  assert.match(operator.query,/^begin read only;/);assert.doesNotMatch(operator.query.replace(/'(?:''|[^'])*'/g,"''"),/\b(insert|update|delete|create table|alter table)\b/i);
+  await db.exec(operator.query);
+  const history=JSON.parse(await readFile('outputs/deployment/scheduling-cutover/api/approved-history.json','utf8')).query;
+  await assert.rejects(db.exec(history),/Verify the committed/);await db.exec('rollback');
+  assert.equal((await db.query('select count(*)::int n from supabase_migrations.schema_migrations')).rows[0].n,1,'History cannot mark unapplied release versions');
   await assert.rejects(db.exec(plan.sql),/depend/i);await db.exec('rollback');
   assert.equal((await db.query("select to_regclass('public.procurement_source_labels') is null as old")).rows[0].old,true,'Earlier role/policy/view changes must roll back with failed retirement');
   assert.equal((await db.query("select count(*)::int n from pg_trigger where tgrelid='public.profiles'::regclass and tgname='procurement_protect_profile_role'")).rows[0].n,0);
@@ -30,6 +41,9 @@ test('cutover package rolls back all phases on an unexpected dependency and pres
   assert.deepEqual((await db.query("select detail->'record' as record from procurement_events where event_type='legacy_procurement_membership_archived'")).rows,before);
   assert.equal((await db.query("select count(*)::int n from pg_tables where schemaname='public' and tablename like 'procurement\\_%' escape '\\'")).rows[0].n,41);
   assert.equal((await db.query("select to_regclass('public.procurement_members') is null as retired")).rows[0].retired,true);
+  await db.exec(history);await db.exec(history);
+  assert.equal((await db.query('select count(*)::int n from supabase_migrations.schema_migrations')).rows[0].n,9,'Only eight release versions added, idempotently');
+  assert.equal((await db.query("select count(*)::int n from supabase_migrations.schema_migrations where version='19990101000000'")).rows[0].n,1,'Unrelated history preserved');
   await assert.rejects(db.exec(plan.sql),/manifest|partially/i);await db.exec('rollback');
  }finally{await db.close();}
 });

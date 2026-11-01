@@ -241,3 +241,8 @@ The narrow migration-history exception is approved, but production cutover is no
 
 
 October 29: [manual export inspection](../../docs/reviews/2026-10-29-manual-backup-inspection.md) confirms the owner-provided folder is unchanged. A partial native restore of 102 source rows passed; missing Auth/type/security exports, membership and populated procurement tables prevent complete snapshot recovery. Release acceptance remains open.
+
+
+### November 1: owner-accepted recovery scope
+
+See [acceptance and completion receipts](../../docs/reviews/2026-11-01-scheduling-release-backup-acceptance.md). The owner accepts their schema/data backups plus verified captures, database Function definitions and all seven Edge Function source/config exports. The automated capture backup preserves 3,985 records and 1,680 distinct bodies; independent saved-key recovery and all encoded/decoded hashes passed. Full database/Auth restoration remains unverified but is no longer a release blocker under this owner decision; do not reopen the support/password gate. Final coordinated production GO and live cutover checks remain required. Keep the specs open until that agreed release acceptance is complete.

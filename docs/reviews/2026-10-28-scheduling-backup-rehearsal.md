@@ -1,6 +1,6 @@
 # Scheduling backup and isolated cutover rehearsal
 
-Readiness status: **NO GO for production**. Preparation and read-only backup access are approved. Production DDL, restores, scheduler changes, Render changes and Netlify Production deployment remain unauthorized. The migration-history exception is approved for the eight release versions only; no live history writes have been made.
+Current decision: see the [November 1 owner-accepted backup scope](2026-11-01-scheduling-release-backup-acceptance.md). The capture export and independent recovery are complete. The owner accepts the documented remaining limitations and does not require the previously proposed full database restore/support gate. **Final deployment GO is still pending.** Production DDL, scheduler/Render changes and Netlify Production deployment have not been performed. The migration-history exception is approved for the eight release versions only; no live history writes have been made.
 
 October 29 follow-up: the owner supplied a read-only manual schema/CSV collection. [Inspection and partial restore](2026-10-29-manual-backup-inspection.md) verified its original files were unchanged and all 102 source rows restore correctly, but found omitted Auth/type/security definitions, membership and populated procurement tables. It does not satisfy the complete database restore gate.
 
