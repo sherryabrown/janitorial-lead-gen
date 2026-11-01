@@ -1,5 +1,7 @@
 # Phase 3: Clear User/Admin scheduling workspaces and final release acceptance
 
+**Released November 1, 2026:** the owner approved the coordinated production cutover after accepting the verified backup scope. Schema, backend and frontend are live; scheduler dispatch is restored, role/data/archive checks passed, and this release is complete under that accepted scope. See the [production release record](../../docs/reviews/2026-11-01-scheduling-production-release.md) for exact revisions, checks and verification limits. Earlier planning restrictions and pending-gate statements below are historical and superseded by that approval and record. No new live repair/import/test occurrence or human observation is claimed.
+
 Parent and initiating prompt: [Scheduling release clarity plan](00-scheduling-release-clarity-and-source-resolution.md). Depends on [phase 1 authorization/contracts](../done/01-scheduling-roles-and-source-decisions.md) and [phase 2 source resolution](../done/02-scheduling-guided-source-resolution.md). Confirmed: shared team schedules/leads; Users create/edit/pause/run schedules; Admins repair sources and manage technical work; No website/Won't address skips affected checks until an Admin explicitly re-enables them.
 
 ## Objective and navigation

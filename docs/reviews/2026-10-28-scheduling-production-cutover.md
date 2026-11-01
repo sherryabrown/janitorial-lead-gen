@@ -1,10 +1,12 @@
 # Scheduling 00 production cutover runbook
 
+**Executed November 1, 2026 under the owner's explicit coordinated production GO.** See the [actual release record](2026-11-01-scheduling-production-release.md). The historical preparation-only and pending-GO statements below no longer describe current deployment status; retain the recovery limits and scoped safety rules. The production release uses the accepted backup scope and has completed its non-mutating live checks.
+
 Prepared October 28, 2026. **Preparation only: no live SQL, deployment, publishing, unlocking, scheduler changes or backup restore is authorized by this document.** The current prohibition on Netlify Production deployment remains in force, including publishing a maintenance page.
 
 **Current owner decision, November 1:** [accepted backup scope and verified receipts](2026-11-01-scheduling-release-backup-acceptance.md) supersede this runbook's original requirement for a complete production-snapshot restore. Captures, database Functions and all seven Edge Function sources/configs are preserved; the owner accepts the remaining recovery limitations and will not file a support request. Do not retain the native password or full restore as a release blocker. Final coordinated deployment GO is still required. Prepared Management API operator request bodies provide a path to verify migration capability before maintenance without the failing native password; no writer requests have been executed.
 
-This is the operational appendix to [00](../../specs/todo/00-scheduling-release-clarity-and-source-resolution.md) and [phase 3](../../specs/todo/03-scheduling-workspaces-and-release-acceptance.md), not a fourth implementation phase. Phases [1](../../specs/done/01-scheduling-roles-and-source-decisions.md) and [2](../../specs/done/02-scheduling-guided-source-resolution.md) retain their local completion status.
+This is the operational appendix to [00](../../specs/done/00-scheduling-release-clarity-and-source-resolution.md) and [phase 3](../../specs/done/03-scheduling-workspaces-and-release-acceptance.md), not a fourth implementation phase. Phases [1](../../specs/done/01-scheduling-roles-and-source-decisions.md) and [2](../../specs/done/02-scheduling-guided-source-resolution.md) retain their local completion status.
 
 ## Frozen application and observed baseline
 

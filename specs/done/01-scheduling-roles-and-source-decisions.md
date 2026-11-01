@@ -1,6 +1,6 @@
 # Phase 1: Scheduling roles, source decisions and shared presentation contracts
 
-Parent and initiating prompt: [Scheduling release clarity plan](../todo/00-scheduling-release-clarity-and-source-resolution.md). The user requires separate Users/Admins with enforced launch permissions and meaningful source outcomes. Confirmed: Users manage schedules in the existing shared team workspace; Admins manage source repairs/technical work; No website/Won't address excludes the affected future check until an Admin re-enables it. Preserve the current working tree, including the uncommitted efficiency pass.
+Parent and initiating prompt: [Scheduling release clarity plan](00-scheduling-release-clarity-and-source-resolution.md). The user requires separate Users/Admins with enforced launch permissions and meaningful source outcomes. Confirmed: Users manage schedules in the existing shared team workspace; Admins manage source repairs/technical work; No website/Won't address excludes the affected future check until an Admin re-enables it. Preserve the current working tree, including the uncommitted efficiency pass.
 
 ## Objective
 

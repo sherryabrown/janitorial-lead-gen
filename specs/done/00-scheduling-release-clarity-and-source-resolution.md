@@ -1,5 +1,7 @@
 # Scheduling release: clear results, admin decisions and guided source repair
 
+**Released November 1, 2026:** the owner approved the coordinated production cutover after accepting the verified backup scope. Schema, backend and frontend are live; scheduler dispatch is restored, role/data/archive checks passed, and this release is complete under that accepted scope. See the [production release record](../../docs/reviews/2026-11-01-scheduling-production-release.md) for exact revisions, checks and verification limits. Earlier planning restrictions and pending-gate statements below are historical and superseded by that approval and record. No new live repair/import/test occurrence or human observation is claimed.
+
 Created October 26, 2026. Planning only; no application behavior, permissions, database records, source settings or deployments are changed by this plan.
 
 ## Build status — October 28, 2026
@@ -219,7 +221,7 @@ Apply the confirmed policy consistently across all three phases. Do not ship a c
 
 Preserve recurrence/DST, county/state/SAM separation, leases, idempotency, audit/history, verified metric identities, lead notes/stages and import/reconciliation policy. No new scheduler, provider, portal bypass, general-purpose permission editor, invitation/email system or collector-platform rewrite. Developer handoff is an internal recorded state with copyable diagnostics; it does not send messages or create external tickets automatically.
 
-The [efficiency follow-up](efficiency-reporting-and-maintenance.md) remains separate. Keep the completed inactive-polling, bounded read, query-sharing and incremental-log behavior. The explicitly requested procurement table-purpose audit and justified remediation are now in this release's scope, even for procurement tables beyond Scheduling. This does not absorb all-time reporting redesign, local output-file deletion, package dependency cleanup or unrelated lead UI work. Add only projections/caches justified by actual access patterns.
+The [efficiency follow-up](../todo/efficiency-reporting-and-maintenance.md) remains separate. Keep the completed inactive-polling, bounded read, query-sharing and incremental-log behavior. The explicitly requested procurement table-purpose audit and justified remediation are now in this release's scope, even for procurement tables beyond Scheduling. This does not absorb all-time reporting redesign, local output-file deletion, package dependency cleanup or unrelated lead UI work. Add only projections/caches justified by actual access patterns.
 
 Freeze the section model, shared status vocabulary, disposition semantics and permission matrix after a short scenario review. Subsequent changes before release should fix demonstrated acceptance failures, not reopen the whole information architecture. This is a bounded final Scheduling refactor for this release, not a promise that future product needs will never change.
 

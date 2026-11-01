@@ -1,6 +1,6 @@
 # Phase 2: Guided source repair and meaningful admin decisions
 
-Parent and initiating prompt: [Scheduling release clarity plan](../todo/00-scheduling-release-clarity-and-source-resolution.md). Depends on [phase 1 roles/contracts](01-scheduling-roles-and-source-decisions.md). The user wants Admin to provide a verifiable website, record no website, record no issue, or choose not to address the problem, and support both product-assisted fixes and developer intervention.
+Parent and initiating prompt: [Scheduling release clarity plan](00-scheduling-release-clarity-and-source-resolution.md). Depends on [phase 1 roles/contracts](01-scheduling-roles-and-source-decisions.md). The user wants Admin to provide a verifiable website, record no website, record no issue, or choose not to address the problem, and support both product-assisted fixes and developer intervention.
 
 ## Objective
 
