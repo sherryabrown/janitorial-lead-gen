@@ -1,4 +1,5 @@
 import {verifyIntegratedAdmin} from './integrated-admin-browser.mjs';
+import {verifyCountyLoading} from './county-loading-browser.mjs';
 import {verifyExecutionMetrics} from './execution-metrics-browser.mjs';
 import {verifyCanonicalRedirect} from './canonical-redirect-browser.mjs';
 import {verifySubmittedHistoryBrowser} from './submitted-history-browser.mjs';
@@ -345,6 +346,7 @@ try {
   const page = await context.newPage(),
     errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
+  if(process.argv.includes('--county-loading'))await verifyCountyLoading({page,origin,out,errors});else
   if(process.argv.includes('--source-resolution'))await verifySourceResolutionBrowser({page,origin,out,errors});else
   if(executionMetrics){await verifyExecutionMetrics({page,origin,out,errors,bodies});}else if(process.argv.includes('--canonical-redirect')){await verifyCanonicalRedirect({page,origin,out,errors,bodies});}else if(submittedHistory){await verifySubmittedHistoryBrowser({page,origin,out,errors,bodies});}else if(detailClarity){await verifyDetailClarityBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--metric-drilldowns')){await verifyMetricBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--catalog')){await verifyCatalogBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--schedule-activity')){await verifyScheduleActivityBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--settings-reads')){await verifySettingsReadsBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--analytics')){await verifyAnalyticsBrowser({page,origin,out,errors,bodies});}else if(process.argv.includes('--schedule-revision')){await verifyScheduleRevision({page,origin,out,errors,bodies});}else{await verifyIntegratedAdmin({page,origin,out,errors,bodies});}
 

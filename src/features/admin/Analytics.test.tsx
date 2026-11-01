@@ -3,7 +3,7 @@ import {afterEach,beforeEach,expect,it,vi} from 'vitest';
 import {act,cleanup,fireEvent,screen,waitFor} from '@testing-library/react';
 import {renderAdmin as render,userCapabilities} from '../../../tests/helpers/render-admin';
 import {SchedulingRoleContext} from './scheduling-role';
-import {Analytics,ScheduleAnalyticsSummary,type AnalyticsReport} from './Analytics';
+import {Analytics,type AnalyticsReport} from './Analytics';
 import {clearAdminSession} from './navigation';
 const mocked=vi.hoisted(()=>({request:vi.fn()}));
 vi.mock('../../lib/procurement-workflow',()=>({workflowRequest:mocked.request}));
@@ -26,9 +26,6 @@ it('requests the smallest existing report page while retaining full summary and 
 it('aborts stale filters and never replaces the new report with an earlier response',async()=>{
  let resolveOld!:(r:AnalyticsReport)=>void;mocked.request.mockImplementation(async(path:string)=>path.startsWith('/v1/schedules')?{items:[],next_offset:null}:path.includes('target=sam')?{...report,total:0}:new Promise(resolve=>{resolveOld=resolve;}));
  render(<Analytics owner="a" counties={[]}/>);fireEvent.change(screen.getByRole('combobox',{name:/^Type/}),{target:{value:'sam'}});await screen.findByText(/Run creation dates · 0 runs/);await act(async()=>resolveOld(report));expect(screen.queryByText(/Run creation dates · 26 runs/)).toBeNull();
-});
-it('schedule totals use the existing schedule identity and all-time reporting scope',async()=>{
- render(<ScheduleAnalyticsSummary id="schedule"/>);await screen.findByRole('heading',{name:'All-time available results'});expect(mocked.request.mock.calls[0][0]).toContain('schedule=schedule&period=all');
 });
 it('keeps metrics and trustworthy completion samples visible when detailed step history is too large',async()=>{
  mocked.request.mockImplementation(async(path:string)=>path.startsWith('/v1/schedules')?{items:[],next_offset:null}:{...report,summary:{...report.summary,timing:{average_ms:60000,median_ms:60000,samples:2,excluded:24,recorded_activity_unavailable:true}}});

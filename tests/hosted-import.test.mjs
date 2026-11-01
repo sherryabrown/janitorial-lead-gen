@@ -1,4 +1,4 @@
-import test from 'node:test';
+import test, {beforeEach} from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { prepareImport,applyImport } from '../scripts/lib/hosted-import.mjs';
@@ -12,6 +12,16 @@ import {offlineNativeRehearsal} from './helpers/native-rehearsal.mjs';
 import { context,result,id } from './helpers/known-workflow.mjs';
 const baseline=JSON.parse(readFileSync('tests/fixtures/sam/intake-before.json','utf8'));
 const schema=JSON.parse(readFileSync('tests/fixtures/sam/intake-schema.json','utf8'));
+// Freeze only constructed dates used in snapshots. Leave Date.now and timers
+// real so SQL worker deadlines and teardown continue to advance normally.
+let fixtureNow;
+beforeEach(t=>{
+  fixtureNow='2026-10-04T12:00:00Z';
+  const DateConstructor=Date;
+  t.mock.method(globalThis,'Date',new Proxy(DateConstructor,{
+    construct(target,args){return Reflect.construct(target,args.length?args:[fixtureNow]);},
+  }));
+});
 function setup() {
   const source=baseline.procurement_sources.find(s=>s.code==='arbuy-janitorial');
   const request={...baseline.procurement_search_requests[0],id:id(1)};
@@ -38,6 +48,11 @@ function setup() {
   const files=new Map(),artifacts={async put(value){const data=Buffer.from(JSON.stringify(value)),path=`artifacts/${hash(data.toString())}`;files.set(path,data);return path;},async get(path){return files.get(path);}};
   return {db,project:before.project_ref,transport:{schema:async()=>schema,apply:async()=>{}},artifacts,review,actor:id(80),before,item,rehearse:offlineNativeRehearsal};
 }
+
+test('hosted manual imports still reject a solicitation after its deadline',async()=>{
+  fixtureNow='2026-10-31T12:00:00Z';
+  await assert.rejects(prepareImport(setup()),/Expired or undated manual solicitation/);
+});
 
 test('separate SAM import packages bind actual captured runs and pass the existing SQL safeguards',async()=>{
   const f=setup(),capture=JSON.parse(readFileSync('tests/fixtures/sam/20bc470d-bfd8-4bd7-a4e0-926cdcd3696d.json','utf8'));

@@ -11,7 +11,7 @@ import {
   acknowledged,
 } from '../../lib/procurement-workflow';
 import {ScheduleEditor} from './ScheduleEditor';
-import { CountySelector } from './CountySelector';
+import { LazyCountySelector } from './LazyCountySelector';
 import { SamSection } from './SamSection';
 import { TriggerForm } from './TriggerForm';
 import { ScheduleList, StateSourceList } from './ScheduleList';
@@ -175,11 +175,11 @@ function SchedulingWorkspace({
     collectionGeneration = useRef(0),
     failedSchedulePage=useRef(false),
     pagingRef = useRef(false),
-    loaded = useRef({schedules:(()=>{try{const n=Number(sessionStorage.getItem(`spin-admin-schedule-page:${owner}`));return Number.isInteger(n)&&n>=50&&n<=5000?n:50;}catch{return 50;}})(),triggers:50});
+    loadedSchedules = useRef((()=>{try{const n=Number(sessionStorage.getItem(`spin-admin-schedule-page:${owner}`));return Number.isInteger(n)&&n>=50&&n<=5000?n:50;}catch{return 50;}})());
   const filterSchedules=useCallback((query:string)=>{
     if(query===scheduleQuery)return;
     collectionGeneration.current++;
-    failedSchedulePage.current=false;loaded.current.schedules=50;setSchedules([]);setScheduleTotal(undefined);setScheduleQuery(query);
+    failedSchedulePage.current=false;loadedSchedules.current=50;setSchedules([]);setScheduleTotal(undefined);setScheduleQuery(query);
     try{sessionStorage.setItem(`spin-admin-schedule-filter:${owner}`,query);sessionStorage.removeItem(`spin-admin-schedule-page:${owner}`);}catch{/* Mounted filters remain. */}
   },[owner,scheduleQuery]);
   useEffect(()=>{if(editor?.id)manualRef.current?.focus();},[editor?.id]);
@@ -236,18 +236,18 @@ function SchedulingWorkspace({
     const a = new AbortController();
     const epoch = ++collectionGeneration.current;
     pagingRef.current = true; setPaging(true);
-    const range = async <T,>(kind: 'schedules' | 'triggers'): Promise<Page<T>> => {
+    const loadSchedules = async (): Promise<Page<AnySchedule>> => {
       let offset: number | null = 0;
-      const items: T[] = [];
+      const items: AnySchedule[] = [];
       do {
-        const params=new URLSearchParams(kind==='schedules'?scheduleQuery:'');if(offset)params.set('offset',String(offset));
-        const page: Page<T> = await workflowRequest(`/v1/${kind}${params.size?'?'+params:''}`, { signal: a.signal });
-        if(kind==='schedules'&&!a.signal.aborted)setScheduleTotal(page.total);
+        const params=new URLSearchParams(scheduleQuery);if(offset)params.set('offset',String(offset));
+        const page: Page<AnySchedule> = await workflowRequest(`/v1/schedules${params.size?'?'+params:''}`, { signal: a.signal });
+        if(!a.signal.aborted)setScheduleTotal(page.total);
         items.push(...page.items); offset = page.next_offset;
-      } while (offset !== null && offset < loaded.current[kind]);
+      } while (offset !== null && offset < loadedSchedules.current);
       return { items, next_offset: offset };
     };
-    void range<AnySchedule>('schedules').then(page=>{
+    void loadSchedules().then(page=>{
       if(a.signal.aborted)return;
       failedSchedulePage.current=false;setSchedules(page.items);setScheduleOffset(page.next_offset);setScheduleReadError('');
     }).catch(e=>{if(!a.signal.aborted)setScheduleReadError(readFailure(e,'Schedules'));})
@@ -433,7 +433,7 @@ function SchedulingWorkspace({
       const params=new URLSearchParams(scheduleQuery);params.set('offset',String(scheduleOffset));
       const p=await workflowRequest<Page<AnySchedule>>(`/v1/schedules?${params}`);
       if(generation!==collectionGeneration.current)return;
-      loaded.current.schedules=scheduleOffset+Math.max(p.items.length,1);try{sessionStorage.setItem(`spin-admin-schedule-page:${owner}`,String(loaded.current.schedules));}catch{/* Mounted pages remain. */}failedSchedulePage.current=false;setSchedules(x=>merge(x,p.items));setScheduleOffset(p.next_offset);
+      loadedSchedules.current=scheduleOffset+Math.max(p.items.length,1);try{sessionStorage.setItem(`spin-admin-schedule-page:${owner}`,String(loadedSchedules.current));}catch{/* Mounted pages remain. */}failedSchedulePage.current=false;setSchedules(x=>merge(x,p.items));setScheduleOffset(p.next_offset);
     }catch(e){if(generation===collectionGeneration.current){failedSchedulePage.current=true;setScheduleReadError(readFailure(e,'More schedules'));}}
     finally{if(generation===collectionGeneration.current){pagingRef.current=false;setPaging(false);}}
   };
@@ -524,7 +524,8 @@ function SchedulingWorkspace({
         </div>
       )}
       <div className="admin-layout">
-        <CountySelector
+        <LazyCountySelector
+          active={manualView&&!scheduleEditor&&!selected}
           counties={counties}
           selectableIds={
             draft.config.target_kind === 'state_source'

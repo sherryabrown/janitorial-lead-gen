@@ -2,7 +2,6 @@ import {useSchedulingRole} from './scheduling-role';
 import {chicagoDate} from './history-search';
 import {metricLabels} from './metric-scope';
 import {MetricLink} from './MetricLink';
-import {useOwnedRead} from './read-owner';
 import {ReadAction} from './ReadAction';
 import {useEffect,useState} from 'react';
 import {workflowRequest} from '../../lib/procurement-workflow';
@@ -40,13 +39,6 @@ export function AnalyticsSummary({report,compact=false}:{report:AnalyticsReport;
    <section className="analytics-block"><h3>Run timing <InfoTooltip label="About analytics timing">Average and median use reliable created-to-finished boundaries for completed or cancelled runs only. Recorded activity is the union of completed step intervals; it is not end-to-end execution time.</InfoTooltip></h3><dl className="schedule-facts analytics-facts"><div><dt>Average created to finished</dt><dd>{duration(s.timing.average_ms)}</dd></div><div><dt>Median created to finished</dt><dd>{duration(s.timing.median_ms)}</dd></div><div><dt>Reliable samples / excluded</dt><dd>{s.timing.samples} / {s.timing.excluded}</dd></div></dl>{s.timing.recorded_activity_unavailable&&<small>Recorded activity unavailable for this selection; view run logs.</small>}</section>
   </>}
  </section>;
-}
-export function ScheduleAnalyticsSummary({id,active=true}:{id:string;active?:boolean}){
- const [report,setReport]=useState<AnalyticsReport|null>(null),[error,setError]=useState(''),[revision,setRevision]=useState(0),[busy,setBusy]=useState(true);
- useEffect(()=>{if(!active){setBusy(false);return;}const a=new AbortController();setBusy(true);setError('');void workflowRequest<AnalyticsReport>(`/v1/admin/analytics?${new URLSearchParams({schedule:id,period:'all',limit:'1'})}`,{signal:a.signal}).then(r=>{if(r.unavailable)throw Error(r.unavailable);if(!r.summary||!r.coverage)throw Error('Reporting data is unavailable.');if(!a.signal.aborted)setReport(r);}).catch(e=>{if(!a.signal.aborted)setError(readFailure(e,'Schedule totals'));}).finally(()=>{if(!a.signal.aborted)setBusy(false);});return()=>a.abort();},[id,revision,active]);
- const read=()=>setRevision(n=>n+1),owned=useOwnedRead('totals',{busy,error,loaded:!!report},read,active);
- return <section className="schedule-results">{!owned&&<ReadAction scope="totals" busy={busy} error={!!error} loaded={!!report} onRead={read}/>} {error&&<p role="alert">{error}</p>}{report?<AnalyticsSummary report={report} compact/>:busy?<p role="status">Loading available totals…</p>:null}</section>;
-
 }
 const defaults={schedule:'',target:'',geography:'',origin:'',category:'',from:'',through:''};
 function restored(key:string){try{const saved=JSON.parse(sessionStorage.getItem(key)??'{}');return Object.fromEntries(Object.entries(defaults).map(([k,v])=>[k,typeof saved[k]==='string'&&saved[k].length<=100?saved[k]:v])) as typeof defaults;}catch{return defaults;}}

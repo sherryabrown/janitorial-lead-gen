@@ -4,7 +4,8 @@ import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-libra
 import { afterEach, expect, it, vi } from 'vitest';
 import { RequestReview } from './RequestReview';
 import { RunDetail } from './RunDetail';
-import { ScheduleList, ActivityList } from './ScheduleList';
+import { RunHistory } from './RunHistory';
+import { ScheduleList } from './ScheduleList';
 import { initialDraft, runLabel } from './model';
 const mocked = vi.hoisted(() => ({ request: vi.fn() }));
 vi.mock('../../lib/procurement-workflow', () => ({ workflowRequest: mocked.request, mutationKey: () => 'stable-key', acknowledged: () => {} }));
@@ -13,13 +14,17 @@ const candidate = { intake_id: 'candidate', intake_hash: 'hash', title: 'Cleanin
 const results = { tasks: [], jobs: [], candidates: [candidate], total_candidates: 1, next_offset: null };
 const review = (signal: string) => <RequestReview id="request" owner="owner" onViewLeads={() => {}} refreshSignal={signal} />;
 
-it('labels settled county source gaps consistently in Activity and details without altering other states',async()=>{
+it('labels settled county source gaps consistently in current history and details without altering other states',async()=>{
  const run={id:'run',state:'needs_review',target_kind:'county_scope',created_at:'2026-10-19T01:00:00Z',presentation:{outcome:'source_attention' as const,attention_count:1},children:[]};
  expect(runLabel({...run,state:'running'})).toBe('Checking sources');expect(runLabel({...run,target_kind:'sam'})).toBe('Results need review');
- mocked.request.mockImplementation(async(path:string)=>path.endsWith('/steps')?{items:[],next_cursor:null}:run);
- render(<><ActivityList items={[run]} onView={()=>{}} selected={null} more={false} onMore={()=>{}}/><RunDetail id="run" owner="owner" onClose={()=>{}} onViewLeads={()=>{}} onSource={()=>{}} changed={()=>{}}/></>);
- await screen.findByRole('heading',{name:/Oct 19|Created time unavailable/});expect(within(screen.getByRole('region',{name:'Run results'})).getByRole('heading',{name:'Finished with source gaps'})).toBeTruthy();expect(within(screen.getByRole('region',{name:'Run activity'})).getByText(/Finished with source gaps/)).toBeTruthy();
- expect(screen.getByRole('button',{name:'View results'})).toBeTruthy();
+ const view=vi.fn();
+ mocked.request.mockImplementation(async(path:string)=>path.startsWith('/v1/admin/history')?{items:[run],next_offset:null}:path.startsWith('/v1/schedules')?{items:[],next_offset:null}:path.endsWith('/steps')?{items:[],next_cursor:null}:run);
+ render(<><RunHistory owner="gap-history" submittedSearch={false} onView={view}/><RunDetail id="run" owner="owner" onClose={()=>{}} onViewLeads={()=>{}} onSource={()=>{}} changed={()=>{}}/></>);
+ await screen.findByRole('heading',{name:/Oct 19|Created time unavailable/});
+ expect(within(screen.getByRole('region',{name:'Run results'})).getByRole('heading',{name:'Finished with source gaps'})).toBeTruthy();
+ const history=within(screen.getByRole('table',{name:'Saved execution history'}));
+ expect(await history.findByText('Finished with source gaps')).toBeTruthy();
+ fireEvent.click(history.getByRole('button',{name:'Run run'}));expect(view).toHaveBeenCalledWith('run','overview');
 });
 
 it('shows source-specific blockers/actions and does not offer an ineffective retry',async()=>{

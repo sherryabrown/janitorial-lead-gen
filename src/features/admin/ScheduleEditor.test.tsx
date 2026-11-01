@@ -38,13 +38,13 @@ it('keeps its draft and mutation identity when save acknowledgement is lost',asy
 
 it('shows cities before a name, keeps schedule defaults separate, and restores per-type scope without confirmation',async()=>{
  const confirm=vi.spyOn(window,'confirm');render(<ScheduleEditor owner="owner" target="county_scope" counties={[scope]} sources={[]} registryState="ready" onClose={()=>{}} onSaved={()=>{}}/>);
- fireEvent.click(screen.getByLabelText('Saline County',{selector:'input'}));await screen.findByText('Saline County (1 cities)');
+ fireEvent.click(await screen.findByLabelText('Saline County',{selector:'input'}));await screen.findByText('Saline County (1 cities)');
  expect(screen.getByLabelText('Schedule name')).toHaveProperty('value','');expect(screen.getByRole('checkbox',{name:'Enabled'})).toHaveProperty('checked',true);
  expect(screen.getByText('Work · Check for lead updates').parentElement).toHaveProperty('open',false);
  expect(screen.getByText('Date window · Next 120 days · CT')).toBeTruthy();
  fireEvent.change(screen.getByLabelText('Schedule name'),{target:{value:'Retained name'}});
  fireEvent.click(screen.getByRole('radio',{name:'SAM.gov'}));expect(screen.getByLabelText('Posted within the last (days)')).toHaveProperty('value','120');
- fireEvent.click(screen.getByRole('radio',{name:'Counties'}));expect(screen.getByLabelText('Saline County',{selector:'input'})).toHaveProperty('checked',true);
+ fireEvent.click(screen.getByRole('radio',{name:'Counties'}));expect(await screen.findByLabelText('Saline County',{selector:'input'})).toHaveProperty('checked',true);
  expect(screen.getByLabelText('Schedule name')).toHaveProperty('value','Retained name');expect(confirm).not.toHaveBeenCalled();confirm.mockRestore();
 });
 it('blocks duplicate and blank times instead of silently dropping the extra entry',async()=>{

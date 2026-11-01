@@ -22,3 +22,5 @@ Successful offline checks do not satisfy this gate. After this gate succeeds, ap
 The current `local-access.mjs` harness lists and applies the forward migrations required by its scheduler, automatic SAM, native validation and access tests. Use that harness for the full current application gate; the optional hosted Auth lifecycle instructions above describe their narrower historical Auth/RLS fixture, not the full current schema.
 
 Run `node tests/integration/admin-ui-browser.mjs` for desktop/mobile/keyboard acceptance against intercepted fixture HTTP. It uses the real app with a fixture session and blocks unexpected external requests; it does not prove deployed provider access or production imports.
+
+For county-loading acceptance, build with `VITE_PROCUREMENT_API_URL=https://janitorial-procurement-backend.onrender.com` in the build process environment, then run `node tests/integration/admin-ui-browser.mjs --built --county-loading`. The harness intercepts that origin. This checks deferred geometry, failed-chunk retry, draft/search retention, keyboard selection, direct manual entry, and desktop/mobile layout; it sends no workflow mutations to a live service.

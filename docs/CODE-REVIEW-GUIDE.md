@@ -44,4 +44,4 @@ Use [development workflow](development-workflow.md), [integration gates](../test
 
 For unused-code cleanup, inspect imports, package commands, dynamic references, tests, deployment configuration, documentation and active future plans. Preserve Companies/email-preview selectors and data. Remove only confirmed obsolete assets; keep an explicit deletion manifest. Check relative links after moving plans.
 
-Current review: [October 19 integration findings](reviews/2026-10-19-integration-maintainability-review.md). Build evidence and wiring coverage: [integration remediation build](reviews/2026-10-19-integration-remediation-build.md).
+Current cleanup review: [November 1 findings](reviews/2026-11-01-lean-codebase-review.md) and [cleanup build evidence](reviews/2026-11-01-lean-codebase-cleanup-build.md). Earlier integration wiring coverage remains in the [October 19 build](reviews/2026-10-19-integration-remediation-build.md).

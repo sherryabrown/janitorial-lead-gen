@@ -114,6 +114,7 @@ async function start() {
   await waitFor(() =>
     expect(screen.queryByText(/Loading county registry/)).toBeNull(),
   );
+  await screen.findByLabelText('Pulaski County', {selector:'input'});
 }
 // Keep role/visibility checks inside the form that owns the control. Global
 // button queries otherwise compute names/visibility for all 75 SVG map buttons.
@@ -294,18 +295,20 @@ it('isolates schedule editing from manual selection and sends the saved version'
       : old(p, o),
   );
   await start();
-  fireEvent.click(screen.getByRole('checkbox', { name: 'Ashley County' }));
-  fireEvent.click(screen.getByRole('button',{name:'Schedules'}));
-  fireEvent.click(screen.getByRole('button', { name: 'Actions for Morning check' }));
+  const nav = within(screen.getByRole('navigation', {name:'Scheduling views'}));
+  const schedules = () => within(screen.getByRole('region', {name:'Saved schedules'}));
+  fireEvent.click(screen.getByLabelText('Ashley County', {selector:'input'}));
+  fireEvent.click(nav.getByRole('button',{name:'Schedules'}));
+  fireEvent.click(schedules().getByRole('button', { name: 'Actions for Morning check' }));
   fireEvent.click(screen.getByRole('menuitem', { name: 'Edit' }));
   await screen.findByRole('heading',{name:'Edit schedule'});
   expect(screen.queryByRole('checkbox',{name:'Pulaski County'})).toBeNull();
   expect(screen.getByLabelText('About saved counties')).toBeTruthy();
-  fireEvent.click(screen.getByRole('button',{name:'Cancel'}));
+  fireEvent.click(within(screen.getByRole('region',{name:'Schedule editor'})).getByRole('button',{name:'Cancel'}));
   openManual();
-  expect(screen.getByRole('checkbox',{name:'Ashley County'})).toHaveProperty('checked',true);
-  fireEvent.click(screen.getByRole('button',{name:'Schedules'}));
-  fireEvent.click(screen.getByRole('button', { name: 'Actions for Morning check' }));
+  expect(screen.getByLabelText('Ashley County',{selector:'input'})).toHaveProperty('checked',true);
+  fireEvent.click(nav.getByRole('button',{name:'Schedules'}));
+  fireEvent.click(schedules().getByRole('button', { name: 'Actions for Morning check' }));
   fireEvent.click(screen.getByRole('menuitem',{name:'Disable'}));
   fireEvent.click(screen.getByRole('menuitem', { name: 'Pause' }));
   await waitFor(() =>

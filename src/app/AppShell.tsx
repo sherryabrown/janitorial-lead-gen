@@ -1,3 +1,4 @@
+import type { HistoryType, ClosedSubcategory, LeadHistoryItem, LeadNote } from '../features/shared/types';
 import {workflowRequest} from '../lib/procurement-workflow';
 import {leadScopeLocation,readLeadScope,parseMetricScope,metricPath,type MetricScope,type MetricMembers} from '../features/admin/metric-scope';
 import { AuthGate } from '../features/auth/AuthGate';
@@ -54,10 +55,6 @@ import type { Session } from '@supabase/supabase-js';
 type WorkMode = 'contracts' | 'companies';
 type Fit = 'High' | 'Medium' | 'Low';
 type ContextPanelMode = 'note' | 'history' | 'email';
-type HistoryType = 'status' | 'note' | 'note-edit' | 'system' | 'lead-identified';
-
-type ClosedSubcategory = 'all' | 'won' | 'lost' | 'not-interested' | 'withdrew';
-
 type CompanyStatusCategory = 'new' | 'ready-to-email' | 'needs-call' | 'in-progress' | 'closed';
 type CompanyProgressStatus =
   | 'waiting-on-customer'
@@ -74,23 +71,6 @@ type CompanyClosedReason =
   | 'no-budget'
   | 'has-provider'
   | 'bad-fit';
-
-type LeadHistoryItem = {
-  id: string;
-  noteId?: string;
-  occurredAt?: string;
-  updatedAt?: string;
-  at: string;
-  label: string;
-  detail?: string;
-  type: HistoryType;
-};
-
-type LeadNote = {
-  id: string;
-  at: string;
-  text: string;
-};
 
 type CompanyLead = {
   id: string;

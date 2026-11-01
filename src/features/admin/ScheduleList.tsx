@@ -1,6 +1,6 @@
 export { ScheduleList } from './ScheduledTable';
-import type { StateSource, Run, County } from './types';
-import { formatLocal, usageText, runLabel, hasSourceAttention } from './model';
+import type { StateSource, County } from './types';
+import { formatLocal } from './model';
 export function StateSourceList({
   items,
   counties,
@@ -70,80 +70,6 @@ export function StateSourceList({
           </div>
         </div>
       ))}
-    </section>
-  );
-}
-export function ActivityList({
-  items,
-  onView,
-  selected,
-  more,
-  paging,
-  onMore,
-}: {
-  items: Run[];
-  onView: (id: string) => void;
-  selected: string | null;
-  more: boolean;
-  paging?: boolean;
-  onMore: () => void;
-}) {
-  return (
-    <section className="admin-section" aria-label="Run activity">
-      <h2>Activity</h2>
-      {!items.length && (
-        <p className="admin-hint">
-          Your runs and their next actions will appear here.
-        </p>
-      )}
-      {items.map((r) => (
-        <div
-          className={`admin-row ${selected === r.id ? 'is-current' : ''}`}
-          key={r.id}
-        >
-          <div>
-            <strong>
-              {runLabel(r)} ·{' '}
-              {r.schedule_name ??
-                (r.origin === 'scheduled' ? 'Scheduled' : 'Manual')}
-            </strong>
-            <p>
-              {formatLocal(r.created_at)} ·{' '}
-              {r.target_kind === 'sam'
-                ? `SAM · ${r.category === 'award' ? 'Contract awards' : 'Opportunities'} · Arkansas statewide`
-                : r.county_count == null
-                  ? 'Scope in details'
-                  : `${r.county_count} counties`}
-            </p>
-            <small>
-              {r.candidate_count ?? 'Unknown'} candidates |{' '}
-              {r.evidence_count ?? 'Unknown'} saved pages |{' '}
-              {usageText(r.usage)}
-            </small>
-          </div>
-          <button
-            type="button"
-            className="secondary-button compact"
-            aria-expanded={selected === r.id}
-            onClick={() => onView(r.id)}
-          >
-            {selected === r.id
-              ? 'Hide details'
-              : hasSourceAttention(r)
-                ? 'View results'
-              : ['needs_review', 'partial', 'outcome_unknown'].includes(
-                    r.state,
-                  )
-                ? 'Review results'
-                : 'View progress'}
-          </button>
-        </div>
-      ))}
-      {more && (
-        <button type="button" className="text-button" disabled={paging} onClick={onMore}>
-          More activity
-        </button>
-      )}
     </section>
   );
 }

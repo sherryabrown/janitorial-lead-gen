@@ -48,6 +48,17 @@ test('catalog filtering, stable pagination, gap paging and unsafe input rejectio
  const gap=catalogProjection(d,{limit:2,gap_offset:2},now);assert.equal(gap.gaps.items.length,2);assert.equal(gap.gaps.next_offset,4);
  for(const input of [{limit:101},{offset:-1},{gap_offset:'bad'},{sort:'secret'},{source:'<script>'},{q:'x'.repeat(121)}])assert.throws(()=>catalogInput(input),/Invalid catalog/);
 });
+test('tied names page by identity while shared county associations preserve registry order',()=>{
+ const d=fixture();d.sources=[{...d.sources[1],id:uuid(102),name:'Same'},{...d.sources[1],id:uuid(101),name:'Same'}];
+ d.associations=[{id:uuid(8),source_id:uuid(102),county_ids:['05125','05053'],category:'award'},{id:uuid(7),source_id:uuid(101),county_ids:['05125'],category:'opportunity'}];
+ const first=catalogProjection(d,{limit:1},now),second=catalogProjection(d,{limit:1,offset:1},now);
+ assert.equal(first.sources.items[0].id,uuid(101));assert.equal(second.sources.items[0].id,uuid(102));
+ const county=catalogProjection(d,{geography:'05125'},now).geographies.items[0];
+ assert.deepEqual(county.associations.map(a=>a.id),[uuid(8),uuid(7)]);
+ assert.deepEqual(county.cities[0].counties.map(c=>c.id),['05053','05125']);
+ assert.deepEqual(catalogProjection(d,{geography:'05053'},now).geographies.items[0].associations.map(a=>a.id),[uuid(8)]);
+});
+
 test('real disposable SQL reads project registry and bounded capture metadata; history failure retains catalog',async()=>{
  const sql=await adminDatabase();try{
   await sql.exec(`insert into procurement_geographies(id,kind,name,dataset_url,dataset_version,dataset_hash)values('05','state','Arkansas','fixture','1','a'),('05125','county','Saline County','fixture','1','b');`);

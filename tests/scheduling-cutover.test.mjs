@@ -1,14 +1,29 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
+import {readFile,mkdtemp,copyFile,writeFile,rm} from 'node:fs/promises';
 import {execFileSync} from 'node:child_process';
+import {tmpdir} from 'node:os';
+import {join,resolve,sep,basename} from 'node:path';
 import {adminDatabase} from './helpers/admin-trigger-db.mjs';
 import {schedulingCutoverHold} from '../scripts/scheduling-cutover-hold.mjs';
-import {schedulingCutoverPlan} from '../scripts/prepare-scheduling-cutover.mjs';
+import {schedulingCutoverPlan,runtimeCommit} from '../scripts/prepare-scheduling-cutover.mjs';
 
 test('cutover package rolls back all phases on an unexpected dependency and preserves membership losslessly on retry',async()=>{
  const db=await adminDatabase();
+ const repoRoot=process.cwd();let fixture;
  try{
+  // Exercise the historical release against its pinned runtime, not the
+  // developer's changing app or the operator's real preparation outputs.
+  fixture=await mkdtemp(join(tmpdir(),'janitorial-cutover-test-'));
+  execFileSync('git',['clone','--local','--shared','--no-checkout',repoRoot.replaceAll('\\','/'),fixture],{stdio:'ignore',windowsHide:true});
+  execFileSync('git',['-C',fixture,'checkout','--detach',runtimeCommit],{stdio:'ignore',windowsHide:true});
+  for(const name of ['prepare-scheduling-cutover.mjs','prepare-scheduling-cutover-api.mjs','scheduling-cutover-hold.mjs','scheduling-cutover-preflight.sql'])
+   await copyFile(join(repoRoot,'scripts',name),join(fixture,'scripts',name));
+  process.chdir(fixture);
+  const app=await readFile('src/App.tsx');
+  await writeFile('src/App.tsx',Buffer.concat([app,Buffer.from('\n// Test-only runtime drift\n')]));
+  await assert.rejects(schedulingCutoverPlan(),/Application differs from tested runtime/);
+  await writeFile('src/App.tsx',app);
   await db.exec(await readFile('supabase/migrations/20260930000100_authenticated_procurement_reads.sql','utf8'));
   await db.exec(await readFile('supabase/migrations/20261005000700_public_source_access_handoffs.sql','utf8'));
   await db.exec(`create type public.app_role as enum ('user','admin');
@@ -45,7 +60,14 @@ test('cutover package rolls back all phases on an unexpected dependency and pres
   assert.equal((await db.query('select count(*)::int n from supabase_migrations.schema_migrations')).rows[0].n,9,'Only eight release versions added, idempotently');
   assert.equal((await db.query("select count(*)::int n from supabase_migrations.schema_migrations where version='19990101000000'")).rows[0].n,1,'Unrelated history preserved');
   await assert.rejects(db.exec(plan.sql),/manifest|partially/i);await db.exec('rollback');
- }finally{await db.close();}
+ }finally{
+  process.chdir(repoRoot);await db.close();
+  if(fixture){
+   const target=resolve(fixture),root=resolve(tmpdir())+sep;
+   assert.ok(target.startsWith(root)&&basename(target).startsWith('janitorial-cutover-test-'),'Unsafe cutover fixture cleanup path');
+   await rm(target,{recursive:true,force:true});
+  }
+ }
 });
 
 test('explicit hold server exposes only a health marker and rejects business/private wakes without reflecting secrets',()=>{

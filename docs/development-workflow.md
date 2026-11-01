@@ -20,6 +20,8 @@ The workflow SQL regression covers the reusable planner/runner. The standalone S
 
 The Node suites use a preload that rejects fetch/socket/HTTP connections, inherited by Node children. It is a regression guard, not an OS sandbox for arbitrary native binaries. Tests need no Supabase, Gmail or Resend credentials. Fixtures are documented in [tests/fixtures/README.md](../tests/fixtures/README.md). Missing fixtures cause failures, not skipped tests.
 
+The historical cutover regression creates a disposable local Git checkout of its pinned runtime and cleans it up. It uses `git clone --local`, requires that commit to exist locally, and does not change the current checkout or operator output packages. The production guard still rejects runtime drift. In restricted Windows environments, Git's native helper may require running that gate outside the sandbox.
+
 For an actual reviewed import package, use:
 
 ```powershell
