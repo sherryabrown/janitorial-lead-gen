@@ -91,3 +91,9 @@ it('waits for the authoritative refreshed scope before accepting verification co
  await act(async()=>{});
  expect(request.mock.calls.find(([path,options])=>path.endsWith('/apply')&&options?.body)?.[1].body).toMatchObject({confirmed_scope:true,preview_token:'fresh-preview'});
 });
+
+vi.mock('../../lib/scheduling-reads',async()=>{
+ const {workflowRequest}=await import('../../lib/procurement-workflow');
+ const {mockSchedulingReads}=await import('../../../tests/helpers/mock-scheduling-reads');
+ return {schedulingRead:mockSchedulingReads(workflowRequest)};
+});

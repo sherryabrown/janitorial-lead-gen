@@ -1,12 +1,12 @@
 import {verifyScheduleActivity} from '../helpers/schedule-activity-db.mjs';
 import {verifyScheduleAudit} from '../helpers/schedule-audit-db.mjs';
 import {verifyReleaseRoles} from '../helpers/release-roles-db.mjs';
-import {schedulingDevPreview} from '../helpers/scheduling-dev-preview.mjs';
+import {startSchedulingPreview} from '../helpers/scheduling-preview-bootstrap.mjs';
 // Real PostgreSQL + PostgREST/JWT integration. No production connection is used.
 import assert from 'node:assert/strict';
 import { adminMigrations } from '../helpers/admin-trigger-db.mjs';
 import { execFileSync, spawn } from 'node:child_process';
-import { existsSync, openSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, appendFileSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { createHmac, createHash, randomBytes, randomUUID } from 'node:crypto';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
@@ -24,6 +24,7 @@ import {nativeRehearsal} from '../../scripts/lib/native-sql-rehearsal.mjs';
 import {statewideSam} from '../../scripts/lib/hosted-sam.mjs';
 import {verifyAutomaticCounty} from './automatic-county.mjs';
 import {verifyAnalyticsDatabase} from '../helpers/analytics-db.mjs';
+import {verifySavedSchedulingReads} from '../helpers/saved-scheduling-db.mjs';
 
 const bin=process.env.ACCESS_TEST_PG_BIN || 'C:/Program Files/PostgreSQL/15/bin';
 const gateway=process.env.ACCESS_TEST_POSTGREST_BIN || resolve('outputs/procurement-access/local-access-runtime/postgrest/postgrest.exe');
@@ -73,10 +74,20 @@ try {
     insert into procurement_leads(source_id,external_id,payload) select '${sourceId}','isolated-'||n,${literal(payload)} from generate_series(1,1004) n;`);
   const config=join(folder,'postgrest.conf');
   writeFileSync(config,`db-uri = "postgresql://authenticator@127.0.0.1:${dbPort}/postgres"\ndb-schemas = "public"\ndb-anon-role = "anon"\nserver-host = "127.0.0.1"\nserver-port = ${httpPort}\njwt-secret = "${secret}"\n`);
-  server=spawn(gateway,[config,'+RTS','-N1','-RTS'],{windowsHide:true,stdio:['ignore',openSync(join(folder,'postgrest.log'),'a'),openSync(join(folder,'postgrest.log'),'a')],env:{...process.env,PATH:bin+';'+process.env.PATH}});
+  // Keep shell PostgREST/PG overrides out of this disposable local runtime.
+  const gatewayEnv=Object.fromEntries(Object.entries(process.env).filter(([key])=>!/^PGRST_|^PG(?:HOST|PORT|DATABASE|USER|PASSWORD|SERVICE|SERVICEFILE|SSLMODE|OPTIONS)$|^PATH$/i.test(key)));
+  gatewayEnv.PATH=bin+';'+(process.env.PATH??process.env.Path??'');
+  const gatewayLog=join(folder,'postgrest.log');let launchError;
+  server=spawn(gateway,[config,'+RTS','-N1','-RTS'],{windowsHide:true,stdio:['ignore','pipe','pipe'],env:gatewayEnv});
+  for(const stream of [server.stdout,server.stderr])stream.on('data',chunk=>appendFileSync(gatewayLog,chunk));
+  server.on('error',error=>{launchError=error.code;});
   let ready=false,lastStatus=null;
-  for(let attempt=0;attempt<150;attempt++) {try{const r=await api('procurement_leads?select=id&limit=1');lastStatus=r.status;if([401,403].includes(r.status)){ready=true;break;}}catch{/* Startup only. */}await new Promise(r=>setTimeout(r,100));}
-  assert.ok(ready,`Local PostgREST did not become ready (last HTTP ${lastStatus}, exit ${server.exitCode}); diagnostics: ${join(folder,'postgrest.log')}`);
+  for(let attempt=0;attempt<150;attempt++) {if(launchError||server.exitCode!==null)break;try{const r=await api('procurement_leads?select=id&limit=1');lastStatus=r.status;if([401,403].includes(r.status)){ready=true;break;}}catch{/* Startup only. */}await new Promise(r=>setTimeout(r,100));}
+  assert.ok(ready,`Local PostgREST did not become ready (last HTTP ${lastStatus}, exit ${server.exitCode}, launch ${launchError??'ok'}); diagnostics: ${gatewayLog}`);
+  if(process.argv.includes('--preview')){
+   console.log('Preparing isolated sample preview (regression tests run separately with npm run test:access)…');
+   await startSchedulingPreview({dbPort,httpPort,first,second,token});
+  }else{
   const nonMember=token('authenticated',first),member=token('authenticated',second);
   for(const table of ['procurement_leads','procurement_sources','procurement_versions','procurement_events','procurement_registrations','spin_contract_opportunities']) assert.ok([401,403].includes((await api(`${table}?select=*&limit=1`)).status),`Anonymous ${table} read denied`);
   for(const jwt of ['invalid-token',token('authenticated',first,true)]) assert.equal((await api('procurement_leads?select=id&limit=1',jwt)).status,401,'Invalid/expired JWT rejected by real HTTP gateway');
@@ -331,12 +342,10 @@ try {
     console.log('Analytics native acceptance:',await verifyAnalyticsDatabase({sql:livePool,db}));
     console.log('Schedule activity native acceptance:',await verifyScheduleActivity({sql:livePool,db,triggers}));
     console.log('Release roles native acceptance:',await verifyReleaseRoles({pool:livePool,rehearsalPool,db,api,first,second,userToken:nonMember,adminToken:member}));
-    if(process.argv.includes('--preview')){
-      if(backend){await new Promise(r=>backend.close(r));backend=null;}
-      await schedulingDevPreview({pool:livePool,rehearsalPool,db,first,second,token,gatewayPort:httpPort});
-    }
+    console.log('Saved scheduling native acceptance:',await verifySavedSchedulingReads({pool:livePool,db,api,user:first,admin:second,userToken:nonMember,adminToken:member}));
   }finally {await livePool.end();await rehearsalPool.end();}
   console.log(JSON.stringify({status:'passed',engine:'PostgreSQL 15 + PostgREST',checks:['anonymous reads/RPC denial','member and non-member reads/stages','signed expired and invalid JWT HTTP rejection','note ownership','atomic actor history','1005-row paged queue','service workflow access','Admin private table/RPC denial','Admin atomic replay','concurrent parent AI reservations and four-call cap','scheduling private tables/RPC denial and atomic replay','concurrent active/paused county-work ownership and archive release','grouped state native dispatch/replay/membership/source identities','browser-independent private HTTP wake/shared worker/audit/replay/pause','nonempty automatic SAM manual/scheduled native validation/write/readback/deduplication','private detail hold containment and checkpoint CAS/stale-write rejection'],isolated_wake_and_stage_ms:isolatedWakeAndStageMs,production_contacted:false},null,2));
+  }
 } finally {
   if(backend)await new Promise(r=>backend.close(r));
   if(server && server.exitCode===null && server.signalCode===null) {server.kill();await new Promise(r=>server.once('exit',r));}

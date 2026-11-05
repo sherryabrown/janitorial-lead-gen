@@ -185,3 +185,9 @@ it('SAM shows automatic verified results without import approval controls', asyn
     false,
   );
 });
+
+vi.mock('../../lib/scheduling-reads',async()=>{
+ const {workflowRequest}=await import('../../lib/procurement-workflow');
+ const {mockSchedulingReads}=await import('../../../tests/helpers/mock-scheduling-reads');
+ return {schedulingRead:mockSchedulingReads(workflowRequest)};
+});

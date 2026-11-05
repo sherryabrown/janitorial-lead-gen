@@ -6,7 +6,7 @@ import {RunLeadCount} from './MetricLink';
 import {useOwnedRead} from './read-owner';
 import {ReadAction} from './ReadAction';
 import {useCallback,useEffect,useRef,useState} from 'react';
-import {workflowRequest} from '../../lib/procurement-workflow';
+import {schedulingRead} from '../../lib/scheduling-reads';
 import {attemptNextAction,duration,formatLocal,runLabel,title,readFailure} from './model';
 import type {County,Page,Run} from './types';
 import {HistoryScheduleFilter} from './HistoryScheduleFilter';
@@ -24,13 +24,12 @@ function RunHistoryContent({entryId,submittedSearch,owner='',scheduleId,counties
  const [filters,setFilters]=useState<HistoryFilters>(initial.draft),[applied,setApplied]=useState<HistoryFilters|null>(initial.applied),[validation,setValidation]=useState(''),[page,setPage]=useState<ActivityPage>({items:[],next_offset:null}),[error,setError]=useState(''),[busy,setBusy]=useState(false),[revision,setRevision]=useState(0),[choiceRevision,setChoiceRevision]=useState(0),[choicesError,setChoicesError]=useState(''),[choicesBusy,setChoicesBusy]=useState(false);
  const [kind,setKind]=useState(()=>storedChoice(key+':kind',['','run','attempt'])),[attemptState,setAttemptState]=useState(()=>storedChoice(key+':attempt',['','queued','skipped','blocked']));
  const boundary=useRef('');
- const endpoint=scheduleId?`/v1/schedules/${scheduleId}/activity`:'/v1/admin/history';
  const requestPage=useCallback(async(p:URLSearchParams,signal:AbortSignal):Promise<ActivityPage>=>{
-  if(!scheduleId)return workflowRequest<ActivityPage>(`${endpoint}?${p}`,{signal});
+  if(!scheduleId)return schedulingRead<ActivityPage>('history',{filters:Object.fromEntries(p),signal});
   p.delete('schedule');if(kind)p.set('kind',kind);if(attemptState)p.set('attempt_state',attemptState);if(boundary.current)p.set('as_of',boundary.current);
-  const result=await workflowRequest<Page<SavedActivity>&{as_of:string}>(`${endpoint}?${p}`,{signal});if(signal.aborted)throw new DOMException('Aborted','AbortError');boundary.current=result.as_of;
+  const result=await schedulingRead<Page<SavedActivity>&{as_of:string}>('activity',{id:scheduleId,filters:Object.fromEntries(p),signal});if(signal.aborted)throw new DOMException('Aborted','AbortError');boundary.current=result.as_of;
   return {...result,items:result.items.map(a=>({...a.run,id:a.run?.id??a.id,state:a.run?.state??a.occurrence?.state??'unavailable',created_at:a.activity_at,target_kind:a.run?.target_kind??'',activity_kind:a.kind,activity_at:a.activity_at,clock_basis:a.clock_basis,occurrence:a.occurrence}))};
- },[scheduleId,endpoint,kind,attemptState]);
+ },[scheduleId,kind,attemptState]);
  const failedPage=useRef(false),generation=useRef(0),pending=useRef(false),pagingController=useRef<AbortController|null>(null),loaded=useRef(initial.loaded||(()=>{try{const n=Number(sessionStorage.getItem(key.replace('history-filter','history-page')));return Number.isInteger(n)&&n>=50&&n<=5000?n:50;}catch{return 50;}})());
  const draftRef=useRef(filters);draftRef.current=filters;
  const selected=submittedSearch?applied:filters;

@@ -1,3 +1,4 @@
+import {schedulingRead} from '../../lib/scheduling-reads';
 import {Breadcrumb} from './Breadcrumb';
 import {useEffect,useRef,useState} from 'react';
 import {workflowRequest,mutationKey,acknowledged} from '../../lib/procurement-workflow';
@@ -16,7 +17,7 @@ export function ScheduleEditor({owner,saved,target:initialTarget,counties,source
  const [draft,setDraft]=useState<Draft>(()=>restored()?.draft??(saved?{...saved,config:saved.config.target_kind==='sam'?initialScheduleDraft().config:saved.config,window_policy:saved.config.target_kind==='sam'?initialScheduleDraft().window_policy:saved.window_policy as Draft['window_policy']}:{...initialScheduleDraft(),name:initial?.name??'',config:{...initialScheduleDraft().config,county_ids:initial?.config.county_ids??[],...(initialTarget==='state_source'?{target_kind:'state_source' as const,state_trigger_id:initial?.config.state_trigger_id,state_trigger_ids:initial?.config.state_trigger_ids,requested_categories:initial?.config.requested_categories??['opportunity'] as const}:{})}}));
  const [selections,setSelections]=useState<Record<string,Draft['config']>>(()=>restored()?.selections??{});
  const [geography,setGeography]=useState<County[]>(counties),[geoError,setGeoError]=useState(''),[geoRevision,setGeoRevision]=useState(0);
- useEffect(()=>{const a=new AbortController();setGeoError('');void workflowRequest<{counties:County[]}>('/v1/counties?include=scope',{signal:a.signal}).then(r=>{if(!a.signal.aborted&&Array.isArray(r.counties))setGeography(r.counties);}).catch(()=>{if(!a.signal.aborted)setGeoError('City lists could not load.');});return()=>a.abort();},[geoRevision]);
+ useEffect(()=>{const a=new AbortController();setGeoError('');void schedulingRead<{counties:County[]}>('counties',{filters:{include:'scope'},signal:a.signal}).then(r=>{if(!a.signal.aborted&&Array.isArray(r.counties))setGeography(r.counties);}).catch(()=>{if(!a.signal.aborted)setGeoError('City lists could not load.');});return()=>a.abort();},[geoRevision]);
  const [category,setCategory]=useState<'opportunity'|'award'>(()=>{try{const old=restored();if(old?.category==='opportunity'||old?.category==='award')return old.category;}catch{/* use saved */}return saved?.config.target_kind==='sam'?saved.config.requested_categories[0]:'opportunity';});
  const [lookback,setLookback]=useState(()=>{try{const old=restored();if(Number.isInteger(old?.lookback))return old.lookback;}catch{/* use saved */}return saved?.config.target_kind==='sam'?Number((saved.window_policy[saved.config.requested_categories[0]] as {lookback_days:number}).lookback_days):120;});
  const [sourceQuery,setSourceQuery]=useState('');

@@ -4,7 +4,7 @@ import {metricLabels} from './metric-scope';
 import {MetricLink} from './MetricLink';
 import {ReadAction} from './ReadAction';
 import {useEffect,useState} from 'react';
-import {workflowRequest} from '../../lib/procurement-workflow';
+import {schedulingRead} from '../../lib/scheduling-reads';
 import {HistoryScheduleFilter} from './HistoryScheduleFilter';
 import {InfoTooltip} from '../shared/components/InfoTooltip';
 import {duration,formatLocal,title,readFailure} from './model';
@@ -47,7 +47,7 @@ export function Analytics({owner,counties}:{owner:string;counties:County[]}){
  const [filters,setFilters]=useState(()=>restored(key)),[report,setReport]=useState<AnalyticsReport|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[revision,setRevision]=useState(0),[choicesError,setChoicesError]=useState(''),[choicesBusy,setChoicesBusy]=useState(false),[choiceRevision,setChoiceRevision]=useState(0);
  const query=new URLSearchParams(Object.entries(filters).filter(([,v])=>v)).toString();
  useEffect(()=>{const a=new AbortController();setBusy(true);setError('');const q=new URLSearchParams(query);q.set('limit','1');
-  void workflowRequest<AnalyticsReport>(`/v1/admin/analytics?${q}`,{signal:a.signal}).then(r=>{if(r.unavailable)throw Error(r.unavailable);if(!r.summary||!r.coverage)throw Error('Reporting data is unavailable.');if(!a.signal.aborted){setReport(r);}}).catch(e=>{if(!a.signal.aborted){if(/snapshot|consistent report|results changed/i.test(e.message)){setReport(null);setError(e.message);}else setError(readFailure(e,'Stats'));}}).finally(()=>{if(!a.signal.aborted)setBusy(false);});return()=>a.abort();
+  void schedulingRead<AnalyticsReport>('analytics',{filters:Object.fromEntries(q),signal:a.signal}).then(r=>{if(r.unavailable)throw Error(r.unavailable);if(!r.summary||!r.coverage)throw Error('Reporting data is unavailable.');if(!a.signal.aborted){setReport(r);}}).catch(e=>{if(!a.signal.aborted){if(/snapshot|consistent report|results changed/i.test(e.message)){setReport(null);setError(e.message);}else setError(readFailure(e,'Stats'));}}).finally(()=>{if(!a.signal.aborted)setBusy(false);});return()=>a.abort();
  },[query,revision]);
  const change=(k:keyof typeof defaults,v:string)=>{setReport(null);const next={...filters,[k]:v};setFilters(next);try{sessionStorage.setItem(key,JSON.stringify(next));}catch{/* Mounted state remains available. */}};
  const refresh=()=>{if(choicesError)setChoiceRevision(n=>n+1);if(error||!choicesError){setRevision(n=>n+1);}};

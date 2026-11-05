@@ -1,6 +1,6 @@
 import type { HistoryType, ClosedSubcategory, LeadHistoryItem, LeadNote } from '../features/shared/types';
-import {workflowRequest} from '../lib/procurement-workflow';
-import {leadScopeLocation,readLeadScope,parseMetricScope,metricPath,type MetricScope,type MetricMembers} from '../features/admin/metric-scope';
+import {schedulingRead} from '../lib/scheduling-reads';
+import {leadScopeLocation,readLeadScope,parseMetricScope,metricReadFilters,type MetricScope,type MetricMembers} from '../features/admin/metric-scope';
 import { AuthGate } from '../features/auth/AuthGate';
 import type { ContractCategory, ContractStatus, ContractStatusFilter, ContractView, ContractBidTypeFilter, ContractDateRangePreset, ContractSortKey, ContractSortDirection, BidSource, ContractOpportunity, ContractFilters, ContractAction, ContractStageReason } from '../features/contracts/types';
 import { getDefaultContractFilters } from '../features/contracts/contract-utils';
@@ -455,7 +455,7 @@ function AppShell({ session, onSignOut }: { session: Session; onSignOut: () => v
       const changed = getContractDateRangeBounds(contractFilters.changedDateRangePreset, contractFilters.changedDateFrom, contractFilters.changedDateTo);
       let result;
       if(leadScope){
-       const members=await workflowRequest<MetricMembers>(metricPath({...leadScope,filters:{...leadScope.filters,...leadAnchor.current}},contractPage*50));
+       const members=await schedulingRead<MetricMembers>('metric_members',{filters:metricReadFilters({...leadScope,filters:{...leadScope.filters,...leadAnchor.current}},contractPage*50)});
        if(members.unavailable)throw Error(members.unavailable);if(members.kind!=='leads')throw Error('Saved lead membership unavailable.');
        const scoped=await loadProcurementMetricLeads(client,members.items.map(i=>i.id),sourceCache);
        if(requestId!==contractRequestSequence.current)return;leadAnchor.current={as_of:members.as_of,snapshot:members.snapshot};setScopeUnavailable(scoped.unavailable);

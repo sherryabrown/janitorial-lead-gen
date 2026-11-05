@@ -1,3 +1,4 @@
+import {schedulingRead} from '../../lib/scheduling-reads';
 import {useSchedulingRole} from './scheduling-role';
 import {SourceStatus} from './SourceStatus';
 import type {AdminContext} from './navigation';
@@ -65,25 +66,25 @@ export function RunDetail({
   useEffect(() => {
     if(!active){setReadBusy(false);return;}
     const abort=new AbortController();
-    let timer:ReturnType<typeof setTimeout>,delay=2500,previous=runRef.current?.state??'',poll=false;
+    let timer:ReturnType<typeof setTimeout>,delay=2500,previous=runRef.current?.state??'',previousPending=runRef.current?.reporting_pending??false,projectionRetries=0,poll=false;
     if(lastId.current!==`${owner}:${id}`){lastId.current=`${owner}:${id}`;setRun(null);runRef.current=null;setChild('');setResultsRead({busy:false,error:''});}
     setSessionBlocked(false);
     const load=async()=>{
       setReadBusy(true);
       try{
-        const value=await workflowRequest<Run&{progress_only?:boolean}>(`/v1/triggers/${id}${poll?'?projection=progress':''}`,{signal:abort.signal});
+        const value=await schedulingRead<Run&{progress_only?:boolean}>('run',{id,filters:poll?{projection:'progress'}:{},signal:abort.signal});
         const r=value.progress_only?{...runRef.current,...value}:value;
         if(abort.signal.aborted)return;
         if(expectedScheduleId&&r.schedule_id!==expectedScheduleId){setStatusError('Selected run does not belong to this schedule. Choose another saved run.');runRef.current=null;setRun(null);setChild('');return;}
         runRef.current=r;setRun(r);setStatusError('');
         setChild(c=>c||r.children?.find(child=>child.request_id===issueRequestId)?.request_id||r.children?.[0]?.request_id||'');
-        if(previous&&previous!==r.state)changedRef.current();previous=r.state;
+        if(previous&&previous!==r.state||previousPending&&!r.reporting_pending&&!activeRun(r.state))changedRef.current();previous=r.state;previousPending=!!r.reporting_pending;
       }catch(e){
         if(abort.signal.aborted)return;
         setStatusError(readFailure(e,'Run progress'));
         if((e as {code?:string}).code==='SESSION'){setSessionBlocked(true);return;}
       }finally{if(!abort.signal.aborted)setReadBusy(false);}
-      if(!abort.signal.aborted&&runRef.current&&activeRun(runRef.current.state)){poll=true;timer=setTimeout(()=>void load(),delay);delay=Math.min(delay*1.5,15000);}
+      if(!abort.signal.aborted&&runRef.current&&(activeRun(runRef.current.state)||runRef.current.reporting_pending&&projectionRetries++<3)){poll=true;timer=setTimeout(()=>void load(),delay);delay=Math.min(delay*1.5,15000);}
     };
     void load();
     return()=>{abort.abort();clearTimeout(timer);};

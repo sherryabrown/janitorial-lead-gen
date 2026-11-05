@@ -57,3 +57,9 @@ it('still loads schedule runs automatically with their saved filters and no Subm
  request.mockResolvedValue({items:[{id:'run:'+run.id,kind:'run',activity_at:run.created_at,run}],next_offset:null,total:1});
  render(<RunHistory owner="owner" scheduleId="schedule" onView={()=>{}}/>);await screen.findByRole('button',{name:/Run saved-run$/});expect(request.mock.calls[0][0]).toBe('/v1/schedules/schedule/activity?');expect(screen.queryByRole('button',{name:'Submit history'})).toBeNull();
 });
+
+vi.mock('../../lib/scheduling-reads',async()=>{
+ const {workflowRequest}=await import('../../lib/procurement-workflow');
+ const {mockSchedulingReads}=await import('../../../tests/helpers/mock-scheduling-reads');
+ return {schedulingRead:mockSchedulingReads(workflowRequest)};
+});

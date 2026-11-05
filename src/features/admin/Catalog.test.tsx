@@ -44,3 +44,9 @@ it('pages gaps separately and preserves category filter on their paging',async()
  render(<Catalog mode="sources" owner="user"/>);await screen.findByText('30 missing source/category routes');fireEvent.click(screen.getByText('More filters'));fireEvent.change(screen.getByLabelText('Category'),{target:{value:'award'}});await waitFor(()=>expect(mocks.request.mock.calls.at(-1)?.[0]).toContain('category=award'));fireEvent.click(screen.getByText('30 missing source/category routes'));fireEvent.click(screen.getByRole('button',{name:'Next gaps'}));await waitFor(()=>expect(mocks.request.mock.calls.at(-1)?.[0]).toContain('gap_offset=25'));
  expect(await within(screen.getByRole('region',{name:'Registered sources'})).findByText(/Verify official channel/)).toBeTruthy();
 });
+
+vi.mock('../../lib/scheduling-reads',async()=>{
+ const {workflowRequest}=await import('../../lib/procurement-workflow');
+ const {mockSchedulingReads}=await import('../../../tests/helpers/mock-scheduling-reads');
+ return {schedulingRead:mockSchedulingReads(workflowRequest)};
+});

@@ -283,3 +283,9 @@ it('preserves restored drafts through StrictMode and clears the old owner on acc
   fireEvent.click(screen.getByRole('button',{name:'Profile'}));
   expect(screen.getByRole('dialog').textContent).toContain('replacement@example.invalid');
 });
+
+vi.mock('../lib/scheduling-reads',async()=>{
+ const {workflowRequest}=await import('../lib/procurement-workflow');
+ const {mockSchedulingReads}=await import('../../tests/helpers/mock-scheduling-reads');
+ return {schedulingRead:mockSchedulingReads(workflowRequest)};
+});

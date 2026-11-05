@@ -56,7 +56,9 @@ export async function workflowRequest<T>(
     const controller=new AbortController();
     const abort=()=>controller.abort();sharedSignal.addEventListener('abort',abort,{once:true});
     if(sharedSignal.aborted)abort();
-    const timeout=setTimeout(()=>controller.abort(),30000);
+    // Render Free may need about a minute to wake before checking access.
+    // Other reads keep their existing deadline.
+    const timeout=setTimeout(()=>controller.abort(),path==='/v1/capabilities'?90000:30000);
     try{return await executeRequest<T>(path,{key,signal:controller.signal},token);}
     finally{clearTimeout(timeout);sharedSignal.removeEventListener('abort',abort);}
   });

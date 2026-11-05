@@ -160,3 +160,9 @@ it('loads archived schedule activity and keeps archived management disabled',asy
  fireEvent.click(await screen.findByText('Recent run attempts'));await screen.findByText('No run created');expect(screen.queryByText('Execution attempts and skipped runs')).toBeNull();
  fireEvent.click(screen.getByRole('button',{name:'Back to schedules'}));const actions=screen.getByRole('button',{name:'Actions for Archived morning'});if(actions.getAttribute('aria-expanded')!=='true')fireEvent.click(actions);expect(screen.getByRole('menuitem',{name:'Edit'}).getAttribute('aria-disabled')).toBe('true');
 });
+
+vi.mock('../../lib/scheduling-reads',async()=>{
+ const {workflowRequest}=await import('../../lib/procurement-workflow');
+ const {mockSchedulingReads}=await import('../../../tests/helpers/mock-scheduling-reads');
+ return {schedulingRead:mockSchedulingReads(workflowRequest)};
+});

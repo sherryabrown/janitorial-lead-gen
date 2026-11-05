@@ -75,3 +75,9 @@ it('shows actionable reservation conflicts and prevents an overlapping save',asy
  expect(screen.getByRole('link',{name:'View Existing county updates'}).getAttribute('href')).toContain('adminSchedule=existing');
  expect(mocked.request.mock.calls.some(([p])=>p==='/v1/schedules')).toBe(false);
 });
+
+vi.mock('../../lib/scheduling-reads',async()=>{
+ const {workflowRequest}=await import('../../lib/procurement-workflow');
+ const {mockSchedulingReads}=await import('../../../tests/helpers/mock-scheduling-reads');
+ return {schedulingRead:mockSchedulingReads(workflowRequest)};
+});

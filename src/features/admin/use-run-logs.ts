@@ -1,5 +1,5 @@
 import {useEffect,useRef,useState} from 'react';
-import {workflowRequest} from '../../lib/procurement-workflow';
+import {schedulingRead} from '../../lib/scheduling-reads';
 import {activeRun,readFailure} from './model';
 import type {Step} from './types';
 type Logs={items:Step[];next_cursor:string|null};
@@ -18,7 +18,7 @@ export function useRunLogs(id:string,owner:string,active:boolean,state?:string){
   if(!active){setBusy(false);return;}
   const abort=new AbortController(),epoch=++generation.current;controller.current=abort;
   let timer:ReturnType<typeof setTimeout>,delay=2500;
-  const read=(query='')=>workflowRequest<Logs>(`/v1/triggers/${id}/steps${query}`,{signal:abort.signal});
+  const read=(query='')=>schedulingRead<Logs>('steps',{id,filters:Object.fromEntries(new URLSearchParams(query)),signal:abort.signal});
   const load=async()=>{
    if(pending.current){timer=setTimeout(()=>void load(),delay);return;}
    pending.current=true;setBusy(true);
@@ -50,7 +50,7 @@ export function useRunLogs(id:string,owner:string,active:boolean,state?:string){
   if(!saved.current?.next_cursor||pending.current||!active)return;
   const epoch=generation.current;pending.current=true;setBusy(true);
   try{
-   const page=await workflowRequest<Logs>(`/v1/triggers/${id}/steps?cursor=${saved.current.next_cursor}`,{signal:controller.current?.signal});
+   const page=await schedulingRead<Logs>('steps',{id,filters:{cursor:saved.current.next_cursor},signal:controller.current?.signal});
    if(epoch!==generation.current)return;
    merge(page.items);saved.current!.next_cursor=page.next_cursor;setCursor(page.next_cursor);failedPage.current=false;setError('');
    try{sessionStorage.setItem(`spin-admin-log-page:${owner}:${id}`,String(saved.current!.items.length));}catch{/* Mounted pages remain. */}

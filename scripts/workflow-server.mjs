@@ -1,5 +1,7 @@
 import { procurementSchedules } from './lib/procurement-schedules.mjs';
 import {profileCapabilities} from './lib/procurement-capabilities.mjs';
+import {persistPendingRunResults} from './lib/persisted-run-results.mjs';
+import {persistCapabilityReadiness} from './lib/persisted-capability-readiness.mjs';
 import {guidedSourceResolution} from './lib/guided-source-resolution.mjs';
 import {adminCatalog} from './lib/admin-catalog.mjs';
 import { countyTriggers } from './lib/county-triggers.mjs';
@@ -51,7 +53,14 @@ function kick() {
   // Requests and private due/pending-work wakes share this serialized worker. Each claim persists one bounded stage.
   setImmediate(async()=>{
     const started=Date.now();
-    try {while(Date.now()-started<120000 && (await workflow.step() || await triggers.step())) { /* persisted boundary */ }}
+    try {
+      const saveResults=async()=>{
+        try{await persistPendingRunResults(db,{onError:()=>console.error('Saved run result pending; verified execution evidence is unchanged.')});await persistCapabilityReadiness(db);}
+        catch{console.error('Saved run reporting unavailable; execution can continue.');}
+      };
+      await saveResults();
+      while(Date.now()-started<120000 && (await workflow.step() || await triggers.step())) await saveResults();
+    }
     catch {console.error('Workflow stage interrupted; inspect saved status before retry.');}
     finally {running=false;}
   });

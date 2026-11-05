@@ -7,7 +7,7 @@ import {Catalog} from './Catalog';
 import {CurrentSourceSetup} from './SourceStatus';
 import {useSchedulingRole} from './scheduling-role';
 import {useEffect,useRef,useState} from 'react';
-import {workflowRequest} from '../../lib/procurement-workflow';
+import {schedulingRead} from '../../lib/scheduling-reads';
 import {ScheduleHistory} from './ScheduleHistory';
 import {RunHistory} from './RunHistory';
 import {ScheduleDisable} from './ScheduleDisable';
@@ -31,7 +31,7 @@ function ScheduleDetailContent({id,initial,owner='',section,onSection,onClose,on
  useEffect(()=>{setTechnical(section==='logs'&&role.technical_details);if(section==='geography'&&setup.current)setup.current.open=true;},[section,role.technical_details,hasCurrent]);
  useEffect(()=>{if(catalogSourceId)setCatalogOpen(true);},[catalogSourceId]);
  useEffect(()=>{if(initial)setSchedule(initial);},[initial]);
- useEffect(()=>{if(!active)return;const a=new AbortController();setReadBusy(true);setError('');void workflowRequest<AnySchedule>('/v1/schedules/'+id,{signal:a.signal}).then(value=>{if(!value?.id||!value.config)throw Error('Saved schedule details are unavailable.');if(!a.signal.aborted)setSchedule(value);}).catch(e=>{if(!a.signal.aborted)setError(readFailure(e,'Schedule details'));}).finally(()=>{if(!a.signal.aborted)setReadBusy(false);});return()=>a.abort();},[id,revision,active]);
+ useEffect(()=>{if(!active)return;const a=new AbortController();setReadBusy(true);setError('');void schedulingRead<AnySchedule>('schedule',{id,signal:a.signal}).then(value=>{if(!value?.id||!value.config)throw Error('Saved schedule details are unavailable.');if(!a.signal.aborted)setSchedule(value);}).catch(e=>{if(!a.signal.aborted)setError(readFailure(e,'Schedule details'));}).finally(()=>{if(!a.signal.aborted)setReadBusy(false);});return()=>a.abort();},[id,revision,active]);
  useEffect(()=>{heading.current?.focus();heading.current?.scrollIntoView?.({block:'nearest'});},[id]);
  const chooseRun=(value:string)=>{setRunSelection(value);onSelectedRun?.(value);};
  const current=schedule??initial,archived=!!current?.archived||!!current?.archived_at;

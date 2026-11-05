@@ -294,3 +294,9 @@ it('paginates steps and stops polling on terminal state or unmount', async () =>
   await act(() => vi.advanceTimersByTimeAsync(60000));
   expect(statuses).toBe(2);
 });
+
+vi.mock('../../lib/scheduling-reads',async()=>{
+ const {workflowRequest}=await import('../../lib/procurement-workflow');
+ const {mockSchedulingReads}=await import('../../../tests/helpers/mock-scheduling-reads');
+ return {schedulingRead:mockSchedulingReads(workflowRequest)};
+});

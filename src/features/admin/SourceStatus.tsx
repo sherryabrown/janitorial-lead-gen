@@ -1,3 +1,4 @@
+import {schedulingRead} from '../../lib/scheduling-reads';
 import {useEffect,useRef,useState} from 'react';
 import {workflowRequest} from '../../lib/procurement-workflow';
 import {SourceResolution} from './SourceResolution';
@@ -20,7 +21,7 @@ export function SourceStatus({requestId,owner,active=true,attention=false,onTech
   if(!visible)return;
   const abort=new AbortController();setBusy(true);setError('');
   const path=attention?`/v1/source-reviews?reviewed=${reviewed}&offset=${offset}`:`/v1/requests/${requestId}/source-status`;
-  void workflowRequest<Page>(path,{signal:abort.signal}).then(p=>{if(!Array.isArray(p.items))throw Error('Saved source status is unavailable.');if(!abort.signal.aborted)setData(p);})
+  void (attention?workflowRequest<Page>(path,{signal:abort.signal}):schedulingRead<Page>('source_status',{id:requestId,signal:abort.signal})).then(p=>{if(!Array.isArray(p.items))throw Error('Saved source status is unavailable.');if(!abort.signal.aborted)setData(p);})
    .catch(e=>{if(!abort.signal.aborted)setError(readFailure(e,'Source status'));}).finally(()=>{if(!abort.signal.aborted)setBusy(false);});
   return()=>abort.abort();
  },[visible,attention,requestId,reviewed,offset,revision]);
@@ -57,7 +58,7 @@ type Setup={basis:string;as_of:string;items:{id:string;name:string;url:string|nu
 const setupLabels:Record<string,string>={verified_method:'Verified check method',method_blocked:'Check method needs review',unsupported:'Automatic checking is not supported',category_unresolved:'Listing checks need setup'};
 export function CurrentSourceSetup({id,active=true,refreshSignal=0}:{id:string;active?:boolean;refreshSignal?:number}){
  const visible=useActiveRead(active),[data,setData]=useState<Setup|null>(null),[error,setError]=useState(''),[revision,setRevision]=useState(0),[offset,setOffset]=useState(0);
- useEffect(()=>{if(!visible)return;const abort=new AbortController();setError('');void workflowRequest<Setup>(`/v1/schedules/${id}/sources?offset=${offset}`,{signal:abort.signal})
+ useEffect(()=>{if(!visible)return;const abort=new AbortController();setError('');void schedulingRead<Setup>('source_setup',{id,filters:{offset},signal:abort.signal})
   .then(p=>{if(!Array.isArray(p.items)||!Array.isArray(p.gaps))throw Error('Source setup is unavailable.');if(!abort.signal.aborted)setData(p);}).catch(e=>{if(!abort.signal.aborted)setError(readFailure(e,'Current source setup'));});return()=>abort.abort();},[id,visible,revision,offset,refreshSignal]);
  return <section aria-label="Current source setup"><h3>Current source setup</h3><p>Registered websites support future checks. A working website or verified method does not establish complete coverage.</p>
   {error&&<p role="alert">{error} <button className="text-button" onClick={()=>setRevision(n=>n+1)}>Retry source setup</button></p>}

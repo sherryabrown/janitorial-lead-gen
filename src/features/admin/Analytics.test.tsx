@@ -63,3 +63,9 @@ it('does not display Admin usage even if an older response includes it for a Use
  await screen.findByRole('heading',{name:'Validated results'});
  expect(screen.queryByRole('heading',{name:/AI usage/})).toBeNull();expect(screen.queryByText('$0.02')).toBeNull();
 });
+
+vi.mock('../../lib/scheduling-reads',async()=>{
+ const {workflowRequest}=await import('../../lib/procurement-workflow');
+ const {mockSchedulingReads}=await import('../../../tests/helpers/mock-scheduling-reads');
+ return {schedulingRead:mockSchedulingReads(workflowRequest)};
+});

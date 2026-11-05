@@ -40,3 +40,9 @@ it('uses label and measured number, exact positive subset links and accessible c
  const help=within(metric('Verified new leads')).getByRole('button');fireEvent.focus(help);expect(screen.getByRole('tooltip').textContent).toContain('Only verified saved records');fireEvent.keyDown(help,{key:'Escape'});expect(screen.queryByRole('tooltip')).toBeNull();fireEvent.click(help);expect(screen.getByRole('tooltip')).toBeTruthy();
  const link=within(metric('Verified new leads')).getByRole('link');expect(link.getAttribute('href')).toContain('expected');
 });
+
+vi.mock('../../lib/scheduling-reads',async()=>{
+ const {workflowRequest}=await import('../../lib/procurement-workflow');
+ const {mockSchedulingReads}=await import('../../../tests/helpers/mock-scheduling-reads');
+ return {schedulingRead:mockSchedulingReads(workflowRequest)};
+});

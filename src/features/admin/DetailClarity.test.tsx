@@ -39,3 +39,9 @@ it('does not offer a research retry for an explicitly manual-only legacy source 
  render(<RequestReview presentation="issues" embedded id="request" owner="owner" onViewLeads={()=>{}}/>);
  await screen.findByRole('table',{name:'Source issues and next actions'});expect(screen.queryByRole('button',{name:'Resume saved research'})).toBeNull();expect(screen.getByRole('button',{name:'Review source research'})).toBeTruthy();expect(request.mock.calls.every(([,o])=>!o?.body)).toBe(true);
 });
+
+vi.mock('../../lib/scheduling-reads',async()=>{
+ const {workflowRequest}=await import('../../lib/procurement-workflow');
+ const {mockSchedulingReads}=await import('../../../tests/helpers/mock-scheduling-reads');
+ return {schedulingRead:mockSchedulingReads(workflowRequest)};
+});

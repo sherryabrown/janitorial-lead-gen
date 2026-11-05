@@ -20,7 +20,16 @@ beforeEach(() => {
     data: { session: { access_token: 'new' } },
   });
 });
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {vi.useRealTimers();vi.unstubAllGlobals();});
+it('retains the deployed startup allowance for Render capabilities without changing ordinary reads',async()=>{
+ vi.useFakeTimers();
+ let complete!:(response:Response)=>void;
+ const fetch=vi.fn((_url:string,{signal}:{signal:AbortSignal})=>new Promise<Response>((resolve,reject)=>{complete=resolve;signal.addEventListener('abort',()=>reject(new DOMException('Aborted','AbortError')));}));
+ vi.stubGlobal('fetch',fetch);
+ const delayed=workflowRequest('/v1/capabilities');await vi.advanceTimersByTimeAsync(52000);
+ expect(fetch.mock.calls[0][1].signal.aborted).toBe(false);complete(new Response('{"role":"user"}'));await expect(delayed).resolves.toEqual({role:'user'});
+ const ordinary=workflowRequest('/v1/counties');const failed=expect(ordinary).rejects.toMatchObject({name:'AbortError'});await vi.advanceTimersByTimeAsync(30000);await failed;
+});
 it('refreshes once and resends the same mutation identity without exposing tokens in errors', async () => {
   const fetch = vi
     .fn()

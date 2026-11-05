@@ -17,13 +17,15 @@ import {postgresTransport} from '../../scripts/lib/hosted-import.mjs';
 import {nativeRehearsal} from '../../scripts/lib/native-sql-rehearsal.mjs';
 import {adminCatalog} from '../../scripts/lib/admin-catalog.mjs';
 import {executeKnownSources} from '../../scripts/lib/known-source-collection.mjs';
+import {persistRunResult,persistPendingRunResults} from '../../scripts/lib/persisted-run-results.mjs';
+import {persistCapabilityReadiness} from '../../scripts/lib/persisted-capability-readiness.mjs';
 
 export async function schedulingDevPreview({pool,rehearsalPool,db,first,second,token,gatewayPort}){
  assert.equal(pool.options.host,'127.0.0.1','Preview requires the native disposable loopback cluster');
  assert.ok(process.argv.includes('--preview'),'Preview is explicitly requested');
  const project='zreplhkoxswtzxlchtjf',port=5174,apiPort=8091,origin=`http://127.0.0.1:${port}`;
- // Reset only the known disposable procurement namespace after its acceptance
- // gate passes. No production URL, credentials or environment file is read.
+ // Reset only the known disposable procurement namespace after local schema
+ // setup. No production URL, credentials or environment file is read.
  const tables=(await pool.query("select quote_ident(tablename) as name from pg_tables where schemaname='public' and tablename like 'procurement\\_%' escape '\\' order by tablename")).rows;
  assert.ok(tables.length>=40);await pool.query('truncate '+tables.map(t=>'public.'+t.name).join(',')+' cascade');
  await pool.query("update profiles set role=case when user_id=$1 then 'admin'::app_role else 'user'::app_role end,first_name=case when user_id=$1 then 'Preview Admin' else 'Preview User' end where user_id in ($1,$2)",[second,first]);
@@ -57,10 +59,12 @@ export async function schedulingDevPreview({pool,rehearsalPool,db,first,second,t
  const payload={bid_type:'opportunity',agency:'Arkansas County',business_category:'other_public',contracting_entity_geo_level:'county',currently_open:true,
   title:'Sample county janitorial services',deadline:'2027-01-01',source_url:'https://repair.example/bid/26-1',
   work_performance_locations:[{state_code:'AR',county_name:'Arkansas County'}]};
- await pool.query('insert into procurement_leads(source_id,external_id,payload) values($1,$2,$3)',[source,'preview-janitorial',payload]);
+ const sampleLead=(await pool.query('insert into procurement_leads(source_id,external_id,payload) values($1,$2,$3) returning id',[source,'preview-janitorial',payload])).rows[0].id;
+ await pool.query(`insert into procurement_jobs(search_request_id,dedupe_key,kind,state,checkpoint)values($1,'preview-verified-import','process','succeeded',$2)`,[child.request_id,{stage:'import_verified',receipt:{verified:true},reporting_records:{version:1,records:[{id:sampleLead,outcome:'added',category:'opportunity'}]}}]);
+ await persistRunResult(db,occurrence.trigger_id);await persistCapabilityReadiness(db,{limit:100});
  const users=new Map([[first,{id:first,email:'user@preview.invalid',aud:'authenticated',role:'authenticated'}],[second,{id:second,email:'admin@preview.invalid',aud:'authenticated',role:'authenticated'}]]);
  const sessions=new Map([...users.keys()].map(id=>[token('authenticated',id),id]));
- const kick=()=>{if(running)return;running=true;setImmediate(async()=>{try{for(let n=0;n<40;n++){if(!await workflow.step()&&!await triggers.step())break;}}catch{console.error('Local preview stage paused. Review its saved status.');}finally{running=false;}});};
+ const kick=()=>{if(running)return;running=true;setImmediate(async()=>{try{for(let n=0;n<40;n++){if(!await workflow.step()&&!await triggers.step())break;await persistPendingRunResults(db);await persistCapabilityReadiness(db);}}catch{console.error('Local preview stage paused. Review its saved status.');}finally{running=false;}});};
  const backend=workflowServer({db,triggers,schedules,workflow,discovery,sourceResolution:resolution,catalog:adminCatalog({db}),audit,kick,
   capabilities:actor=>profileCapabilities(db,actor),authenticate:async jwt=>users.get(sessions.get(jwt))??null,allowedOrigins:[origin],aiPolicy:{enabled:false,monthlyUsd:0}});
  const site=await buildSchedulingPreview();

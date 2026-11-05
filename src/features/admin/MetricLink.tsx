@@ -1,6 +1,6 @@
 import {createContext,useContext,useEffect,useRef,useState,type ReactNode} from 'react';
-import {workflowRequest} from '../../lib/procurement-workflow';
-import {leadScopeLocation,metricPath,metricLabels,type MetricScope,type MetricMembers} from './metric-scope';
+import {schedulingRead} from '../../lib/scheduling-reads';
+import {leadScopeLocation,metricReadFilters,metricLabels,type MetricScope,type MetricMembers} from './metric-scope';
 const Context=createContext<{leads:(scope:MetricScope)=>void;issues:(scope:MetricScope)=>void}|null>(null);
 export function RunLeadCount({id,metric,value,identity=true,children,filters={},snapshot}:{id:string;metric:string;value:number|null|undefined;identity?:boolean;children?:ReactNode;filters?:Record<string,string>;snapshot?:string}){
  return identity?<MetricLink scope={{metric,label:`Run ${id} · ${metricLabels[metric]??metric}`,filters:{run:id,period:'all',...filters,...(snapshot?{identity_snapshot:snapshot}:{})}}} value={value}>{children??value??'Unknown'}</MetricLink>:<span title="Historical lead identities were not recorded">{children??value} · identities unavailable</span>;
@@ -14,7 +14,7 @@ export function MetricLink({scope,value,children}:{scope:MetricScope;value:numbe
 export function MetricNavigation({onLeads,onRun,children,active=true}:{onLeads:(scope:MetricScope)=>void;onRun:(id:string,requestId?:string)=>void;children:ReactNode;active?:boolean}){
  const [scope,setScope]=useState<MetricScope|null>(null),[data,setData]=useState<MetricMembers|null>(null),[error,setError]=useState(''),[offset,setOffset]=useState(0),[revision,setRevision]=useState(0);
  const anchor=useRef<{as_of:string;snapshot:string}|null>(null),origin=useRef<HTMLElement|null>(null),heading=useRef<HTMLHeadingElement>(null);
- useEffect(()=>{if(!scope||!active)return;const a=new AbortController();setError('');setData(null);void workflowRequest<MetricMembers>(metricPath({...scope,filters:{...scope.filters,...anchor.current}},offset),{signal:a.signal}).then(r=>{if(r.unavailable)throw Error(r.unavailable);if(r.kind!=='issues')throw Error('Issue details unavailable.');if(!a.signal.aborted){anchor.current={as_of:r.as_of,snapshot:r.snapshot};setData(r);}}).catch(e=>{if(!a.signal.aborted)setError((e as Error).message);});return()=>a.abort();},[scope,offset,revision,active]);
+ useEffect(()=>{if(!scope||!active)return;const a=new AbortController();setError('');setData(null);void schedulingRead<MetricMembers>('metric_members',{filters:metricReadFilters({...scope,filters:{...scope.filters,...anchor.current}},offset),signal:a.signal}).then(r=>{if(r.unavailable)throw Error(r.unavailable);if(r.kind!=='issues')throw Error('Issue details unavailable.');if(!a.signal.aborted){anchor.current={as_of:r.as_of,snapshot:r.snapshot};setData(r);}}).catch(e=>{if(!a.signal.aborted)setError((e as Error).message);});return()=>a.abort();},[scope,offset,revision,active]);
  useEffect(()=>{if(scope)heading.current?.focus();},[scope]);
  const close=()=>{setScope(null);requestAnimationFrame(()=>origin.current?.focus());};
  return <Context.Provider value={{leads:onLeads,issues:value=>{origin.current=document.activeElement as HTMLElement;anchor.current=null;setOffset(0);setScope(value);}}}>

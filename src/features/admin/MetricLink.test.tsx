@@ -23,3 +23,9 @@ it('validates bounded location scopes and never accepts arbitrary serialized dat
  window.history.replaceState({},'','/?leadReport='+encodeURIComponent(JSON.stringify({...scope,filters:{...scope.filters,private:'hidden'}})));expect(readLeadScope()).toEqual(scope);
  expect(metricPath({...scope,expected:0})).toContain('expected=0');
 });
+
+vi.mock('../../lib/scheduling-reads',async()=>{
+ const {workflowRequest}=await import('../../lib/procurement-workflow');
+ const {mockSchedulingReads}=await import('../../../tests/helpers/mock-scheduling-reads');
+ return {schedulingRead:mockSchedulingReads(workflowRequest)};
+});

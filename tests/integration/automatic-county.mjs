@@ -14,6 +14,8 @@ import {proposeAutomaticListing} from '../../scripts/lib/automatic-public-method
 
 export async function verifyAutomaticCounty({db,artifacts,audit,livePool,rehearsalPool,actor,config}) {
   const project='zreplhkoxswtzxlchtjf',errors=[],calls=[];let showAddendum=false;
+  // Keep this native import fixture open as the real calendar advances.
+  const detailYear=new Date().getUTCFullYear()+1,detailDeadline=`${detailYear}-01-01`;
   const fetcher=async url=>{
     calls.push(String(url));let body;
     if(url==='https://www.arcounties.org/counties/')body='<div class="county"><a href="/counties/arkansas/">Arkansas</a></div>';
@@ -30,6 +32,7 @@ export async function verifyAutomaticCounty({db,artifacts,audit,livePool,rehears
     else if(url==='https://forecast.example/contractors/')body='<a href="/September.pdf">View the Forecast</a>';
     else if(url==='https://forecast.example/September.pdf')return new Response(readFileSync('tests/fixtures/county/airport-forecast-published.pdf'),{headers:{'content-type':'application/pdf'}});
     else throw Error(`Unexpected isolated county destination ${url}`);
+    body=(Buffer.isBuffer(body)?body.toString('utf8'):body).replaceAll('11/5/2026',`1/1/${detailYear}`);
     return new Response(body,{headers:{'content-type':'text/html'}});
   };
   let discovery,imports,aiCalls=0;
@@ -178,7 +181,7 @@ export async function verifyAutomaticCounty({db,artifacts,audit,livePool,rehears
   assert.equal(checked(await db.from('procurement_leads').select('id').in('source_id',publicSources.map(s=>s.id))).length,0,'No invented lead from empty listings or an inaccessible channel');
   assert.ok(candidate,JSON.stringify({message:'Actual public detail evidence reaches native intake',jobs:detailStatus.jobs,tasks:detailStatus.tasks,candidates:detailStatus.candidates}));
   const intake=checked(await db.from('procurement_intake_items').select('*').eq('id',candidate.intake_id).single());
-  assert.equal(intake.source_id,sourceId);assert.equal(intake.payload.work_city,'Little Rock');assert.equal(intake.payload.deadline,'2026-11-05');
+  assert.equal(intake.source_id,sourceId);assert.equal(intake.payload.work_city,'Little Rock');assert.equal(intake.payload.deadline,detailDeadline);
   assert.equal(checked(await db.from('procurement_leads').select('id').eq('source_id',sourceId)).length,1,JSON.stringify({message:'Public detail collection automatically imports validated county result',automatic:detailStatus.automatic_import,jobs:detailStatus.jobs}));
   assert.equal((await workflow.status(detailChild.request_id)).automatic_import.verified,true);
   assert.equal(intake.payload.manual_capture.amends_intake_id,legacyParent);

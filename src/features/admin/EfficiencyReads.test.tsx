@@ -93,3 +93,9 @@ it('restores the saved log depth after a later restoration page fails',async()=>
  const {result}=renderHook(()=>useRunLogs('run','owner',true));await act(async()=>{});expect(result.current.steps).toHaveLength(50);expect(result.current.error).toBeTruthy();
  fail=false;await act(async()=>result.current.refresh());await act(async()=>{});expect(result.current.steps).toHaveLength(100);expect(result.current.cursor).toBeNull();
 });
+
+vi.mock('../../lib/scheduling-reads',async()=>{
+ const {workflowRequest}=await import('../../lib/procurement-workflow');
+ const {mockSchedulingReads}=await import('../../../tests/helpers/mock-scheduling-reads');
+ return {schedulingRead:mockSchedulingReads(workflowRequest)};
+});

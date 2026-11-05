@@ -79,6 +79,7 @@ export type Usage = {
   credit_unit?: string | null;
 };
 export type Run = {
+ reporting_pending?:boolean;
  identity_snapshot?:string;
   finished_at?: string | null;
   schedule_id?: string | null;

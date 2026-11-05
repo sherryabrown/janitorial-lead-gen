@@ -97,3 +97,9 @@ it('makes reviewed and disabled sources discoverable from an empty Admin issue v
  expect(screen.getByText(/Checks disabled by admin decision/)).toBeTruthy();
  expect(request.mock.calls.map(([path])=>path)).toEqual(['/v1/source-reviews?reviewed=false&offset=0','/v1/source-reviews?reviewed=true&offset=0']);
 });
+
+vi.mock('../../lib/scheduling-reads',async()=>{
+ const {workflowRequest}=await import('../../lib/procurement-workflow');
+ const {mockSchedulingReads}=await import('../../../tests/helpers/mock-scheduling-reads');
+ return {schedulingRead:mockSchedulingReads(workflowRequest)};
+});

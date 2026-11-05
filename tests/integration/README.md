@@ -2,6 +2,12 @@
 
 Both suites are deliberately separate from the offline suites. Missing configuration fails clearly; neither uses production as a fallback.
 
+## Interactive scheduling preview
+
+Run `npm run preview:scheduling`, wait for `preview_ready`, then open `http://127.0.0.1:5174`. This creates a disposable local PostgreSQL/PostgREST database, applies the current preview schema, and seeds sample schedules/results with a User/Admin selector. It does not run the integration regression suite first; use `npm run test:access` separately for that gate. Stop the preview with Ctrl+C. Ports 5174 and 8091 must be available. It uses no production connection or credentials.
+
+PostgREST output is retained in the temporary cluster's `postgrest.log`. Startup stops promptly if its process exits. Shell PostgREST and database connection overrides are excluded from the gateway's environment, and sample seeding waits for the schema cache to reload.
+
 `npm run test:access` creates a disposable PostgreSQL cluster on a random localhost port, loads the sanitized baseline and forward migrations, and starts PostgREST with an ephemeral signing key. It tests real HTTP JWT signature/expiry enforcement, database roles, RLS, note ownership, stage audit and 1,005-row pagination. It stops its own processes afterwards. It does not use the existing PostgreSQL service or implement Supabase Auth signup. The Auth claim helper is reconstructed locally; hosted Auth lifecycle verification is available separately below.
 
 Install PostgreSQL 15+ and the official PostgREST Windows binary (tested with PostgreSQL 15.15 and PostgREST 16.4). Defaults are `C:/Program Files/PostgreSQL/15/bin` and `outputs/procurement-access/local-access-runtime/postgrest/postgrest.exe`; override with `ACCESS_TEST_PG_BIN` and `ACCESS_TEST_POSTGREST_BIN`. Verify the official release asset checksum before extracting. No runtime download occurs during tests. Temporary cluster directories are retained under the OS temp directory for diagnostics and contain a disposable signing key; never commit them. On other platforms supply both runtime paths.

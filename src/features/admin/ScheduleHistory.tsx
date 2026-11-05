@@ -1,7 +1,7 @@
 import {ReadAction} from './ReadAction';
 import {useOwnedRead} from './read-owner';
 import { useEffect, useRef, useState } from 'react';
-import { workflowRequest } from '../../lib/procurement-workflow';
+import {schedulingRead} from '../../lib/scheduling-reads';
 import { formatLocal, title,readFailure } from './model';
 import type { Page } from './types';
 
@@ -25,7 +25,7 @@ export function ScheduleHistory({id,owner='',active=true}:{id:string;owner?:stri
   try{const n=Number(sessionStorage.getItem(key));if(Number.isInteger(n)&&n>=50&&n<=5000)loaded.current=n;}catch{/* Mounted pages remain. */}
   void (async()=>{
    const offset=failedOffset.current,result:Page<Event>={items:[],next_offset:offset??0};
-   do{const page=await workflowRequest<Page<Event>>(`/v1/schedules/${id}/events${result.next_offset?`?offset=${result.next_offset}`: ''}`,{signal:abort.signal});result.items.push(...page.items);result.next_offset=page.next_offset;}while(offset===null&&result.next_offset!==null&&result.next_offset<loaded.current);
+   do{const page=await schedulingRead<Page<Event>>('events',{id,filters:{offset:result.next_offset??0},signal:abort.signal});result.items.push(...page.items);result.next_offset=page.next_offset;}while(offset===null&&result.next_offset!==null&&result.next_offset<loaded.current);
    if(abort.signal.aborted)return;
    setEvents(old=>({...result,items:offset===null?result.items:[...old.items,...result.items.filter(e=>!old.items.some(o=>o.id===e.id))]}));
    if(offset!==null){loaded.current=offset+50;try{sessionStorage.setItem(key,String(loaded.current));}catch{/* Mounted pages remain. */}}failedOffset.current=null;
@@ -37,7 +37,7 @@ export function ScheduleHistory({id,owner='',active=true}:{id:string;owner?:stri
  const more=async()=>{
   const offset=events.next_offset;if(pending.current||offset===null)return;
   const epoch=generation.current;pending.current=true;setBusy(true);setError('');
-  try{const page=await workflowRequest<Page<Event>>(`/v1/schedules/${id}/events?offset=${offset}`);if(epoch!==generation.current)return;setEvents(old=>({...page,items:[...old.items,...page.items.filter(e=>!old.items.some(o=>o.id===e.id))]}));loaded.current=offset+50;failedOffset.current=null;try{sessionStorage.setItem(key,String(loaded.current));}catch{/* Mounted pages remain. */}}
+  try{const page=await schedulingRead<Page<Event>>('events',{id,filters:{offset}});if(epoch!==generation.current)return;setEvents(old=>({...page,items:[...old.items,...page.items.filter(e=>!old.items.some(o=>o.id===e.id))]}));loaded.current=offset+50;failedOffset.current=null;try{sessionStorage.setItem(key,String(loaded.current));}catch{/* Mounted pages remain. */}}
   catch(e){if(epoch===generation.current){failedOffset.current=offset;setError(readFailure(e,'More schedule changes'));}}
   finally{if(epoch===generation.current){setBusy(false);pending.current=false;}}
  };

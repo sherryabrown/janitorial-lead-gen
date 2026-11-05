@@ -110,3 +110,9 @@ it('keeps grouped state-source children independent within one selected schedule
 it('keeps one working lead navigation action when embedded automatic results also offer it',async()=>{
  const original=mock.request.getMockImplementation()!;mock.request.mockImplementation((p,o)=>p.endsWith('/source-status')?Promise.resolve({items:[item]}):p.startsWith('/v1/requests/')?Promise.resolve({...results,automatic_county:true,automatic_import:{state:'verified',verified:true,added:1,updated:0,unchanged:0,exclusions:[]}}):original(p,o));fixture('sources');await screen.findByRole('button',{name:'View leads'});expect(screen.getAllByRole('button',{name:'View leads'})).toHaveLength(1);expect(screen.queryByRole('checkbox')).toBeNull();
 });
+
+vi.mock('../../lib/scheduling-reads',async()=>{
+ const {workflowRequest}=await import('../../lib/procurement-workflow');
+ const {mockSchedulingReads}=await import('../../../tests/helpers/mock-scheduling-reads');
+ return {schedulingRead:mockSchedulingReads(workflowRequest)};
+});

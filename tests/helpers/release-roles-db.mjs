@@ -6,7 +6,7 @@ import {profileCapabilities} from '../../scripts/lib/procurement-capabilities.mj
 import {verifyGuidedRepair} from './guided-repair-db.mjs';
 import {verifySourceEntryLineage} from './source-entry-lineage-db.mjs';
 
-export async function verifyReleaseRoles({pool,rehearsalPool,db,api,first,second,userToken,adminToken}){
+export async function prepareReleaseRoleFixture({pool,first,second}){
  await pool.query(`create type public.app_role as enum ('user','admin');
  create table public.profiles(id uuid primary key default gen_random_uuid(),user_id uuid unique not null references auth.users(id),
  email text not null,created_at timestamptz not null default now(),updated_at timestamptz not null default now(),
@@ -21,6 +21,9 @@ export async function verifyReleaseRoles({pool,rehearsalPool,db,api,first,second
  for(const name of ['20261026000100_protect_profile_role.sql','20261026000200_procurement_profile_capabilities.sql',
    '20261026000300_procurement_source_decisions.sql','20261026000400_procurement_source_exclusion_claims.sql'])
    await pool.query(readFileSync('supabase/migrations/'+name,'utf8'));
+}
+export async function verifyReleaseRoles({pool,rehearsalPool,db,api,first,second,userToken,adminToken}){
+ await prepareReleaseRoleFixture({pool,first,second});
  await pool.query("notify pgrst, 'reload schema'");
  let ready=false;
  for(let n=0;n<30;n++){

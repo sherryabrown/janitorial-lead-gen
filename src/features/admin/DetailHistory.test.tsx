@@ -100,3 +100,9 @@ it('keeps saved progress but stops active polling after session expiry',async()=
  await act(async()=>{});await act(async()=>{await vi.advanceTimersByTimeAsync(3000);});expect(screen.getByText('Sign in again')).toBeTruthy();expect(screen.getByRole('heading',{name:/Oct 20|Oct 22|Oct 19/})).toBeTruthy();fireEvent.click(screen.getByText('Run attributes'));expect(screen.getByText('Checking sources')).toBeTruthy();
  await act(async()=>{await vi.advanceTimersByTimeAsync(30000);});expect(reads).toBe(2);expect(mocked.request.mock.calls.every(([,o])=>!o?.body)).toBe(true);
 });
+
+vi.mock('../../lib/scheduling-reads',async()=>{
+ const {workflowRequest}=await import('../../lib/procurement-workflow');
+ const {mockSchedulingReads}=await import('../../../tests/helpers/mock-scheduling-reads');
+ return {schedulingRead:mockSchedulingReads(workflowRequest)};
+});

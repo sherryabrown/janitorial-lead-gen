@@ -1,3 +1,4 @@
+import {schedulingRead} from '../../lib/scheduling-reads';
 import {Breadcrumb} from './Breadcrumb';
 import {SettingsNavigation} from './breadcrumb-context';
 import {adminViewLabels} from './navigation';
@@ -217,17 +218,23 @@ function SchedulingWorkspace({
   }, [editor, owner]);
   useEffect(() => {
     const a = new AbortController();
-    void workflowRequest<{counties:County[]}>('/v1/counties',{signal:a.signal}).then(value=>{
+    void schedulingRead<{counties:County[]}>('counties',{signal:a.signal}).then(value=>{
       if(!a.signal.aborted){setCounties(value.counties);setRegistryState('ready');}
     }).catch(e=>{if(!a.signal.aborted){setRegistryState('error');setConnectionError(e.message);}});
-    if(role.technical_details)void workflowRequest<SchedulerStatus>('/v1/scheduler/status',{signal:a.signal}).then(value=>{
-      if(!a.signal.aborted)setStatus(value);
+    if(role.technical_details)void schedulingRead<SchedulerStatus>('scheduler_status',{signal:a.signal}).then(value=>{
+      if(!a.signal.aborted)setStatus(current=>({...current,...value}));
     }).catch(e=>{if(!a.signal.aborted)setConnectionError(e.message);});
     return () => a.abort();
   }, [connectionRevision,role.technical_details]);
   useEffect(()=>{
+    if(!active||!manualView||selected||scheduleEditor||!role.technical_details)return;
     const a=new AbortController();
-    void workflowRequest<{items:StateSource[]}>('/v1/state-triggers',{signal:a.signal}).then(value=>{
+    void workflowRequest<SchedulerStatus>('/v1/scheduler/status',{signal:a.signal}).then(value=>{if(!a.signal.aborted)setStatus(value);}).catch(e=>{if(!a.signal.aborted)setConnectionError(e.message);});
+    return()=>a.abort();
+  },[active,manualView,selected,scheduleEditor,role.technical_details,connectionRevision]);
+  useEffect(()=>{
+    const a=new AbortController();
+    void schedulingRead<{items:StateSource[]}>('state_sources',{signal:a.signal}).then(value=>{
       if(!a.signal.aborted)setSources(value.items);
     }).catch(e=>{if(!a.signal.aborted)setConnectionError(e.message);});
     return()=>a.abort();
@@ -241,7 +248,7 @@ function SchedulingWorkspace({
       const items: AnySchedule[] = [];
       do {
         const params=new URLSearchParams(scheduleQuery);if(offset)params.set('offset',String(offset));
-        const page: Page<AnySchedule> = await workflowRequest(`/v1/schedules${params.size?'?'+params:''}`, { signal: a.signal });
+        const page: Page<AnySchedule> = await schedulingRead('schedules',{filters:Object.fromEntries(params),signal:a.signal});
         if(!a.signal.aborted)setScheduleTotal(page.total);
         items.push(...page.items); offset = page.next_offset;
       } while (offset !== null && offset < loadedSchedules.current);
@@ -404,7 +411,7 @@ function SchedulingWorkspace({
   };
   const edit = async (s:AnySchedule) => {
     const version=scopeRevision.current;
-    try{const full=await workflowRequest<AnySchedule>(`/v1/schedules/${s.id}`);if(version===scopeRevision.current)setScheduleEditor({saved:full,target:full.config.target_kind});}catch(e){setError((e as Error).message);}
+    try{const full=await schedulingRead<AnySchedule>('schedule',{id:s.id});if(version===scopeRevision.current)setScheduleEditor({saved:full,target:full.config.target_kind});}catch(e){setError((e as Error).message);}
   };
   const sourceAction = async (s: StateSource, intent: 'run' | 'schedule') => {
     if(intent==='schedule'&&!s.schedule_id){setScheduleEditor({target:'state_source'});return;}
@@ -431,7 +438,7 @@ function SchedulingWorkspace({
     pagingRef.current=true;setPaging(true);setScheduleReadError('');
     try{
       const params=new URLSearchParams(scheduleQuery);params.set('offset',String(scheduleOffset));
-      const p=await workflowRequest<Page<AnySchedule>>(`/v1/schedules?${params}`);
+      const p=await schedulingRead<Page<AnySchedule>>('schedules',{filters:Object.fromEntries(params)});
       if(generation!==collectionGeneration.current)return;
       loadedSchedules.current=scheduleOffset+Math.max(p.items.length,1);try{sessionStorage.setItem(`spin-admin-schedule-page:${owner}`,String(loadedSchedules.current));}catch{/* Mounted pages remain. */}failedSchedulePage.current=false;setSchedules(x=>merge(x,p.items));setScheduleOffset(p.next_offset);
     }catch(e){if(generation===collectionGeneration.current){failedSchedulePage.current=true;setScheduleReadError(readFailure(e,'More schedules'));}}
@@ -476,7 +483,7 @@ function SchedulingWorkspace({
       {status &&
         (!status.enabled ||
           !status.extensions_ready ||
-          status.backend_key_configured === false) && (
+          manualView && status.backend_key_configured === false) && (
           <p className="admin-error" role="status">
             Scheduled execution is not ready. Saved schedules will require
             service activation before they run.
@@ -503,7 +510,7 @@ function SchedulingWorkspace({
                 : 'New schedule draft'}
           </strong>
           <span>Manual selection is kept separately.</span>
-          {editor.id&&<button type="button" className="text-button" disabled={busy} onClick={()=>void workflowRequest<Schedule>(`/v1/schedules/${editor.id}`).then(setReloadedSchedule).catch(e=>setError(e.message))}>Reload saved schedule</button>}
+          {editor.id&&<button type="button" className="text-button" disabled={busy} onClick={()=>void schedulingRead<Schedule>('schedule',{id:editor.id}).then(setReloadedSchedule).catch(e=>setError(e.message))}>Reload saved schedule</button>}
           {reloadedSchedule&&editor.id===reloadedSchedule.id&&<div><strong>Saved version {reloadedSchedule.version} · {reloadedSchedule.name}</strong><span> Your draft is unchanged.</span>
             <button type="button" className="text-button" onClick={()=>{setEditor({...editor,id:undefined,version:undefined});setReloadedSchedule(null);setPreview(null);scopeRevision.current++;}}>Keep draft as new schedule</button>
           </div>}

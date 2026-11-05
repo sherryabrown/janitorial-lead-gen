@@ -743,3 +743,9 @@ it('opens source repairs directly from schedule Sources and returns to the same 
  expect(screen.getByRole('heading',{name:'Morning check'})).toBeTruthy();
  expect(screen.getByRole('tab',{name:'Sources'}).getAttribute('aria-selected')).toBe('true');
 });
+
+vi.mock('../../lib/scheduling-reads',async()=>{
+ const {workflowRequest}=await import('../../lib/procurement-workflow');
+ const {mockSchedulingReads}=await import('../../../tests/helpers/mock-scheduling-reads');
+ return {schedulingRead:mockSchedulingReads(workflowRequest)};
+});
