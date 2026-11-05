@@ -1,6 +1,6 @@
 # 01 — Persist verified run results
 
-Local implementation prepared November 4; see [build review](../../docs/reviews/2026-11-04-scheduling-read-decoupling-build.md). Atomic publication/recovery, lifecycle integration and focused local/native tests are implemented. The operator dry-run script is prepared and locally tested. The planning aggregate inventory has not been promoted to an approved per-run production cohort; that qualification remains part of the separately authorized release. Retained in `todo` until that evidence gate is satisfied.
+Completed and released November 5 after explicit owner authorization; see [production release](../../docs/reviews/2026-11-05-scheduling-read-decoupling-release.md). Atomic publication/recovery and lifecycle integration passed local/native tests. All 84 historical runs were qualified from saved evidence; 53 supported projections were published, with 31 unsupported histories unavailable. No original evidence or execution state was rewritten. Earlier planning prohibitions below are superseded for this release only.
 
 Part of [Decouple saved scheduling reads from Render](decouple-scheduling-reads-from-render.md). Read that plan and its initiating prompt first. This spec covers phases 1–2 of six. Do not deploy or backfill production during implementation without separate release authorization.
 

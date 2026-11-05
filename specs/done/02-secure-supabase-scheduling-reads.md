@@ -1,6 +1,6 @@
 # 02 — Secure Supabase scheduling and report reads
 
-Local implementation prepared November 4; see [build review](../../docs/reviews/2026-11-04-scheduling-read-decoupling-build.md). Protected RPCs and consumers, native roles, reducer parity fixtures, canonical merges and blocked-execution browser checks are implemented. Production query-plan/distribution checks and representative historical-cohort comparisons remain release gates. Retained in `todo` until those qualification gates are satisfied.
+Completed and released November 5 after explicit owner authorization; see [production release](../../docs/reviews/2026-11-05-scheduling-read-decoupling-release.md). Protected RPCs, native roles, reducer parity fixtures, canonical merges and Render-blocked browser checks passed. Production User/Admin/anonymous database probes and count agreement passed; a production-scale query timeout was corrected and requalified before frontend publication. Earlier planning prohibitions below are superseded for this release only.
 
 Part of [Decouple saved scheduling reads from Render](decouple-scheduling-reads-from-render.md). Depends on spec 01; covers phases 3–4 of six.
 

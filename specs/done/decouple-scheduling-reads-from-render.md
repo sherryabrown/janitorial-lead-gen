@@ -2,7 +2,7 @@
 
 Planning date: November 4, 2026. Planning only; no application, schema, scheduler, hosting or production-data changes are authorized by this document. Implementation and deployment are separate steps.
 
-Build status, November 4: local implementation was separately authorized and is prepared. See [implementation/verification and release instructions](../../docs/reviews/2026-11-04-scheduling-read-decoupling-build.md). Production migrations, per-run historical qualification/backfill and publication remain unperformed and require separate approval; retain the plans in `todo` until their qualification/release gates are satisfied.
+Released November 5 after the owner's explicit commit/deploy request. See the [production release record](../../docs/reviews/2026-11-05-scheduling-read-decoupling-release.md) for qualified historical projections, deployment identifiers, permission/Render-blocked acceptance, query timing and recovery. The planning-only prohibitions and open decisions below are historical; the resolved decisions and authorized release supersede them. This plan and its three implementation specs are complete.
 
 Owner decisions resolved during build: saved reads may stop waking execution; existing commands/private dispatch continue work. Live key readiness and AI budget may load only in the existing Manual runs view. Keep known subtotals for incomplete history. No additional product behavior decisions remain open for this implementation.
 

@@ -1,6 +1,6 @@
 # 03 — Switch, backfill and release saved scheduling reads
 
-Local frontend switch and release preparation implemented November 4; see [build review](../../docs/reviews/2026-11-04-scheduling-read-decoupling-build.md). Both owner behavior decisions are resolved as recorded in the parent. No production migration, backfill, deployment or hosting change was executed. Release phases remain pending separate authorization, so this spec remains in `todo`.
+Completed and released November 5 after the owner's explicit commit/deploy request; see [production release](../../docs/reviews/2026-11-05-scheduling-read-decoupling-release.md). The qualified worker, additive migrations, supported historical projections and exact frontend assets are live. Signed-in saved reads and a Contracts drilldown passed with Render blocked. Render Free, the production lock, unrelated changes and recovery evidence are preserved. Earlier pending-authorization notes below are historical and superseded for this release only.
 
 Part of [Decouple saved scheduling reads from Render](decouple-scheduling-reads-from-render.md). Depends on specs 01–02; covers phases 5–6 of six. No production deployment/backfill is authorized by the planning request.
 
